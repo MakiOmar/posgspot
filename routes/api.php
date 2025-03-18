@@ -1,6 +1,10 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\User;
+use App\Http\Controllers\AccountsApi;
+use Laravel\Passport\Passport;
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +17,26 @@ use Illuminate\Http\Request;
 |
 */
 
+Route::post('/login', function (Request $request) {
+    $request->validate([
+        'username' => 'required|string',
+        'password' => 'required',
+    ]);
+
+    $user = User::where('username', $request->username)->first();
+
+    if (!$user || !Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    // Generate a Passport access token
+    $token = $user->createToken('API Token')->accessToken;
+
+    return response()->json(['token' => $token], 200);
+});
+
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::middleware('auth:api')->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
