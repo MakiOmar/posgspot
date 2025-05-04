@@ -638,7 +638,40 @@ class ContactController extends Controller
             $this->moduleUtil->getModuleData('after_contact_saved', ['contact' => $output['data'], 'input' => $request->input()]);
 
             $this->contactUtil->activityLog($output['data'], 'added');
+            // ✅ مزامنة العميل مع ووكومرس
+            try {
+                $woocommerce_endpoint = env('WOO_BASE') . '/wp-json/caui/v1/create-user';
 
+                $woocommerce_payload = [
+                    'auth_key' => env('AUTH_KEY'),
+                    'billing' => [
+                        'first_name'  => $output['data']->first_name,
+                        'last_name'   => $output['data']->last_name,
+                        'email'       => $output['data']->email,
+                        'phone'       => $output['data']->mobile,
+                        'address_1'   => $output['data']->address_line_1,
+                        'address_2'   => $output['data']->address_line_2,
+                        'city'        => $output['data']->city,
+                        'state'       => $output['data']->state,
+                        'postcode'    => $output['data']->zip_code,
+                        'country'     => $output['data']->country,
+                    ]
+                ];
+
+                $response = \Http::timeout(10)->post($woocommerce_endpoint, $woocommerce_payload);
+
+                \Log::info('WooCommerce Response', [
+                    'response' => $response->body(),
+                ]);
+
+                if (! $response->successful()) {
+                    \Log::warning('Failed to sync customer to WooCommerce', [
+                        'response' => $response->body(),
+                    ]);
+                }
+            } catch (\Exception $ex) {
+                \Log::error('Error while syncing customer to WooCommerce: ' . $ex->getMessage());
+            }
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();

@@ -109,7 +109,14 @@
         <!-- /.content-wrapper -->
 
 
-
+        <div class="modal fade view__modal" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-xl" role="document">
+                <div class="modal-content">
+                    {{-- سيتم تعبئة هذا المودال عبر AJAX --}}
+                </div>
+            </div>
+        </div>
+        
         <audio id="success-audio">
             <source src="{{ asset('/audio/success.ogg?v=' . $asset_v) }}" type="audio/ogg">
             <source src="{{ asset('/audio/success.mp3?v=' . $asset_v) }}" type="audio/mpeg">

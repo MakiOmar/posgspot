@@ -1,5 +1,5 @@
 <div class="row">
-	<div class="col-md-4">
+	<div class="col-md-7">
 		<div class="form-group">
 			<div class="input-group">
 				<span class="input-group-addon">
@@ -22,11 +22,25 @@
 				<span class="input-group-btn">
 					<button type="button" class="btn btn-default bg-white btn-flat add_new_customer" data-name=""  @if(!auth()->user()->can('customer.create')) disabled @endif><i class="fa fa-plus-circle text-primary fa-lg"></i></button>
 				</span>
+				<span class="input-group-btn">
+					<button type="button" class="btn btn-default bg-white btn-flat get_accounts_orders"><i class="fas fa-gamepad text-primary fa-lg"></i></button>
+				</span>
+				<span class="input-group-btn">
+					<button type="button" class="btn btn-default bg-white btn-flat search_transactions_modal_btn">
+						<i class="fas fa-search text-success fa-lg"></i>
+					</button>
+				</span>
+				<span class="input-group-btn">
+					<button type="button" class="btn btn-default bg-white btn-flat" data-toggle="modal" data-target="#qrScannerModal">
+						<i class="fas fa-qrcode text-primary fa-lg"></i>
+					</button>
+				</span>
+				
 			</div>
 			<small class="text-danger hide contact_due_text"><strong>@lang('account.customer_due'):</strong> <span></span></small>
 		</div>
 	</div>
-	<div class="col-md-8">
+	<div class="col-md-5">
 		<div class="form-group">
 			<div class="input-group">
 				<div class="input-group-btn">
@@ -52,6 +66,24 @@
 		</div>
 	</div>
 </div>
+<div class="modal fade" id="account_orders_modal" tabindex="-1" role="dialog" aria-hidden="true"></div>
+<!-- QR Scanner Modal -->
+<div class="modal fade" id="qrScannerModal" tabindex="-1" role="dialog" aria-labelledby="qrScannerModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-sm" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="qrScannerModalLabel">مسح QR Code</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body text-center">
+				<div id="qr-reader" style="width: 100%;"></div>
+			</div>
+		</div>
+	</div>
+</div>
+
 <div class="row">
 	@if(!empty($pos_settings['show_invoice_layout']))
 	<div class="col-md-4">

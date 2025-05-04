@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Hash;
 use App\User;
 use App\Http\Controllers\AccountsApi;
 use Laravel\Passport\Passport;
+use App\Http\Controllers\SellPosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -40,3 +41,7 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:api')->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
+Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);
+Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'getOrdersByPhone']);
+
+Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');

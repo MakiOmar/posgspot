@@ -233,6 +233,11 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/reset-mapping', [SellController::class, 'resetMapping']);
 
     Route::resource('pos', SellPosController::class);
+    Route::get('/sales-orders/contact-orders-modal', [App\Http\Controllers\SalesOrderController::class, 'getContactOrdersModal'])
+    ->name('sales_orders.contact_orders_modal');
+    Route::get('/sales-orders/search-transactions', [App\Http\Controllers\SalesOrderController::class, 'searchTransactions'])
+    ->name('sales_orders.search_transactions');
+
 
     Route::resource('roles', RoleController::class);
 

@@ -57,7 +57,7 @@
 	@include('sale_pos.partials.pos_form_actions', ['edit' => true])
 	{!! Form::close() !!}
 </section>
-
+@include('sale_pos.partials.search_orders_modal')
 <!-- This will be printed -->
 <section class="invoice print_section" id="receipt_section">
 </section>

@@ -30,5 +30,9 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'woo' => [
+        'endpoint' => env('WOO_ENDPOINT'),
+        'token'    => env('WOO_TOKEN'),
+    ],
 
 ];

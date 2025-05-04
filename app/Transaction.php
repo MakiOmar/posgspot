@@ -406,6 +406,11 @@ class Transaction extends Model
 
         return $sales_orders;
     }
-
-   
+    public static function getAccountOrderDraftsByContact($contactId)
+    {
+        return self::where('contact_id', $contactId)
+            ->where('custom_field_1', 'account_order')
+            ->where('status', 'draft')
+            ->get();
+    }
 }

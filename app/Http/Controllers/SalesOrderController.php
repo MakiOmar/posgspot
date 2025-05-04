@@ -146,7 +146,7 @@ class SalesOrderController extends Controller
                     'msg' => trans('lang_v1.success'),
                 ];
             } catch (\Exception $e) {
-                \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+                \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
                 $output = [
                     'success' => 0,
                     'msg' => trans('messages.something_went_wrong'),
@@ -156,4 +156,56 @@ class SalesOrderController extends Controller
             return $output;
         }
     }
+    /**
+     * Return modal with draft account orders of a contact
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function getContactOrdersModal(Request $request)
+    {
+        if ($request->ajax()) {
+            $business_id = $request->session()->get('user.business_id');
+            $contact_id = $request->input('contact_id');
+
+            $transactions = Transaction::where('business_id', $business_id)
+                ->where('contact_id', $contact_id)
+                ->where('custom_field_1', 'account_order')
+                ->where('status', 'draft')
+                ->orderBy('transaction_date', 'desc')
+                ->get(['id', 'transaction_date']);
+
+            return view('sale_pos.partials.contact_orders_modal')
+                ->with(compact('transactions'));
+        }
+
+        abort(403, 'Unauthorized action.');
+    }
+    public function searchTransactions(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = $request->input('query');
+            $searchBy = $request->input('search_by'); // 'phone' or 'invoice_no'
+
+            $transactions = Transaction::query()
+                ->when($searchBy === 'phone', function ($q) use ($query) {
+                    $contact = \App\Contact::where('mobile', $query)->first();
+                    if ($contact) {
+                        $q->where('contact_id', $contact->id);
+                    } else {
+                        $q->whereNull('id'); // empty result
+                    }
+                })
+                ->when($searchBy === 'invoice_no', function ($q) use ($query) {
+                    $q->where('invoice_no', "$query");
+                })
+                ->orderBy('transaction_date', 'desc')
+                ->paginate(5);
+
+            return view('sale_pos.partials.search_transactions_results', compact('transactions'))->render();
+        }
+
+        abort(403, 'Unauthorized action.');
+    }
+
 }

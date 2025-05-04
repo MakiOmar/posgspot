@@ -13,19 +13,15 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Log;
 use App\TransactionSellLine;
-
-use App\Category;
 use App\Contact;
 use App\Exceptions\PurchaseSellMismatch;
 use App\Product;
-use App\TaxRate;
 use App\Utils\ContactUtil;
 use App\Utils\Util;
 use App\VariationLocationDetails;
-use App\VariationTemplate;
-use Automattic\WooCommerce\Client;
-use Modules\Woocommerce\Entities\WoocommerceSyncLog;
-use Modules\Woocommerce\Exceptions\WooCommerceError;
+use App\Utils\CommonUtil;
+use App\Events\ContactCreatedOrModified;
+use Illuminate\Support\Facades\Http;
 
 class AccountsApi extends Controller
 {
@@ -35,29 +31,34 @@ class AccountsApi extends Controller
      * @param  WoocommerceUtil  $woocommerceUtil
      * @return void
      */
-    public function __construct( TransactionUtil $transactionUtil )
+    public function __construct(TransactionUtil $transactionUtil)
     {
         $this->transactionUtil = $transactionUtil;
-
     }
-    public function orderCreated( Request $request, $business_id ) {
+    public function orderCreated(Request $request, $business_id)
+    {
         try {
             $payload = $request->getContent();
+
             $business = Business::findOrFail($business_id);
             $user_id = $business->owner->id;
+            $order_data = json_decode($payload);
             $business_data = [
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
-                'location_id' => 1,
+                'location_id' => $order_data->location_id,
                 'business' => $business,
             ];
-            $order_data = json_decode($payload);
+
             DB::beginTransaction();
             $created = $this->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
             $create_error_data = $created !== true ? $created : [];
             DB::commit();
-            return response()->json([ 'message' => 'Order has been created successfully' ], 200);
-        } catch ( \Exception $e ) {
+            return response()->json([
+                'message' => 'Order has been created successfully',
+                'created' => $created
+            ], 200);
+        } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error occured!',
                 'error' => $e->getMessage()
@@ -75,7 +76,7 @@ class AccountsApi extends Controller
     public function createNewSaleFromOrder($business_id, $user_id, $order, $business_data)
     {
         $input = $this->formatOrderToSale($business_id, $user_id, $order);
-        
+
         if (! empty($input['has_error'])) {
             return $input['has_error'];
         }
@@ -127,9 +128,9 @@ class AccountsApi extends Controller
 
         DB::commit();
 
-        return true;
+        return $transaction;
     }
-    
+
     /**
      * Formats Woocommerce order response to pos sale request
      *
@@ -145,43 +146,67 @@ class AccountsApi extends Controller
          * location_id needs to be dynamic
          * product_line_product_id needs to be dynamic
          */
-    
+
         //Create sell line data
         $product_lines = [];
-        
+
         //For updating sell lines
         $sell_lines = [];
         if (! empty($sell)) {
             $sell_lines = $sell->sell_lines;
         }
-    
+        $sell_line_note = '';
         foreach ($order->line_items as $product_line) {
-            $product_line_product_id = 39;
+            $game_title = null;
+            $account = null;
+            $password = null;
+            $type = null;
+            $pos_product_id = null;
+            // Extract meta_data values
+            if (!empty($product_line->meta_data)) {
+                foreach ($product_line->meta_data as $meta) {
+                    if ($meta->key === 'game_title') {
+                        $game_title = $meta->value;
+                    } elseif ($meta->key === '_account') {
+                        $account = $meta->value;
+                    } elseif ($meta->key === '_password') {
+                        $password = $meta->value;
+                    } elseif ($meta->key === 'type') {
+                        $type = $meta->value;
+                    } elseif ($meta->key === '_pos_product_id') {
+                        $pos_product_id = $meta->value;
+                    }
+                }
+            }
+
+            $sell_line_note .= "\nGame Title: " . ($game_title ?? 'N/A') . "\nType: " . ($type ?? 'N/A') . "\nAccount: " . ($account ?? 'N/A') . "\nPassword: " . ($password ?? 'N/A') . "<br>----------------------<br>";
+
+            $product_line_product_id = $pos_product_id;
             $product = Product::where('business_id', $business_id)
                             ->where('id', $product_line_product_id)
                             ->with(['variations'])
                             ->first();
-    
+
             $unit_price = $product_line->total / $product_line->quantity;
             $line_tax = ! empty($product_line->total_tax) ? $product_line->total_tax : 0;
             $unit_line_tax = $line_tax / $product_line->quantity;
             $unit_price_inc_tax = $unit_price + $unit_line_tax;
             if (! empty($product)) {
                 $variation = $product->variations->first();
-    
+
                 if (empty($variation)) {
                     return ['has_error' => [
                         'error_type' => 'order_product_not_found',
                         'order_number' => $order->number,
-                        'product' => $product_line->name.' SKU:'.$product_line->sku,
+                        'product' => $product_line->name . ' SKU:' . $product_line->sku,
                     ],
                     ];
                     exit;
                 }
-    
+
                 //Check if line tax exists append to sale line data
                 $tax_id = null;
-    
+
                 $product_data = [
                     'product_id' => $product->id,
                     'unit_price' => $unit_price,
@@ -193,13 +218,13 @@ class AccountsApi extends Controller
                     'tax_id' => $tax_id,
                     'line_item_id' => $product_line->id,
                 ];
-    
+
                 $product_lines[] = $product_data;
             } else {
                 return ['has_error' => [
                     'error_type' => 'order_product_not_found',
                     'order_number' => $order->number,
-                    'product' => $product_line->name.' SKU:'.$product_line->sku,
+                    'product' => $product_line->name . ' SKU:' . $product_line->sku,
                 ],
                 ];
                 exit;
@@ -212,7 +237,7 @@ class AccountsApi extends Controller
             'first_name' => $f_name,
             'last_name' => $l_name,
             'email' => ! empty($order->billing->email) ? $order->billing->email : null,
-            'name' => $f_name.' '.$l_name,
+            'name' => $f_name . ' ' . $l_name,
             'mobile' => $order->billing->phone,
             'address_line_1' => ! empty($order->billing->address_1) ? $order->billing->address_1 : null,
             'address_line_2' => ! empty($order->billing->address_2) ? $order->billing->address_2 : null,
@@ -221,7 +246,7 @@ class AccountsApi extends Controller
             'country' => ! empty($order->billing->country) ? $order->billing->country : null,
             'zip_code' => ! empty($order->billing->postcode) ? $order->billing->postcode : null,
         ];
-        
+
         if (! empty($customer_details['mobile'])) {
             $customer = Contact::where('business_id', $business_id)
                             ->where('mobile', $customer_details['mobile'])
@@ -232,7 +257,7 @@ class AccountsApi extends Controller
         if (empty($customer)) {
             $ref_count = $this->transactionUtil->setAndGetReferenceCount('contacts', $business_id);
             $contact_id = $this->transactionUtil->generateReferenceNumber('contacts', $ref_count, $business_id);
-    
+
             $customer_data = [
                 'business_id' => $business_id,
                 'type' => 'customer',
@@ -257,12 +282,12 @@ class AccountsApi extends Controller
             }
             $customer = Contact::create($customer_data);
         }
-    
-        $sell_status = 'final';
+
+        $sell_status = 'quotation';
         $shipping_status = 'ordered';
         $shipping_address = [];
         if (! empty($order->shipping->first_name)) {
-            $shipping_address[] = $order->shipping->first_name.' '.$order->shipping->last_name;
+            $shipping_address[] = $order->shipping->first_name . ' ' . $order->shipping->last_name;
         }
         if (! empty($order->shipping->company)) {
             $shipping_address[] = $order->shipping->company;
@@ -286,7 +311,7 @@ class AccountsApi extends Controller
             $shipping_address[] = $order->shipping->postcode;
         }
         $addresses['shipping_address'] = [
-            'shipping_name' => $order->shipping->first_name.' '.$order->shipping->last_name,
+            'shipping_name' => $order->shipping->first_name . ' ' . $order->shipping->last_name,
             'company' => $order->shipping->company,
             'shipping_address_line_1' => $order->shipping->address_1,
             'shipping_address_line_2' => $order->shipping->address_2,
@@ -296,7 +321,7 @@ class AccountsApi extends Controller
             'shipping_zip_code' => $order->shipping->postcode,
         ];
         $addresses['billing_address'] = [
-            'billing_name' => $order->billing->first_name.' '.$order->billing->last_name,
+            'billing_name' => $order->billing->first_name . ' ' . $order->billing->last_name,
             'company' => $order->billing->company,
             'billing_address_line_1' => $order->billing->address_1,
             'billing_address_line_2' => $order->billing->address_2,
@@ -305,17 +330,17 @@ class AccountsApi extends Controller
             'billing_country' => $order->billing->country,
             'billing_zip_code' => $order->billing->postcode,
         ];
-    
+
         $shipping_lines_array = [];
         if (! empty($order->shipping_lines)) {
             foreach ($order->shipping_lines as $shipping_lines) {
                 $shipping_lines_array[] = $shipping_lines->method_title;
             }
         }
-    
+
         $new_sell_data = [
             'business_id' => $business_id,
-            'location_id' => 1,
+            'location_id' => $order->location_id,
             'contact_id' => $customer->id,
             'discount_type' => 'fixed',
             'discount_amount' => $order->discount_total,
@@ -325,12 +350,13 @@ class AccountsApi extends Controller
             'status' => $sell_status == 'quotation' ? 'draft' : $sell_status,
             'is_quotation' => $sell_status == 'quotation' ? 1 : 0,
             'sub_status' => $sell_status == 'quotation' ? 'quotation' : null,
-            'payment_status' => 'paid',
+            'payment_status' => 'due',
             'additional_notes' => '',
             'transaction_date' => $order->date_created,
             'customer_group_id' => $customer->customer_group_id,
             'tax_rate_id' => null,
             'sale_note' => null,
+            'staff_note' => $sell_line_note,
             'commission_agent' => null,
             'invoice_no' => $order->number,
             'order_addresses' => json_encode($addresses),
@@ -338,8 +364,8 @@ class AccountsApi extends Controller
             'shipping_details' => ! empty($shipping_lines_array) ? implode(', ', $shipping_lines_array) : '',
             'shipping_status' => $shipping_status,
             'shipping_address' => implode(', ', $shipping_address),
+            'custom_field_1' => 'account_order',
         ];
-    
         $payment = [
             'amount' => $order->total,
             'method' => 'cash',
@@ -354,14 +380,139 @@ class AccountsApi extends Controller
             'note' => $order->payment_method_title,
             'paid_on' => $order->date_paid,
         ];
-    
+
         if (! empty($sell) && count($sell->payment_lines) > 0) {
             $payment['payment_id'] = $sell->payment_lines->first()->id;
         }
-    
+
         $new_sell_data['products'] = $product_lines;
         $new_sell_data['payment'] = [$payment];
-    
+
         return $new_sell_data;
+    }
+    public function createContact(Request $request)
+    {
+        $data = $request->validate([
+        'billing.first_name' => 'required|string',
+        'billing.last_name' => 'nullable|string',
+        'billing.email' => 'nullable|email',
+        'billing.phone' => 'required|string', // ضروري للتحقق
+        'billing.address_1' => 'nullable|string',
+        'billing.address_2' => 'nullable|string',
+        'billing.city' => 'nullable|string',
+        'billing.state' => 'nullable|string',
+        'billing.postcode' => 'nullable|string',
+        'billing.country' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $business_id = 1;
+            $user_id = 1;
+            $billing = $data['billing'];
+
+            $customer_details = [
+            'first_name' => $billing['first_name'],
+            'last_name' => $billing['last_name'] ?? '',
+            'email' => $billing['email'] ?? '',
+            'mobile' => $billing['phone'],
+            'city' => $billing['city'] ?? '',
+            'state' => $billing['state'] ?? '',
+            'country' => $billing['country'] ?? '',
+            'address_line_1' => $billing['address_1'] ?? '',
+            'address_line_2' => $billing['address_2'] ?? '',
+            'zip_code' => $billing['postcode'] ?? '',
+            ];
+
+            $customer_details['name'] = trim($customer_details['first_name'] . ' ' . $customer_details['last_name']);
+
+            // 🔍 Check if customer exists using mobile only
+            $customer = \App\Contact::where('business_id', $business_id)
+                        ->where('mobile', $customer_details['mobile'])
+                        ->OnlyCustomers()
+                        ->first();
+
+            if (empty($customer)) {
+                $ref_count = $this->transactionUtil->setAndGetReferenceCount('contacts', $business_id);
+                $contact_id = $this->transactionUtil->generateReferenceNumber('contacts', $ref_count, $business_id);
+
+                $customer_data = [
+                'business_id' => $business_id,
+                'type' => 'customer',
+                'first_name' => $customer_details['first_name'],
+                'last_name' => $customer_details['last_name'],
+                'name' => $customer_details['name'],
+                'email' => $customer_details['email'],
+                'contact_id' => $contact_id,
+                'mobile' => $customer_details['mobile'],
+                'city' => $customer_details['city'],
+                'state' => $customer_details['state'],
+                'country' => $customer_details['country'],
+                'created_by' => $user_id,
+                'address_line_1' => $customer_details['address_line_1'],
+                'address_line_2' => $customer_details['address_line_2'],
+                'zip_code' => $customer_details['zip_code'],
+                ];
+
+                if (empty(trim($customer_data['name']))) {
+                    $customer_data['first_name'] = $customer_details['email'];
+                    $customer_data['name'] = $customer_details['email'];
+                }
+
+                $customer = \App\Contact::create($customer_data);
+            }
+
+            DB::commit();
+
+            return response()->json([
+            'success' => true,
+            'contact_id' => $customer->id,
+            'msg' => 'Customer created successfully',
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Error creating contact: " . $e->getMessage());
+
+            return response()->json([
+            'success' => false,
+            'msg' => 'Something went wrong.',
+            ], 500);
+        }
+    }
+
+    public function getOrdersByPhone(Request $request)
+    {
+        $request->validate([
+        'phone' => 'required|string',
+        ]);
+
+        $phone = $request->input('phone');
+
+    // البحث عن العميل حسب رقم الهاتف
+        $customer = Contact::where('mobile', $phone)->orWhere('mobile', 'like', "%$phone%")->first();
+
+        if (! $customer) {
+            return response()->json([
+            'status' => false,
+            'message' => 'العميل غير موجود',
+            ], 404);
+        }
+
+    // جلب الطلبات (transactions) المرتبطة بالعميل
+        $orders = Transaction::where('contact_id', $customer->id)
+        ->where('type', 'sell')
+        ->select('id', 'invoice_no', 'transaction_date', 'final_total', 'payment_status', 'status')
+        ->orderBy('transaction_date', 'desc')
+        ->get();
+
+        return response()->json([
+        'status' => true,
+        'customer' => [
+            'name' => $customer->name,
+            'mobile' => $customer->mobile,
+        ],
+        'orders' => $orders,
+        ]);
     }
 }

@@ -214,8 +214,143 @@
         // $('.date_range').on('show.daterangepicker', function (ev, picker) {
         //     $(picker.container).insertAfter($(this));
         // });
-   
+        $(document).on('click', '.get_accounts_orders', function () {
+            var contactId = $('#customer_id').val(); // استخدام الـ ID الصحيح
+
+            if (!contactId) {
+                alert('Please select a customer first.');
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('sales_orders.contact_orders_modal') }}",
+                method: 'GET',
+                data: { contact_id: contactId },
+                success: function (response) {
+                    $('#account_orders_modal').html(response).modal('show');
+                },
+                error: function () {
+                    alert('Unable to fetch orders. Try again later.');
+                }
+            });
+        });
+
+        // فتح المودال
+        $(document).on('click', '.search_transactions_modal_btn', function () {
+            $('#search_transactions_modal').modal('show');
+            $('#transaction_search_results').html('');
+            $('#transaction_search_input').val('');
+        });
+
+        // إرسال البحث
+        $(document).on('submit', '#transaction_search_form', function (e) {
+            e.preventDefault();
+
+            let query = $('#transaction_search_input').val();
+            let search_by = $('#search_by').val();
+
+            $.ajax({
+                url: "{{ route('sales_orders.search_transactions') }}",
+                method: 'GET',
+                data: { query: query, search_by: search_by },
+                success: function (response) {
+                    $('#transaction_search_results').html(response);
+                },
+                error: function () {
+                    alert('Error fetching transactions.');
+                }
+            });
+        });
+        $(document).on('click', '.contact-transaction', function (e) {
+            e.preventDefault();
+
+            let url = $(this).data('href');
+
+            $.ajax({
+                url: url,
+                dataType: 'html',
+                success: function (result) {
+                    $('.view_modal')
+                        .html(result)
+                        .modal('show');
+                },
+                error: function () {
+                    alert('حدث خطأ أثناء تحميل التفاصيل');
+                }
+            });
+        });
+
+
+        // Ajax Pagination
+        $(document).on('click', '#pagination_links .pagination a', function (e) {
+            e.preventDefault();
+            let url = $(this).attr('href');
+
+            $.ajax({
+                url: url,
+                success: function (response) {
+                    $('#transaction_search_results').html(response);
+                },
+                error: function () {
+                    alert('Error loading more results.');
+                }
+            });
+        });
+
     });
+    
 </script>
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+	let qrScanner = null;
+	let isScanning = false;
 
+	$('#qrScannerModal').on('shown.bs.modal', function () {
+		if (!qrScanner) {
+			qrScanner = new Html5Qrcode("qr-reader");
+		}
 
+		qrScanner.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: 200
+            },
+            qrCodeMessage => {
+                console.log("QR Code Scanned: ", qrCodeMessage);
+
+                // أدخل النص في صندوق بحث Select2 وافتح القائمة
+                let $select = $('#customer_id');
+                $select.val(null).trigger('change'); // Reset current selection
+                $select.select2('open');
+
+                // انتظر شوية عشان صندوق البحث يظهر
+                setTimeout(() => {
+                    $('.select2-container--open .select2-search__field').val(qrCodeMessage).trigger('input');
+                }, 200);
+
+                isScanning = false;
+                qrScanner.stop().then(() => {
+                    $('#qrScannerModal').modal('hide');
+                });
+            },
+            errorMessage => {
+                // تجاهل الأخطاء
+            }
+        ).then(() => {
+            isScanning = true;
+        });
+
+	});
+
+	$('#qrScannerModal').on('hidden.bs.modal', function () {
+		if (qrScanner && isScanning) {
+			qrScanner.stop().then(() => {
+				qrScanner.clear();
+				isScanning = false;
+			}).catch(err => {
+				console.warn("Error while stopping scanner: ", err);
+			});
+		}
+	});
+</script>

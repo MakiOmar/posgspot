@@ -1912,6 +1912,55 @@ class SellPosController extends Controller
             return $output;
         }
     }
+    /**
+     * Prints invoice for sell
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function printWooInvoice(Request $request, $transaction_id)
+    {
+        try {
+            $output = ['success' => 0,
+                'msg' => trans('messages.something_went_wrong'),
+            ];
+
+            $business_id = 1;
+
+            $transaction = Transaction::where('business_id', $business_id)
+                ->where('id', $transaction_id)
+                ->with(['location'])
+                ->first();
+
+            if (empty($transaction)) {
+                return $output;
+            }
+
+            $printer_type = 'browser';
+            if (!empty(request()->input('check_location')) && request()->input('check_location') == true) {
+                $printer_type = $transaction->location->receipt_printer_type;
+            }
+
+            $is_package_slip = !empty($request->input('package_slip')) ? true : false;
+            $is_delivery_note = !empty($request->input('delivery_note')) ? true : false;
+
+            $invoice_layout_id = $transaction->is_direct_sale ? $transaction->location->sale_invoice_layout_id : null;
+            $receipt = $this->receiptContent($business_id, $transaction->location_id, $transaction_id, $printer_type, $is_package_slip, false, $invoice_layout_id, $is_delivery_note);
+
+            if (!empty($receipt)) {
+                $output = ['success' => 1, 'receipt' => $receipt];
+            }
+        } catch (\Exception $e) {
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+
+            $output = ['success' => 0,
+                'msg' => trans('messages.something_went_wrong'),
+            ];
+        }
+
+        return $output;
+
+    }
 
     /**
      * Gives suggetion for product based on category
