@@ -22,6 +22,12 @@
     <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
     <script src='https://www.google.com/recaptcha/api.js'></script>
+    <style>
+        body {
+	background-color: #243949!important;
+	background: #243949!important;
+}
+    </style>
 
 </head>
 
@@ -33,13 +39,14 @@
     @endif
     <div class="container-fluid">
         <div class="row eq-height-row">
-            <div class="col-md-12 col-sm-12 col-xs-12 right-col tw-pt-20 tw-pb-10 tw-px-5">
+            <div class="col-md-12 col-sm-12 col-xs-12 tw-pt-20 tw-pb-10 tw-px-5">
                 <div class="row">
                     <div
-                        class="lg:tw-w-16 md:tw-h-16 tw-w-12 tw-h-12 tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden tw-bg-white tw-rounded-full tw-p-0.5 tw-mb-4">
+                        class="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden  tw-p-0.5 tw-mb-4" style="position: fixed;top: 0;right: 0;bottom: 0;left: 0;margin: auto;">
                         <img src="{{ asset('img/logo-small.png')}}" alt="lock" class="tw-rounded-full tw-object-fill" />
                     </div>
 
+                    {{--
                     <div class="tw-absolute tw-top-2 md:tw-top-5 tw-left-4 md:tw-left-8 tw-flex tw-items-center tw-gap-4"
                         style="text-align: left">
                         @include('layouts.partials.language_btn')
@@ -51,6 +58,7 @@
                             </a>
                         @endif
                     </div>
+                    --}}
 
                     <div class="tw-absolute tw-top-5 md:tw-top-8 tw-right-5 md:tw-right-10 tw-flex tw-items-center tw-gap-4"
                         style="text-align: left">
@@ -60,13 +68,13 @@
                             {{-- <span
                                 class="tw-text-white tw-font-medium tw-text-sm md:tw-text-base">{{ __('business.not_yet_registered') }}
                             </span> --}}
-
+                            {{--
                             <div class="tw-border-2 tw-border-white tw-rounded-full tw-h-10 md:tw-h-12 tw-w-24 tw-flex tw-items-center tw-justify-center">
                              <a href="{{ route('business.getRegister')}}@if(!empty(request()->lang)){{'?lang='.request()->lang}}@endif"
                                     class="tw-text-white tw-font-medium tw-text-sm md:tw-text-base hover:tw-text-white">
                                     {{ __('business.register') }}</a>
                             </div>
-
+                            --}}
                                 <!-- pricing url -->
                                 @if (Route::has('pricing') && config('app.env') != 'demo' && $request->segment(1) != 'pricing')
                                     &nbsp; <a class="tw-text-white tw-font-medium tw-text-sm md:tw-text-base hover:tw-text-white"
@@ -75,10 +83,13 @@
                             @endif
                         @endif
                         @if ($request->segment(1) != 'login')
+                            {{--
                             <a class="tw-text-white tw-font-medium tw-text-sm md:tw-text-base hover:tw-text-white"
                                 href="{{ action([\App\Http\Controllers\Auth\LoginController::class, 'login'])}}@if(!empty(request()->lang)){{'?lang='.request()->lang}}@endif">{{ __('business.sign_in') }}</a>
+                                --}}
                         @endif
                     </div>
+                    
                     <div class="col-md-10 col-xs-8" style="text-align: right;">
 
                     </div>
