@@ -178,6 +178,7 @@
       <tr>
         <td>
           @lang('cash_register.total_sales'):
+          @show_tooltip('Total cash payments received from sales. Example: If you made 3 sales of $100, $50, and $25, this shows $175.')
         </td>
         <td>
           <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_sale }}</span>
@@ -186,6 +187,7 @@
       <tr class="danger">
         <th>
           @lang('cash_register.total_refund')
+          @show_tooltip('Total refunds given to customers. Example: If you refunded $30 and $20, this shows $50 total refunds.')
         </th>
         <td>
           <b><span class="display_currency" data-currency_symbol="true">{{ $register_details->total_refund }}</span></b><br>
@@ -220,6 +222,7 @@
       <tr class="success">
         <th>
           @lang('lang_v1.total_payment')
+          @show_tooltip('Cash currently in the register drawer. Formula: Initial Cash + Cash Sales - Cash Refunds. Example: Started with $100, made $200 in cash sales, gave $50 refund = $250 in drawer.')
         </th>
         <td>
           <b><span class="display_currency" data-currency_symbol="true">{{ $register_details->cash_in_hand + $register_details->total_cash - $register_details->total_cash_refund }}</span></b>
@@ -228,6 +231,7 @@
       <tr class="success">
         <th>
           @lang('lang_v1.credit_sales'):
+          @show_tooltip('Sales made on credit (not paid immediately). These are sales where payment is due later. Example: If total sales are $500 and cash sales are $300, then $200 are credit sales.')
         </th>
         <td>
           <b><span class="display_currency" data-currency_symbol="true">{{ $details['transaction_details']->total_sales - $register_details->total_sale }}</span></b>
@@ -236,6 +240,7 @@
       <tr class="success">
         <th>
           @lang('cash_register.total_sales'):
+          @show_tooltip('Sum of all sales transactions (both cash and credit). This includes all sales regardless of payment method. Example: If you made $300 in cash sales and $200 in credit sales, this shows $500 total sales.')
         </th>
         <td>
           <b><span class="display_currency" data-currency_symbol="true">{{ $details['transaction_details']->total_sales }}</span></b>
@@ -244,6 +249,7 @@
       <tr class="danger">
         <th>
           @lang('report.total_expense'):
+          @show_tooltip('Total expenses paid from the register during this session. This includes cash expenses, petty cash, and other business expenses. Example: If you paid $50 for supplies and $25 for utilities, this shows $75 total expenses.')
         </th>
         <td>
           <b><span class="display_currency" data-currency_symbol="true">{{ $register_details->total_expense }}</span></b>
