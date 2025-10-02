@@ -6113,6 +6113,10 @@ class TransactionUtil extends Util
         //Update payment status
         $this->updatePaymentStatus($sell_return->id, $sell_return->final_total);
 
+        //Process refund in cash register if register is open
+        $cashRegisterUtil = new \App\Utils\CashRegisterUtil();
+        $cashRegisterUtil->refundSell($sell);
+
         //Update quantity returned in sell line
         $returns = [];
         $product_lines = $input['products'];
