@@ -1561,7 +1561,7 @@ class WoocommerceUtil extends Util
 
     public function isValidImage($path)
     {
-        $valid_extenstions = ['jpg', 'jpeg', 'png', 'gif'];
+        $valid_extenstions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
         return ! empty($path) && file_exists($path) && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $valid_extenstions);
     }
