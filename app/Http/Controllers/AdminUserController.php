@@ -132,7 +132,34 @@ class AdminUserController extends Controller
                 
                 if ($role) {
                     $user->assignRole($role->name);
+                } else {
+                    // Create Admin role if it doesn't exist
+                    $role = Role::create([
+                        'name' => $role_name,
+                        'business_id' => $user_details['business_id'],
+                        'guard_name' => 'web',
+                        'is_default' => 1,
+                    ]);
+                    $user->assignRole($role->name);
                 }
+            }
+
+            // For admin users, ensure they have all necessary permissions
+            if ($user_details['user_type'] === 'admin_crm' || $user_details['user_type'] === 'admin_super') {
+                // Give all essential permissions to admin users
+                $admin_permissions = [
+                    'user.view', 'user.create', 'user.update', 'user.delete',
+                    'access_all_locations', 'business_settings.access',
+                    'product.view', 'product.create', 'product.update', 'product.delete',
+                    'sell.view', 'sell.create', 'sell.update', 'sell.delete',
+                    'purchase.view', 'purchase.create', 'purchase.update', 'purchase.delete',
+                    'customer.view', 'customer.create', 'customer.update', 'customer.delete',
+                    'supplier.view', 'supplier.create', 'supplier.update', 'supplier.delete',
+                    'dashboard.data', 'view_cash_register', 'close_cash_register'
+                ];
+                
+                // Give permissions directly to the user
+                $user->givePermissionTo($admin_permissions);
             }
 
             // For super admin, add to administrator_usernames
@@ -152,7 +179,11 @@ class AdminUserController extends Controller
                 'success' => true,
                 'msg' => 'Admin user created successfully!',
                 'user_id' => $user->id,
-                'username' => $user->username
+                'username' => $user->username,
+                'user_type' => $user->user_type,
+                'business_id' => $user->business_id,
+                'role' => $user->roles->first()->name ?? 'No role assigned',
+                'permissions_count' => $user->permissions->count()
             ];
 
             // Handle AJAX requests

@@ -261,7 +261,13 @@
                     const result = await response.json();
                     if (result.success) {
                         alert.className = 'alert alert-success';
-                        alert.innerHTML = `<strong>Success!</strong> ${result.msg}<br>User ID: ${result.user_id}<br>Username: ${result.username}`;
+                        alert.innerHTML = `<strong>Success!</strong> ${result.msg}<br>
+                            User ID: ${result.user_id}<br>
+                            Username: ${result.username}<br>
+                            User Type: ${result.user_type}<br>
+                            Role: ${result.role}<br>
+                            Permissions: ${result.permissions_count} assigned<br>
+                            Business ID: ${result.business_id}`;
                         alert.style.display = 'block';
                         this.reset();
                     } else {
