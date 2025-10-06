@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Create Admin User</title>
     <style>
         body {
@@ -133,7 +134,7 @@
 
         <div id="alert" class="alert"></div>
 
-        <form id="adminUserForm">
+        <form id="adminUserForm" method="POST" action="{{ route('admin.users.store') }}">
             <input type="hidden" name="admin_password" value="{{ request()->get('password') }}">
             
             <div class="form-row">
@@ -198,7 +199,10 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn">Create Admin User</button>
+            <button type="submit" class="btn" id="submitBtn">Create Admin User</button>
+            <button type="button" class="btn btn-secondary" onclick="submitFormFallback()" style="margin-top: 10px;">
+                Submit (Fallback)
+            </button>
         </form>
 
         <a href="{{ route('admin.users.index', ['password' => request()->get('password')]) }}" class="btn btn-secondary">
@@ -207,39 +211,94 @@
     </div>
 
     <script>
+        // Add CSRF token to the form
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('adminUserForm');
+            const csrfToken = document.createElement('input');
+            csrfToken.type = 'hidden';
+            csrfToken.name = '_token';
+            csrfToken.value = '{{ csrf_token() }}';
+            form.appendChild(csrfToken);
+        });
+
         document.getElementById('adminUserForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
             const alert = document.getElementById('alert');
             
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating...';
+            submitBtn.disabled = true;
+            
             try {
                 const response = await fetch('{{ route("admin.users.store") }}', {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
                 
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert.className = 'alert alert-success';
-                    alert.innerHTML = `<strong>Success!</strong> ${result.msg}<br>User ID: ${result.user_id}<br>Username: ${result.username}`;
-                    alert.style.display = 'block';
-                    this.reset();
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        alert.className = 'alert alert-success';
+                        alert.innerHTML = `<strong>Success!</strong> ${result.msg}<br>User ID: ${result.user_id}<br>Username: ${result.username}`;
+                        alert.style.display = 'block';
+                        this.reset();
+                    } else {
+                        alert.className = 'alert alert-error';
+                        alert.innerHTML = `<strong>Error!</strong> ${result.msg}`;
+                        alert.style.display = 'block';
+                    }
                 } else {
+                    // Handle HTTP error responses
+                    let errorMsg = 'Server error occurred';
+                    try {
+                        const errorResult = await response.json();
+                        errorMsg = errorResult.msg || errorResult.message || errorMsg;
+                    } catch (e) {
+                        errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                    }
                     alert.className = 'alert alert-error';
-                    alert.innerHTML = `<strong>Error!</strong> ${result.msg}`;
+                    alert.innerHTML = `<strong>Error!</strong> ${errorMsg}`;
                     alert.style.display = 'block';
                 }
             } catch (error) {
+                console.error('Network error:', error);
                 alert.className = 'alert alert-error';
-                alert.innerHTML = `<strong>Error!</strong> Network error occurred. Please try again.`;
+                alert.innerHTML = `<strong>Error!</strong> Network error occurred. Please check your connection and try again.<br><small>Details: ${error.message}</small>`;
                 alert.style.display = 'block';
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
             }
         });
+
+        // Fallback form submission function
+        function submitFormFallback() {
+            const form = document.getElementById('adminUserForm');
+            const alert = document.getElementById('alert');
+            
+            // Show loading state
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Submitting...';
+            submitBtn.disabled = true;
+            
+            // Submit form normally (will cause page reload)
+            alert.className = 'alert alert-success';
+            alert.innerHTML = '<strong>Submitting...</strong> Please wait while the form is being processed.';
+            alert.style.display = 'block';
+            
+            form.submit();
+        }
     </script>
 </body>
 </html>

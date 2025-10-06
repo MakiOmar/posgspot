@@ -8,6 +8,7 @@ use App\Utils\Util;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
 class AdminUserController extends Controller
@@ -49,7 +50,7 @@ class AdminUserController extends Controller
             DB::beginTransaction();
 
             // Validation
-            $request->validate([
+            $validator = Validator::make($request->all(), [
                 'surname' => 'required|string|max:10',
                 'first_name' => 'required|string|max:255',
                 'last_name' => 'required|string|max:255',
@@ -59,6 +60,14 @@ class AdminUserController extends Controller
                 'business_id' => 'required|exists:businesses,id',
                 'user_type' => 'required|in:user,admin_crm,admin_super'
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
 
             $user_details = $request->only([
                 'surname', 'first_name', 'last_name', 'username', 'email', 
@@ -103,20 +112,39 @@ class AdminUserController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            $response = [
                 'success' => true,
                 'msg' => 'Admin user created successfully!',
                 'user_id' => $user->id,
                 'username' => $user->username
-            ]);
+            ];
+
+            // Handle AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json($response);
+            }
+
+            // Handle regular form submissions
+            return redirect()->route('admin.users.index', ['password' => $request->get('admin_password')])
+                           ->with('status', $response);
 
         } catch (\Exception $e) {
             DB::rollBack();
             
-            return response()->json([
+            $errorResponse = [
                 'success' => false,
                 'msg' => 'Error creating admin user: ' . $e->getMessage()
-            ], 500);
+            ];
+
+            // Handle AJAX requests
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json($errorResponse, 500);
+            }
+
+            // Handle regular form submissions
+            return redirect()->back()
+                           ->withInput()
+                           ->with('status', $errorResponse);
         }
     }
 
