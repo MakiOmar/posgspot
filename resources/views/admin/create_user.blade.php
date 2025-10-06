@@ -181,7 +181,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label for="business_id">Business <span class="required">*</span></label>
-                    <select id="business_id" name="business_id" required>
+                    <select id="business_id" name="business_id" required onchange="updateRoles()">
                         <option value="">Select Business</option>
                         @foreach($businesses as $business)
                             <option value="{{ $business->id }}">{{ $business->name }}</option>
@@ -197,6 +197,19 @@
                         <option value="admin_super">Admin Super</option>
                     </select>
                 </div>
+            </div>
+
+            <div class="form-group">
+                <label for="role_id">Role <span class="required">*</span></label>
+                <select id="role_id" name="role_id" required>
+                    <option value="">Select Role</option>
+                    @if(isset($roles))
+                        @foreach($roles as $role_id => $role_name)
+                            <option value="{{ $role_id }}">{{ $role_name }}</option>
+                        @endforeach
+                    @endif
+                </select>
+                <div class="help-text">Role will be assigned to the user</div>
             </div>
 
             <button type="submit" class="btn" id="submitBtn">Create Admin User</button>
@@ -280,6 +293,20 @@
                 submitBtn.disabled = false;
             }
         });
+
+        // Update roles when business changes
+        function updateRoles() {
+            const businessId = document.getElementById('business_id').value;
+            const roleSelect = document.getElementById('role_id');
+            
+            if (businessId) {
+                // You can implement AJAX call to fetch roles for the selected business
+                // For now, we'll keep the existing roles
+                console.log('Business selected:', businessId);
+            } else {
+                roleSelect.innerHTML = '<option value="">Select Role</option>';
+            }
+        }
 
         // Fallback form submission function
         function submitFormFallback() {

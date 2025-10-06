@@ -31,8 +31,14 @@ class AdminUserController extends Controller
             return response()->view('admin.password_protection', [], 401);
         }
 
+        // Get all businesses for selection
         $businesses = Business::select('id', 'name')->get();
-        return view('admin.create_user', compact('businesses'));
+        
+        // Get available roles for the first business (or default business)
+        $default_business_id = $businesses->first()->id ?? 1;
+        $roles = $this->util->getDropdownForRoles($default_business_id);
+        
+        return view('admin.create_user', compact('businesses', 'roles'));
     }
 
     /**
@@ -57,8 +63,9 @@ class AdminUserController extends Controller
                 'username' => 'required|string|min:4|max:255|unique:users',
                 'email' => 'required|email|max:255|unique:users',
                 'password' => 'required|string|min:6|confirmed',
-                'business_id' => 'required|exists:businesses,id',
-                'user_type' => 'required|in:user,admin_crm,admin_super'
+                'business_id' => 'required|exists:business,id', // Fixed: use 'business' not 'businesses'
+                'user_type' => 'required|in:user,admin_crm,admin_super',
+                'role_id' => 'nullable|exists:roles,id'
             ]);
 
             if ($validator->fails()) {
@@ -69,26 +76,55 @@ class AdminUserController extends Controller
                 ], 422);
             }
 
-            $user_details = $request->only([
-                'surname', 'first_name', 'last_name', 'username', 'email', 
-                'password', 'business_id', 'user_type'
+            // Use the existing createUser method from Util class
+            // We need to mock the request to include all required fields
+            $mocked_request = new \Illuminate\Http\Request();
+            $mocked_request->merge([
+                'surname' => $request->input('surname'),
+                'first_name' => $request->input('first_name'),
+                'last_name' => $request->input('last_name'),
+                'username' => $request->input('username'),
+                'email' => $request->input('email'),
+                'password' => $request->input('password'),
+                'user_type' => $request->input('user_type'),
+                'allow_login' => 1,
+                'is_active' => 'active',
+                'selected_contacts' => 0,
+                'business_id' => $request->input('business_id')
             ]);
 
-            // Hash password
-            $user_details['password'] = Hash::make($user_details['password']);
+            // Mock the authenticated user for the createUser method
+            $business_id = $request->input('business_id');
             
-            // Set additional required fields
-            $user_details['allow_login'] = 1;
-            $user_details['status'] = 'active';
-            $user_details['selected_contacts'] = 0;
-            $user_details['is_cmmsn_agnt'] = 0;
-            $user_details['language'] = 'en';
+            // Create user details manually (similar to Util::createUser)
+            $user_details = [
+                'surname' => $request->input('surname'),
+                'first_name' => $request->input('first_name'),
+                'last_name' => $request->input('last_name'),
+                'username' => $request->input('username'),
+                'email' => $request->input('email'),
+                'password' => Hash::make($request->input('password')),
+                'user_type' => $request->input('user_type'),
+                'business_id' => $business_id,
+                'allow_login' => 1,
+                'status' => 'active',
+                'selected_contacts' => 0,
+                'is_cmmsn_agnt' => 0,
+                'language' => 'en'
+            ];
 
             // Create the user
             $user = User::create($user_details);
 
-            // Assign Admin role based on user type
-            if ($user_details['user_type'] === 'admin_crm' || $user_details['user_type'] === 'admin_super') {
+            // Assign role based on selection
+            $role_id = $request->input('role_id');
+            if ($role_id) {
+                $role = Role::find($role_id);
+                if ($role) {
+                    $user->assignRole($role->name);
+                }
+            } else if ($user_details['user_type'] === 'admin_crm' || $user_details['user_type'] === 'admin_super') {
+                // Fallback: Assign Admin role for admin types
                 $role_name = 'Admin#' . $user_details['business_id'];
                 $role = Role::where('name', $role_name)
                            ->where('business_id', $user_details['business_id'])
