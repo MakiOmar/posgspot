@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Access - Password Required</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Admin Access - Password Required - {{ config('app.name', 'POS') }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
