@@ -21,7 +21,7 @@
                     <span class="input-group-addon bg-light-blue"><i class="fa fa-map-marker"></i></span>
                     <select class="form-control select2" id="profit_loss_location_filter">
                         @foreach ($business_locations as $key => $value)
-                            <option value="{{ $key }}">{{ $value }}</option>
+                            <option value="{{ $key }}" {{ $loop->first ? 'selected' : '' }}>{{ $value }}</option>
                         @endforeach
                     </select>
                 </div>

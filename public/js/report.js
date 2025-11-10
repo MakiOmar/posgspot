@@ -729,23 +729,36 @@ $(document).ready(function() {
     });
 
     //Profit / Loss
+    var profitLossInitialized = false;
+    var $profitLossLocationFilter = $('#profit_loss_location_filter');
     if ($('#profit_loss_date_filter').length == 1) {
         $('#profit_loss_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('#profit_loss_date_filter span').html(
                 start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
             );
-            updateProfitLoss();
+            if (profitLossInitialized) {
+                updateProfitLoss();
+            }
         });
         $('#profit_loss_date_filter').on('cancel.daterangepicker', function(ev, picker) {
             $('#profit_loss_date_filter').html(
                 '<i class="fa fa-calendar"></i> ' + LANG.filter_by_date
             );
         });
-        updateProfitLoss();
     }
     $('#profit_loss_location_filter').change(function() {
-        updateProfitLoss();
+        if (profitLossInitialized) {
+            updateProfitLoss();
+        }
     });
+    if ($profitLossLocationFilter.length) {
+        var firstProfitLossLocation = $profitLossLocationFilter.find('option:first').val();
+        if (firstProfitLossLocation) {
+            $profitLossLocationFilter.val(firstProfitLossLocation).trigger('change');
+        }
+    }
+    profitLossInitialized = true;
+    updateProfitLoss();
 
     //Product Purchase Report
     if ($('#product_pr_date_filter').length == 1) {
