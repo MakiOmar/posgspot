@@ -3234,6 +3234,19 @@ class ReportController extends Controller
         $business_id = request()->session()->get('user.business_id');
 
         if (request()->ajax()) {
+            $common_settings = request()->session()->get('business.common_settings', []);
+            $default_entries = ! empty($common_settings['default_datatable_page_entries']) ?
+                (int) $common_settings['default_datatable_page_entries'] : 25;
+            $requested_length = (int) request()->get('length', $default_entries);
+
+            \Log::debug('Items report pagination debug.', [
+                'requested_length' => $requested_length,
+                'default_datatable_page_entries' => $default_entries,
+                'start' => (int) request()->get('start', 0),
+                'draw' => (int) request()->get('draw', 0),
+                'business_id' => $business_id,
+            ]);
+
             $query = TransactionSellLinesPurchaseLines::leftJoin('transaction_sell_lines 
                     as SL', 'SL.id', '=', 'transaction_sell_lines_purchase_lines.sell_line_id')
                 ->leftJoin('stock_adjustment_lines 
