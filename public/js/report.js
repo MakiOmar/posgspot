@@ -224,8 +224,43 @@ $(document).ready(function() {
         });
     }
 
+    var stockReportInitialized = false;
+    var stockLocationSetting = false;
+    var $stockLocationFilter = $('#stock_report_filter_form #location_id');
+    var applyDefaultStockLocation = function() {
+        if (! $stockLocationFilter.length) {
+            return;
+        }
+        var defaultValue = $stockLocationFilter.attr('data-default-value');
+        if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
+            defaultValue = $stockLocationFilter.find('option:first').val();
+        }
+        if (defaultValue === undefined) {
+            return;
+        }
+        stockLocationSetting = true;
+        $stockLocationFilter.val(defaultValue).trigger('change');
+        setTimeout(function() {
+            stockLocationSetting = false;
+        }, 0);
+    };
+    if ($stockLocationFilter.length) {
+        applyDefaultStockLocation();
+        setTimeout(applyDefaultStockLocation, 0);
+    }
+
+    var $stockReportTableEl = $('#stock_report_table');
+    if ($stockReportTableEl.length) {
+        $stockReportTableEl.on('init.dt', function() {
+            stockReportInitialized = true;
+        });
+    }
+
     $('#stock_report_filter_form #location_id, #stock_report_filter_form #category_id, #stock_report_filter_form #sub_category_id, #stock_report_filter_form #brand, #stock_report_filter_form #unit,#stock_report_filter_form #view_stock_filter'
     ).change(function() {
+        if (stockLocationSetting || ! stockReportInitialized) {
+            return;
+        }
         stock_report_table.ajax.reload();
         stock_expiry_report_table.ajax.reload();
         get_stock_value();
@@ -736,7 +771,7 @@ $(document).ready(function() {
         if (! $profitLossLocationFilter.length) {
             return;
         }
-        var defaultValue = $profitLossLocationFilter.data('default-value');
+        var defaultValue = $profitLossLocationFilter.attr('data-default-value');
         if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
             defaultValue = $profitLossLocationFilter.find('option:first').val();
         }
@@ -744,13 +779,10 @@ $(document).ready(function() {
             return;
         }
         profitLossSettingLocation = true;
-        $profitLossLocationFilter.val(defaultValue);
-        if ($profitLossLocationFilter.data('select2')) {
-            $profitLossLocationFilter.trigger('change.select2');
-        } else {
-            $profitLossLocationFilter.trigger('change');
-        }
-        profitLossSettingLocation = false;
+        $profitLossLocationFilter.val(defaultValue).trigger('change');
+        setTimeout(function() {
+            profitLossSettingLocation = false;
+        }, 0);
     };
     if ($('#profit_loss_date_filter').length == 1) {
         $('#profit_loss_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
