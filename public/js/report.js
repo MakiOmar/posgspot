@@ -231,7 +231,11 @@ $(document).ready(function() {
         if (! $stockLocationFilter.length) {
             return;
         }
+        var currentValue = $stockLocationFilter.val();
         var defaultValue = $stockLocationFilter.attr('data-default-value');
+        if (currentValue && currentValue !== '') {
+            return;
+        }
         if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
             defaultValue = $stockLocationFilter.find('option:first').val();
         }
@@ -772,7 +776,11 @@ $(document).ready(function() {
             if (! $profitLossLocationFilter.length) {
                 return;
             }
+            var currentValue = $profitLossLocationFilter.val();
             var defaultValue = $profitLossLocationFilter.attr('data-default-value');
+            if (currentValue && currentValue !== '') {
+                return;
+            }
             if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
                 defaultValue = $profitLossLocationFilter.find('option:first').val();
             }

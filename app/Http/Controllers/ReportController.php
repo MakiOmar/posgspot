@@ -497,11 +497,11 @@ class ReportController extends Controller
         $units = Unit::where('business_id', $business_id)
                             ->pluck('short_name', 'id');
         $business_locations = BusinessLocation::forDropdown($business_id, true);
-        $default_stock_location = collect($business_locations)
-            ->keys()
-            ->first(function ($key) {
-                return ! is_null($key) && $key !== '';
-            });
+        $stock_location_choices = BusinessLocation::forDropdown($business_id, false);
+        $default_stock_location = collect($stock_location_choices)->keys()->first();
+        if (! is_null($default_stock_location)) {
+            $default_stock_location = (string) $default_stock_location;
+        }
 
         return view('report.stock_report')
             ->with(compact('categories', 'brands', 'units', 'business_locations', 'show_manufacturing_data', 'default_stock_location'));

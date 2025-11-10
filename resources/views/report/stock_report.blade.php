@@ -20,7 +20,7 @@
                         {!! Form::select('location_id', $business_locations, $default_stock_location, [
                             'class' => 'form-control select2',
                             'style' => 'width:100%',
-                            'data-default-value' => $default_stock_location
+                            'data-default-value' => isset($default_stock_location) ? (string) $default_stock_location : ''
                         ]); !!}
                     </div>
                 </div>
