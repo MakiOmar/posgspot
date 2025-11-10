@@ -86,4 +86,5 @@ return [
     'enable_gst_report_india' => env('ENABLE_GST_REPORT_INDIA', false),
     'enable_secondary_unit' => false, //Experimental feature, may depreciate
     'items_report_default_days' => 30,
+    'items_report_max_months' => 1,
 ];

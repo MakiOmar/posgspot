@@ -1374,10 +1374,19 @@ $(document).ready(function() {
         var $purchaseDateFilter = $('#ir_purchase_date_filter');
         var purchaseDefaultStart = $purchaseDateFilter.data('default-start');
         var purchaseDefaultEnd = $purchaseDateFilter.data('default-end');
-        if (purchaseDefaultStart && purchaseDefaultEnd) {
-            var purchasePicker = $purchaseDateFilter.data('daterangepicker');
-            purchasePicker.setStartDate(moment(purchaseDefaultStart));
-            purchasePicker.setEndDate(moment(purchaseDefaultEnd));
+        var purchaseMaxMonths = parseInt($purchaseDateFilter.data('max-months'), 10) || 1;
+        var purchasePicker = $purchaseDateFilter.data('daterangepicker');
+        if (purchasePicker) {
+            purchasePicker.maxSpan = { months: purchaseMaxMonths };
+        }
+        if (purchaseDefaultStart && purchaseDefaultEnd && purchasePicker) {
+            var purchaseStartMoment = moment(purchaseDefaultStart);
+            var purchaseEndMoment = moment(purchaseDefaultEnd);
+            if (purchaseEndMoment.diff(purchaseStartMoment, 'months', true) > purchaseMaxMonths) {
+                purchaseEndMoment = moment(purchaseStartMoment).add(purchaseMaxMonths, 'months').subtract(1, 'day');
+            }
+            purchasePicker.setStartDate(purchaseStartMoment);
+            purchasePicker.setEndDate(purchaseEndMoment);
             $purchaseDateFilter.val(
                 purchasePicker.startDate.format(moment_date_format) +
                 ' ~ ' +
@@ -1400,10 +1409,19 @@ $(document).ready(function() {
         var $saleDateFilter = $('#ir_sale_date_filter');
         var saleDefaultStart = $saleDateFilter.data('default-start');
         var saleDefaultEnd = $saleDateFilter.data('default-end');
-        if (saleDefaultStart && saleDefaultEnd) {
-            var salePicker = $saleDateFilter.data('daterangepicker');
-            salePicker.setStartDate(moment(saleDefaultStart));
-            salePicker.setEndDate(moment(saleDefaultEnd));
+        var saleMaxMonths = parseInt($saleDateFilter.data('max-months'), 10) || 1;
+        var salePicker = $saleDateFilter.data('daterangepicker');
+        if (salePicker) {
+            salePicker.maxSpan = { months: saleMaxMonths };
+        }
+        if (saleDefaultStart && saleDefaultEnd && salePicker) {
+            var saleStartMoment = moment(saleDefaultStart);
+            var saleEndMoment = moment(saleDefaultEnd);
+            if (saleEndMoment.diff(saleStartMoment, 'months', true) > saleMaxMonths) {
+                saleEndMoment = moment(saleStartMoment).add(saleMaxMonths, 'months').subtract(1, 'day');
+            }
+            salePicker.setStartDate(saleStartMoment);
+            salePicker.setEndDate(saleEndMoment);
             $saleDateFilter.val(
                 salePicker.startDate.format(moment_date_format) +
                 ' ~ ' +

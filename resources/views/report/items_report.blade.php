@@ -32,7 +32,8 @@
                         'class' => 'form-control',
                         'readonly',
                         'data-default-start' => $default_items_report_start,
-                        'data-default-end' => $default_items_report_end
+                        'data-default-end' => $default_items_report_end,
+                        'data-max-months' => 1
                     ]); !!}
                 </div>
             </div>
@@ -55,7 +56,8 @@
                         'class' => 'form-control',
                         'readonly',
                         'data-default-start' => $default_items_report_start,
-                        'data-default-end' => $default_items_report_end
+                        'data-default-end' => $default_items_report_end,
+                        'data-max-months' => 1
                     ]); !!}
                 </div>
             </div>

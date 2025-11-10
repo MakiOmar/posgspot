@@ -497,144 +497,6 @@ class ReportController extends Controller
             ->with(compact('categories', 'brands', 'units', 'business_locations', 'show_manufacturing_data'));
     }
 
-    // // this function copy of above get route becouse of large size parameter 
-    // public function postStockReport(Request $request){
-    //     if ($request->ajax()) {
-    //         $filters = request()->only(['location_id', 'category_id', 'sub_category_id', 'brand_id', 'unit_id', 'tax_id', 'type',
-    //             'only_mfg_products', 'active_state',  'not_for_selling', 'repair_model_id', 'product_id', 'active_state', ]);
-
-    //         $filters['not_for_selling'] = isset($filters['not_for_selling']) && $filters['not_for_selling'] == 'true' ? 1 : 0;
-
-    //         $filters['show_manufacturing_data'] = $show_manufacturing_data;
-
-    //         //Return the details in ajax call
-    //         $for = request()->input('for') == 'view_product' ? 'view_product' : 'datatables';
-
-    //         $products = $this->productUtil->getProductStockDetails($business_id, $filters, $for);
-    //         //To show stock details on view product modal
-    //         if ($for == 'view_product' && ! empty(request()->input('product_id'))) {
-    //             $product_stock_details = $products;
-
-    //             return view('product.partials.product_stock_details')->with(compact('product_stock_details'));
-    //         }
-
-    //         $datatable = Datatables::of($products)
-    //             ->editColumn('stock', function ($row) {
-    //                 if ($row->enable_stock) {
-    //                     $stock = $row->stock ? $row->stock : 0;
-
-    //                     return  '<span class="current_stock" data-orig-value="'.(float) $stock.'" data-unit="'.$row->unit.'"> '.$this->transactionUtil->num_f($stock, false, null, true).'</span>'.' '.$row->unit;
-    //                 } else {
-    //                     return '--';
-    //                 }
-    //             })
-    //             ->editColumn('product', function ($row) {
-    //                 $name = $row->product;
-
-    //                 return $name;
-    //             })
-    //             ->addColumn('action', function ($row) {
-    //                 return '<a class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-info" href="'.action([\App\Http\Controllers\ProductController::class, 'productStockHistory'], [$row->product_id]).
-    //                 '?location_id='.$row->location_id.'&variation_id='.$row->variation_id.
-    //                 '"><i class="fas fa-history"></i> '.__('lang_v1.product_stock_history').'</a>';
-    //             })
-    //             ->addColumn('variation', function ($row) {
-    //                 $variation = '';
-    //                 if ($row->type == 'variable') {
-    //                     $variation .= $row->product_variation.'-'.$row->variation_name;
-    //                 }
-
-    //                 return $variation;
-    //             })
-    //             ->editColumn('total_sold', function ($row) {
-    //                 $total_sold = 0;
-    //                 if ($row->total_sold) {
-    //                     $total_sold = (float) $row->total_sold;
-    //                 }
-
-    //                 return '<span data-is_quantity="true" class="total_sold" data-orig-value="'.$total_sold.'" data-unit="'.$row->unit.'" >'.$this->transactionUtil->num_f($total_sold, false, null, true).'</span> '.$row->unit;
-    //             })
-    //             ->editColumn('total_transfered', function ($row) {
-    //                 $total_transfered = 0;
-    //                 if ($row->total_transfered) {
-    //                     $total_transfered = (float) $row->total_transfered;
-    //                 }
-
-    //                 return '<span class="total_transfered" data-orig-value="'.$total_transfered.'" data-unit="'.$row->unit.'" >'.$this->transactionUtil->num_f($total_transfered, false, null, true).'</span> '.$row->unit;
-    //             })
-
-    //             ->editColumn('total_adjusted', function ($row) {
-    //                 $total_adjusted = 0;
-    //                 if ($row->total_adjusted) {
-    //                     $total_adjusted = (float) $row->total_adjusted;
-    //                 }
-
-    //                 return '<span class="total_adjusted" data-orig-value="'.$total_adjusted.'" data-unit="'.$row->unit.'" >'.$this->transactionUtil->num_f($total_adjusted, false, null, true).'</span> '.$row->unit;
-    //             })
-    //             ->editColumn('unit_price', function ($row) use ($allowed_selling_price_group) {
-    //                 $html = '';
-    //                 if (auth()->user()->can('access_default_selling_price')) {
-    //                     $html .= $this->transactionUtil->num_f($row->unit_price, true);
-    //                 }
-
-    //                 if ($allowed_selling_price_group) {
-    //                     $html .= ' <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-primary btn-modal no-print" data-container=".view_modal" data-href="'.action([\App\Http\Controllers\ProductController::class, 'viewGroupPrice'], [$row->product_id]).'">'.__('lang_v1.view_group_prices').'</button>';
-    //                 }
-
-    //                 return $html;
-    //             })
-    //             ->editColumn('stock_price', function ($row) {
-    //                 $html = '<span class="total_stock_price" data-orig-value="'
-    //                     .$row->stock_price.'">'.
-    //                     $this->transactionUtil->num_f($row->stock_price, true).'</span>';
-
-    //                 return $html;
-    //             })
-    //             ->editColumn('stock_value_by_sale_price', function ($row) {
-    //                 $stock = $row->stock ? $row->stock : 0;
-    //                 $unit_selling_price = (float) $row->group_price > 0 ? $row->group_price : $row->unit_price;
-    //                 $stock_price = $stock * $unit_selling_price;
-
-    //                 return  '<span class="stock_value_by_sale_price" data-orig-value="'.(float) $stock_price.'" > '.$this->transactionUtil->num_f($stock_price, true).'</span>';
-    //             })
-    //             ->addColumn('potential_profit', function ($row) {
-    //                 $stock = $row->stock ? $row->stock : 0;
-    //                 $unit_selling_price = (float) $row->group_price > 0 ? $row->group_price : $row->unit_price;
-    //                 $stock_price_by_sp = $stock * $unit_selling_price;
-    //                 $potential_profit = (float) $stock_price_by_sp - (float) $row->stock_price;
-
-    //                 return  '<span class="potential_profit" data-orig-value="'.(float) $potential_profit.'" > '.$this->transactionUtil->num_f($potential_profit, true).'</span>';
-    //             })
-    //             ->setRowClass(function ($row) {
-    //                 return $row->enable_stock && $row->stock <= $row->alert_quantity ? 'bg-danger' : '';
-    //             })
-    //             ->filterColumn('variation', function ($query, $keyword) {
-    //                 $query->whereRaw("CONCAT(COALESCE(pv.name, ''), '-', COALESCE(variations.name, '')) like ?", ["%{$keyword}%"]);
-    //             })
-    //             ->removeColumn('enable_stock')
-    //             ->removeColumn('unit')
-    //             ->removeColumn('id');
-
-    //         $raw_columns = ['unit_price', 'total_transfered', 'total_sold',
-    //             'total_adjusted', 'stock', 'stock_price', 'stock_value_by_sale_price',
-    //             'potential_profit', 'action', ];
-
-    //         if ($show_manufacturing_data) {
-    //             $datatable->editColumn('total_mfg_stock', function ($row) {
-    //                 $total_mfg_stock = 0;
-    //                 if ($row->total_mfg_stock) {
-    //                     $total_mfg_stock = (float) $row->total_mfg_stock;
-    //                 }
-
-    //                 return '<span data-is_quantity="true" class="total_mfg_stock"  data-orig-value="'.$total_mfg_stock.'" data-unit="'.$row->unit.'" >'.$this->transactionUtil->num_f($total_mfg_stock, false, null, true).'</span> '.$row->unit;
-    //             });
-    //             $raw_columns[] = 'total_mfg_stock';
-    //         }
-
-    //         return $datatable->rawColumns($raw_columns)->make(true);
-    //     }
-    // }
-
     /**
      * Shows product stock details
      *
@@ -3235,9 +3097,14 @@ class ReportController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
         $default_range_days = max((int) config('constants.items_report_default_days', 30), 1);
+        $max_range_months = max((int) config('constants.items_report_max_months', 1), 1);
         $now = Carbon::now();
         $default_range_end = $now->copy()->endOfDay();
         $default_range_start = $now->copy()->subDays($default_range_days - 1)->startOfDay();
+        $max_default_end = $default_range_start->copy()->addMonths($max_range_months)->endOfDay();
+        if ($default_range_end->greaterThan($max_default_end)) {
+            $default_range_end = $max_default_end;
+        }
         $default_range_start_date = $default_range_start->toDateString();
         $default_range_end_date = $default_range_end->toDateString();
 
@@ -3274,16 +3141,48 @@ class ReportController extends Controller
                 $using_default_date_range = true;
             }
 
+            $clampRange = function (?string $start, ?string $end) use ($max_range_months) {
+                if (empty($start) || empty($end)) {
+                    return [null, null];
+                }
+
+                try {
+                    $startCarbon = Carbon::parse($start)->startOfDay();
+                } catch (\Exception $e) {
+                    return [null, null];
+                }
+
+                try {
+                    $endCarbon = Carbon::parse($end)->endOfDay();
+                } catch (\Exception $e) {
+                    $endCarbon = $startCarbon->copy()->endOfDay();
+                }
+
+                if ($endCarbon->lessThan($startCarbon)) {
+                    $endCarbon = $startCarbon->copy()->endOfDay();
+                }
+
+                $maxEnd = $startCarbon->copy()->addMonths($max_range_months)->endOfDay();
+                if ($endCarbon->greaterThan($maxEnd)) {
+                    $endCarbon = $maxEnd;
+                }
+
+                return [$startCarbon, $endCarbon];
+            };
+
+            [$purchaseStartCarbon, $purchaseEndCarbon] = $clampRange($purchase_start, $purchase_end);
+            [$saleStartCarbon, $saleEndCarbon] = $clampRange($sale_start, $sale_end);
+
             \Log::debug('Items report pagination debug.', [
                 'requested_length' => $requested_length,
                 'default_datatable_page_entries' => $default_entries,
                 'start' => (int) request()->get('start', 0),
                 'draw' => (int) request()->get('draw', 0),
                 'business_id' => $business_id,
-                'purchase_start' => $purchase_start,
-                'purchase_end' => $purchase_end,
-                'sale_start' => $sale_start,
-                'sale_end' => $sale_end,
+                'purchase_start' => optional($purchaseStartCarbon)->toDateTimeString(),
+                'purchase_end' => optional($purchaseEndCarbon)->toDateTimeString(),
+                'sale_start' => optional($saleStartCarbon)->toDateTimeString(),
+                'sale_end' => optional($saleEndCarbon)->toDateTimeString(),
                 'using_default_date_range' => $using_default_date_range,
             ]);
 
@@ -3345,19 +3244,13 @@ class ReportController extends Controller
                 $query->whereIn('purchase.location_id', $permitted_locations);
             }
 
-            if (! empty($purchase_start) && ! empty($purchase_end)) {
-                $query->whereDate('purchase.transaction_date', '>=', $purchase_start)
-                            ->whereDate('purchase.transaction_date', '<=', $purchase_end);
+            if ($purchaseStartCarbon && $purchaseEndCarbon) {
+                $query->whereBetween('purchase.transaction_date', [$purchaseStartCarbon, $purchaseEndCarbon]);
             }
-            if (! empty($sale_start) && ! empty($sale_end)) {
-                $query->where(function ($q) use ($sale_start, $sale_end) {
-                    $q->where(function ($qr) use ($sale_start, $sale_end) {
-                        $qr->whereDate('sale.transaction_date', '>=', $sale_start)
-                           ->whereDate('sale.transaction_date', '<=', $sale_end);
-                    })->orWhere(function ($qr) use ($sale_start, $sale_end) {
-                        $qr->whereDate('stock_adjustment.transaction_date', '>=', $sale_start)
-                           ->whereDate('stock_adjustment.transaction_date', '<=', $sale_end);
-                    });
+            if ($saleStartCarbon && $saleEndCarbon) {
+                $query->where(function ($q) use ($saleStartCarbon, $saleEndCarbon) {
+                    $q->whereBetween('sale.transaction_date', [$saleStartCarbon, $saleEndCarbon])
+                      ->orWhereBetween('stock_adjustment.transaction_date', [$saleStartCarbon, $saleEndCarbon]);
                 });
             }
 
