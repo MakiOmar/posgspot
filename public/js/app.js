@@ -2560,18 +2560,32 @@ $(document).on('show.bs.modal', '.register_details_modal, .close_register_modal'
 });
 
 function updateProfitLoss(start = null, end = null, location_id = null, selector = null) {
+    var $profitLossDate = $('#profit_loss_date_filter');
     if(start == null){
-        var start = $('#profit_loss_date_filter')
+        if ($profitLossDate.length && $profitLossDate.data('daterangepicker')) {
+            start = $profitLossDate
                     .data('daterangepicker')
                     .startDate.format('YYYY-MM-DD');
+        } else {
+            start = moment().startOf('month').format('YYYY-MM-DD');
+        }
     }
     if(end == null){
-        var end = $('#profit_loss_date_filter')
+        if ($profitLossDate.length && $profitLossDate.data('daterangepicker')) {
+            end = $profitLossDate
                     .data('daterangepicker')
                     .endDate.format('YYYY-MM-DD');
+        } else {
+            end = moment().endOf('month').format('YYYY-MM-DD');
+        }
     }
     if(location_id == null){
-        var location_id = $('#profit_loss_location_filter').val();
+        var $locationFilter = $('#profit_loss_location_filter');
+        var location_val = $locationFilter.val();
+        if (!location_val && $locationFilter.length) {
+            location_val = $locationFilter.attr('data-default-value') || $locationFilter.find('option:first').val();
+        }
+        location_id = location_val;
     }
     var data = { start_date: start, end_date: end, location_id: location_id };
     selector = selector == null ? $('#pl_data_div') : selector;

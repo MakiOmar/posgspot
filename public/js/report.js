@@ -764,54 +764,57 @@ $(document).ready(function() {
     });
 
     //Profit / Loss
-    var profitLossInitialized = false;
-    var profitLossSettingLocation = false;
-    var $profitLossLocationFilter = $('#profit_loss_location_filter');
-    var applyDefaultProfitLossLocation = function() {
-        if (! $profitLossLocationFilter.length) {
-            return;
+    if ($('#profit_loss_location_filter').length || $('#profit_loss_date_filter').length) {
+        var profitLossInitialized = false;
+        var profitLossSettingLocation = false;
+        var $profitLossLocationFilter = $('#profit_loss_location_filter');
+        var applyDefaultProfitLossLocation = function() {
+            if (! $profitLossLocationFilter.length) {
+                return;
+            }
+            var defaultValue = $profitLossLocationFilter.attr('data-default-value');
+            if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
+                defaultValue = $profitLossLocationFilter.find('option:first').val();
+            }
+            if (defaultValue === undefined) {
+                return;
+            }
+            profitLossSettingLocation = true;
+            $profitLossLocationFilter.val(defaultValue).trigger('change');
+            setTimeout(function() {
+                profitLossSettingLocation = false;
+            }, 0);
+        };
+        var $profitLossDateFilter = $('#profit_loss_date_filter');
+        if ($profitLossDateFilter.length == 1) {
+            $profitLossDateFilter.daterangepicker(dateRangeSettings, function(start, end) {
+                $('#profit_loss_date_filter span').html(
+                    start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
+                );
+                if (profitLossInitialized) {
+                    updateProfitLoss();
+                }
+            });
+            $profitLossDateFilter.on('cancel.daterangepicker', function(ev, picker) {
+                $('#profit_loss_date_filter').html(
+                    '<i class="fa fa-calendar"></i> ' + LANG.filter_by_date
+                );
+            });
         }
-        var defaultValue = $profitLossLocationFilter.attr('data-default-value');
-        if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
-            defaultValue = $profitLossLocationFilter.find('option:first').val();
-        }
-        if (defaultValue === undefined) {
-            return;
-        }
-        profitLossSettingLocation = true;
-        $profitLossLocationFilter.val(defaultValue).trigger('change');
-        setTimeout(function() {
-            profitLossSettingLocation = false;
-        }, 0);
-    };
-    if ($('#profit_loss_date_filter').length == 1) {
-        $('#profit_loss_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
-            $('#profit_loss_date_filter span').html(
-                start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
-            );
-            if (profitLossInitialized) {
+        $('#profit_loss_location_filter').change(function() {
+            if (profitLossInitialized && ! profitLossSettingLocation) {
                 updateProfitLoss();
             }
         });
-        $('#profit_loss_date_filter').on('cancel.daterangepicker', function(ev, picker) {
-            $('#profit_loss_date_filter').html(
-                '<i class="fa fa-calendar"></i> ' + LANG.filter_by_date
-            );
-        });
-    }
-    $('#profit_loss_location_filter').change(function() {
-        if (profitLossInitialized && ! profitLossSettingLocation) {
-            updateProfitLoss();
+        if ($profitLossLocationFilter.length) {
+            applyDefaultProfitLossLocation();
+            setTimeout(applyDefaultProfitLossLocation, 0);
         }
-    });
-    if ($profitLossLocationFilter.length) {
-        applyDefaultProfitLossLocation();
-        setTimeout(applyDefaultProfitLossLocation, 0);
+        setTimeout(function() {
+            updateProfitLoss();
+            profitLossInitialized = true;
+        }, 0);
     }
-    setTimeout(function() {
-        updateProfitLoss();
-        profitLossInitialized = true;
-    }, 0);
 
     //Product Purchase Report
     if ($('#product_pr_date_filter').length == 1) {
