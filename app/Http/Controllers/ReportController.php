@@ -1781,6 +1781,12 @@ class ReportController extends Controller
                 $query->where('p.brand_id', $brand_id);
             }
 
+            $logQuery = clone $query;
+            \Log::debug('Items report base query details.', [
+                'sql' => $logQuery->toSql(),
+                'bindings' => $logQuery->getBindings(),
+            ]);
+
             return Datatables::of($query)
                 ->editColumn('product_name', function ($row) {
                     $product_name = $row->product_name;
