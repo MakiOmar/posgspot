@@ -30,6 +30,7 @@ use Carbon\Carbon;
 use Datatables;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 
 class ReportController extends Controller
@@ -1781,12 +1782,6 @@ class ReportController extends Controller
                 $query->where('p.brand_id', $brand_id);
             }
 
-            $logQuery = clone $query;
-            \Log::debug('Items report base query details.', [
-                'sql' => $logQuery->toSql(),
-                'bindings' => $logQuery->getBindings(),
-            ]);
-
             return Datatables::of($query)
                 ->editColumn('product_name', function ($row) {
                     $product_name = $row->product_name;
@@ -3247,6 +3242,19 @@ class ReportController extends Controller
         $default_range_end_date = $default_range_end->toDateString();
 
         if (request()->ajax()) {
+            if (! app()->bound('items_report_db_listener_registered')) {
+                DB::listen(function ($query) {
+                    if (Str::contains($query->sql, 'transaction_sell_lines_purchase_lines')) {
+                        \Log::debug('Items report SQL trace.', [
+                            'sql' => $query->sql,
+                            'bindings' => $query->bindings,
+                            'time_ms' => $query->time,
+                        ]);
+                    }
+                });
+                app()->instance('items_report_db_listener_registered', true);
+            }
+
             $common_settings = request()->session()->get('business.common_settings', []);
             $default_entries = ! empty($common_settings['default_datatable_page_entries']) ?
                 (int) $common_settings['default_datatable_page_entries'] : 25;
