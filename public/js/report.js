@@ -1370,6 +1370,20 @@ $(document).ready(function() {
             $('#ir_purchase_date_filter').val('');
             items_report_table.ajax.reload();
         });
+
+        var $purchaseDateFilter = $('#ir_purchase_date_filter');
+        var purchaseDefaultStart = $purchaseDateFilter.data('default-start');
+        var purchaseDefaultEnd = $purchaseDateFilter.data('default-end');
+        if (purchaseDefaultStart && purchaseDefaultEnd) {
+            var purchasePicker = $purchaseDateFilter.data('daterangepicker');
+            purchasePicker.setStartDate(moment(purchaseDefaultStart));
+            purchasePicker.setEndDate(moment(purchaseDefaultEnd));
+            $purchaseDateFilter.val(
+                purchasePicker.startDate.format(moment_date_format) +
+                ' ~ ' +
+                purchasePicker.endDate.format(moment_date_format)
+            );
+        }
     }
     if ($('#ir_sale_date_filter').length == 1) {
         $('#ir_sale_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
@@ -1382,6 +1396,20 @@ $(document).ready(function() {
             $('#ir_sale_date_filter').val('');
             items_report_table.ajax.reload();
         });
+
+        var $saleDateFilter = $('#ir_sale_date_filter');
+        var saleDefaultStart = $saleDateFilter.data('default-start');
+        var saleDefaultEnd = $saleDateFilter.data('default-end');
+        if (saleDefaultStart && saleDefaultEnd) {
+            var salePicker = $saleDateFilter.data('daterangepicker');
+            salePicker.setStartDate(moment(saleDefaultStart));
+            salePicker.setEndDate(moment(saleDefaultEnd));
+            $saleDateFilter.val(
+                salePicker.startDate.format(moment_date_format) +
+                ' ~ ' +
+                salePicker.endDate.format(moment_date_format)
+            );
+        }
     }
     items_report_table = $('#items_report_table').DataTable({
         processing: true,
@@ -1400,8 +1428,6 @@ $(document).ready(function() {
                         .data('daterangepicker')
                         .endDate.format('YYYY-MM-DD');
                 }
-                console.log(purchase_end);
-
                 var sale_start = '';
                 var sale_end = '';
                 if ($('#ir_sale_date_filter').val()) {

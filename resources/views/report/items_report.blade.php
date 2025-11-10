@@ -27,7 +27,13 @@
             <div class="col-md-3">
                 <div class="form-group">
                     {!! Form::label('ir_purchase_date_filter', __('purchase.purchase_date') . ':') !!}
-                    {!! Form::text('ir_purchase_date_filter', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'readonly']); !!}
+                    {!! Form::text('ir_purchase_date_filter', null, [
+                        'placeholder' => __('lang_v1.select_a_date_range'),
+                        'class' => 'form-control',
+                        'readonly',
+                        'data-default-start' => $default_items_report_start,
+                        'data-default-end' => $default_items_report_end
+                    ]); !!}
                 </div>
             </div>
             <div class="col-md-3">
@@ -44,7 +50,13 @@
             <div class="col-md-3">
                 <div class="form-group">
                     {!! Form::label('ir_sale_date_filter', __('lang_v1.sell_date') . ':') !!}
-                    {!! Form::text('ir_sale_date_filter', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'readonly']); !!}
+                    {!! Form::text('ir_sale_date_filter', null, [
+                        'placeholder' => __('lang_v1.select_a_date_range'),
+                        'class' => 'form-control',
+                        'readonly',
+                        'data-default-start' => $default_items_report_start,
+                        'data-default-end' => $default_items_report_end
+                    ]); !!}
                 </div>
             </div>
             <div class="col-md-3">

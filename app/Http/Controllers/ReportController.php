@@ -26,6 +26,7 @@ use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
 use App\Variation;
+use Carbon\Carbon;
 use Datatables;
 use DB;
 use Illuminate\Http\Request;
@@ -3232,6 +3233,12 @@ class ReportController extends Controller
     public function itemsReport()
     {
         $business_id = request()->session()->get('user.business_id');
+        $default_range_days = max((int) config('constants.items_report_default_days', 30), 1);
+        $now = Carbon::now();
+        $default_range_end = $now->copy()->endOfDay();
+        $default_range_start = $now->copy()->subDays($default_range_days - 1)->startOfDay();
+        $default_range_start_date = $default_range_start->toDateString();
+        $default_range_end_date = $default_range_end->toDateString();
 
         if (request()->ajax()) {
             $common_settings = request()->session()->get('business.common_settings', []);
@@ -3239,12 +3246,31 @@ class ReportController extends Controller
                 (int) $common_settings['default_datatable_page_entries'] : 25;
             $requested_length = (int) request()->get('length', $default_entries);
 
+            $purchase_start = request()->get('purchase_start');
+            $purchase_end = request()->get('purchase_end');
+            $sale_start = request()->get('sale_start');
+            $sale_end = request()->get('sale_end');
+            $using_default_date_range = false;
+
+            if (empty($purchase_start) && empty($purchase_end) && empty($sale_start) && empty($sale_end)) {
+                $purchase_start = $default_range_start_date;
+                $purchase_end = $default_range_end_date;
+                $sale_start = $default_range_start_date;
+                $sale_end = $default_range_end_date;
+                $using_default_date_range = true;
+            }
+
             \Log::debug('Items report pagination debug.', [
                 'requested_length' => $requested_length,
                 'default_datatable_page_entries' => $default_entries,
                 'start' => (int) request()->get('start', 0),
                 'draw' => (int) request()->get('draw', 0),
                 'business_id' => $business_id,
+                'purchase_start' => $purchase_start,
+                'purchase_end' => $purchase_end,
+                'sale_start' => $sale_start,
+                'sale_end' => $sale_end,
+                'using_default_date_range' => $using_default_date_range,
             ]);
 
             $query = TransactionSellLinesPurchaseLines::leftJoin('transaction_sell_lines 
@@ -3305,22 +3331,18 @@ class ReportController extends Controller
                 $query->whereIn('purchase.location_id', $permitted_locations);
             }
 
-            if (! empty(request()->purchase_start) && ! empty(request()->purchase_end)) {
-                $start = request()->purchase_start;
-                $end = request()->purchase_end;
-                $query->whereDate('purchase.transaction_date', '>=', $start)
-                            ->whereDate('purchase.transaction_date', '<=', $end);
+            if (! empty($purchase_start) && ! empty($purchase_end)) {
+                $query->whereDate('purchase.transaction_date', '>=', $purchase_start)
+                            ->whereDate('purchase.transaction_date', '<=', $purchase_end);
             }
-            if (! empty(request()->sale_start) && ! empty(request()->sale_end)) {
-                $start = request()->sale_start;
-                $end = request()->sale_end;
-                $query->where(function ($q) use ($start, $end) {
-                    $q->where(function ($qr) use ($start, $end) {
-                        $qr->whereDate('sale.transaction_date', '>=', $start)
-                           ->whereDate('sale.transaction_date', '<=', $end);
-                    })->orWhere(function ($qr) use ($start, $end) {
-                        $qr->whereDate('stock_adjustment.transaction_date', '>=', $start)
-                           ->whereDate('stock_adjustment.transaction_date', '<=', $end);
+            if (! empty($sale_start) && ! empty($sale_end)) {
+                $query->where(function ($q) use ($sale_start, $sale_end) {
+                    $q->where(function ($qr) use ($sale_start, $sale_end) {
+                        $qr->whereDate('sale.transaction_date', '>=', $sale_start)
+                           ->whereDate('sale.transaction_date', '<=', $sale_end);
+                    })->orWhere(function ($qr) use ($sale_start, $sale_end) {
+                        $qr->whereDate('stock_adjustment.transaction_date', '>=', $sale_start)
+                           ->whereDate('stock_adjustment.transaction_date', '<=', $sale_end);
                     });
                 });
             }
@@ -3419,7 +3441,16 @@ class ReportController extends Controller
         $customers = Contact::customersDropdown($business_id, false);
         $business_locations = BusinessLocation::forDropdown($business_id);
 
-        return view('report.items_report')->with(compact('suppliers', 'customers', 'business_locations'));
+        $default_items_report_start = $default_range_start_date;
+        $default_items_report_end = $default_range_end_date;
+
+        return view('report.items_report')->with(compact(
+            'suppliers',
+            'customers',
+            'business_locations',
+            'default_items_report_start',
+            'default_items_report_end'
+        ));
     }
 
     /**
