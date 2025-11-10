@@ -19,9 +19,9 @@
             <div class="col-md-3 col-md-offset-7 col-xs-6">
                 <div class="input-group">
                     <span class="input-group-addon bg-light-blue"><i class="fa fa-map-marker"></i></span>
-                    <select class="form-control select2" id="profit_loss_location_filter">
+                    <select class="form-control select2" id="profit_loss_location_filter" data-default-value="{{ $default_profit_loss_location }}">
                         @foreach ($business_locations as $key => $value)
-                            <option value="{{ $key }}" {{ $loop->first ? 'selected' : '' }}>{{ $value }}</option>
+                            <option value="{{ $key }}" {{ $key === $default_profit_loss_location ? 'selected' : '' }}>{{ $value }}</option>
                         @endforeach
                     </select>
                 </div>

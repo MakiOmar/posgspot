@@ -116,8 +116,13 @@ class ReportController extends Controller
         }
 
         $business_locations = BusinessLocation::forDropdown($business_id, true);
+        $default_profit_loss_location = collect($business_locations)
+            ->keys()
+            ->first(function ($key) {
+                return ! is_null($key) && $key !== '';
+            });
 
-        return view('report.profit_loss', compact('business_locations'));
+        return view('report.profit_loss', compact('business_locations', 'default_profit_loss_location'));
     }
 
     /**

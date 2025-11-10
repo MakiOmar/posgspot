@@ -730,7 +730,28 @@ $(document).ready(function() {
 
     //Profit / Loss
     var profitLossInitialized = false;
+    var profitLossSettingLocation = false;
     var $profitLossLocationFilter = $('#profit_loss_location_filter');
+    var applyDefaultProfitLossLocation = function() {
+        if (! $profitLossLocationFilter.length) {
+            return;
+        }
+        var defaultValue = $profitLossLocationFilter.data('default-value');
+        if (defaultValue === undefined || defaultValue === null || defaultValue === '') {
+            defaultValue = $profitLossLocationFilter.find('option:first').val();
+        }
+        if (defaultValue === undefined) {
+            return;
+        }
+        profitLossSettingLocation = true;
+        $profitLossLocationFilter.val(defaultValue);
+        if ($profitLossLocationFilter.data('select2')) {
+            $profitLossLocationFilter.trigger('change.select2');
+        } else {
+            $profitLossLocationFilter.trigger('change');
+        }
+        profitLossSettingLocation = false;
+    };
     if ($('#profit_loss_date_filter').length == 1) {
         $('#profit_loss_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('#profit_loss_date_filter span').html(
@@ -747,18 +768,18 @@ $(document).ready(function() {
         });
     }
     $('#profit_loss_location_filter').change(function() {
-        if (profitLossInitialized) {
+        if (profitLossInitialized && ! profitLossSettingLocation) {
             updateProfitLoss();
         }
     });
     if ($profitLossLocationFilter.length) {
-        var firstProfitLossLocation = $profitLossLocationFilter.find('option:first').val();
-        if (firstProfitLossLocation) {
-            $profitLossLocationFilter.val(firstProfitLossLocation).trigger('change');
-        }
+        applyDefaultProfitLossLocation();
+        setTimeout(applyDefaultProfitLossLocation, 0);
     }
-    profitLossInitialized = true;
-    updateProfitLoss();
+    setTimeout(function() {
+        updateProfitLoss();
+        profitLossInitialized = true;
+    }, 0);
 
     //Product Purchase Report
     if ($('#product_pr_date_filter').length == 1) {
