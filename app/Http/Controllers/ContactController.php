@@ -658,6 +658,12 @@ class ContactController extends Controller
                     ]
                 ];
 
+                \Log::info('WooCommerce Customer Sync Request', [
+                    'contact_id' => $output['data']->id,
+                    'email' => $output['data']->email,
+                    'payload' => $woocommerce_payload,
+                ]);
+
                 $response = \Http::timeout(10)->post($woocommerce_endpoint, $woocommerce_payload);
 
                 \Log::info('WooCommerce Response', [
