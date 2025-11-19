@@ -708,17 +708,17 @@ $(document).ready(function() {
                 d.only_mfg_products = $('#only_mfg_products').length && $('#only_mfg_products').is(':checked') ? 1 : 0;
             },
         },
-        order: [[4, 'asc']],
+        order: [[6, 'asc']],
         columns: [
             { data: 'product', name: 'p.name' },
             { data: 'sku', name: 'p.sku' },
-            // { data: 'ref_no', name: 't.ref_no' },
+            { data: 'ref_no', name: 't.ref_no' },
             { data: 'location', name: 'l.name' },
             { data: 'stock_left', name: 'stock_left', searchable: false },
             { data: 'lot_number', name: 'lot_number' },
             { data: 'exp_date', name: 'exp_date' },
             { data: 'mfg_date', name: 'mfg_date' },
-            // { data: 'edit', name: 'edit' },
+            { data: 'edit', name: 'edit' },
         ],
         fnDrawCallback: function(oSettings) {
             __show_date_diff_for_human($('#stock_expiry_report_table'));
