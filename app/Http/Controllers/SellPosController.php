@@ -1091,7 +1091,6 @@ class SellPosController extends Controller
 
     /**
      * Update the specified resource in storage.
-     * TODO: Add edit log.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
