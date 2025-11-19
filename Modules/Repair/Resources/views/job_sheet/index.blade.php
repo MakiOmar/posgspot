@@ -35,177 +35,64 @@
         @endif
         <div class="col-md-3">
             <div class="form-group">
-                {!! Form::label('status_id',  __('sale.status') . ':') !!}
-                {!! Form::select('status_id', $status_dropdown['statuses'], null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="form-group">
                 {!! Form::label('sell_list_filter_date_range', __('report.date_range') . ':') !!}
                 {!! Form::text('sell_list_filter_date_range', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'readonly']); !!}
             </div>
         </div>
     @endcomponent
     
-	<div class="row">
-        <div class="col-md-12">
-            <div class="nav-tabs-custom">
-                <ul class="nav nav-tabs">
-                    <li class="active">
-                        <a href="#pending_job_sheet_tab" data-toggle="tab" aria-expanded="true">
-                            <i class="fas fa-exclamation-circle text-orange"></i>
-                            @lang('repair::lang.pending')
-                            @show_tooltip(__('repair::lang.common_pending_status_tooltip'))
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#completed_job_sheet_tab" data-toggle="tab" aria-expanded="true">
-                            <i class="fa fas fa-check-circle text-success"></i>
-                            @lang('repair::lang.completed')
-                            @show_tooltip(__('repair::lang.common_completed_status_tooltip'))
-                        </a>
-                    </li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane active" id="pending_job_sheet_tab">
-                        <div class="row">
-                            <div class="col-md-12 mb-12">
-                                <a type="button" class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right"
-                                    href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'create'])}}" id="add_job_sheet">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                        class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                        <path d="M12 5l0 14" />
-                                        <path d="M5 12l14 0" />
-                                    </svg> @lang('messages.add')
+    @if($job_sheet_statuses->isEmpty())
+        <div class="row">
+            <div class="col-md-12">
+                <div class="alert alert-info">
+                    @lang('messages.no_data_found')
+                </div>
+            </div>
+        </div>
+    @else
+        <div class="row">
+            <div class="col-md-12">
+                <div class="nav-tabs-custom">
+                    <ul class="nav nav-tabs" role="tablist">
+                        @foreach($job_sheet_statuses as $status)
+                            <li class="{{ $loop->first ? 'active' : '' }}">
+                                <a href="#job_sheet_tab_status_{{ $status->id }}"
+                                    data-toggle="tab"
+                                    data-status-id="{{ $status->id }}"
+                                    data-is-completed="{{ (int) $status->is_completed_status }}">
+                                    <i class="fas fa-circle" @if(!empty($status->color)) style="color: {{ $status->color }};" @endif></i>
+                                    {{ $status->name }}
                                 </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="tab-content">
+                        @foreach($job_sheet_statuses as $status)
+                            <div class="tab-pane {{ $loop->first ? 'active' : '' }}" id="job_sheet_tab_status_{{ $status->id }}">
+                                <div class="row">
+                                    <div class="col-md-12 mb-12">
+                                        <a type="button" class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right"
+                                            href="{{ action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'create']) }}" id="add_job_sheet">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                                class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                <path d="M12 5l0 14" />
+                                                <path d="M5 12l14 0" />
+                                            </svg> @lang('messages.add')
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    @include('repair::job_sheet.partials.table', ['table_id' => 'job_sheet_table_status_' . $status->id])
+                                </div>
                             </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped" id="pending_job_sheets_table">
-                                <thead>
-                                    <tr>
-                                        <th>@lang('messages.action')</th>
-                                        <th>
-                                            @lang('repair::lang.service_type')
-                                        </th>
-                                        <th>
-                                            @lang('lang_v1.due_date')
-                                        </th>
-                                        <th>
-                                            @lang('repair::lang.job_sheet_no')
-                                        </th>
-                                        <th>@lang('sale.invoice_no')</th>
-                                        <th>@lang('sale.status')</th>
-                                        @if(in_array('service_staff' ,$enabled_modules))
-                                            <th>@lang('repair::lang.technician')</th>
-                                        @endif
-                                        <th>
-                                            @lang('role.customer')
-                                        </th>
-                                        <th>@lang('lang_v1.contact_id')</th>
-                                        <th> @lang('repair::lang.customer_phone')</th>
-                                        <th>@lang('business.location')</th>
-                                        <th>@lang('product.brand')</th>
-                                        <th>@lang('repair::lang.device')</th>
-                                        <th>@lang('repair::lang.device_model')</th>
-                                        <th>@lang('repair::lang.serial_no')</th>
-                                        <th>@lang('repair::lang.estimated_cost')</th>
-                                        @if(!empty($repair_settings['job_sheet_custom_field_1']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_1']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_2']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_2']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_3']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_3']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_4']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_4']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_5']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_5']}}</th>
-                                        @endif
-                                        <th>@lang('lang_v1.added_by')</th>
-                                        <th>@lang('lang_v1.created_at')</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="tab-pane" id="completed_job_sheet_tab">
-                        <div class="row">
-                            <div class="col-md-12 mb-12">
-                                <a type="button" class="tw-dw-btn tw-dw-btn-sm tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right"
-                                    href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'create'])}}" id="add_job_sheet">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                        class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                        <path d="M12 5l0 14" />
-                                        <path d="M5 12l14 0" />
-                                    </svg> @lang('messages.add')
-                                </a>
-                            </div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped" id="completed_job_sheets_table">
-                                <thead>
-                                    <tr>
-                                        <th>@lang('messages.action')</th>
-                                        <th>
-                                            @lang('repair::lang.service_type')
-                                        </th>
-                                        <th>
-                                            @lang('lang_v1.due_date')
-                                        </th>
-                                        <th>
-                                            @lang('repair::lang.job_sheet_no')
-                                        </th>
-                                        <th>@lang('sale.invoice_no')</th>
-                                        <th>@lang('sale.status')</th>
-                                        
-                                        @if(in_array('service_staff' ,$enabled_modules))
-                                            <th>@lang('repair::lang.technician')</th>
-                                        @endif
-                                        <th>
-                                            @lang('role.customer')
-                                        </th>
-                                        <th>@lang('lang_v1.contact_id')</th>
-                                        <th> @lang('repair::lang.customer_phone')</th>
-                                        <th>@lang('business.location')</th>
-                                        <th>@lang('product.brand')</th>
-                                        <th>@lang('repair::lang.device')</th>
-                                        <th>@lang('repair::lang.device_model')</th>
-                                        <th>@lang('repair::lang.serial_no')</th>
-                                        <th>@lang('repair::lang.estimated_cost')</th>
-                                        @if(!empty($repair_settings['job_sheet_custom_field_1']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_1']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_2']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_2']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_3']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_3']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_4']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_4']}}</th>
-                                        @endif
-                                        @if(!empty($repair_settings['job_sheet_custom_field_5']))
-                                            <th>{{$repair_settings['job_sheet_custom_field_5']}}</th>
-                                        @endif
-                                        <th>@lang('lang_v1.added_by')</th>
-                                        <th>@lang('lang_v1.created_at')</th>
-                                    </tr>
-                                </thead>
-                            </table>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
     <div class="modal fade" id="status_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel"></div>
 </section>
 <!-- /.content -->
@@ -213,193 +100,110 @@
 @section('javascript')
     <script type="text/javascript">
         $(document).ready(function () {
-            pending_job_sheets_datatable = $("#pending_job_sheets_table").DataTable({
+            var jobSheetTables = {};
+            @php
+                $jobSheetStatusConfigs = $job_sheet_statuses->map(function ($status) {
+                    return [
+                        'id' => $status->id,
+                        'table_id' => 'job_sheet_table_status_' . $status->id,
+                        'is_completed_status' => (int) $status->is_completed_status,
+                    ];
+                })->values();
+            @endphp
+            var jobSheetStatusConfigs = @json($jobSheetStatusConfigs);
+
+            function reloadJobSheetTables() {
+                $.each(jobSheetTables, function (key, table) {
+                    table.ajax.reload();
+                });
+            }
+
+            jobSheetStatusConfigs.forEach(function (statusConfig) {
+                var tableSelector = '#' + statusConfig.table_id;
+
+                if (! $(tableSelector).length) {
+                    return;
+                }
+
+                jobSheetTables[statusConfig.id] = $(tableSelector).DataTable({
                     processing: true,
                     serverSide: true,
-                    fixedHeader:false,
-                    ajax:{
+                    fixedHeader: false,
+                    ajax: {
                         url: '/repair/job-sheet',
-                        "data": function ( d ) {
-                        if ($('#sell_list_filter_date_range').val()) {
-                            var start = $('#sell_list_filter_date_range').data('daterangepicker')
-                                .startDate.format('YYYY-MM-DD');
-                            var end = $('#sell_list_filter_date_range').data('daterangepicker').endDate
-                                .format('YYYY-MM-DD');
-                            d.start_date = start;
-                            d.end_date = end;
-                        }
+                        data: function (d) {
+                            if ($('#sell_list_filter_date_range').val()) {
+                                var dateRange = $('#sell_list_filter_date_range').data('daterangepicker');
+                                if (dateRange) {
+                                    d.start_date = dateRange.startDate.format('YYYY-MM-DD');
+                                    d.end_date = dateRange.endDate.format('YYYY-MM-DD');
+                                }
+                            }
                             d.location_id = $('#location_id').val();
                             d.contact_id = $('#contact_id').val();
-                            d.status_id = $('#status_id').val();
-                            d.is_completed_status = 0;
+                            d.status_id = statusConfig.id;
+                            d.is_completed_status = statusConfig.is_completed_status;
                             @if(in_array('service_staff' ,$enabled_modules))
                                 d.technician = $('#technician').val();
                             @endif
                         }
                     },
-                    columnDefs: [{
-                        targets: [0, 4],
-                        orderable: false,
-                        searchable: false
-                    }],
-                    aaSorting:[[2, 'asc']],
-                    columns:[
+                    columnDefs: [
+                        {
+                            targets: [0, 4],
+                            orderable: false,
+                            searchable: false
+                        }
+                    ],
+                    aaSorting: [[2, 'asc']],
+                    columns: [
                         { data: 'action', name: 'action' },
-                        { data: 'service_type', name: 'service_type'},
-                        {
-                            data: 'delivery_date', name: 'delivery_date'
-                        },
-                        {
-                            data: 'job_sheet_no', name: 'job_sheet_no'
-                        },
-                        {
-                            data: 'repair_no', name: 'repair_no'
-                        },
-                        { data:'status', name: 'rs.name' },
-                       
+                        { data: 'service_type', name: 'service_type' },
+                        { data: 'delivery_date', name: 'delivery_date' },
+                        { data: 'job_sheet_no', name: 'job_sheet_no' },
+                        { data: 'repair_no', name: 'repair_no' },
+                        { data: 'status', name: 'rs.name' },
                         @if(in_array('service_staff' ,$enabled_modules))
-                            { data: 'technecian', name: 'technecian', searchable: false},
+                            { data: 'technecian', name: 'technecian', searchable: false },
                         @endif
-                        { data: 'customer', name : 'contacts.name'},
-                        { data: 'contact_id', name: 'contacts.contact_id'},
-                        { data:'mobile', name: 'contacts.mobile' },
+                        { data: 'customer', name: 'contacts.name' },
+                        { data: 'contact_id', name: 'contacts.contact_id' },
+                        { data: 'mobile', name: 'contacts.mobile' },
                         { data: 'location', name: 'bl.name' },
                         { data: 'brand', name: 'b.name' },
                         { data: 'device', name: 'device.name' },
                         { data: 'device_model', name: 'rdm.name' },
-                        {
-                            data: 'serial_no', name: 'serial_no'
-                        },
-                        {
-                            data: 'estimated_cost', name: 'estimated_cost'
-                        },
+                        { data: 'serial_no', name: 'serial_no' },
+                        { data: 'estimated_cost', name: 'estimated_cost' },
                         @if(!empty($repair_settings['job_sheet_custom_field_1']))
-                            {
-                                data: 'custom_field_1', name: 'repair_job_sheets.custom_field_1'
-                            },
+                            { data: 'custom_field_1', name: 'repair_job_sheets.custom_field_1' },
                         @endif
                         @if(!empty($repair_settings['job_sheet_custom_field_2']))
-                            {
-                                data: 'custom_field_2', name: 'repair_job_sheets.custom_field_2'
-                            },
+                            { data: 'custom_field_2', name: 'repair_job_sheets.custom_field_2' },
                         @endif
                         @if(!empty($repair_settings['job_sheet_custom_field_3']))
-                            {
-                                data: 'custom_field_3', name: 'repair_job_sheets.custom_field_3'
-                            },
+                            { data: 'custom_field_3', name: 'repair_job_sheets.custom_field_3' },
                         @endif
                         @if(!empty($repair_settings['job_sheet_custom_field_4']))
-                            {
-                                data: 'custom_field_4', name: 'repair_job_sheets.custom_field_4'
-                            },
+                            { data: 'custom_field_4', name: 'repair_job_sheets.custom_field_4' },
                         @endif
                         @if(!empty($repair_settings['job_sheet_custom_field_5']))
-                            {
-                                data: 'custom_field_5', name: 'repair_job_sheets.custom_field_5'
-                            },
+                            { data: 'custom_field_5', name: 'repair_job_sheets.custom_field_5' },
                         @endif
-                        { data: 'added_by', name: 'added_by', searchable: false},
-                        { data: 'created_at',
-                            name: 'repair_job_sheets.created_at'
-                        }
+                        { data: 'added_by', name: 'added_by', searchable: false },
+                        { data: 'created_at', name: 'repair_job_sheets.created_at' }
                     ],
-                    "fnDrawCallback": function (oSettings) {
-                        __currency_convert_recursively($('#pending_job_sheets_table'));
+                    fnDrawCallback: function () {
+                        __currency_convert_recursively($(tableSelector));
                     }
+                });
             });
 
-            completed_job_sheets_datatable = $("#completed_job_sheets_table").DataTable({
-                    processing: true,
-                    serverSide: true,
-                    fixedHeader:false,
-                    ajax:{
-                        url: '/repair/job-sheet',
-                        "data": function ( d ) {
-                        if ($('#sell_list_filter_date_range').val()) {
-                            var start = $('#sell_list_filter_date_range').data('daterangepicker')
-                                .startDate.format('YYYY-MM-DD');
-                            var end = $('#sell_list_filter_date_range').data('daterangepicker').endDate
-                                .format('YYYY-MM-DD');
-                            d.start_date = start;
-                            d.end_date = end;
-                        }
-                            d.location_id = $('#location_id').val();
-                            d.contact_id = $('#contact_id').val();
-                            d.status_id = $('#status_id').val();
-                            d.is_completed_status = 1;
-                            @if(in_array('service_staff' ,$enabled_modules))
-                                d.technician = $('#technician').val();
-                            @endif
-                        }
-                    },
-                    columnDefs: [{
-                        targets: [0, 4],
-                        orderable: false,
-                        searchable: false
-                    }],
-                    aaSorting:[[2, 'asc']],
-                    columns:[
-                        { data: 'action', name: 'action' },
-                        { data: 'service_type', name: 'service_type'},
-                        {
-                            data: 'delivery_date', name: 'delivery_date'
-                        },
-                        {
-                            data: 'job_sheet_no', name: 'job_sheet_no'
-                        },
-                        {
-                            data: 'repair_no', name: 'repair_no'
-                        },
-                        { data:'status', name: 'rs.name' },
-                        @if(in_array('service_staff' ,$enabled_modules))
-                            { data: 'technecian', name: 'technecian', searchable: false},
-                        @endif
-                        { data: 'customer', name : 'contacts.name'},
-                        { data: 'contact_id', name: 'contacts.contact_id'},
-                        { data:'customer', name: 'contacts.mobile' },
-                        { data: 'location', name: 'bl.name' },
-                        { data: 'brand', name: 'b.name' },
-                        { data: 'device', name: 'device.name' },
-                        { data: 'device_model', name: 'rdm.name' },
-                        {
-                            data: 'serial_no', name: 'serial_no'
-                        },
-                        {
-                            data: 'estimated_cost', name: 'estimated_cost'
-                        },
-                        @if(!empty($repair_settings['job_sheet_custom_field_1']))
-                            {
-                                data: 'custom_field_1', name: 'repair_job_sheets.custom_field_1'
-                            },
-                        @endif
-                        @if(!empty($repair_settings['job_sheet_custom_field_2']))
-                            {
-                                data: 'custom_field_2', name: 'repair_job_sheets.custom_field_2'
-                            },
-                        @endif
-                        @if(!empty($repair_settings['job_sheet_custom_field_3']))
-                            {
-                                data: 'custom_field_3', name: 'repair_job_sheets.custom_field_3'
-                            },
-                        @endif
-                        @if(!empty($repair_settings['job_sheet_custom_field_4']))
-                            {
-                                data: 'custom_field_4', name: 'repair_job_sheets.custom_field_4'
-                            },
-                        @endif
-                        @if(!empty($repair_settings['job_sheet_custom_field_5']))
-                            {
-                                data: 'custom_field_5', name: 'repair_job_sheets.custom_field_5'
-                            },
-                        @endif
-                        { data: 'added_by', name: 'added_by', searchable: false},
-                        { data: 'created_at',
-                            name: 'repair_job_sheets.created_at'
-                        }
-                    ],
-                    "fnDrawCallback": function (oSettings) {
-                        __currency_convert_recursively($('#completed_job_sheets_table'));
-                    }
+            $('a[data-toggle="tab"][data-status-id]').on('shown.bs.tab', function (e) {
+                var statusId = $(e.target).data('status-id');
+                if (statusId && jobSheetTables[statusId]) {
+                    jobSheetTables[statusId].columns.adjust();
+                }
             });
 
             $(document).on('click', '#delete_job_sheet', function (e) {
@@ -419,8 +223,7 @@
                             success: function(result) {
                                 if (result.success) {
                                     toastr.success(result.msg);
-                                    pending_job_sheets_datatable.ajax.reload();
-                                    completed_job_sheets_datatable.ajax.reload();
+                                    reloadJobSheetTables();
                                 } else {
                                     toastr.error(result.msg);
                                 }
@@ -524,8 +327,7 @@
                             if ($('#status_form_redirect').val()) {
                                 window.location = $('#status_form_redirect').val();
                             }
-                            pending_job_sheets_datatable.ajax.reload();
-                            completed_job_sheets_datatable.ajax.reload();
+                            reloadJobSheetTables();
                         } else {
                             toastr.error(result.msg);
                         }
@@ -533,9 +335,8 @@
                 });
             });
 
-            $(document).on('change', '#location_id, #contact_id, #status_id, #technician',  function() {
-                pending_job_sheets_datatable.ajax.reload();
-                completed_job_sheets_datatable.ajax.reload();
+            $(document).on('change', '#location_id, #contact_id, #technician',  function() {
+                reloadJobSheetTables();
             });
 
             $('#sell_list_filter_date_range').daterangepicker(
@@ -543,14 +344,12 @@
                 function(start, end) {
                     $('#sell_list_filter_date_range').val(start.format(moment_date_format) + ' ~ ' + end.format(
                         moment_date_format));
-                        pending_job_sheets_datatable.ajax.reload();
-                        completed_job_sheets_datatable.ajax.reload();
+                        reloadJobSheetTables();
                 }
             );
             $('#sell_list_filter_date_range').on('cancel.daterangepicker', function(ev, picker) {
                 $('#sell_list_filter_date_range').val('');
-                pending_job_sheets_datatable.ajax.reload();
-                completed_job_sheets_datatable.ajax.reload();
+                reloadJobSheetTables();
             });
         });
     </script>

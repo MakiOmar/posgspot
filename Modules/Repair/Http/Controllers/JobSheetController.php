@@ -298,6 +298,9 @@ class JobSheetController extends Controller
         $business_locations = BusinessLocation::forDropdown($business_id, false);
         $customers = Contact::customersDropdown($business_id, false);
         $status_dropdown = RepairStatus::forDropdown($business_id);
+        $job_sheet_statuses = RepairStatus::where('business_id', $business_id)
+            ->orderBy('sort_order', 'asc')
+            ->get();
         $service_staffs = $this->commonUtil->serviceStaffDropdown($business_id);
 
         $user_role_as_service_staff = auth()->user()->roles()
@@ -312,7 +315,7 @@ class JobSheetController extends Controller
         $repair_settings = $this->repairUtil->getRepairSettings($business_id);
 
         return view('repair::job_sheet.index')
-            ->with(compact('business_locations', 'customers', 'status_dropdown', 'service_staffs', 'is_user_service_staff', 'repair_settings'));
+            ->with(compact('business_locations', 'customers', 'status_dropdown', 'service_staffs', 'is_user_service_staff', 'repair_settings', 'job_sheet_statuses'));
     }
 
     /**
