@@ -1504,7 +1504,6 @@ class ContactController extends Controller
      */
     public function getSupplierStockReport($supplier_id)
     {
-        //TODO: current stock not calculating stock transferred from other location
         $pl_query_string = $this->commonUtil->get_pl_quantity_sum_string();
         $query = PurchaseLine::join('transactions as t', 't.id', '=', 'purchase_lines.transaction_id')
                         ->join('products as p', 'p.id', '=', 'purchase_lines.product_id')
@@ -1532,8 +1531,16 @@ class ContactController extends Controller
                               JOIN transactions AS sell ON sell.id=TSL.transaction_id
                               WHERE sell.status='final' AND sell.type='sell_transfer'
                               AND TSLPL.purchase_line_id=purchase_lines.id)) as total_quantity_transfered"),
-                            DB::raw("SUM( COALESCE(quantity - ($pl_query_string), 0) * purchase_price_inc_tax) as stock_price"),
-                            DB::raw("SUM( COALESCE(quantity - ($pl_query_string), 0)) as current_stock")
+                            DB::raw("SUM( COALESCE(quantity - ($pl_query_string) - COALESCE((SELECT SUM(TSL.quantity - TSL.quantity_returned) FROM transaction_sell_lines_purchase_lines as TSLPL 
+                              JOIN transaction_sell_lines AS TSL ON TSLPL.sell_line_id=TSL.id
+                              JOIN transactions AS sell ON sell.id=TSL.transaction_id
+                              WHERE sell.status='final' AND sell.type='sell_transfer'
+                              AND TSLPL.purchase_line_id=purchase_lines.id), 0), 0) * purchase_price_inc_tax) as stock_price"),
+                            DB::raw("SUM( COALESCE(quantity - ($pl_query_string) - COALESCE((SELECT SUM(TSL.quantity - TSL.quantity_returned) FROM transaction_sell_lines_purchase_lines as TSLPL 
+                              JOIN transaction_sell_lines AS TSL ON TSLPL.sell_line_id=TSL.id
+                              JOIN transactions AS sell ON sell.id=TSL.transaction_id
+                              WHERE sell.status='final' AND sell.type='sell_transfer'
+                              AND TSLPL.purchase_line_id=purchase_lines.id), 0), 0)) as current_stock")
                         )->groupBy('purchase_lines.variation_id');
 
         if (! empty(request()->location_id)) {
