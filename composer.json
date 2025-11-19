@@ -117,6 +117,9 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "optimize-autoloader": true,
+        "platform": {
+            "ext-sodium": "0"
+        },
         "allow-plugins": {
             "ocramius/package-versions": true,
             "php-http/discovery": true,
