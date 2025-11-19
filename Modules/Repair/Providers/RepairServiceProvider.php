@@ -24,8 +24,7 @@ class RepairServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
         $this->registerScheduleCommands();
 
-        //TODO:Remove sidebar
-        view::composer(['repair::layouts.partials.sidebar',
+        view::composer([
             'repair::layouts.partials.invoice_layout_settings',
             'repair::layouts.partials.pos_header',
             'repair::layouts.partials.header',
