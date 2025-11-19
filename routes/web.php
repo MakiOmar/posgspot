@@ -214,16 +214,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/products/toggle-woocommerce-sync', [ProductController::class, 'toggleWooCommerceSync']);
 
     Route::resource('products', ProductController::class);
-    Route::get('/toggle-subscription/{id}', 'SellPosController@toggleRecurringInvoices');
-    Route::post('/sells/pos/get-types-of-service-details', 'SellPosController@getTypesOfServiceDetails');
-    Route::get('/sells/subscriptions', 'SellPosController@listSubscriptions');
-    Route::get('/sells/duplicate/{id}', 'SellController@duplicateSell');
-    Route::get('/sells/drafts', 'SellController@getDrafts');
-    Route::get('/sells/convert-to-draft/{id}', 'SellPosController@convertToInvoice');
-    Route::get('/sells/convert-to-proforma/{id}', 'SellPosController@convertToProforma');
-    Route::get('/sells/quotations', 'SellController@getQuotations');
-    Route::get('/sells/draft-dt', 'SellController@getDraftDatables');
-    Route::resource('sells', 'SellController')->except(['show']);
+    Route::get('/toggle-subscription/{id}', [SellPosController::class, 'toggleRecurringInvoices']);
+    Route::post('/sells/pos/get-types-of-service-details', [SellPosController::class, 'getTypesOfServiceDetails']);
+    Route::get('/sells/subscriptions', [SellPosController::class, 'listSubscriptions']);
+    Route::get('/sells/duplicate/{id}', [SellController::class, 'duplicateSell']);
+    Route::get('/sells/drafts', [SellController::class, 'getDrafts']);
+    Route::get('/sells/convert-to-draft/{id}', [SellPosController::class, 'convertToInvoice']);
+    Route::get('/sells/convert-to-proforma/{id}', [SellPosController::class, 'convertToProforma']);
+    Route::get('/sells/quotations', [SellController::class, 'getQuotations']);
+    Route::get('/sells/draft-dt', [SellController::class, 'getDraftDatables']);
     Route::get('/sells/copy-quotation/{id}', [SellPosController::class, 'copyQuotation']);
 
     Route::post('/import-purchase-products', [PurchaseController::class, 'importPurchaseProducts']);
@@ -234,15 +233,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/purchases/check_ref_number', [PurchaseController::class, 'checkRefNumber']);
     Route::resource('purchases', PurchaseController::class)->except(['show']);
 
-    Route::get('/toggle-subscription/{id}', [SellPosController::class, 'toggleRecurringInvoices']);
-    Route::post('/sells/pos/get-types-of-service-details', [SellPosController::class, 'getTypesOfServiceDetails']);
-    Route::get('/sells/subscriptions', [SellPosController::class, 'listSubscriptions']);
-    Route::get('/sells/duplicate/{id}', [SellController::class, 'duplicateSell']);
-    Route::get('/sells/drafts', [SellController::class, 'getDrafts']);
-    Route::get('/sells/convert-to-draft/{id}', [SellPosController::class, 'convertToInvoice']);
-    Route::get('/sells/convert-to-proforma/{id}', [SellPosController::class, 'convertToProforma']);
-    Route::get('/sells/quotations', [SellController::class, 'getQuotations']);
-    Route::get('/sells/draft-dt', [SellController::class, 'getDraftDatables']);
     Route::resource('sells', SellController::class)->except(['show']);
 
     Route::get('/import-sales', [ImportSalesController::class, 'index']);
