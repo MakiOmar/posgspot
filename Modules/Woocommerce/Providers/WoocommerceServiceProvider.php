@@ -112,6 +112,10 @@ class WoocommerceServiceProvider extends ServiceProvider
      */
     public function registerFactories()
     {
+        if (!class_exists(Factory::class)) {
+            return;
+        }
+
         if (!app()->environment('production') && $this->app->runningInConsole()) {
             app(Factory::class)->load(__DIR__ . '/../Database/factories');
         }
