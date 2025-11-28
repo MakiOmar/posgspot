@@ -42,36 +42,9 @@ class AccountsApi extends Controller
         try {
             $payload = $request->getContent();
 
-            // Log received data for debugging
-            \Log::info('AccountsApi::orderCreated - Received Data', [
-                'business_id' => $business_id,
-                'raw_payload' => $payload,
-                'payload_size' => strlen($payload),
-                'content_type' => $request->header('Content-Type'),
-                'user_agent' => $request->header('User-Agent'),
-            ]);
-
             $business = Business::findOrFail($business_id);
             $user_id = $business->owner->id;
             $order_data = json_decode($payload);
-
-            // Log decoded order data summary
-            $order_summary = [];
-            if (is_object($order_data)) {
-                $order_summary = [
-                    'order_keys' => array_keys((array) $order_data),
-                    'order_number' => $order_data->number ?? $order_data->order_number ?? $order_data->id ?? 'N/A',
-                    'order_total' => $order_data->total ?? 'N/A',
-                    'line_items_count' => isset($order_data->line_items) ? count($order_data->line_items) : 0,
-                    'location_id' => $order_data->location_id ?? 'N/A',
-                ];
-            }
-
-            \Log::info('AccountsApi::orderCreated - Decoded Order Data', [
-                'business_id' => $business_id,
-                'order_summary' => $order_summary,
-                'full_order_data' => $order_data, // Full data for detailed debugging
-            ]);
             $business_data = [
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
