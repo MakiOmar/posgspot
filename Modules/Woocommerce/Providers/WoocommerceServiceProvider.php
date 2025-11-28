@@ -2,7 +2,6 @@
 
 namespace Modules\Woocommerce\Providers;
 
-use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Support\ServiceProvider;
 use App\Business;
 use App\Utils\ModuleUtil;
@@ -95,13 +94,9 @@ class WoocommerceServiceProvider extends ServiceProvider
      */
     public function registerFactories()
     {
-        if (!class_exists(Factory::class)) {
-            return;
-        }
-
-        if (!app()->environment('production') && $this->app->runningInConsole()) {
-            app(Factory::class)->load(__DIR__ . '/../Database/factories');
-        }
+        // Laravel 8+ removed Illuminate\Database\Eloquent\Factory
+        // Factories are now handled automatically via Database\Factories namespace
+        // This method is kept for backward compatibility but does nothing
     }
 
     /**
