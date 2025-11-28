@@ -28,12 +28,14 @@ class AccountsApi extends Controller
     /**
      * Constructor
      *
-     * @param  WoocommerceUtil  $woocommerceUtil
+     * @param  TransactionUtil  $transactionUtil
+     * @param  ProductUtil  $productUtil
      * @return void
      */
-    public function __construct(TransactionUtil $transactionUtil)
+    public function __construct(TransactionUtil $transactionUtil, ProductUtil $productUtil)
     {
         $this->transactionUtil = $transactionUtil;
+        $this->productUtil = $productUtil;
     }
     public function orderCreated(Request $request, $business_id)
     {
@@ -59,9 +61,19 @@ class AccountsApi extends Controller
                 'created' => $created
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
+            
+            \Log::error('AccountsApi::orderCreated Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+                'business_id' => $business_id ?? null,
+            ]);
+            
             return response()->json([
                 'message' => 'Error occured!',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while processing the order'
             ], 500);
         }
     }
