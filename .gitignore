@@ -22,7 +22,7 @@ npm-debug.log
 /public/fonts/
 /public/images/
 /public/modules/
-/public/modules/.rnd
+/public/.rnd
 /public/mix-manifest.json
 .scribe
 /public/docs
