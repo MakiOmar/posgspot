@@ -219,6 +219,9 @@ class AccountsApi extends Controller
                 //Check if line tax exists append to sale line data
                 $tax_id = null;
 
+                // Get line_item_id, checking multiple possible property names
+                $line_item_id = $product_line->id ?? $product_line->line_item_id ?? $product_line->line_id ?? null;
+
                 $product_data = [
                     'product_id' => $product->id,
                     'unit_price' => $unit_price,
@@ -228,7 +231,7 @@ class AccountsApi extends Controller
                     'enable_stock' => $product->enable_stock,
                     'item_tax' => $line_tax,
                     'tax_id' => $tax_id,
-                    'line_item_id' => $product_line->id,
+                    'line_item_id' => $line_item_id,
                 ];
 
                 $product_lines[] = $product_data;
