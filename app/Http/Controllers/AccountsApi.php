@@ -42,9 +42,36 @@ class AccountsApi extends Controller
         try {
             $payload = $request->getContent();
 
+            // Log received data for debugging
+            \Log::info('AccountsApi::orderCreated - Received Data', [
+                'business_id' => $business_id,
+                'raw_payload' => $payload,
+                'payload_size' => strlen($payload),
+                'content_type' => $request->header('Content-Type'),
+                'user_agent' => $request->header('User-Agent'),
+            ]);
+
             $business = Business::findOrFail($business_id);
             $user_id = $business->owner->id;
             $order_data = json_decode($payload);
+
+            // Log decoded order data summary
+            $order_summary = [];
+            if (is_object($order_data)) {
+                $order_summary = [
+                    'order_keys' => array_keys((array) $order_data),
+                    'order_number' => $order_data->number ?? $order_data->order_number ?? $order_data->id ?? 'N/A',
+                    'order_total' => $order_data->total ?? 'N/A',
+                    'line_items_count' => isset($order_data->line_items) ? count($order_data->line_items) : 0,
+                    'location_id' => $order_data->location_id ?? 'N/A',
+                ];
+            }
+
+            \Log::info('AccountsApi::orderCreated - Decoded Order Data', [
+                'business_id' => $business_id,
+                'order_summary' => $order_summary,
+                'full_order_data' => $order_data, // Full data for detailed debugging
+            ]);
             $business_data = [
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
@@ -132,7 +159,7 @@ class AccountsApi extends Controller
 
                 return [
                     'error_type' => 'order_insuficient_product_qty',
-                    'order_number' => $order->number,
+                    'order_number' => $order_number,
                     'msg' => $e->getMessage(),
                 ];
             }
@@ -158,6 +185,9 @@ class AccountsApi extends Controller
          * location_id needs to be dynamic
          * product_line_product_id needs to be dynamic
          */
+
+        // Safely get order number (check multiple possible property names)
+        $order_number = $order->number ?? $order->order_number ?? $order->id ?? null;
 
         //Create sell line data
         $product_lines = [];
@@ -209,8 +239,8 @@ class AccountsApi extends Controller
                 if (empty($variation)) {
                     return ['has_error' => [
                         'error_type' => 'order_product_not_found',
-                        'order_number' => $order->number,
-                        'product' => $product_line->name . ' SKU:' . $product_line->sku,
+                        'order_number' => $order_number,
+                        'product' => ($product_line->name ?? 'Unknown') . ' SKU:' . ($product_line->sku ?? 'N/A'),
                     ],
                     ];
                     exit;
@@ -238,8 +268,8 @@ class AccountsApi extends Controller
             } else {
                 return ['has_error' => [
                     'error_type' => 'order_product_not_found',
-                    'order_number' => $order->number,
-                    'product' => $product_line->name . ' SKU:' . $product_line->sku,
+                    'order_number' => $order_number,
+                    'product' => ($product_line->name ?? 'Unknown') . ' SKU:' . ($product_line->sku ?? 'N/A'),
                 ],
                 ];
                 exit;
@@ -373,7 +403,7 @@ class AccountsApi extends Controller
             'sale_note' => null,
             'staff_note' => $sell_line_note,
             'commission_agent' => null,
-            'invoice_no' => $order->number,
+            'invoice_no' => $order_number,
             'order_addresses' => json_encode($addresses),
             'shipping_charges' => ! empty($order->shipping_total) ? $order->shipping_total : 0,
             'shipping_details' => ! empty($shipping_lines_array) ? implode(', ', $shipping_lines_array) : '',
