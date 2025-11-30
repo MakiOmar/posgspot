@@ -41,9 +41,29 @@
         <div class="row eq-height-row">
             <div class="col-md-12 col-sm-12 col-xs-12 tw-pt-20 tw-pb-10 tw-px-5">
                 <div class="row">
+                    @php
+                        // Get logo from settings - check system logo first, then first business logo
+                        $logo_path = null;
+                        
+                        // Check for system logo
+                        if (file_exists(public_path('uploads/logo.png'))) {
+                            $logo_path = asset('uploads/logo.png');
+                        } else {
+                            // Get first business logo from database
+                            $business = \App\Business::whereNotNull('logo')->first();
+                            if ($business && !empty($business->logo)) {
+                                $logo_path = asset('uploads/business_logos/' . $business->logo);
+                            }
+                        }
+                        
+                        // Fallback to default logo if none found
+                        if (!$logo_path) {
+                            $logo_path = asset('img/logo-small.png');
+                        }
+                    @endphp
                     <div
                         class="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden  tw-p-0.5 tw-mb-4" style="position: fixed;top: 0;right: 0;bottom: 0;left: 0;margin: auto;">
-                        <img src="{{ asset('img/logo-small.png')}}" alt="lock" class="tw-rounded-full tw-object-fill" />
+                        <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-rounded-full tw-object-fill" />
                     </div>
 
                     {{--

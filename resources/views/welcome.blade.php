@@ -22,12 +22,12 @@
         $logo_path = asset('img/logo-small.png');
     }
 @endphp
-
-<div class="col-md-12 col-sm-12 col-xs-12 right-col tw-pt-20 tw-pb-10 tw-px-5 tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-blue-500" style="min-height: 100vh;">
+{{--
+<div class="col-md-12 col-sm-12 col-xs-12 tw-pt-20 tw-pb-10 tw-px-5 tw-flex tw-flex-col tw-items-center tw-justify-center" style="min-height: 100vh;">
     <div class="tw-flex tw-items-center tw-justify-center">
         <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-max-w-full tw-h-auto tw-max-h-64 tw-object-contain" style="max-width: 400px; height: auto;">
     </div>
 </div>
-
+--}}
 @endsection
             
