@@ -63,7 +63,7 @@
                     @endphp
                     <div
                         class="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden  tw-p-0.5 tw-mb-4" style="position: fixed;top: 0;right: 0;bottom: 0;left: 0;margin: auto;">
-                        <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-rounded-full tw-object-fill" />
+                        <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-object-fill" style="max-width: 300px;" />
                     </div>
 
                     {{--
