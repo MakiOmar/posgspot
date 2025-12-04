@@ -3779,7 +3779,7 @@ class TransactionUtil extends Util
         }
 
         $date = \Carbon::parse($transaction->transaction_date)
-                    ->addDays($edit_duration);
+                    ->addDays((int) $edit_duration);
 
         $today = today();
 
