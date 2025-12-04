@@ -2,15 +2,32 @@
 @section('title', config('app.name', 'ultimatePOS'))
 @inject('request', 'Illuminate\Http\Request')
 @section('content')
-<div class="col-md-12 col-sm-12 col-xs-12 right-col tw-pt-20 tw-pb-10 tw-px-5 tw-flex tw-flex-col tw-items-center tw-justify-center tw-bg-blue-500">
-    <div class="tw-text-6xl tw-font-extrabold tw-text-center tw-text-white tw-shadow-lg tw-px-4 tw-py-2 tw-bg-blue-700 tw-rounded-md">
-        {{ config('app.name', 'UltimatePOS') }}
-    </div>
+@php
+    // Get logo from settings - check system logo first, then first business logo
+    $logo_path = null;
     
-    <p class="tw-text-lg tw-font-medium tw-text-center tw-text-white tw-mt-2 tw-shadow-md tw-bg-blue-600 tw-rounded-md tw-px-3 tw-py-1">
-        {{ env('APP_TITLE', '') }}
-    </p>
+    // Check for system logo
+    if (file_exists(public_path('uploads/logo.png'))) {
+        $logo_path = asset('uploads/logo.png');
+    } else {
+        // Get first business logo from database
+        $business = \App\Business::whereNotNull('logo')->first();
+        if ($business && !empty($business->logo)) {
+            $logo_path = asset('uploads/business_logos/' . $business->logo);
+        }
+    }
+    
+    // Fallback to default logo if none found
+    if (!$logo_path) {
+        $logo_path = asset('img/logo-small.png');
+    }
+@endphp
+{{--
+<div class="col-md-12 col-sm-12 col-xs-12 tw-pt-20 tw-pb-10 tw-px-5 tw-flex tw-flex-col tw-items-center tw-justify-center" style="min-height: 100vh;">
+    <div class="tw-flex tw-items-center tw-justify-center">
+        <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-max-w-full tw-h-auto tw-max-h-64 tw-object-contain" style="max-width: 400px; height: auto;">
+    </div>
 </div>
-
+--}}
 @endsection
             
