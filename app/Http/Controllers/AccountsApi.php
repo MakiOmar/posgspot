@@ -89,6 +89,11 @@ class AccountsApi extends Controller
         DB::beginTransaction();
 
         $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id, false);
+        
+        // Set created_at and updated_at to match transaction_date
+        $transaction_date = \Carbon\Carbon::parse($transaction->transaction_date);
+        $transaction->created_at = $transaction_date;
+        $transaction->updated_at = $transaction_date;
         $transaction->save();
 
         //Create sell lines
@@ -111,6 +116,8 @@ class AccountsApi extends Controller
 
             //Update payment status
             $transaction->payment_status = 'paid';
+            // Keep updated_at matching transaction_date
+            $transaction->updated_at = $transaction_date;
             $transaction->save();
 
             try {
