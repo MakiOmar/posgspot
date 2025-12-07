@@ -19,21 +19,33 @@ use App\Http\Controllers\SellPosController;
 */
 
 Route::post('/login', function (Request $request) {
-    $request->validate([
-        'username' => 'required|string',
-        'password' => 'required',
-    ]);
+    try {
+        $request->validate([
+            'username' => 'required|string',
+            'password' => 'required',
+        ]);
 
-    $user = User::where('username', $request->username)->first();
+        $user = User::where('username', $request->username)->first();
 
-    if (!$user || !Hash::check($request->password, $user->password)) {
-        return response()->json(['message' => 'Invalid credentials'], 401);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
+        }
+
+        // Generate a Passport access token
+        $tokenResult = $user->createToken('API Token');
+        $token = $tokenResult->accessToken;
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'Bearer'
+        ], 200);
+    } catch (\Exception $e) {
+        \Log::error('Token generation failed: ' . $e->getMessage());
+        return response()->json([
+            'message' => 'Failed to generate token',
+            'error' => config('app.debug') ? $e->getMessage() : 'Please ensure Passport keys are generated'
+        ], 500);
     }
-
-    // Generate a Passport access token
-    $token = $user->createToken('API Token')->accessToken;
-
-    return response()->json(['token' => $token], 200);
 });
 
 Route::middleware('auth:api')->get('/user', function (Request $request) {
