@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
+use Illuminate\Support\Facades\Log;
 
 class Authenticate extends Middleware
 {
@@ -16,6 +17,13 @@ class Authenticate extends Middleware
     {
         // For API routes, always return null to prevent redirect (will return JSON 401)
         if ($request->is('api/*')) {
+            // Log authentication attempt for debugging
+            Log::info('API Authentication attempt', [
+                'url' => $request->fullUrl(),
+                'has_authorization_header' => $request->hasHeader('Authorization'),
+                'authorization_header' => $request->header('Authorization') ? substr($request->header('Authorization'), 0, 30) . '...' : null,
+                'bearer_token' => $request->bearerToken() ? substr($request->bearerToken(), 0, 20) . '...' : null,
+            ]);
             return null;
         }
         
