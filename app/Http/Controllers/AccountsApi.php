@@ -120,7 +120,7 @@ class AccountsApi extends Controller
 
                 return [
                     'error_type' => 'order_insuficient_product_qty',
-                    'order_number' => $order->number,
+                    'order_number' => $order->number ?? $order->id ?? 'N/A',
                     'msg' => $e->getMessage(),
                 ];
             }
@@ -197,7 +197,7 @@ class AccountsApi extends Controller
                 if (empty($variation)) {
                     return ['has_error' => [
                         'error_type' => 'order_product_not_found',
-                        'order_number' => $order->number,
+                        'order_number' => $order->number ?? $order->id ?? 'N/A',
                         'product' => $product_line->name . ' SKU:' . $product_line->sku,
                     ],
                     ];
@@ -223,7 +223,7 @@ class AccountsApi extends Controller
             } else {
                 return ['has_error' => [
                     'error_type' => 'order_product_not_found',
-                    'order_number' => $order->number,
+                    'order_number' => $order->number ?? $order->id ?? 'N/A',
                     'product' => $product_line->name . ' SKU:' . $product_line->sku,
                 ],
                 ];
@@ -231,20 +231,21 @@ class AccountsApi extends Controller
             }
         }
 
-        $f_name = ! empty($order->billing->first_name) ? $order->billing->first_name : '';
-        $l_name = ! empty($order->billing->last_name) ? $order->billing->last_name : '';
+        $billing = $order->billing ?? (object)[];
+        $f_name = ! empty($billing->first_name) ? $billing->first_name : '';
+        $l_name = ! empty($billing->last_name) ? $billing->last_name : '';
         $customer_details = [
             'first_name' => $f_name,
             'last_name' => $l_name,
-            'email' => ! empty($order->billing->email) ? $order->billing->email : null,
+            'email' => ! empty($billing->email) ? $billing->email : null,
             'name' => $f_name . ' ' . $l_name,
-            'mobile' => $order->billing->phone,
-            'address_line_1' => ! empty($order->billing->address_1) ? $order->billing->address_1 : null,
-            'address_line_2' => ! empty($order->billing->address_2) ? $order->billing->address_2 : null,
-            'city' => ! empty($order->billing->city) ? $order->billing->city : null,
-            'state' => ! empty($order->billing->state) ? $order->billing->state : null,
-            'country' => ! empty($order->billing->country) ? $order->billing->country : null,
-            'zip_code' => ! empty($order->billing->postcode) ? $order->billing->postcode : null,
+            'mobile' => $billing->phone ?? null,
+            'address_line_1' => ! empty($billing->address_1) ? $billing->address_1 : null,
+            'address_line_2' => ! empty($billing->address_2) ? $billing->address_2 : null,
+            'city' => ! empty($billing->city) ? $billing->city : null,
+            'state' => ! empty($billing->state) ? $billing->state : null,
+            'country' => ! empty($billing->country) ? $billing->country : null,
+            'zip_code' => ! empty($billing->postcode) ? $billing->postcode : null,
         ];
 
         if (! empty($customer_details['mobile'])) {
@@ -285,50 +286,51 @@ class AccountsApi extends Controller
 
         $sell_status = 'quotation';
         $shipping_status = 'ordered';
+        $shipping = $order->shipping ?? (object)[];
         $shipping_address = [];
-        if (! empty($order->shipping->first_name)) {
-            $shipping_address[] = $order->shipping->first_name . ' ' . $order->shipping->last_name;
+        if (! empty($shipping->first_name)) {
+            $shipping_address[] = ($shipping->first_name ?? '') . ' ' . ($shipping->last_name ?? '');
         }
-        if (! empty($order->shipping->company)) {
-            $shipping_address[] = $order->shipping->company;
+        if (! empty($shipping->company)) {
+            $shipping_address[] = $shipping->company;
         }
-        if (! empty($order->shipping->address_1)) {
-            $shipping_address[] = $order->shipping->address_1;
+        if (! empty($shipping->address_1)) {
+            $shipping_address[] = $shipping->address_1;
         }
-        if (! empty($order->shipping->address_2)) {
-            $shipping_address[] = $order->shipping->address_2;
+        if (! empty($shipping->address_2)) {
+            $shipping_address[] = $shipping->address_2;
         }
-        if (! empty($order->shipping->city)) {
-            $shipping_address[] = $order->shipping->city;
+        if (! empty($shipping->city)) {
+            $shipping_address[] = $shipping->city;
         }
-        if (! empty($order->shipping->state)) {
-            $shipping_address[] = $order->shipping->state;
+        if (! empty($shipping->state)) {
+            $shipping_address[] = $shipping->state;
         }
-        if (! empty($order->shipping->country)) {
-            $shipping_address[] = $order->shipping->country;
+        if (! empty($shipping->country)) {
+            $shipping_address[] = $shipping->country;
         }
-        if (! empty($order->shipping->postcode)) {
-            $shipping_address[] = $order->shipping->postcode;
+        if (! empty($shipping->postcode)) {
+            $shipping_address[] = $shipping->postcode;
         }
         $addresses['shipping_address'] = [
-            'shipping_name' => $order->shipping->first_name . ' ' . $order->shipping->last_name,
-            'company' => $order->shipping->company,
-            'shipping_address_line_1' => $order->shipping->address_1,
-            'shipping_address_line_2' => $order->shipping->address_2,
-            'shipping_city' => $order->shipping->city,
-            'shipping_state' => $order->shipping->state,
-            'shipping_country' => $order->shipping->country,
-            'shipping_zip_code' => $order->shipping->postcode,
+            'shipping_name' => ($shipping->first_name ?? '') . ' ' . ($shipping->last_name ?? ''),
+            'company' => $shipping->company ?? null,
+            'shipping_address_line_1' => $shipping->address_1 ?? null,
+            'shipping_address_line_2' => $shipping->address_2 ?? null,
+            'shipping_city' => $shipping->city ?? null,
+            'shipping_state' => $shipping->state ?? null,
+            'shipping_country' => $shipping->country ?? null,
+            'shipping_zip_code' => $shipping->postcode ?? null,
         ];
         $addresses['billing_address'] = [
-            'billing_name' => $order->billing->first_name . ' ' . $order->billing->last_name,
-            'company' => $order->billing->company,
-            'billing_address_line_1' => $order->billing->address_1,
-            'billing_address_line_2' => $order->billing->address_2,
-            'billing_city' => $order->billing->city,
-            'billing_state' => $order->billing->state,
-            'billing_country' => $order->billing->country,
-            'billing_zip_code' => $order->billing->postcode,
+            'billing_name' => ($billing->first_name ?? '') . ' ' . ($billing->last_name ?? ''),
+            'company' => $billing->company ?? null,
+            'billing_address_line_1' => $billing->address_1 ?? null,
+            'billing_address_line_2' => $billing->address_2 ?? null,
+            'billing_city' => $billing->city ?? null,
+            'billing_state' => $billing->state ?? null,
+            'billing_country' => $billing->country ?? null,
+            'billing_zip_code' => $billing->postcode ?? null,
         ];
 
         $shipping_lines_array = [];
@@ -358,7 +360,7 @@ class AccountsApi extends Controller
             'sale_note' => null,
             'staff_note' => $sell_line_note,
             'commission_agent' => null,
-            'invoice_no' => $order->number,
+            'invoice_no' => $order->number ?? $order->id ?? null,
             'order_addresses' => json_encode($addresses),
             'shipping_charges' => ! empty($order->shipping_total) ? $order->shipping_total : 0,
             'shipping_details' => ! empty($shipping_lines_array) ? implode(', ', $shipping_lines_array) : '',
