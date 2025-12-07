@@ -216,7 +216,7 @@ class AccountsApi extends Controller
                     'enable_stock' => $product->enable_stock,
                     'item_tax' => $line_tax,
                     'tax_id' => $tax_id,
-                    'line_item_id' => $product_line->id,
+                    'line_item_id' => $product_line->id ?? null,
                 ];
 
                 $product_lines[] = $product_data;
