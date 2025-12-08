@@ -38,6 +38,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            \App\Http\Middleware\FixAuthorizationHeader::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
