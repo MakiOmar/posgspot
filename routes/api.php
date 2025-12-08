@@ -48,15 +48,15 @@ Route::post('/login', function (Request $request) {
     }
 });
 
-Route::get('/user', function (Request $request) {
+Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
 // Test endpoint to debug authentication
-Route::get('/test-auth', function (Request $request) {
+Route::middleware('auth:api')->get('/test-auth', function (Request $request) {
     return response()->json([
-        'authenticated' => false,
-        'message' => 'API is currently public (no auth required)',
+        'authenticated' => true,
+        'user' => $request->user(),
         'token_info' => [
             'has_token' => $request->bearerToken() ? true : false,
             'token_preview' => $request->bearerToken() ? substr($request->bearerToken(), 0, 20) . '...' : null
@@ -64,8 +64,8 @@ Route::get('/test-auth', function (Request $request) {
     ]);
 });
 
-Route::post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
-Route::post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
-Route::post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
+Route::middleware('auth:api')->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
+Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
+Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
 
 Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
