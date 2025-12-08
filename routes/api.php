@@ -51,6 +51,7 @@ Route::post('/debug-token', function (Request $request) {
         
         // Determine the issue
         $issue = null;
+        $warning = null;
         if (!$client) {
             $issue = 'Client ID ' . $clientId . ' does NOT exist in database';
         } elseif ($client->revoked) {
@@ -65,6 +66,8 @@ Route::post('/debug-token', function (Request $request) {
             $issue = 'Token has EXPIRED';
         } else {
             $issue = 'Client exists and is valid, token exists and is not revoked';
+            // If everything looks valid but token is still being denied, it's likely a Passport keys mismatch
+            $warning = 'If API still denies this token, the token was likely signed with different Passport keys. Regenerate keys with: php artisan passport:keys --force';
         }
         
         return response()->json([
@@ -91,7 +94,8 @@ Route::post('/debug-token', function (Request $request) {
             'available_personal_clients' => $personalClients->map(function($c) {
                 return ['id' => $c->id, 'name' => $c->name, 'revoked' => $c->revoked];
             }),
-            'message' => $issue
+            'message' => $issue,
+            'warning' => $warning
         ]);
     } catch (\Exception $e) {
         return response()->json(['error' => 'Failed to decode token: ' . $e->getMessage()], 500);
