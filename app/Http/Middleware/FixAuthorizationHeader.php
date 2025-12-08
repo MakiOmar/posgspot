@@ -57,25 +57,7 @@ class FixAuthorizationHeader
                 
                 // Also set it in the server parameters to ensure it's available
                 $request->server->set('HTTP_AUTHORIZATION', $serverAuthHeader);
-                
-                \Log::info('FixAuthorizationHeader: Fixed Authorization header from $_SERVER', [
-                    'token_preview' => substr($serverAuthHeader, 0, 30) . '...',
-                    'source' => $source,
-                    'bearer_token_after_fix' => $request->bearerToken() ? substr($request->bearerToken(), 0, 20) . '...' : null
-                ]);
-            } else {
-                \Log::warning('FixAuthorizationHeader: Authorization header not found in $_SERVER', [
-                    'has_http_authorization' => isset($_SERVER['HTTP_AUTHORIZATION']),
-                    'http_authorization_value' => isset($_SERVER['HTTP_AUTHORIZATION']) ? substr($_SERVER['HTTP_AUTHORIZATION'], 0, 30) . '...' : null,
-                    'has_redirect_http_authorization' => isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION']),
-                    'apache_request_headers_exists' => function_exists('apache_request_headers')
-                ]);
             }
-        } else {
-            \Log::info('FixAuthorizationHeader: Authorization header already present', [
-                'token_preview' => substr($authHeaderValue, 0, 30) . '...',
-                'bearer_token' => $bearerToken ? substr($bearerToken, 0, 20) . '...' : null
-            ]);
         }
         
         return $next($request);
