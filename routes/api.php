@@ -38,14 +38,29 @@ Route::post('/login', function (Request $request) {
             // Try to create personal access client if it doesn't exist
             try {
                 \Artisan::call('passport:client', ['--personal' => true, '--name' => 'Personal Access Client']);
+                // Refresh after creation
+                $personalClient = \Laravel\Passport\Client::where('personal_access_client', true)->first();
             } catch (\Exception $e) {
                 \Log::error('Failed to create personal access client: ' . $e->getMessage());
             }
         }
 
+        if (!$personalClient) {
+            return response()->json([
+                'message' => 'Personal access client not configured. Please contact support.',
+                'error' => 'Passport client missing'
+            ], 500);
+        }
+
         // Generate a Passport access token
         $tokenResult = $user->createToken('API Token');
         $token = $tokenResult->accessToken;
+        
+        \Log::info('Token generated successfully', [
+            'user_id' => $user->id,
+            'client_id' => $personalClient->id,
+            'token_preview' => substr($token, 0, 20) . '...'
+        ]);
 
         return response()->json([
             'token' => $token,
