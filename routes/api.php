@@ -39,13 +39,39 @@ Route::post('/debug-token', function (Request $request) {
         $clientId = $payload['aud'] ?? null;
         $client = $clientId ? \Laravel\Passport\Client::find($clientId) : null;
         
+        // Check if token is revoked in database (JTI = JWT ID = token ID in oauth_access_tokens table)
+        $jti = $payload['jti'] ?? null;
+        $tokenRecord = $jti ? \DB::table('oauth_access_tokens')->where('id', $jti)->first() : null;
+        $tokenRevoked = $tokenRecord ? (bool) $tokenRecord->revoked : null;
+        $tokenExpired = $tokenRecord && $tokenRecord->expires_at ? 
+            (strtotime($tokenRecord->expires_at) < time()) : null;
+        
         // Check available personal access clients
         $personalClients = \Laravel\Passport\Client::where('personal_access_client', true)->get(['id', 'name', 'revoked']);
+        
+        // Determine the issue
+        $issue = null;
+        if (!$client) {
+            $issue = 'Client ID ' . $clientId . ' does NOT exist in database';
+        } elseif ($client->revoked) {
+            $issue = 'Client exists but is REVOKED';
+        } elseif (!$client->personal_access_client) {
+            $issue = 'Client exists but is NOT a personal access client';
+        } elseif ($tokenRevoked === true) {
+            $issue = 'Token is REVOKED in database (oauth_access_tokens table)';
+        } elseif ($tokenRevoked === null) {
+            $issue = 'Token record NOT found in database (oauth_access_tokens table) - token may be invalid or signed with different keys';
+        } elseif ($tokenExpired) {
+            $issue = 'Token has EXPIRED';
+        } else {
+            $issue = 'Client exists and is valid, token exists and is not revoked';
+        }
         
         return response()->json([
             'token_info' => [
                 'client_id' => $clientId,
                 'user_id' => $payload['sub'] ?? null,
+                'jti' => $jti,
                 'expires_at' => isset($payload['exp']) ? date('Y-m-d H:i:s', $payload['exp']) : null,
                 'issued_at' => isset($payload['iat']) ? date('Y-m-d H:i:s', $payload['iat']) : null,
             ],
@@ -56,13 +82,16 @@ Route::post('/debug-token', function (Request $request) {
                 'revoked' => $client->revoked,
                 'personal_access_client' => $client->personal_access_client,
             ] : null,
+            'token_in_database' => [
+                'found' => $tokenRecord !== null,
+                'revoked' => $tokenRevoked,
+                'expired' => $tokenExpired,
+                'expires_at' => $tokenRecord && $tokenRecord->expires_at ? $tokenRecord->expires_at : null,
+            ],
             'available_personal_clients' => $personalClients->map(function($c) {
                 return ['id' => $c->id, 'name' => $c->name, 'revoked' => $c->revoked];
             }),
-            'message' => $client ? 
-                ($client->revoked ? 'Client exists but is REVOKED' : 
-                 (!$client->personal_access_client ? 'Client exists but is NOT a personal access client' : 'Client exists and is valid')) :
-                'Client ID ' . $clientId . ' does NOT exist in database'
+            'message' => $issue
         ]);
     } catch (\Exception $e) {
         return response()->json(['error' => 'Failed to decode token: ' . $e->getMessage()], 500);
