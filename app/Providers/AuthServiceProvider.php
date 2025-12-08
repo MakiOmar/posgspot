@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Passport\Passport;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -24,6 +25,9 @@ class AuthServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->registerPolicies();
+
+        // Passport routes are auto-registered in Laravel 9+
+        // Only register manually if needed for custom routes
 
         Gate::before(function ($user, $ability) {
             if (in_array($ability, ['backup', 'superadmin',
