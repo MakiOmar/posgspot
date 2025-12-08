@@ -31,6 +31,18 @@ Route::post('/login', function (Request $request) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
+        // Ensure personal access client exists
+        $personalClient = \Laravel\Passport\Client::where('personal_access_client', true)->first();
+        if (!$personalClient) {
+            \Log::warning('Personal access client not found, attempting to create one');
+            // Try to create personal access client if it doesn't exist
+            try {
+                \Artisan::call('passport:client', ['--personal' => true, '--name' => 'Personal Access Client']);
+            } catch (\Exception $e) {
+                \Log::error('Failed to create personal access client: ' . $e->getMessage());
+            }
+        }
+
         // Generate a Passport access token
         $tokenResult = $user->createToken('API Token');
         $token = $tokenResult->accessToken;
@@ -39,11 +51,25 @@ Route::post('/login', function (Request $request) {
             'token' => $token,
             'token_type' => 'Bearer'
         ], 200);
-    } catch (\Exception $e) {
-        \Log::error('Token generation failed: ' . $e->getMessage());
+    } catch (\League\OAuth2\Server\Exception\OAuthServerException $e) {
+        \Log::error('OAuth Server Error: ' . $e->getMessage(), [
+            'error_code' => $e->getCode(),
+            'hint' => $e->getHint()
+        ]);
         return response()->json([
             'message' => 'Failed to generate token',
-            'error' => config('app.debug') ? $e->getMessage() : 'Please ensure Passport keys are generated'
+            'error' => 'OAuth server error. Please ensure Passport is properly configured.',
+            'hint' => config('app.debug') ? $e->getHint() : 'Check if personal access client exists'
+        ], 500);
+    } catch (\Exception $e) {
+        \Log::error('Token generation failed: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'message' => 'Failed to generate token',
+            'error' => config('app.debug') ? $e->getMessage() : 'Please ensure Passport keys are generated and personal access client exists'
         ], 500);
     }
 });
