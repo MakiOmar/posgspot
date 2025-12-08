@@ -18,6 +18,57 @@ use App\Http\Controllers\SellPosController;
 |
 */
 
+// Debug endpoint to decode token (no auth required)
+Route::post('/debug-token', function (Request $request) {
+    $token = $request->bearerToken() ?? $request->input('token');
+    
+    if (!$token) {
+        return response()->json(['error' => 'No token provided'], 400);
+    }
+    
+    try {
+        // Decode JWT token (just the payload, no signature verification)
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            return response()->json(['error' => 'Invalid token format'], 400);
+        }
+        
+        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+        
+        // Check if client exists
+        $clientId = $payload['aud'] ?? null;
+        $client = $clientId ? \Laravel\Passport\Client::find($clientId) : null;
+        
+        // Check available personal access clients
+        $personalClients = \Laravel\Passport\Client::where('personal_access_client', true)->get(['id', 'name', 'revoked']);
+        
+        return response()->json([
+            'token_info' => [
+                'client_id' => $clientId,
+                'user_id' => $payload['sub'] ?? null,
+                'expires_at' => isset($payload['exp']) ? date('Y-m-d H:i:s', $payload['exp']) : null,
+                'issued_at' => isset($payload['iat']) ? date('Y-m-d H:i:s', $payload['iat']) : null,
+            ],
+            'client_exists' => $client ? true : false,
+            'client_info' => $client ? [
+                'id' => $client->id,
+                'name' => $client->name,
+                'revoked' => $client->revoked,
+                'personal_access_client' => $client->personal_access_client,
+            ] : null,
+            'available_personal_clients' => $personalClients->map(function($c) {
+                return ['id' => $c->id, 'name' => $c->name, 'revoked' => $c->revoked];
+            }),
+            'message' => $client ? 
+                ($client->revoked ? 'Client exists but is REVOKED' : 
+                 (!$client->personal_access_client ? 'Client exists but is NOT a personal access client' : 'Client exists and is valid')) :
+                'Client ID ' . $clientId . ' does NOT exist in database'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Failed to decode token: ' . $e->getMessage()], 500);
+    }
+});
+
 Route::post('/login', function (Request $request) {
     try {
         $request->validate([
