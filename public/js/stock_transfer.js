@@ -324,6 +324,7 @@ $(document).on('change', 'select.sub_unit', function() {
 
 function update_table_row(tr) {
     var quantity = parseFloat(__read_number(tr.find('input.product_quantity')));
+    var unit_price = parseFloat(__read_number(tr.find('input.product_unit_price')));
     var multiplier = 1;
 
     if (tr.find('select.sub_unit').length) {
@@ -331,13 +332,16 @@ function update_table_row(tr) {
             tr.find('select.sub_unit')
                 .find(':selected')
                 .data('multiplier')
-        );
+        ) || 1;
+
+        // Keep base unit price in sync when user edits the visible price
+        if (!isNaN(unit_price) && unit_price !== null && multiplier) {
+            tr.find('input.hidden_base_unit_price').val(unit_price / multiplier);
+        }
     }
-    quantity = quantity * multiplier;
-    
-    var unit_price = parseFloat(tr.find('input.hidden_base_unit_price').val());
+
     var row_total = 0;
-    if (quantity && unit_price) {
+    if (!isNaN(quantity) && !isNaN(unit_price)) {
         row_total = quantity * unit_price;
     }
     tr.find('input.product_line_total').val(__number_f(row_total));
