@@ -500,23 +500,21 @@
               }
             });
 
-            //TODO:Uncomment the below code
-            
-            // function toggleSubmitButton () {
-            //     if ($('select#status_id').find(':selected').data('is_complete')) {
-            //         $("#save_and_add_parts").attr('disabled', false);
-            //         $("#save_and_upload_docs").attr('disabled', true);
-            //     } else {
-            //         $("#save_and_add_parts").attr('disabled', true);
-            //         $("#save_and_upload_docs").attr('disabled', false);
-            //     }
-            // }
+            function toggleSubmitButton () {
+                if ($('select#status_id').find(':selected').data('is_complete')) {
+                    $("#save_and_add_parts").attr('disabled', false);
+                    $("#save_and_upload_docs").attr('disabled', true);
+                } else {
+                    $("#save_and_add_parts").attr('disabled', true);
+                    $("#save_and_upload_docs").attr('disabled', false);
+                }
+            }
 
-            // $("select#status_id").on('change', function () {
-            //     toggleSubmitButton();
-            // });
+            $("select#status_id").on('change', function () {
+                toggleSubmitButton();
+            });
 
-            // toggleSubmitButton();
+            toggleSubmitButton();
         });
     </script>
 @endsection

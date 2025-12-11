@@ -539,25 +539,23 @@
               }
             });
 
-            //TODO:Uncomment the below code
+            function toggleSubmitButton () {
+                if ($('select#status_id').find(':selected').data('is_complete')) {
+                    $("#save_and_add_parts").attr('disabled', false);
+                    $("#save_and_upload_docs").attr('disabled', true);
+                    $("#save").attr('disabled', false);
+                } else {
+                    $("#save_and_add_parts").attr('disabled', true);
+                    $("#save_and_upload_docs").attr('disabled', false);
+                    $("#save").attr('disabled', true);
+                }
+            }
 
-            // function toggleSubmitButton () {
-            //     if ($('select#status_id').find(':selected').data('is_complete')) {
-            //         $("#save_and_add_parts").attr('disabled', false);
-            //         $("#save_and_upload_docs").attr('disabled', true);
-            //         $("#save").attr('disabled', false);
-            //     } else {
-            //         $("#save_and_add_parts").attr('disabled', true);
-            //         $("#save_and_upload_docs").attr('disabled', false);
-            //         $("#save").attr('disabled', true);
-            //     }
-            // }
+            $("select#status_id").on('change', function () {
+                toggleSubmitButton();
+            });
 
-            // $("select#status_id").on('change', function () {
-            //     toggleSubmitButton();
-            // });
-
-            // toggleSubmitButton();
+            toggleSubmitButton();
         });
 
         $(document).on('click', '#add_device_model', function () {

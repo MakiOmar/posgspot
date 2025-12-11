@@ -2,9 +2,7 @@
 
 namespace Modules\Woocommerce\Providers;
 
-use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\View;
 use App\Business;
 use App\Utils\ModuleUtil;
 use Illuminate\Console\Scheduling\Schedule;
@@ -23,22 +21,6 @@ class WoocommerceServiceProvider extends ServiceProvider
         $this->registerViews();
         $this->registerFactories();
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        $this->registerScheduleCommands();
-
-        //TODO: Need to be removed.
-        view::composer('woocommerce::layouts.partials.sidebar', function ($view) {
-            $module_util = new ModuleUtil();
-
-            if (auth()->user()->can('superadmin')) {
-                $__is_woo_enabled = $module_util->isModuleInstalled('Woocommerce');
-            } else {
-                $business_id = session()->get('user.business_id');
-                $__is_woo_enabled = (bool) $module_util->hasThePermissionInSubscription($business_id, 'woocommerce_module', 'superadmin_package');
-            }
-
-            $view->with(compact('__is_woo_enabled'));
-        });
-
         $this->registerScheduleCommands();
     }
 
@@ -112,9 +94,9 @@ class WoocommerceServiceProvider extends ServiceProvider
      */
     public function registerFactories()
     {
-        if (!app()->environment('production') && $this->app->runningInConsole()) {
-            app(Factory::class)->load(__DIR__ . '/../Database/factories');
-        }
+        // Laravel 8+ removed Illuminate\Database\Eloquent\Factory
+        // Factories are now handled automatically via Database\Factories namespace
+        // This method is kept for backward compatibility but does nothing
     }
 
     /**

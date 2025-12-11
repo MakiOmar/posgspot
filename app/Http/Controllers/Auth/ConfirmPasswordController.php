@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
-use Illuminate\Foundation\Auth\ConfirmsPasswords;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class ConfirmPasswordController extends Controller
 {
@@ -18,8 +20,6 @@ class ConfirmPasswordController extends Controller
     | this trait and override any functions that require customization.
     |
     */
-
-    use ConfirmsPasswords;
 
     /**
      * Where to redirect users when the intended url fails.
@@ -36,5 +36,44 @@ class ConfirmPasswordController extends Controller
     public function __construct()
     {
         $this->middleware('auth');
+    }
+
+    /**
+     * Show the password confirmation form.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showConfirmForm()
+    {
+        return view('auth.passwords.confirm');
+    }
+
+    /**
+     * Confirm the user's password.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     */
+    public function confirm(Request $request)
+    {
+        if (! Hash::check($request->password, $request->user()->password)) {
+            throw ValidationException::withMessages([
+                'password' => [__('auth.password')],
+            ]);
+        }
+
+        $request->session()->put('auth.password_confirmed_at', time());
+
+        return redirect()->intended($this->redirectPath());
+    }
+
+    /**
+     * Get the post password confirmation redirect path.
+     *
+     * @return string
+     */
+    protected function redirectPath()
+    {
+        return $this->redirectTo;
     }
 }

@@ -339,9 +339,17 @@ function update_table_row(tr) {
             tr.find('input.hidden_base_unit_price').val(unit_price / multiplier);
         }
     }
-
+    quantity = quantity * multiplier;
+    
+    // Read the unit price from the user-editable field
+    var unit_price = parseFloat(__read_number(tr.find('input.product_unit_price')));
     var row_total = 0;
-    if (!isNaN(quantity) && !isNaN(unit_price)) {
+    if (quantity && unit_price) {
+        // If sub-unit is used, product_unit_price is per sub-unit, but quantity is in base units
+        // So we need to convert unit_price to base unit price
+        if (tr.find('select.sub_unit').length && multiplier > 1) {
+            unit_price = unit_price / multiplier;
+        }
         row_total = quantity * unit_price;
     }
     tr.find('input.product_line_total').val(__number_f(row_total));

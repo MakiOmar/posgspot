@@ -1244,8 +1244,6 @@ class ReportController extends Controller
 
         $business_id = $request->session()->get('user.business_id');
 
-        //TODO:: Need to display reference number and edit expiry date button
-
         //Return the details in ajax call
         if ($request->ajax()) {
             $query = PurchaseLine::leftjoin(

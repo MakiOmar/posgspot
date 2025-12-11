@@ -22,6 +22,7 @@ npm-debug.log
 /public/fonts/
 /public/images/
 /public/modules/
+/public/.rnd
 /public/mix-manifest.json
 .scribe
 .ftpquota
@@ -30,3 +31,4 @@ public/.rnd
 /public/js/skins/
 /public/js/icons/
 /packages/
+/.ftpquota

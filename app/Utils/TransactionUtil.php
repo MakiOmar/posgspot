@@ -3434,15 +3434,24 @@ class TransactionUtil extends Util
                 $sell_purchases = $sell_purchases + $deleted_sell_purchases;
             }
 
-            //TODO: Optimize the query to take our of loop.
+            //Optimized: Group decrements by purchase_line_id to reduce queries
             $sell_purchase_ids = [];
             if (! empty($sell_purchases)) {
-                //Decrease the quantity sold of products
+                //Group quantities by purchase_line_id
+                $purchase_line_decrements = [];
                 foreach ($sell_purchases as $row) {
-                    PurchaseLine::where('id', $row['purchase_line_id'])
-                        ->decrement('quantity_sold', $row['quantity']);
-
+                    $purchase_line_id = $row['purchase_line_id'];
+                    if (!isset($purchase_line_decrements[$purchase_line_id])) {
+                        $purchase_line_decrements[$purchase_line_id] = 0;
+                    }
+                    $purchase_line_decrements[$purchase_line_id] += $row['quantity'];
                     $sell_purchase_ids[] = $row['id'];
+                }
+
+                //Decrease the quantity sold of products (one query per unique purchase_line_id)
+                foreach ($purchase_line_decrements as $purchase_line_id => $quantity) {
+                    PurchaseLine::where('id', $purchase_line_id)
+                        ->decrement('quantity_sold', $quantity);
                 }
 
                 //Delete the lines.
@@ -3770,7 +3779,7 @@ class TransactionUtil extends Util
         }
 
         $date = \Carbon::parse($transaction->transaction_date)
-                    ->addDays($edit_duration);
+                    ->addDays((int) $edit_duration);
 
         $today = today();
 

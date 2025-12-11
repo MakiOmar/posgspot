@@ -60,6 +60,12 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\ConfirmPasswordController;
+use App\Http\Controllers\Auth\VerificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -79,7 +85,27 @@ Route::middleware(['setData'])->group(function () {
         return view('welcome');
     });
 
-    Auth::routes();
+    // Auth::routes() replacement for Laravel 11 compatibility
+    Route::middleware('web')->group(function () {
+        Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+        Route::post('login', [LoginController::class, 'login']);
+        Route::post('logout', [LoginController::class, 'logout'])->name('logout');
+
+        Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+        Route::post('register', [RegisterController::class, 'register']);
+
+        Route::get('password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+        Route::post('password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+        Route::get('password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+        Route::post('password/reset', [ResetPasswordController::class, 'reset'])->name('password.update');
+
+        Route::get('password/confirm', [ConfirmPasswordController::class, 'showConfirmForm'])->name('password.confirm');
+        Route::post('password/confirm', [ConfirmPasswordController::class, 'confirm']);
+
+        Route::get('email/verify', [VerificationController::class, 'show'])->name('verification.notice');
+        Route::get('email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
+        Route::post('email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
+    });
 
     Route::get('/business/register', [BusinessController::class, 'getRegister'])->name('business.getRegister');
     Route::post('/business/register', [BusinessController::class, 'postRegister'])->name('business.postRegister');
@@ -129,7 +155,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 
     Route::resource('brands', BrandController::class);
 
-    Route::resource('payment-account', 'PaymentAccountController');
+    // Route::resource('payment-account', 'PaymentAccountController'); // Controller not found
 
     Route::resource('tax-rates', TaxRateController::class);
 
@@ -188,16 +214,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/products/toggle-woocommerce-sync', [ProductController::class, 'toggleWooCommerceSync']);
 
     Route::resource('products', ProductController::class);
-    Route::get('/toggle-subscription/{id}', 'SellPosController@toggleRecurringInvoices');
-    Route::post('/sells/pos/get-types-of-service-details', 'SellPosController@getTypesOfServiceDetails');
-    Route::get('/sells/subscriptions', 'SellPosController@listSubscriptions');
-    Route::get('/sells/duplicate/{id}', 'SellController@duplicateSell');
-    Route::get('/sells/drafts', 'SellController@getDrafts');
-    Route::get('/sells/convert-to-draft/{id}', 'SellPosController@convertToInvoice');
-    Route::get('/sells/convert-to-proforma/{id}', 'SellPosController@convertToProforma');
-    Route::get('/sells/quotations', 'SellController@getQuotations');
-    Route::get('/sells/draft-dt', 'SellController@getDraftDatables');
-    Route::resource('sells', 'SellController')->except(['show']);
+    Route::get('/toggle-subscription/{id}', [SellPosController::class, 'toggleRecurringInvoices']);
+    Route::post('/sells/pos/get-types-of-service-details', [SellPosController::class, 'getTypesOfServiceDetails']);
+    Route::get('/sells/subscriptions', [SellPosController::class, 'listSubscriptions']);
+    Route::get('/sells/duplicate/{id}', [SellController::class, 'duplicateSell']);
+    Route::get('/sells/drafts', [SellController::class, 'getDrafts']);
+    Route::get('/sells/convert-to-draft/{id}', [SellPosController::class, 'convertToInvoice']);
+    Route::get('/sells/convert-to-proforma/{id}', [SellPosController::class, 'convertToProforma']);
+    Route::get('/sells/quotations', [SellController::class, 'getQuotations']);
+    Route::get('/sells/draft-dt', [SellController::class, 'getDraftDatables']);
     Route::get('/sells/copy-quotation/{id}', [SellPosController::class, 'copyQuotation']);
 
     Route::post('/import-purchase-products', [PurchaseController::class, 'importPurchaseProducts']);
@@ -208,15 +233,6 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/purchases/check_ref_number', [PurchaseController::class, 'checkRefNumber']);
     Route::resource('purchases', PurchaseController::class)->except(['show']);
 
-    Route::get('/toggle-subscription/{id}', [SellPosController::class, 'toggleRecurringInvoices']);
-    Route::post('/sells/pos/get-types-of-service-details', [SellPosController::class, 'getTypesOfServiceDetails']);
-    Route::get('/sells/subscriptions', [SellPosController::class, 'listSubscriptions']);
-    Route::get('/sells/duplicate/{id}', [SellController::class, 'duplicateSell']);
-    Route::get('/sells/drafts', [SellController::class, 'getDrafts']);
-    Route::get('/sells/convert-to-draft/{id}', [SellPosController::class, 'convertToInvoice']);
-    Route::get('/sells/convert-to-proforma/{id}', [SellPosController::class, 'convertToProforma']);
-    Route::get('/sells/quotations', [SellController::class, 'getQuotations']);
-    Route::get('/sells/draft-dt', [SellController::class, 'getDraftDatables']);
     Route::resource('sells', SellController::class)->except(['show']);
 
     Route::get('/import-sales', [ImportSalesController::class, 'index']);
