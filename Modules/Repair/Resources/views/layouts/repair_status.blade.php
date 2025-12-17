@@ -58,10 +58,37 @@ body .hover\:tw-to-blue-600:hover {
             <div class="col-md-12 col-sm-12 col-xs-12 right-col tw-pt-20 tw-pb-10 tw-px-5">
                 <div class="row">
                     <div class="tw-items-center">
-                        <a href="{{ url('https://gamesspoteg.com') }}">
+                        @php
+                            // Determine logo path from settings / business configuration
+                            $logo_path = null;
+
+                            // 1) Custom app logo if configured (e.g. via settings)
+                            if (config('app.logo')) {
+                                $logo_path = asset(config('app.logo'));
+                            }
+
+                            // 2) Fallback to generic uploaded logo
+                            if (! $logo_path && file_exists(public_path('uploads/logo.png'))) {
+                                $logo_path = asset('uploads/logo.png');
+                            }
+
+                            // 3) Fallback to first business logo from database
+                            if (! $logo_path) {
+                                $business = \App\Business::whereNotNull('logo')->first();
+                                if ($business && ! empty($business->logo)) {
+                                    $logo_path = asset('uploads/business_logos/' . $business->logo);
+                                }
+                            }
+
+                            // 4) Final fallback to default logo
+                            if (! $logo_path) {
+                                $logo_path = asset('img/logo-small.png');
+                            }
+                        @endphp
+                        <a href="{{ url('/') }}">
                             <div
                                 class="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden tw-p-0.5">
-                                <img src="{{ asset('img/logo-small.png')}}" alt="lock" class="tw-object-fill" style="max-width: 300px;margin: 20px;" />
+                                <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-object-fill" style="max-width: 300px;margin: 20px;" />
                             </div>
                         </a>
                         {{-- @include('layouts.partials.language_btn') --}}
