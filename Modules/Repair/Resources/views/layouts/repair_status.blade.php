@@ -88,7 +88,7 @@ body .hover\:tw-to-blue-600:hover {
                         <a href="{{ url('/') }}">
                             <div
                                 class="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-overflow-hidden tw-p-0.5">
-                                <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-object-fill" style="max-width: 300px;margin: 20px;" />
+                                <img src="{{ $logo_path }}" alt="{{ config('app.name', 'UltimatePOS') }}" class="tw-object-fill" style="max-width: 150px;margin: 20px;" />
                             </div>
                         </a>
                         {{-- @include('layouts.partials.language_btn') --}}
