@@ -261,14 +261,14 @@ class WoocommerceUtil extends Util
             //Sync variation attributes
             $this->syncVariationAttributes($business_id);
 
-            if ($limit > 0 && $this->hasSession()) {
+            if ($limit > 0) {
                 request()->session()->forget('last_product_synced');
             }
         }
 
-        $last_synced = ($this->hasSession() && ! empty(session('last_product_synced'))) ? session('last_product_synced') : $this->getLastSync($business_id, 'all_products', false);
+        $last_synced = ! empty(session('last_product_synced')) ? session('last_product_synced') : $this->getLastSync($business_id, 'all_products', false);
         //store last_synced if page is 0
-        if ($page == 0 && $this->hasSession()) {
+        if ($page == 0) {
             session(['last_product_synced' => $last_synced]);
         }
 
@@ -305,7 +305,7 @@ class WoocommerceUtil extends Util
         $new_products = [];
         $updated_products = [];
 
-        if (count($all_products) == 0 && $this->hasSession()) {
+        if (count($all_products) == 0) {
             request()->session()->forget('last_product_synced');
         }
 
@@ -1669,19 +1669,5 @@ class WoocommerceUtil extends Util
         $valid_extenstions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
         return ! empty($path) && file_exists($path) && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $valid_extenstions);
-    }
-
-    /**
-     * Check if session is available (web context)
-     *
-     * @return bool
-     */
-    private function hasSession()
-    {
-        try {
-            return app()->has('session') && app('session')->isStarted();
-        } catch (\Exception $e) {
-            return false;
-        }
     }
 }
