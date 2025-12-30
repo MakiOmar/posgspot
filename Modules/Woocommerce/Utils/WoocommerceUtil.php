@@ -402,7 +402,7 @@ class WoocommerceUtil extends Util
                 }
 
                 if (in_array('weight', $woocommerce_api_settings->product_fields_for_create)) {
-                    $array['weight'] = $this->formatDecimalPoint($product->weight);
+                    $array['weight'] = $this->formatDecimalPoint($product->weight, 'currency', $business_id);
                 }
 
                 //sync product description
@@ -429,7 +429,7 @@ class WoocommerceUtil extends Util
                 if ($product->type == 'single') {
                     $array['manage_stock'] = $manage_stock;
                     if (in_array('quantity', $woocommerce_api_settings->product_fields_for_create)) {
-                        $array['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity');
+                        $array['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity', $business_id);
                     } else {
                         //set manage stock and in_stock if quantity disabled
                         if (isset($woocommerce_api_settings->manage_stock_for_create)) {
@@ -450,7 +450,7 @@ class WoocommerceUtil extends Util
                         }
                     }
 
-                    $array['regular_price'] = $this->formatDecimalPoint($price);
+                    $array['regular_price'] = $this->formatDecimalPoint($price, 'currency', $business_id);
                 }
 
                 //assign name
@@ -470,7 +470,7 @@ class WoocommerceUtil extends Util
                 }
 
                 if (in_array('weight', $woocommerce_api_settings->product_fields_for_update)) {
-                    $array['weight'] = $this->formatDecimalPoint($product->weight);
+                    $array['weight'] = $this->formatDecimalPoint($product->weight, 'currency', $business_id);
                 }
 
                 //sync product description
@@ -496,7 +496,7 @@ class WoocommerceUtil extends Util
                     //assign quantity
                     $array['manage_stock'] = $manage_stock;
                     if (in_array('quantity', $woocommerce_api_settings->product_fields_for_update)) {
-                        $array['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity');
+                        $array['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity', $business_id);
                     } else {
                         //set manage stock and in_stock if quantity disabled
                         if (isset($woocommerce_api_settings->manage_stock_for_update)) {
@@ -518,7 +518,7 @@ class WoocommerceUtil extends Util
                     }
                     //assign price
                     if (in_array('price', $woocommerce_api_settings->product_fields_for_update)) {
-                        $array['regular_price'] = $this->formatDecimalPoint($price);
+                        $array['regular_price'] = $this->formatDecimalPoint($price, 'currency', $business_id);
                     }
                 }
 
@@ -751,7 +751,7 @@ class WoocommerceUtil extends Util
                 if (empty($variation->woocommerce_variation_id)) {
                     $variation_arr['manage_stock'] = $manage_stock;
                     if (in_array('quantity', $woocommerce_api_settings->product_fields_for_create)) {
-                        $variation_arr['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity');
+                        $variation_arr['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity', $business_id);
                     } else {
                         //set manage stock and in_stock if quantity disabled
                         if (isset($woocommerce_api_settings->manage_stock_for_create)) {
@@ -783,7 +783,7 @@ class WoocommerceUtil extends Util
                         }
                     }
 
-                    $variation_arr['regular_price'] = $this->formatDecimalPoint($price);
+                    $variation_arr['regular_price'] = $this->formatDecimalPoint($price, 'currency', $business_id);
                     $new_variations[] = $variation;
 
                     $variation_data['create'][] = $variation_arr;
@@ -791,7 +791,7 @@ class WoocommerceUtil extends Util
                     $variation_arr['id'] = $variation->woocommerce_variation_id;
                     $variation_arr['manage_stock'] = $manage_stock;
                     if (in_array('quantity', $woocommerce_api_settings->product_fields_for_update)) {
-                        $variation_arr['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity');
+                        $variation_arr['stock_quantity'] = $this->formatDecimalPoint($qty_available, 'quantity', $business_id);
                     } else {
                         //set manage stock and in_stock if quantity disabled
                         if (isset($woocommerce_api_settings->manage_stock_for_update)) {
@@ -825,7 +825,7 @@ class WoocommerceUtil extends Util
 
                     //assign price
                     if (in_array('price', $woocommerce_api_settings->product_fields_for_update)) {
-                        $variation_arr['regular_price'] = $this->formatDecimalPoint($price);
+                        $variation_arr['regular_price'] = $this->formatDecimalPoint($price, 'currency', $business_id);
                     }
 
                     $variation_data['update'][] = $variation_arr;
@@ -1635,11 +1635,24 @@ class WoocommerceUtil extends Util
         return $last_updated;
     }
 
-    private function formatDecimalPoint($number, $type = 'currency')
+    private function formatDecimalPoint($number, $type = 'currency', $business_id = null)
     {
         $precision = 4;
-        $currency_precision = session('business.currency_precision', 2);
-        $quantity_precision = session('business.quantity_precision', 2);
+        
+        // Try to get precision from session first, fallback to business settings
+        if (session()->has('business.currency_precision')) {
+            $currency_precision = session('business.currency_precision', 2);
+            $quantity_precision = session('business.quantity_precision', 2);
+        } else if ($business_id) {
+            // Fallback: Get from business settings
+            $business = Business::find($business_id);
+            $currency_precision = $business->currency_precision ?? 2;
+            $quantity_precision = $business->quantity_precision ?? 2;
+        } else {
+            // Default values
+            $currency_precision = 2;
+            $quantity_precision = 2;
+        }
 
         if ($type == 'currency' && ! empty($currency_precision)) {
             $precision = $currency_precision;
