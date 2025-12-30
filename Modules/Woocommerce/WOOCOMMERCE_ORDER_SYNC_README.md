@@ -493,17 +493,11 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Includes all required properties: enable_rp, pos_settings, accounting_method
 - Added `ensureBusinessDataObject()` safeguard method that auto-converts arrays to objects
 - Automatic fallback: missing properties are loaded from business settings
-
-**Error: "Column 'business_id' cannot be null" in reference_counts**
-- **Fixed** - `updateSaleFromOrder()` was passing null for business_id and user_id to createOrUpdatePaymentLines
-- Now correctly passes $business_id and $user_id parameters
-- Session initialization improved to always set business.id and user.business_id
-
-**Debug Logging**
-- Comprehensive logging added to trace business_data flow
-- Check `storage/logs/laravel.log` for detailed trace
-- Session initialization now logs business.id setup
-- All TransactionUtil calls logged with parameter types
+- **Comprehensive debug logging added** - Check `storage/logs/laravel.log` for detailed trace of:
+  - business_data type and structure at creation
+  - business_data before/after ensureBusinessDataObject conversion
+  - Exact values when calling TransactionUtil methods
+  - Stack traces to identify source of array format
 
 ## Version Information
 - **Module**: WooCommerce Integration
