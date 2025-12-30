@@ -58,7 +58,7 @@ function process_update_pos_meta_action($order) {
     
     // Call POS API
     $response = wp_remote_post(
-        $pos_api_url . '/woocommerce/api/update-order-custom-meta/' . $pos_business_id,
+        $pos_api_url . '/api/update-order-custom-meta/' . $pos_business_id,
         [
             'headers' => [
                 'Content-Type' => 'application/json',
@@ -208,7 +208,7 @@ function add_pos_meta_update_button($order) {
             var apiKey = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'; // Your API key
             
             $.ajax({
-                url: posUrl + '/woocommerce/api/update-order-custom-meta/' + posBusiness,
+                url: posUrl + '/api/update-order-custom-meta/' + posBusiness,
                 method: 'POST',
                 headers: {
                     'X-API-Key': apiKey,

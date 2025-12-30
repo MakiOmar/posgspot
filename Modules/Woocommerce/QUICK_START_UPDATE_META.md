@@ -19,7 +19,7 @@ Your API key is the **"Order Updated Webhook Secret"** from your WooCommerce mod
 ## ⚡ Simple Test (cURL)
 
 ```bash
-curl -X POST "https://your-pos-site.com/woocommerce/api/update-order-custom-meta/1" \
+curl -X POST "https://your-pos-site.com/api/update-order-custom-meta/1" \
   -H "X-API-Key: YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"woocommerce_order_id": 5525}'
@@ -42,7 +42,7 @@ Add this to your `functions.php` to auto-update when orders are completed:
 
 ```php
 add_action('woocommerce_order_status_completed', function($order_id) {
-    wp_remote_post('https://your-pos-site.com/woocommerce/api/update-order-custom-meta/1', [
+    wp_remote_post('https://your-pos-site.com/api/update-order-custom-meta/1', [
         'headers' => [
             'X-API-Key' => 'YOUR_API_KEY_HERE',
             'Content-Type' => 'application/json'

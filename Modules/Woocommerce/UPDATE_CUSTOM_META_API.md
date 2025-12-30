@@ -11,7 +11,7 @@ This API endpoint allows external systems (including WooCommerce) to fetch custo
 
 ## Endpoint Details
 
-**URL:** `/woocommerce/api/update-order-custom-meta/{business_id}`  
+**URL:** `/api/update-order-custom-meta/{business_id}`  
 **Method:** `POST`  
 **Content-Type:** `application/json` or `application/x-www-form-urlencoded`  
 **Authentication:** API Key (X-API-Key header or api_key parameter)
@@ -117,7 +117,7 @@ Password: [value or N/A]
 
 ### cURL Example
 ```bash
-curl -X POST "https://yoursite.com/woocommerce/api/update-order-custom-meta/1" \
+curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: >u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY" \
   -d '{"woocommerce_order_id": 5525}'
@@ -125,7 +125,7 @@ curl -X POST "https://yoursite.com/woocommerce/api/update-order-custom-meta/1" \
 
 ### cURL with API key in body
 ```bash
-curl -X POST "https://yoursite.com/woocommerce/api/update-order-custom-meta/1" \
+curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
   -H "Content-Type: application/json" \
   -d '{
     "woocommerce_order_id": 5525,
@@ -141,7 +141,7 @@ $woocommerce_order_id = 5525;
 $api_key = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
 
 $ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, "https://yoursite.com/woocommerce/api/update-order-custom-meta/{$business_id}");
+curl_setopt($ch, CURLOPT_URL, "https://yoursite.com/api/update-order-custom-meta/{$business_id}");
 curl_setopt($ch, CURLOPT_POST, 1);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
     'woocommerce_order_id' => $woocommerce_order_id
@@ -171,7 +171,7 @@ const axios = require('axios');
 async function updateOrderCustomMeta(businessId, woocommerceOrderId, apiKey) {
     try {
         const response = await axios.post(
-            `https://yoursite.com/woocommerce/api/update-order-custom-meta/${businessId}`,
+            `https://yoursite.com/api/update-order-custom-meta/${businessId}`,
             {
                 woocommerce_order_id: woocommerceOrderId
             },
@@ -201,7 +201,7 @@ import requests
 import json
 
 def update_order_custom_meta(business_id, woocommerce_order_id, api_key):
-    url = f"https://yoursite.com/woocommerce/api/update-order-custom-meta/{business_id}"
+    url = f"https://yoursite.com/api/update-order-custom-meta/{business_id}"
     
     headers = {
         'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ update_order_custom_meta(1, 5525, '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe
 add_action('woocommerce_order_status_completed', 'update_pos_custom_meta', 10, 1);
 
 function update_pos_custom_meta($order_id) {
-    $pos_api_url = 'https://yourpos.com/woocommerce/api/update-order-custom-meta/1';
+    $pos_api_url = 'https://yourpos.com/api/update-order-custom-meta/1';
     $api_key = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
     
     $response = wp_remote_post($pos_api_url, [
@@ -287,7 +287,7 @@ The `staff_note` field is completely replaced with the new custom meta data from
 
 ### Test with Postman
 1. Create new POST request
-2. URL: `https://yoursite.com/woocommerce/api/update-order-custom-meta/1`
+2. URL: `https://yoursite.com/api/update-order-custom-meta/1`
 3. Headers: `X-API-Key: your_secret`
 4. Body (JSON):
 ```json
@@ -300,7 +300,7 @@ The `staff_note` field is completely replaced with the new custom meta data from
 
 ### Test with curl (quick test)
 ```bash
-curl -X POST "https://yoursite.com/woocommerce/api/update-order-custom-meta/1" \
+curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
   -H "X-API-Key: your_secret" \
   -H "Content-Type: application/json" \
   -d '{"woocommerce_order_id": 5525}' \

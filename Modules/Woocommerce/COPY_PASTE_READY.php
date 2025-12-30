@@ -48,7 +48,7 @@ add_action('woocommerce_order_action_update_pos_meta', function($order) {
     
     // Call POS API
     $response = wp_remote_post(
-        POS_API_URL . '/woocommerce/api/update-order-custom-meta/' . POS_BUSINESS_ID,
+        POS_API_URL . '/api/update-order-custom-meta/' . POS_BUSINESS_ID,
         [
             'headers' => [
                 'Content-Type' => 'application/json',
