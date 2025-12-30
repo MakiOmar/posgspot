@@ -666,4 +666,43 @@ class WoocommerceController extends Controller
             return $output;
         }
     }
+
+    /**
+     * Force sync a specific order by WooCommerce order ID
+     *
+     * @param  Request  $request
+     * @return Response
+     */
+    public function forceSyncOrder(Request $request)
+    {
+        $notAllowed = $this->woocommerceUtil->notAllowedInDemo();
+        if (! empty($notAllowed)) {
+            return $notAllowed;
+        }
+
+        $business_id = request()->session()->get('business.id');
+        if (! (auth()->user()->can('superadmin') || ($this->moduleUtil->hasThePermissionInSubscription($business_id, 'woocommerce_module') && auth()->user()->can('woocommerce.sync_orders')))) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $woocommerce_order_id = $request->input('woocommerce_order_id');
+            
+            if (empty($woocommerce_order_id)) {
+                return ['success' => 0, 'msg' => 'WooCommerce Order ID is required'];
+            }
+
+            $user_id = request()->session()->get('user.id');
+            $result = $this->woocommerceUtil->forceSyncOrder($business_id, $user_id, $woocommerce_order_id);
+
+            return $result;
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            return [
+                'success' => 0,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+    }
 }
