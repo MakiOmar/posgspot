@@ -481,6 +481,11 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Not enough stock to fulfill the order
 - Solution: Purchase more stock or adjust stock levels manually
 
+**Error: "Session store not set on request"**
+- This error has been fixed in the latest version
+- The module now properly handles contexts without HTTP sessions (CLI, webhooks)
+- If you still see this error, ensure you're using the updated code
+
 ## Version Information
 - **Module**: WooCommerce Integration
 - **API Version**: WooCommerce REST API v2
