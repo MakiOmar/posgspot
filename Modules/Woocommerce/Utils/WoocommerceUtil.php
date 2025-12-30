@@ -882,9 +882,6 @@ class WoocommerceUtil extends Util
      */
     public function syncOrders($business_id, $user_id)
     {
-        // Initialize session if not available (for CLI context)
-        $this->initializeSessionIfNeeded($business_id);
-
         $last_synced = $this->getLastSync($business_id, 'orders', false);
         $orders = $this->getAllResponse($business_id, 'orders');
 
@@ -972,9 +969,6 @@ class WoocommerceUtil extends Util
     public function forceSyncOrder($business_id, $user_id, $woocommerce_order_id)
     {
         try {
-            // Initialize session if not available (for CLI context)
-            $this->initializeSessionIfNeeded($business_id);
-
             $woocommerce = $this->woo_client($business_id);
             $woocommerce_api_settings = $this->get_api_settings($business_id);
             $business = Business::find($business_id);
@@ -1066,9 +1060,6 @@ class WoocommerceUtil extends Util
      */
     public function createNewSaleFromOrder($business_id, $user_id, $order, $business_data)
     {
-        // Initialize session if not available (for CLI/webhook context)
-        $this->initializeSessionIfNeeded($business_id);
-
         $input = $this->formatOrderToSale($business_id, $user_id, $order);
 
         if (! empty($input['has_error'])) {
@@ -1460,9 +1451,6 @@ class WoocommerceUtil extends Util
      */
     public function updateSaleFromOrder($business_id, $user_id, $order, $sell, $business_data)
     {
-        // Initialize session if not available (for CLI/webhook context)
-        $this->initializeSessionIfNeeded($business_id);
-
         $input = $this->formatOrderToSale($business_id, $user_id, $order, $sell);
 
         if (! empty($input['has_error'])) {
@@ -1694,47 +1682,6 @@ class WoocommerceUtil extends Util
             return app()->has('session') && app('session')->isStarted();
         } catch (\Exception $e) {
             return false;
-        }
-    }
-
-    /**
-     * Initialize session context if not available (for CLI/webhook context)
-     * This is needed because TransactionUtil expects session data
-     *
-     * @param int $business_id
-     * @return void
-     */
-    private function initializeSessionIfNeeded($business_id)
-    {
-        if (!$this->hasSession()) {
-            // Start session for CLI context
-            if (!session()->isStarted()) {
-                session()->start();
-            }
-
-            // Load business data into session
-            $business = Business::with(['currency', 'locations'])->find($business_id);
-            
-            if ($business) {
-                session([
-                    'business.id' => $business->id,
-                    'business.name' => $business->name,
-                    'business.currency_precision' => $business->currency_precision ?? 2,
-                    'business.quantity_precision' => $business->quantity_precision ?? 2,
-                    'business.accounting_method' => $business->accounting_method,
-                    'business.currency_id' => $business->currency_id,
-                    'business.time_zone' => $business->time_zone,
-                    'user.business_id' => $business->id,
-                ]);
-
-                // Set default location if available
-                $default_location = $business->locations->first();
-                if ($default_location) {
-                    session([
-                        'business.location_id' => $default_location->id,
-                    ]);
-                }
-            }
         }
     }
 }
