@@ -1056,13 +1056,6 @@ class WoocommerceUtil extends Util
             $password = null;
             $type = null;
 
-            // Log meta_data for debugging
-            Log::info('WooCommerce Line Item Meta Data', [
-                'product_id' => $product_line->product_id ?? 'N/A',
-                'product_name' => $product_line->name ?? 'N/A',
-                'meta_data' => $product_line->meta_data ?? 'No meta data'
-            ]);
-
             // Extract meta_data values
             if (!empty($product_line->meta_data)) {
                 foreach ($product_line->meta_data as $meta) {
