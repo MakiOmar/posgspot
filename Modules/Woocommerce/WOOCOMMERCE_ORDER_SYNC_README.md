@@ -482,9 +482,10 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Solution: Purchase more stock or adjust stock levels manually
 
 **Error: "Session store not set on request"**
-- This error has been fixed in the latest version
-- The module now properly handles contexts without HTTP sessions (CLI, webhooks)
-- If you still see this error, ensure you're using the updated code
+- **Fixed in latest version** - The module now automatically initializes session context
+- Works seamlessly in all contexts: Web, CLI (Artisan), Webhooks, Cron jobs
+- Session is automatically created with business settings when not available
+- No manual configuration needed
 
 ## Version Information
 - **Module**: WooCommerce Integration
