@@ -1122,6 +1122,9 @@ class WoocommerceUtil extends Util
             $transaction->save();
 
             try {
+                // Ensure business_data is properly formatted object
+                $business_data = $this->ensureBusinessDataObject($business_data, $business_data->business ?? null);
+                
                 $this->transactionUtil->mapPurchaseSell($business_data, $transaction->sell_lines, 'purchase');
             } catch (PurchaseSellMismatch $e) {
                 DB::rollBack();
@@ -1506,6 +1509,9 @@ class WoocommerceUtil extends Util
         $this->productUtil->adjustProductStockForInvoice($status_before, $transaction, $input, false);
 
         try {
+            // Ensure business_data is properly formatted object
+            $business_data = $this->ensureBusinessDataObject($business_data, $business_data->business ?? null);
+            
             $this->transactionUtil->adjustMappingPurchaseSell($status_before, $transaction, $business_data, $deleted_lines);
         } catch (PurchaseSellMismatch $e) {
             DB::rollBack();
@@ -1709,6 +1715,46 @@ class WoocommerceUtil extends Util
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    /**
+     * Ensure business_data is properly formatted as object with all required properties
+     *
+     * @param mixed $business_data
+     * @param Business $business
+     * @return object
+     */
+    private function ensureBusinessDataObject($business_data, $business = null)
+    {
+        // If it's already a proper object with enable_rp, return it
+        if (is_object($business_data) && property_exists($business_data, 'enable_rp')) {
+            return $business_data;
+        }
+
+        // Convert array to object
+        if (is_array($business_data)) {
+            Log::emergency('WooCommerce: Converting array business_data to object', ['data' => $business_data]);
+            $business_data = (object)$business_data;
+        }
+
+        // Ensure all required properties exist
+        if (!isset($business_data->enable_rp)) {
+            $biz = $business ?? (isset($business_data->business) ? $business_data->business : Business::find($business_data->id ?? 0));
+            if ($biz) {
+                $business_data->enable_rp = $biz->enable_rp ?? 0;
+                $business_data->enable_product_expiry = $biz->enable_product_expiry ?? 0;
+                $business_data->currency_precision = $biz->currency_precision ?? 2;
+                $business_data->quantity_precision = $biz->quantity_precision ?? 2;
+                $business_data->enable_lot_number = $biz->enable_lot_number ?? 0;
+                $business_data->name = $biz->name ?? '';
+                $business_data->accounting_method = $biz->accounting_method ?? 'fifo';
+                if (!isset($business_data->pos_settings)) {
+                    $business_data->pos_settings = json_decode($biz->pos_settings, true);
+                }
+            }
+        }
+
+        return $business_data;
     }
 
     /**
