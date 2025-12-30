@@ -18,7 +18,7 @@ When you click the button in WooCommerce admin:
 
 You need these values:
 - **POS Business ID:** Your business ID in POS (e.g., `1`)
-- **API Key:** Your `woocommerce_wh_ou_secret` from POS database
+- **Bearer Token:** Your `woocommerce_wh_ou_secret` from POS database
 - **POS URL:** Your POS site URL (e.g., `https://pos.yoursite.com`)
 
 ## 🔧 Installation Steps
@@ -52,7 +52,7 @@ function process_update_pos_meta_action($order) {
     // ⚙️ CONFIGURATION - Update these values
     $pos_business_id = 1; // Your POS business ID
     $pos_api_url = 'https://pos.yoursite.com'; // Your POS URL (no trailing slash)
-    $api_key = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'; // Your API key
+    $bearer_token = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'; // Your Bearer token
     
     $woocommerce_order_id = $order->get_id();
     
@@ -62,7 +62,7 @@ function process_update_pos_meta_action($order) {
         [
             'headers' => [
                 'Content-Type' => 'application/json',
-                'X-API-Key' => $api_key
+                'Authorization' => 'Bearer ' . $bearer_token
             ],
             'body' => json_encode([
                 'woocommerce_order_id' => $woocommerce_order_id
@@ -161,11 +161,12 @@ If something goes wrong:
 - Look at the URL: `/business/1/edit` ← The `1` is your business ID
 - Or check the `businesses` table in your database
 
-### 2. Find API Key (Webhook Secret)
+### 2. Find Bearer Token (Webhook Secret)
 - Login to POS admin
 - Go to WooCommerce Module → API Settings
 - Look for **"Order Updated Webhook Secret"**
 - Or check database: `businesses` table → `woocommerce_wh_ou_secret` column
+- This will be used as your Bearer token
 
 ### 3. POS URL
 - Your POS installation URL
@@ -205,13 +206,13 @@ function add_pos_meta_update_button($order) {
             // ⚙️ CONFIGURATION - Update these values
             var posBusiness = 1; // Your POS business ID
             var posUrl = 'https://pos.yoursite.com'; // Your POS URL
-            var apiKey = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'; // Your API key
+            var bearerToken = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'; // Your Bearer token
             
             $.ajax({
                 url: posUrl + '/api/update-order-custom-meta/' + posBusiness,
                 method: 'POST',
                 headers: {
-                    'X-API-Key': apiKey,
+                    'Authorization': 'Bearer ' + bearerToken,
                     'Content-Type': 'application/json'
                 },
                 data: JSON.stringify({
@@ -249,9 +250,11 @@ function add_pos_meta_update_button($order) {
 - **Cause:** JavaScript error or wrong configuration
 - **Solution:** Open browser console (F12), check for errors
 
-### Error: "Unauthorized: Invalid API key"
-- **Cause:** Wrong API key
-- **Solution:** Verify the API key matches your POS `woocommerce_wh_ou_secret`
+### Error: "Unauthorized: Invalid or missing Bearer token"
+- **Cause:** Wrong Bearer token or incorrect format
+- **Solution:** 
+  - Verify the token matches your POS `woocommerce_wh_ou_secret`
+  - Ensure format is `Authorization: Bearer your_token` (note the space after "Bearer")
 
 ### Error: "Order not found in POS"
 - **Cause:** Order hasn't been synced to POS yet

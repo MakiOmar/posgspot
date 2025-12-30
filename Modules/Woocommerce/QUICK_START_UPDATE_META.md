@@ -10,9 +10,9 @@ Update custom meta data (game_title, type, _account, _password) for any synced o
 2. **WooCommerce Order ID:** The order ID to update (e.g., `5525`)
 3. **API Key:** Your webhook secret (found in POS WooCommerce settings)
 
-## 🔑 Find Your API Key
+## 🔑 Find Your Bearer Token
 
-Your API key is the **"Order Updated Webhook Secret"** from your WooCommerce module settings.
+Your Bearer token is the **"Order Updated Webhook Secret"** from your WooCommerce module settings.
 
 **Database location:** `businesses` table → `woocommerce_wh_ou_secret` column
 
@@ -20,7 +20,7 @@ Your API key is the **"Order Updated Webhook Secret"** from your WooCommerce mod
 
 ```bash
 curl -X POST "https://your-pos-site.com/api/update-order-custom-meta/1" \
-  -H "X-API-Key: YOUR_API_KEY_HERE" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{"woocommerce_order_id": 5525}'
 ```
@@ -44,7 +44,7 @@ Add this to your `functions.php` to auto-update when orders are completed:
 add_action('woocommerce_order_status_completed', function($order_id) {
     wp_remote_post('https://your-pos-site.com/api/update-order-custom-meta/1', [
         'headers' => [
-            'X-API-Key' => 'YOUR_API_KEY_HERE',
+            'Authorization' => 'Bearer YOUR_TOKEN_HERE',
             'Content-Type' => 'application/json'
         ],
         'body' => json_encode(['woocommerce_order_id' => $order_id])
@@ -60,7 +60,7 @@ See `UPDATE_CUSTOM_META_API.md` for complete documentation with more examples.
 
 | Issue | Solution |
 |-------|----------|
-| 401 Unauthorized | Check your API key is correct |
+| 401 Unauthorized | Check your Bearer token is correct and format is `Authorization: Bearer token` |
 | 404 Not Found | Make sure order was synced to POS first |
 | 500 Server Error | Check Laravel logs for details |
 

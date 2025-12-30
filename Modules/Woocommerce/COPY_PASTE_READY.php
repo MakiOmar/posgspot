@@ -19,9 +19,9 @@
  */
 
 // ⚙️ CONFIGURATION - UPDATE THESE 3 VALUES:
-define('POS_BUSINESS_ID', 1);                                              // Your POS business ID
-define('POS_API_URL', 'https://pos.yoursite.com');                         // Your POS URL (no trailing slash)
-define('POS_API_KEY', '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'); // Your webhook secret
+define('POS_BUSINESS_ID', 1);                                                     // Your POS business ID
+define('POS_API_URL', 'https://pos.yoursite.com');                                // Your POS URL (no trailing slash)
+define('POS_BEARER_TOKEN', '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY'); // Your webhook secret (Bearer token)
 
 // ========================================
 // DON'T EDIT BELOW THIS LINE
@@ -52,7 +52,7 @@ add_action('woocommerce_order_action_update_pos_meta', function($order) {
         [
             'headers' => [
                 'Content-Type' => 'application/json',
-                'X-API-Key' => POS_API_KEY
+                'Authorization' => 'Bearer ' . POS_BEARER_TOKEN
             ],
             'body' => json_encode([
                 'woocommerce_order_id' => $woocommerce_order_id
@@ -97,9 +97,9 @@ add_action('admin_notices', function() {
     
     // Only show on order edit pages
     if ($screen && $screen->id === 'shop_order') {
-        if (POS_API_KEY === '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY') {
+        if (POS_BEARER_TOKEN === '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY') {
             echo '<div class="notice notice-warning"><p>';
-            echo '⚠️ <strong>POS Meta Update:</strong> Please update POS_API_KEY in functions.php with your actual API key.';
+            echo '⚠️ <strong>POS Meta Update:</strong> Please update POS_BEARER_TOKEN in functions.php with your actual Bearer token.';
             echo '</p></div>';
         }
     }

@@ -14,25 +14,30 @@ This API endpoint allows external systems (including WooCommerce) to fetch custo
 **URL:** `/api/update-order-custom-meta/{business_id}`  
 **Method:** `POST`  
 **Content-Type:** `application/json` or `application/x-www-form-urlencoded`  
-**Authentication:** API Key (X-API-Key header or api_key parameter)
+**Authentication:** Bearer Token (recommended) or API Key
 
 ## Authentication
 
 The endpoint uses the **WooCommerce Order Update Webhook Secret** for authentication.
 
-**Where to find the API Key:**
+**Where to find the Token:**
 1. Go to POS Admin > WooCommerce Module > API Settings
 2. Look for "Order Updated Webhook Secret" (or `woocommerce_wh_ou_secret` in the database)
-3. Use this secret as your API key
+3. Use this secret as your Bearer token
 
 **Authentication Methods:**
 
-### Method 1: HTTP Header (Recommended)
+### Method 1: Bearer Token (Recommended)
+```
+Authorization: Bearer your_webhook_secret_here
+```
+
+### Method 2: X-API-Key Header (Backward Compatible)
 ```
 X-API-Key: your_webhook_secret_here
 ```
 
-### Method 2: Request Parameter
+### Method 3: Request Parameter (Backward Compatible)
 ```
 api_key=your_webhook_secret_here
 ```
@@ -62,11 +67,11 @@ api_key=your_webhook_secret_here
 
 ### Error Responses
 
-**401 Unauthorized** - Invalid or missing API key
+**401 Unauthorized** - Invalid or missing Bearer token
 ```json
 {
     "success": 0,
-    "msg": "Unauthorized: Invalid API key"
+    "msg": "Unauthorized: Invalid or missing Bearer token"
 }
 ```
 
@@ -115,7 +120,15 @@ Password: [value or N/A]
 
 ## Usage Examples
 
-### cURL Example
+### cURL Example (Bearer Token - Recommended)
+```bash
+curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer >u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY" \
+  -d '{"woocommerce_order_id": 5525}'
+```
+
+### cURL with X-API-Key (Backward Compatible)
 ```bash
 curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
   -H "Content-Type: application/json" \
@@ -123,22 +136,12 @@ curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
   -d '{"woocommerce_order_id": 5525}'
 ```
 
-### cURL with API key in body
-```bash
-curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "woocommerce_order_id": 5525,
-    "api_key": ">u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY"
-  }'
-```
-
 ### PHP Example
 ```php
 <?php
 $business_id = 1;
 $woocommerce_order_id = 5525;
-$api_key = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
+$bearer_token = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, "https://yoursite.com/api/update-order-custom-meta/{$business_id}");
@@ -148,7 +151,7 @@ curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
 ]));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
-    'X-API-Key: ' . $api_key
+    'Authorization: Bearer ' . $bearer_token
 ]);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
@@ -168,7 +171,7 @@ if ($http_code == 200 && $result['success'] == 1) {
 ```javascript
 const axios = require('axios');
 
-async function updateOrderCustomMeta(businessId, woocommerceOrderId, apiKey) {
+async function updateOrderCustomMeta(businessId, woocommerceOrderId, bearerToken) {
     try {
         const response = await axios.post(
             `https://yoursite.com/api/update-order-custom-meta/${businessId}`,
@@ -178,7 +181,7 @@ async function updateOrderCustomMeta(businessId, woocommerceOrderId, apiKey) {
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-API-Key': apiKey
+                    'Authorization': `Bearer ${bearerToken}`
                 }
             }
         );
@@ -200,12 +203,12 @@ updateOrderCustomMeta(1, 5525, '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~
 import requests
 import json
 
-def update_order_custom_meta(business_id, woocommerce_order_id, api_key):
+def update_order_custom_meta(business_id, woocommerce_order_id, bearer_token):
     url = f"https://yoursite.com/api/update-order-custom-meta/{business_id}"
     
     headers = {
         'Content-Type': 'application/json',
-        'X-API-Key': api_key
+        'Authorization': f'Bearer {bearer_token}'
     }
     
     data = {
@@ -237,12 +240,12 @@ add_action('woocommerce_order_status_completed', 'update_pos_custom_meta', 10, 1
 
 function update_pos_custom_meta($order_id) {
     $pos_api_url = 'https://yourpos.com/api/update-order-custom-meta/1';
-    $api_key = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
+    $bearer_token = '>u!iXA@Gss~=kO$%wX0+-jB&Vt.aN+J9KOoa-+-ok!ZWe/u~QY';
     
     $response = wp_remote_post($pos_api_url, [
         'headers' => [
             'Content-Type' => 'application/json',
-            'X-API-Key' => $api_key
+            'Authorization' => 'Bearer ' . $bearer_token
         ],
         'body' => json_encode([
             'woocommerce_order_id' => $order_id
@@ -288,7 +291,9 @@ The `staff_note` field is completely replaced with the new custom meta data from
 ### Test with Postman
 1. Create new POST request
 2. URL: `https://yoursite.com/api/update-order-custom-meta/1`
-3. Headers: `X-API-Key: your_secret`
+3. Authorization Tab: 
+   - Type: Bearer Token
+   - Token: `your_secret`
 4. Body (JSON):
 ```json
 {
@@ -301,7 +306,7 @@ The `staff_note` field is completely replaced with the new custom meta data from
 ### Test with curl (quick test)
 ```bash
 curl -X POST "https://yoursite.com/api/update-order-custom-meta/1" \
-  -H "X-API-Key: your_secret" \
+  -H "Authorization: Bearer your_secret" \
   -H "Content-Type: application/json" \
   -d '{"woocommerce_order_id": 5525}' \
   -v
@@ -323,9 +328,12 @@ Format: [timestamp] local.EMERGENCY: File:[file]Line:[line]Message:[message]
 
 ## Troubleshooting
 
-### Error: "Unauthorized: Invalid API key"
-- **Cause:** API key is missing or incorrect
-- **Solution:** Verify the API key matches `woocommerce_wh_ou_secret` in the database
+### Error: "Unauthorized: Invalid or missing Bearer token"
+- **Cause:** Bearer token is missing, malformed, or incorrect
+- **Solution:** 
+  - Verify the token matches `woocommerce_wh_ou_secret` in the database
+  - Ensure the Authorization header format is: `Authorization: Bearer your_token`
+  - Check for extra spaces or special characters
 
 ### Error: "Order not found in POS"
 - **Cause:** Order hasn't been synced to POS yet

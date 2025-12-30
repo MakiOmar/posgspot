@@ -278,15 +278,26 @@ class WoocommerceWebhookController extends Controller
     public function updateOrderCustomMeta(Request $request, $business_id)
     {
         try {
-            // Validate API key/secret
-            $api_key = $request->header('X-API-Key') ?? $request->input('api_key');
             $business = Business::findOrFail($business_id);
             
-            // Use the order update webhook secret for API authentication
-            if (empty($api_key) || $api_key !== $business->woocommerce_wh_ou_secret) {
+            // Get token from Authorization header (Bearer token)
+            $auth_header = $request->header('Authorization');
+            $token = null;
+            
+            if ($auth_header && str_starts_with($auth_header, 'Bearer ')) {
+                $token = substr($auth_header, 7); // Remove "Bearer " prefix
+            }
+            
+            // Fallback to old methods for backward compatibility
+            if (empty($token)) {
+                $token = $request->header('X-API-Key') ?? $request->input('api_key');
+            }
+            
+            // Validate token against webhook secret
+            if (empty($token) || $token !== $business->woocommerce_wh_ou_secret) {
                 return response()->json([
                     'success' => 0,
-                    'msg' => 'Unauthorized: Invalid API key'
+                    'msg' => 'Unauthorized: Invalid or missing Bearer token'
                 ], 401);
             }
 

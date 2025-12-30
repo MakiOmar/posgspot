@@ -7,7 +7,7 @@
 | What | Where to Find | Example |
 |------|---------------|---------|
 | **Business ID** | POS Admin → URL when editing business | `1` |
-| **API Key** | POS Database → `businesses.woocommerce_wh_ou_secret` | `>u!iXA@Gss~=` |
+| **Bearer Token** | POS Database → `businesses.woocommerce_wh_ou_secret` | `>u!iXA@Gss~=` |
 | **POS URL** | Your POS site address | `https://pos.yoursite.com` |
 
 ### Step 2️⃣: Copy the Code
@@ -17,9 +17,9 @@ Open: `COPY_PASTE_READY.php`
 ### Step 3️⃣: Update 3 Lines
 
 ```php
-define('POS_BUSINESS_ID', 1);                          // ← Your business ID
-define('POS_API_URL', 'https://pos.yoursite.com');    // ← Your POS URL
-define('POS_API_KEY', 'paste_your_key_here');         // ← Your API key
+define('POS_BUSINESS_ID', 1);                             // ← Your business ID
+define('POS_API_URL', 'https://pos.yoursite.com');       // ← Your POS URL
+define('POS_BEARER_TOKEN', 'paste_your_token_here');     // ← Your Bearer token
 ```
 
 ### Step 4️⃣: Paste to functions.php
@@ -70,7 +70,7 @@ Order ID: 5525
 
 | Error | Fix |
 |-------|-----|
-| `Unauthorized: Invalid API key` | Wrong API key, check POS database |
+| `Unauthorized: Invalid or missing Bearer token` | Wrong token or format. Use `Authorization: Bearer token` |
 | `Order not found in POS` | Order not synced yet, run sync first |
 | `Connection timeout` | Wrong POS URL or server down |
 
@@ -87,7 +87,7 @@ Order ID: 5525
 ## ✅ Checklist
 
 - [ ] Got Business ID
-- [ ] Got API Key  
+- [ ] Got Bearer Token  
 - [ ] Got POS URL
 - [ ] Copied code from `COPY_PASTE_READY.php`
 - [ ] Updated 3 configuration lines
