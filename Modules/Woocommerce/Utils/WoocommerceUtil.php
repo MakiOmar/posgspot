@@ -1127,6 +1127,10 @@ class WoocommerceUtil extends Util
             return $input['has_error'];
         }
 
+        // Add business_data object to input for TransactionUtil
+        // TransactionUtil internally needs this as an object
+        $input['business_data'] = $business_data;
+
         $invoice_total = [
             'total_before_tax' => $order->total,
             'tax' => 0,
@@ -1559,6 +1563,15 @@ class WoocommerceUtil extends Util
             'has_business_data' => isset($input['business_data']),
             'input_keys' => array_keys($input),
             'input_status' => $input['status'] ?? 'not set',
+        ]);
+
+        // Add business_data object to input for TransactionUtil
+        // TransactionUtil internally needs this as an object
+        $input['business_data'] = $business_data;
+
+        Log::emergency('WooCommerce updateSaleFromOrder - Added business_data to input', [
+            'business_data_type' => gettype($business_data),
+            'has_enable_rp' => property_exists($business_data, 'enable_rp')
         ]);
 
         $invoice_total = [

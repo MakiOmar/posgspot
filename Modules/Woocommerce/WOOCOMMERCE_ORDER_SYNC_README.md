@@ -499,6 +499,12 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Now correctly passes $business_id and $user_id parameters
 - Session initialization improved to always set business.id and user.business_id
 
+**Error: enable_rp error in updateSellTransaction/createSellTransaction**
+- **Root cause found** - TransactionUtil internally accesses business_data from $input array
+- **Fixed** - Added business_data object to $input array before calling TransactionUtil methods
+- Both createNewSaleFromOrder() and updateSaleFromOrder() now include business_data in input
+- business_data is always passed as properly formatted object with all required properties
+
 **Debug Logging**
 - Comprehensive logging added to trace business_data flow
 - Check `storage/logs/laravel.log` for detailed trace
