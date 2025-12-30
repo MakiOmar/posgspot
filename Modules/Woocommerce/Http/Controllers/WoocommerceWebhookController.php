@@ -267,6 +267,113 @@ class WoocommerceWebhookController extends Controller
         }
     }
 
+    /**
+     * API endpoint to update custom meta data (staff_note) for a specific order
+     * Can be called from WooCommerce or external systems
+     *
+     * @param  Request  $request
+     * @param  int  $business_id
+     * @return Response
+     */
+    public function updateOrderCustomMeta(Request $request, $business_id)
+    {
+        try {
+            // Validate API key/secret
+            $api_key = $request->header('X-API-Key') ?? $request->input('api_key');
+            $business = Business::findOrFail($business_id);
+            
+            // Use the order update webhook secret for API authentication
+            if (empty($api_key) || $api_key !== $business->woocommerce_wh_ou_secret) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'Unauthorized: Invalid API key'
+                ], 401);
+            }
+
+            $woocommerce_order_id = $request->input('woocommerce_order_id');
+            
+            if (empty($woocommerce_order_id)) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'WooCommerce Order ID is required'
+                ], 400);
+            }
+
+            // Find transaction in POS
+            $transaction = Transaction::where('business_id', $business_id)
+                ->where('woocommerce_order_id', $woocommerce_order_id)
+                ->first();
+
+            if (empty($transaction)) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'Order not found in POS. WooCommerce Order ID: ' . $woocommerce_order_id
+                ], 404);
+            }
+
+            // Fetch order from WooCommerce
+            $woocommerce = $this->woocommerceUtil->woo_client($business_id);
+            $order = $woocommerce->get('orders/' . $woocommerce_order_id);
+
+            if (empty($order)) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'Order not found in WooCommerce. Order ID: ' . $woocommerce_order_id
+                ], 404);
+            }
+
+            // Extract custom meta from line items
+            $staff_note = '';
+            foreach ($order->line_items as $product_line) {
+                $game_title = null;
+                $account = null;
+                $password = null;
+                $type = null;
+
+                // Extract meta_data values
+                if (!empty($product_line->meta_data)) {
+                    foreach ($product_line->meta_data as $meta) {
+                        if ($meta->key === 'game_title') {
+                            $game_title = $meta->value;
+                        } elseif ($meta->key === '_account') {
+                            $account = $meta->value;
+                        } elseif ($meta->key === '_password') {
+                            $password = $meta->value;
+                        } elseif ($meta->key === 'type') {
+                            $type = $meta->value;
+                        }
+                    }
+                }
+
+                $staff_note .= "\nGame Title: " . ($game_title ?? 'N/A') . 
+                              "\nType: " . ($type ?? 'N/A') . 
+                              "\nAccount: " . ($account ?? 'N/A') . 
+                              "\nPassword: " . ($password ?? 'N/A') . 
+                              "<br>----------------------<br>";
+            }
+
+            // Update transaction staff_note
+            $transaction->staff_note = $staff_note;
+            $transaction->save();
+
+            return response()->json([
+                'success' => 1,
+                'msg' => 'Custom meta data updated successfully for Order #' . $order->number,
+                'invoice_no' => $transaction->invoice_no,
+                'woocommerce_order_id' => $woocommerce_order_id,
+                'staff_note' => $staff_note
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            return response()->json([
+                'success' => 0,
+                'msg' => 'Failed to update: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     private function isValidWebhookRequest($request, $secret)
     {
         $signature = $request->header('x-wc-webhook-signature');

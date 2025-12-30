@@ -16,6 +16,10 @@ Route::post(
     '/webhook/order-restored/{business_id}',
     [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'orderRestored']
 );
+Route::post(
+    '/api/update-order-custom-meta/{business_id}',
+    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'updateOrderCustomMeta']
+);
 
 Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'AdminSidebarMenu')->prefix('woocommerce')->group(function () {
     Route::get('/install', [Modules\Woocommerce\Http\Controllers\InstallController::class, 'index']);
