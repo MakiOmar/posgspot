@@ -489,10 +489,8 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 
 **Error: "Attempt to read property 'enable_rp' on array"**
 - **Fixed in latest version** - business_data is now passed as object to TransactionUtil
-- All webhook handlers updated to use object format  
+- All webhook handlers updated to use object format
 - Includes all required properties: enable_rp, pos_settings, accounting_method
-- Added `ensureBusinessDataObject()` safeguard method that auto-converts arrays to objects
-- Automatic fallback: missing properties are loaded from business settings
 
 ## Version Information
 - **Module**: WooCommerce Integration
