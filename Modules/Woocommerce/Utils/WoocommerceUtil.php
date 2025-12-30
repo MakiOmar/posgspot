@@ -901,11 +901,13 @@ class WoocommerceUtil extends Util
 
         $skipped_orders = ! empty($business->woocommerce_skipped_orders) ? json_decode($business->woocommerce_skipped_orders, true) : [];
 
-        $business_data = [
+        // Create business_data object for TransactionUtil
+        $business_data = (object)[
             'id' => $business_id,
             'accounting_method' => $business->accounting_method,
             'location_id' => $woocommerce_api_settings->location_id,
             'pos_settings' => json_decode($business->pos_settings, true),
+            'enable_rp' => $business->enable_rp ?? 0,
             'business' => $business,
         ];
 
@@ -979,11 +981,13 @@ class WoocommerceUtil extends Util
             $woocommerce_api_settings = $this->get_api_settings($business_id);
             $business = Business::find($business_id);
 
-            $business_data = [
+            // Create business_data object for TransactionUtil
+            $business_data = (object)[
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
                 'location_id' => $woocommerce_api_settings->location_id,
                 'pos_settings' => json_decode($business->pos_settings, true),
+                'enable_rp' => $business->enable_rp ?? 0,
                 'business' => $business,
             ];
 
@@ -1112,7 +1116,7 @@ class WoocommerceUtil extends Util
             } catch (PurchaseSellMismatch $e) {
                 DB::rollBack();
 
-                $this->add_to_skipped_orders($business_data['business'], $order->id);
+                $this->add_to_skipped_orders($business_data->business, $order->id);
 
                 return [
                     'error_type' => 'order_insuficient_product_qty',
@@ -1122,7 +1126,7 @@ class WoocommerceUtil extends Util
             }
         }
 
-        $this->remove_from_skipped_orders($business_data['business'], $order->id);
+        $this->remove_from_skipped_orders($business_data->business, $order->id);
 
         DB::commit();
 

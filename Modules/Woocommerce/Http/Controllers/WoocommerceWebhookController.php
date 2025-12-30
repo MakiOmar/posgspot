@@ -62,10 +62,12 @@ class WoocommerceWebhookController extends Controller
     
             $user_id = $business->owner->id;
             $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
-            $business_data = [
+            $business_data = (object)[
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
                 'location_id' => $woocommerce_api_settings->location_id,
+                'pos_settings' => json_decode($business->pos_settings, true),
+                'enable_rp' => $business->enable_rp ?? 0,
                 'business' => $business,
             ];
             $order_data = json_decode($payload);
@@ -104,10 +106,13 @@ class WoocommerceWebhookController extends Controller
             } else {
                 $user_id = $business->owner->id;
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
-                $business_data = [
+                $business_data = (object)[
                     'id' => $business_id,
                     'accounting_method' => $business->accounting_method,
                     'location_id' => $woocommerce_api_settings->location_id,
+                    'pos_settings' => json_decode($business->pos_settings, true),
+                    'enable_rp' => $business->enable_rp ?? 0,
+                    'business' => $business,
                 ];
 
                 $order_data = json_decode($payload);
@@ -222,10 +227,12 @@ class WoocommerceWebhookController extends Controller
             } else {
                 $user_id = $business->owner->id;
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
-                $business_data = [
+                $business_data = (object)[
                     'id' => $business_id,
                     'accounting_method' => $business->accounting_method,
                     'location_id' => $woocommerce_api_settings->location_id,
+                    'pos_settings' => json_decode($business->pos_settings, true),
+                    'enable_rp' => $business->enable_rp ?? 0,
                     'business' => $business,
                 ];
 

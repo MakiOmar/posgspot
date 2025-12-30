@@ -487,6 +487,11 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Session is automatically created with business settings when not available
 - No manual configuration needed
 
+**Error: "Attempt to read property 'enable_rp' on array"**
+- **Fixed in latest version** - business_data is now passed as object to TransactionUtil
+- All webhook handlers updated to use object format
+- Includes all required properties: enable_rp, pos_settings, accounting_method
+
 ## Version Information
 - **Module**: WooCommerce Integration
 - **API Version**: WooCommerce REST API v2
