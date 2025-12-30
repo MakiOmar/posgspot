@@ -493,11 +493,6 @@ php artisan pos:WooCommerceForceSyncOrder 1 12345
 - Includes all required properties: enable_rp, pos_settings, accounting_method
 - Added `ensureBusinessDataObject()` safeguard method that auto-converts arrays to objects
 - Automatic fallback: missing properties are loaded from business settings
-- **Comprehensive debug logging added** - Check `storage/logs/laravel.log` for detailed trace of:
-  - business_data type and structure at creation
-  - business_data before/after ensureBusinessDataObject conversion
-  - Exact values when calling TransactionUtil methods
-  - Stack traces to identify source of array format
 
 ## Version Information
 - **Module**: WooCommerce Integration

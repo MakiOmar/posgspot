@@ -916,14 +916,6 @@ class WoocommerceUtil extends Util
             'business' => $business,
         ];
 
-        // DEBUG: Log business_data creation
-        Log::emergency('WooCommerce syncOrders - Created business_data', [
-            'is_object' => is_object($business_data),
-            'has_enable_rp' => property_exists($business_data, 'enable_rp'),
-            'enable_rp_value' => $business_data->enable_rp ?? 'not set',
-            'business_id' => $business_id
-        ]);
-
         $created_data = [];
         $updated_data = [];
         $create_error_data = [];
@@ -946,15 +938,6 @@ class WoocommerceUtil extends Util
                 $order_number .= ' ('.__('sale.draft').')';
             }
             if (empty($sell)) {
-                // DEBUG: Before calling createNewSaleFromOrder
-                Log::emergency('WooCommerce syncOrders - Calling createNewSaleFromOrder', [
-                    'order_id' => $order->id,
-                    'order_number' => $order_number,
-                    'business_data_type' => gettype($business_data),
-                    'is_object' => is_object($business_data),
-                    'has_enable_rp' => is_object($business_data) ? property_exists($business_data, 'enable_rp') : false
-                ]);
-
                 $created = $this->createNewSaleFromOrder($business_id, $user_id, $order, $business_data);
                 $created_data[] = $order_number;
 
@@ -962,16 +945,6 @@ class WoocommerceUtil extends Util
                     $create_error_data[] = $created;
                 }
             } else {
-                // DEBUG: Before calling updateSaleFromOrder
-                Log::emergency('WooCommerce syncOrders - Calling updateSaleFromOrder', [
-                    'order_id' => $order->id,
-                    'order_number' => $order_number,
-                    'sell_id' => $sell->id,
-                    'business_data_type' => gettype($business_data),
-                    'is_object' => is_object($business_data),
-                    'has_enable_rp' => is_object($business_data) ? property_exists($business_data, 'enable_rp') : false
-                ]);
-
                 $updated = $this->updateSaleFromOrder($business_id, $user_id, $order, $sell, $business_data);
                 $updated_data[] = $order_number;
 
@@ -1107,17 +1080,6 @@ class WoocommerceUtil extends Util
      */
     public function createNewSaleFromOrder($business_id, $user_id, $order, $business_data)
     {
-        // DEBUG: Log business_data type and structure
-        Log::emergency('WooCommerce createNewSaleFromOrder - business_data debug', [
-            'is_array' => is_array($business_data),
-            'is_object' => is_object($business_data),
-            'type' => gettype($business_data),
-            'has_enable_rp' => is_object($business_data) ? property_exists($business_data, 'enable_rp') : (is_array($business_data) ? isset($business_data['enable_rp']) : false),
-            'business_data_dump' => $business_data,
-            'order_id' => $order->id ?? 'unknown',
-            'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)
-        ]);
-
         // Initialize session if not available (for CLI/webhook context)
         $this->initializeSessionIfNeeded($business_id);
 
@@ -1160,27 +1122,9 @@ class WoocommerceUtil extends Util
             $transaction->save();
 
             try {
-                // DEBUG: Before ensureBusinessDataObject
-                Log::emergency('WooCommerce BEFORE ensureBusinessDataObject', [
-                    'is_array' => is_array($business_data),
-                    'is_object' => is_object($business_data),
-                    'type' => gettype($business_data),
-                    'business_data' => $business_data
-                ]);
-
                 // Ensure business_data is properly formatted object
                 $business_data = $this->ensureBusinessDataObject($business_data, $business_data->business ?? null);
                 
-                // DEBUG: After ensureBusinessDataObject
-                Log::emergency('WooCommerce AFTER ensureBusinessDataObject', [
-                    'is_array' => is_array($business_data),
-                    'is_object' => is_object($business_data),
-                    'type' => gettype($business_data),
-                    'has_enable_rp' => property_exists($business_data, 'enable_rp'),
-                    'enable_rp_value' => $business_data->enable_rp ?? 'not set',
-                    'business_data' => $business_data
-                ]);
-
                 $this->transactionUtil->mapPurchaseSell($business_data, $transaction->sell_lines, 'purchase');
             } catch (PurchaseSellMismatch $e) {
                 DB::rollBack();
@@ -1533,18 +1477,6 @@ class WoocommerceUtil extends Util
      */
     public function updateSaleFromOrder($business_id, $user_id, $order, $sell, $business_data)
     {
-        // DEBUG: Log business_data type and structure
-        Log::emergency('WooCommerce updateSaleFromOrder - business_data debug', [
-            'is_array' => is_array($business_data),
-            'is_object' => is_object($business_data),
-            'type' => gettype($business_data),
-            'has_enable_rp' => is_object($business_data) ? property_exists($business_data, 'enable_rp') : (is_array($business_data) ? isset($business_data['enable_rp']) : false),
-            'business_data_dump' => $business_data,
-            'order_id' => $order->id ?? 'unknown',
-            'sell_id' => $sell->id ?? 'unknown',
-            'backtrace' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 3)
-        ]);
-
         // Initialize session if not available (for CLI/webhook context)
         $this->initializeSessionIfNeeded($business_id);
 
@@ -1577,27 +1509,9 @@ class WoocommerceUtil extends Util
         $this->productUtil->adjustProductStockForInvoice($status_before, $transaction, $input, false);
 
         try {
-            // DEBUG: Before ensureBusinessDataObject
-            Log::emergency('WooCommerce updateSale BEFORE ensureBusinessDataObject', [
-                'is_array' => is_array($business_data),
-                'is_object' => is_object($business_data),
-                'type' => gettype($business_data),
-                'business_data' => $business_data
-            ]);
-
             // Ensure business_data is properly formatted object
             $business_data = $this->ensureBusinessDataObject($business_data, $business_data->business ?? null);
             
-            // DEBUG: After ensureBusinessDataObject
-            Log::emergency('WooCommerce updateSale AFTER ensureBusinessDataObject', [
-                'is_array' => is_array($business_data),
-                'is_object' => is_object($business_data),
-                'type' => gettype($business_data),
-                'has_enable_rp' => property_exists($business_data, 'enable_rp'),
-                'enable_rp_value' => $business_data->enable_rp ?? 'not set',
-                'business_data' => $business_data
-            ]);
-
             $this->transactionUtil->adjustMappingPurchaseSell($status_before, $transaction, $business_data, $deleted_lines);
         } catch (PurchaseSellMismatch $e) {
             DB::rollBack();
@@ -1812,43 +1726,21 @@ class WoocommerceUtil extends Util
      */
     private function ensureBusinessDataObject($business_data, $business = null)
     {
-        Log::emergency('WooCommerce ensureBusinessDataObject - START', [
-            'input_type' => gettype($business_data),
-            'is_array' => is_array($business_data),
-            'is_object' => is_object($business_data),
-            'has_enable_rp' => is_object($business_data) ? property_exists($business_data, 'enable_rp') : false,
-        ]);
-
         // If it's already a proper object with enable_rp, return it
         if (is_object($business_data) && property_exists($business_data, 'enable_rp')) {
-            Log::emergency('WooCommerce ensureBusinessDataObject - Already valid object, returning as-is');
             return $business_data;
         }
 
         // Convert array to object
         if (is_array($business_data)) {
-            Log::emergency('WooCommerce: Converting array business_data to object', [
-                'array_data' => $business_data,
-                'array_keys' => array_keys($business_data)
-            ]);
+            Log::emergency('WooCommerce: Converting array business_data to object', ['data' => $business_data]);
             $business_data = (object)$business_data;
         }
 
         // Ensure all required properties exist
         if (!isset($business_data->enable_rp)) {
-            Log::emergency('WooCommerce ensureBusinessDataObject - Missing enable_rp, adding properties', [
-                'business_id' => $business_data->id ?? 'unknown',
-                'has_business_property' => isset($business_data->business)
-            ]);
-
             $biz = $business ?? (isset($business_data->business) ? $business_data->business : Business::find($business_data->id ?? 0));
-            
             if ($biz) {
-                Log::emergency('WooCommerce ensureBusinessDataObject - Business found, adding properties', [
-                    'business_id' => $biz->id,
-                    'enable_rp' => $biz->enable_rp ?? 0
-                ]);
-
                 $business_data->enable_rp = $biz->enable_rp ?? 0;
                 $business_data->enable_product_expiry = $biz->enable_product_expiry ?? 0;
                 $business_data->currency_precision = $biz->currency_precision ?? 2;
@@ -1859,22 +1751,8 @@ class WoocommerceUtil extends Util
                 if (!isset($business_data->pos_settings)) {
                     $business_data->pos_settings = json_decode($biz->pos_settings, true);
                 }
-                if (!isset($business_data->business)) {
-                    $business_data->business = $biz;
-                }
-            } else {
-                Log::emergency('WooCommerce ensureBusinessDataObject - ERROR: Business not found!', [
-                    'business_id' => $business_data->id ?? 'not set'
-                ]);
             }
         }
-
-        Log::emergency('WooCommerce ensureBusinessDataObject - END', [
-            'output_type' => gettype($business_data),
-            'is_object' => is_object($business_data),
-            'has_enable_rp' => property_exists($business_data, 'enable_rp'),
-            'enable_rp_value' => $business_data->enable_rp ?? 'not set'
-        ]);
 
         return $business_data;
     }
