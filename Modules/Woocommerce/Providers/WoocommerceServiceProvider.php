@@ -119,7 +119,6 @@ class WoocommerceServiceProvider extends ServiceProvider
         $this->commands([
             \Modules\Woocommerce\Console\WooCommerceSyncOrder::class,
             \Modules\Woocommerce\Console\WoocommerceSyncProducts::class,
-            \Modules\Woocommerce\Console\WooCommerceForceSyncOrder::class,
         ]);
     }
 

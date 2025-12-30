@@ -959,98 +959,6 @@ class WoocommerceUtil extends Util
     }
 
     /**
-     * Force sync a specific order by WooCommerce order ID
-     *
-     * @param  int  $business_id
-     * @param  int  $user_id
-     * @param  int  $woocommerce_order_id
-     * @return array
-     */
-    public function forceSyncOrder($business_id, $user_id, $woocommerce_order_id)
-    {
-        try {
-            $woocommerce = $this->woo_client($business_id);
-            $woocommerce_api_settings = $this->get_api_settings($business_id);
-            $business = Business::find($business_id);
-
-            $business_data = [
-                'id' => $business_id,
-                'accounting_method' => $business->accounting_method,
-                'location_id' => $woocommerce_api_settings->location_id,
-                'pos_settings' => json_decode($business->pos_settings, true),
-                'business' => $business,
-            ];
-
-            // Fetch specific order from WooCommerce
-            $order = $woocommerce->get('orders/' . $woocommerce_order_id);
-
-            if (empty($order)) {
-                return [
-                    'success' => false,
-                    'msg' => 'Order not found in WooCommerce',
-                ];
-            }
-
-            // Check if order already exists in POS
-            $sell = Transaction::where('business_id', $business_id)
-                ->where('woocommerce_order_id', $order->id)
-                ->with('sell_lines', 'sell_lines.product', 'payment_lines')
-                ->first();
-
-            $order_number = $order->number;
-            
-            DB::beginTransaction();
-
-            if (empty($sell)) {
-                // Create new sale
-                $result = $this->createNewSaleFromOrder($business_id, $user_id, $order, $business_data);
-                
-                if ($result !== true) {
-                    DB::rollBack();
-                    return [
-                        'success' => false,
-                        'msg' => 'Failed to create order',
-                        'error' => $result,
-                    ];
-                }
-
-                $this->createSyncLog($business_id, $user_id, 'orders', 'created', [$order_number], []);
-            } else {
-                // Force update existing sale
-                $result = $this->updateSaleFromOrder($business_id, $user_id, $order, $sell, $business_data);
-                
-                if ($result !== true) {
-                    DB::rollBack();
-                    return [
-                        'success' => false,
-                        'msg' => 'Failed to update order',
-                        'error' => $result,
-                    ];
-                }
-
-                $this->createSyncLog($business_id, $user_id, 'orders', 'updated', [$order_number], []);
-            }
-
-            DB::commit();
-
-            return [
-                'success' => true,
-                'msg' => 'Order #' . $order_number . ' synced successfully',
-                'order_number' => $order_number,
-            ];
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
-            
-            return [
-                'success' => false,
-                'msg' => 'Sync failed: ' . $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
      * Creates new sales in POSfrom woocommerce order list
      *
      * @param  id  $business_id
@@ -1147,6 +1055,13 @@ class WoocommerceUtil extends Util
             $account = null;
             $password = null;
             $type = null;
+
+            // Log meta_data for debugging
+            Log::info('WooCommerce Line Item Meta Data', [
+                'product_id' => $product_line->product_id ?? 'N/A',
+                'product_name' => $product_line->name ?? 'N/A',
+                'meta_data' => $product_line->meta_data ?? 'No meta data'
+            ]);
 
             // Extract meta_data values
             if (!empty($product_line->meta_data)) {

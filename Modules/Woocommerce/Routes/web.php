@@ -30,7 +30,6 @@ Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'Admi
     Route::get('/sync-products', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncProducts']);
     Route::get('/sync-log', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'getSyncLog']);
     Route::get('/sync-orders', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncOrders']);
-    Route::post('/force-sync-order', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'forceSyncOrder']);
     Route::post('/map-taxrates', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'mapTaxRates']);
     Route::get('/view-sync-log', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'viewSyncLog']);
     Route::get('/get-log-details/{id}', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'getLogDetails']);
