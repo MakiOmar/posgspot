@@ -1567,7 +1567,8 @@ class WoocommerceUtil extends Util
         //Update Sell lines
         $deleted_lines = $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $input['location_id'], true, $status_before, [], false);
 
-        $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], null, null, false);
+        // FIXED: Pass business_id and user_id (were null causing SQL errors)
+        $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], $business_id, $user_id, false);
 
         //Update payment status
         $transaction->payment_status = 'paid';
@@ -1888,11 +1889,18 @@ class WoocommerceUtil extends Util
      */
     private function initializeSessionIfNeeded($business_id)
     {
-        if (!$this->hasSession()) {
-            // Start session for CLI context
-            if (!session()->isStarted()) {
-                session()->start();
-            }
+        // Start session for CLI/webhook context
+        if (!session()->isStarted()) {
+            session()->start();
+        }
+
+        // Always set/update business data in session for webhooks/CLI
+        if (!session()->has('business.id') || session('business.id') != $business_id) {
+            Log::emergency('WooCommerce: Initializing/Updating session for business', [
+                'business_id' => $business_id,
+                'session_has_business' => session()->has('business.id'),
+                'session_business_id' => session('business.id', 'not set')
+            ]);
 
             // Load business data into session
             $business = Business::with(['currency', 'locations'])->find($business_id);
@@ -1906,6 +1914,8 @@ class WoocommerceUtil extends Util
                     'business.accounting_method' => $business->accounting_method,
                     'business.currency_id' => $business->currency_id,
                     'business.time_zone' => $business->time_zone,
+                    'business.fy_start_month' => $business->fy_start_month,
+                    'user.id' => $business->owner_id,
                     'user.business_id' => $business->id,
                 ]);
 
@@ -1916,6 +1926,16 @@ class WoocommerceUtil extends Util
                         'business.location_id' => $default_location->id,
                     ]);
                 }
+
+                Log::emergency('WooCommerce: Session initialized', [
+                    'business.id' => session('business.id'),
+                    'user.business_id' => session('user.business_id'),
+                    'business.location_id' => session('business.location_id')
+                ]);
+            } else {
+                Log::emergency('WooCommerce: ERROR - Business not found for session init', [
+                    'business_id' => $business_id
+                ]);
             }
         }
     }
