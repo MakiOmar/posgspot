@@ -64,10 +64,15 @@ class WoocommerceWebhookController extends Controller
             $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
             $business_data = (object)[
                 'id' => $business_id,
+                'name' => $business->name,
                 'accounting_method' => $business->accounting_method,
                 'location_id' => $woocommerce_api_settings->location_id,
                 'pos_settings' => json_decode($business->pos_settings, true),
                 'enable_rp' => $business->enable_rp ?? 0,
+                'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+                'currency_precision' => $business->currency_precision ?? 2,
+                'quantity_precision' => $business->quantity_precision ?? 2,
+                'enable_lot_number' => $business->enable_lot_number ?? 0,
                 'business' => $business,
             ];
             $order_data = json_decode($payload);
@@ -108,10 +113,15 @@ class WoocommerceWebhookController extends Controller
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
                 $business_data = (object)[
                     'id' => $business_id,
+                    'name' => $business->name,
                     'accounting_method' => $business->accounting_method,
                     'location_id' => $woocommerce_api_settings->location_id,
                     'pos_settings' => json_decode($business->pos_settings, true),
                     'enable_rp' => $business->enable_rp ?? 0,
+                    'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+                    'currency_precision' => $business->currency_precision ?? 2,
+                    'quantity_precision' => $business->quantity_precision ?? 2,
+                    'enable_lot_number' => $business->enable_lot_number ?? 0,
                     'business' => $business,
                 ];
 
@@ -189,11 +199,20 @@ class WoocommerceWebhookController extends Controller
                     //Update product stock
                     $this->productUtil->adjustProductStockForInvoice($status_before, $transaction, $input);
 
-                    $business = ['id' => $business_id,
+                    $business_data = (object)[
+                        'id' => $business_id,
+                        'name' => $business->name,
                         'accounting_method' => $business->accounting_method,
                         'location_id' => $transaction->location_id,
+                        'pos_settings' => json_decode($business->pos_settings, true),
+                        'enable_rp' => $business->enable_rp ?? 0,
+                        'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+                        'currency_precision' => $business->currency_precision ?? 2,
+                        'quantity_precision' => $business->quantity_precision ?? 2,
+                        'enable_lot_number' => $business->enable_lot_number ?? 0,
+                        'business' => $business,
                     ];
-                    $this->transactionUtil->adjustMappingPurchaseSell($status_before, $transaction, $business);
+                    $this->transactionUtil->adjustMappingPurchaseSell($status_before, $transaction, $business_data);
                 }
 
                 //Create log
@@ -229,10 +248,15 @@ class WoocommerceWebhookController extends Controller
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
                 $business_data = (object)[
                     'id' => $business_id,
+                    'name' => $business->name,
                     'accounting_method' => $business->accounting_method,
                     'location_id' => $woocommerce_api_settings->location_id,
                     'pos_settings' => json_decode($business->pos_settings, true),
                     'enable_rp' => $business->enable_rp ?? 0,
+                    'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+                    'currency_precision' => $business->currency_precision ?? 2,
+                    'quantity_precision' => $business->quantity_precision ?? 2,
+                    'enable_lot_number' => $business->enable_lot_number ?? 0,
                     'business' => $business,
                 ];
 

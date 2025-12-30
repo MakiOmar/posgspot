@@ -901,13 +901,18 @@ class WoocommerceUtil extends Util
 
         $skipped_orders = ! empty($business->woocommerce_skipped_orders) ? json_decode($business->woocommerce_skipped_orders, true) : [];
 
-        // Create business_data object for TransactionUtil
+        // Create business_data object for TransactionUtil (must be object, not array)
         $business_data = (object)[
             'id' => $business_id,
+            'name' => $business->name,
             'accounting_method' => $business->accounting_method,
             'location_id' => $woocommerce_api_settings->location_id,
             'pos_settings' => json_decode($business->pos_settings, true),
             'enable_rp' => $business->enable_rp ?? 0,
+            'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+            'currency_precision' => $business->currency_precision ?? 2,
+            'quantity_precision' => $business->quantity_precision ?? 2,
+            'enable_lot_number' => $business->enable_lot_number ?? 0,
             'business' => $business,
         ];
 
@@ -981,13 +986,18 @@ class WoocommerceUtil extends Util
             $woocommerce_api_settings = $this->get_api_settings($business_id);
             $business = Business::find($business_id);
 
-            // Create business_data object for TransactionUtil
+            // Create business_data object for TransactionUtil (must be object, not array)
             $business_data = (object)[
                 'id' => $business_id,
+                'name' => $business->name,
                 'accounting_method' => $business->accounting_method,
                 'location_id' => $woocommerce_api_settings->location_id,
                 'pos_settings' => json_decode($business->pos_settings, true),
                 'enable_rp' => $business->enable_rp ?? 0,
+                'enable_product_expiry' => $business->enable_product_expiry ?? 0,
+                'currency_precision' => $business->currency_precision ?? 2,
+                'quantity_precision' => $business->quantity_precision ?? 2,
+                'enable_lot_number' => $business->enable_lot_number ?? 0,
                 'business' => $business,
             ];
 
