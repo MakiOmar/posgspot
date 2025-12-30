@@ -1554,13 +1554,6 @@ class WoocommerceUtil extends Util
             return $input['has_error'];
         }
 
-        // DEBUG: Check if input contains business_data
-        Log::emergency('WooCommerce updateSaleFromOrder - $input debug', [
-            'has_business_data' => isset($input['business_data']),
-            'input_keys' => array_keys($input),
-            'input_status' => $input['status'] ?? 'not set',
-        ]);
-
         $invoice_total = [
             'total_before_tax' => $order->total,
             'tax' => 0,
@@ -1569,24 +1562,18 @@ class WoocommerceUtil extends Util
         $status_before = $sell->status;
 
         DB::beginTransaction();
-        
-        Log::emergency('WooCommerce updateSaleFromOrder - Before updateSellTransaction');
         $transaction = $this->transactionUtil->updateSellTransaction($sell, $business_id, $input, $invoice_total, $user_id, false, false);
 
-        Log::emergency('WooCommerce updateSaleFromOrder - Before createOrUpdateSellLines');
         //Update Sell lines
         $deleted_lines = $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $input['location_id'], true, $status_before, [], false);
 
-        Log::emergency('WooCommerce updateSaleFromOrder - Before createOrUpdatePaymentLines');
         // FIXED: Pass business_id and user_id (were null causing SQL errors)
         $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], $business_id, $user_id, false);
 
-        Log::emergency('WooCommerce updateSaleFromOrder - Before saving transaction');
         //Update payment status
         $transaction->payment_status = 'paid';
         $transaction->save();
 
-        Log::emergency('WooCommerce updateSaleFromOrder - Before adjustProductStockForInvoice');
         //Update product stock
         $this->productUtil->adjustProductStockForInvoice($status_before, $transaction, $input, false);
 
