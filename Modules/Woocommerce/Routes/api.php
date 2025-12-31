@@ -2,11 +2,10 @@
 
 /**
  * API Routes for WooCommerce Module
- * These routes are accessible without web session/authentication
- * Authentication is handled via API keys in the controller
+ * Protected with Laravel API authentication
  */
 
-Route::post(
+Route::middleware('auth:api')->post(
     '/update-order-custom-meta/{business_id}',
     [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'updateOrderCustomMeta']
 );

@@ -278,29 +278,10 @@ class WoocommerceWebhookController extends Controller
     public function updateOrderCustomMeta(Request $request, $business_id)
     {
         try {
+            // Authentication is handled by Sanctum middleware
+            // User is already authenticated at this point
+            
             $business = Business::findOrFail($business_id);
-            
-            // Get token from Authorization header (Bearer token)
-            $auth_header = $request->header('Authorization');
-            $token = null;
-            
-            if ($auth_header && str_starts_with($auth_header, 'Bearer ')) {
-                $token = substr($auth_header, 7); // Remove "Bearer " prefix
-            }
-            
-            // Fallback to old methods for backward compatibility
-            if (empty($token)) {
-                $token = $request->header('X-API-Key') ?? $request->input('api_key');
-            }
-            
-            // Validate token against webhook secret
-            if (empty($token) || $token !== $business->woocommerce_wh_ou_secret) {
-                return response()->json([
-                    'success' => 0,
-                    'msg' => 'Unauthorized: Invalid or missing Bearer token'
-                ], 401);
-            }
-
             $woocommerce_order_id = $request->input('woocommerce_order_id');
             
             if (empty($woocommerce_order_id)) {
