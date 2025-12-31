@@ -56,13 +56,22 @@ class RetryStaffNoteUpdate extends Command
 
             // Find orders with N/A in staff_note
             $transactions = Transaction::where('business_id', $business_id)
+                ->where('type', 'sell')
                 ->whereNotNull('woocommerce_order_id')
+                ->where('woocommerce_order_id', '>', 0) // Exclude 0 values
                 ->where(function($query) {
                     $query->whereNull('staff_note')
+                          ->orWhere('staff_note', '')
                           ->orWhere('staff_note', 'like', '%N/A%');
                 })
                 ->limit($limit)
                 ->get();
+            
+            // Debug: Log what we found
+            Log::info("Found {$transactions->count()} transactions for business #{$business_id}", [
+                'sample_ids' => $transactions->take(5)->pluck('id')->toArray(),
+                'sample_woo_ids' => $transactions->take(5)->pluck('woocommerce_order_id')->toArray(),
+            ]);
 
             if ($transactions->isEmpty()) {
                 $this->info("No orders with N/A found for business #{$business_id}");
@@ -75,14 +84,29 @@ class RetryStaffNoteUpdate extends Command
             $failed_count = 0;
 
             foreach ($transactions as $transaction) {
+                // Double-check this transaction actually needs updating
+                if (empty($transaction->woocommerce_order_id) || $transaction->woocommerce_order_id <= 0) {
+                    $this->warn("Skipping transaction #{$transaction->id} - no valid WooCommerce order ID");
+                    continue;
+                }
+                
+                // Check if staff_note actually needs updating
+                $needs_update = empty($transaction->staff_note) || 
+                               stripos($transaction->staff_note, 'N/A') !== false;
+                
+                if (!$needs_update) {
+                    $this->warn("Skipping transaction #{$transaction->id} (WooCommerce #{$transaction->woocommerce_order_id}) - staff_note already has data");
+                    continue;
+                }
+                
                 $result = $this->updateStaffNote($business, $transaction, $webhook_secret);
                 
                 if ($result['success']) {
                     $success_count++;
-                    $this->info("✓ Order #{$transaction->woocommerce_order_id} updated");
+                    $this->info("✓ Order #{$transaction->woocommerce_order_id} (ID: {$transaction->id}) updated");
                 } else {
                     $failed_count++;
-                    $this->error("✗ Order #{$transaction->woocommerce_order_id} failed: {$result['message']}");
+                    $this->error("✗ Order #{$transaction->woocommerce_order_id} (ID: {$transaction->id}) failed: {$result['message']}");
                 }
 
                 // Small delay to avoid rate limiting
