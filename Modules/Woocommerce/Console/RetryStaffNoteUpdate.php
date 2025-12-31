@@ -136,6 +136,14 @@ class RetryStaffNoteUpdate extends Command
 
         // Build REST API endpoint
         $endpoint = "{$woocommerce_url}/wp-json/gamesspot/v1/update-staff-note/{$order_id}";
+        
+        // DEBUG: Log the request details
+        Log::emergency("Sending API request to WooCommerce", [
+            'endpoint' => $endpoint,
+            'order_id' => $order_id,
+            'transaction_id' => $transaction->id,
+            'webhook_secret_preview' => substr($webhook_secret, 0, 10) . '...',
+        ]);
 
         try {
             // Make request with retry logic
@@ -177,10 +185,37 @@ class RetryStaffNoteUpdate extends Command
                     // Success!
                     $response_data = json_decode($response, true);
                     
+                    // DEBUG: Log the full API response
+                    Log::emergency("WooCommerce API Response for order #{$order_id}", [
+                        'http_code' => $http_code,
+                        'response_raw' => substr($response, 0, 500),
+                        'response_decoded' => $response_data,
+                        'has_staff_note' => isset($response_data['staff_note']),
+                        'staff_note_preview' => isset($response_data['staff_note']) ? substr($response_data['staff_note'], 0, 100) : 'NOT SET',
+                    ]);
+                    
+                    // Store original value for comparison
+                    $original_staff_note = $transaction->staff_note;
+                    
                     // Update local staff_note if returned
                     if (isset($response_data['staff_note'])) {
                         $transaction->staff_note = $response_data['staff_note'];
-                        $transaction->save();
+                        $saved = $transaction->save();
+                        
+                        // Refresh from database to verify
+                        $transaction->refresh();
+                        
+                        Log::emergency("Database Update for transaction #{$transaction->id}", [
+                            'order_id' => $order_id,
+                            'save_result' => $saved ? 'true' : 'false',
+                            'original_note' => substr($original_staff_note ?? 'NULL', 0, 100),
+                            'new_note' => substr($transaction->staff_note ?? 'NULL', 0, 100),
+                            'actually_changed' => $original_staff_note !== $transaction->staff_note,
+                        ]);
+                    } else {
+                        Log::warning("API response missing staff_note field for order #{$order_id}", [
+                            'response_keys' => array_keys($response_data ?? []),
+                        ]);
                     }
 
                     Log::info("Successfully updated staff note for order #{$order_id}");
