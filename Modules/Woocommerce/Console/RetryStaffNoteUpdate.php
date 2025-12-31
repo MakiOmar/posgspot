@@ -100,7 +100,7 @@ class RetryStaffNoteUpdate extends Command
     private function updateStaffNote($business, $transaction, $webhook_secret)
     {
         $api_settings = json_decode($business->woocommerce_api_settings);
-        $woocommerce_url = rtrim($api_settings->woocommerce_url ?? '', '/');
+        $woocommerce_url = rtrim($api_settings->woocommerce_app_url ?? '', '/');
         $order_id = $transaction->woocommerce_order_id;
 
         if (empty($woocommerce_url)) {
