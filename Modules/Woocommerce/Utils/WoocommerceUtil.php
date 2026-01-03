@@ -966,7 +966,7 @@ class WoocommerceUtil extends Util
     private function getAuthToken()
     {
         // Check if we have a cached token
-        $cachedToken = Cache::get('pos_auth_token');
+        $cachedToken = Cache::get('accounts_auth_token');
 
         if ($cachedToken) {
             return $cachedToken;
@@ -985,16 +985,16 @@ class WoocommerceUtil extends Util
     {
         try {
             // Make login request to get token
-            $response = Http::post(config('app.url') . '/api/login', [
-            'phone' => config('services.pos.phone'),
-            'password' => config('services.pos.password'),
+            $response = Http::post(config('services.accounts.base') . '/api/login', [
+            'phone' => config('services.accounts.phone'),
+            'password' => config('services.accounts.password'),
             ]);
 
             if ($response->successful() && isset($response->json()['token'])) {
                 $token = $response->json()['token'];
 
                 // Cache the token for 7 days (matching your WordPress transient)
-                Cache::put('pos_auth_token', $token, now()->addDays(7));
+                Cache::put('accounts_auth_token', $token, now()->addDays(7));
 
                 return $token;
             }
@@ -1074,25 +1074,25 @@ class WoocommerceUtil extends Util
         DB::commit();
         if ($transaction) {
             // We send the transaction id to accounts
-            
+
             // Get the authentication token
             $token = $this->getAuthToken();
-            
+
             if (!$token) {
                 Log::error('Failed to retrieve auth token for POS sync');
                 return; // or handle error appropriately
             }
-            
+
             // Prepare the API URL
-            $api_url = config('app.url') . '/api/pos/receive-order';
-            
+            $api_url = config('services.accounts.base') . '/api/pos/receive-order';
+
             // Send API request with Bearer token
             $response = Http::withToken($token)
                 ->post($api_url, [
                     'woocommerce_order_id' => $order->id,
                     'created' => $transaction->id, // This is the POS order ID
                 ]);
-            
+
             // Check if request was successful
             if ($response->successful() && $response->json()['success']) {
                 Log::info('POS Order synced successfully', [

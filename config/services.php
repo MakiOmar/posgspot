@@ -34,5 +34,10 @@ return [
         'endpoint' => env('WOO_ENDPOINT'),
         'token'    => env('WOO_TOKEN'),
     ],
+    'accounts' => [
+        'base' => env('ACCOUNTS_BASE_URL'),
+        'phone' => env('ACCOUNTS_AUTH_PHONE'),
+        'password' => env('ACCOUNTS_AUTH_PASSWORD'),
+    ],
 
 ];
