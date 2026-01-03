@@ -1074,36 +1074,92 @@ class WoocommerceUtil extends Util
         DB::commit();
         if ($transaction) {
             // We send the transaction id to accounts
+            $maxAttempts = 3;
+            $attempt = 0;
+            $success = false;
 
-            // Get the authentication token
-            $token = $this->getAuthToken();
+            while ($attempt < $maxAttempts && !$success) {
+                $attempt++;
 
-            if (!$token) {
-                Log::error('Failed to retrieve auth token for POS sync');
-                return; // or handle error appropriately
-            }
+                try {
+                    // Get the authentication token
+                    $token = $this->getAuthToken();
 
-            // Prepare the API URL
-            $api_url = config('services.accounts.base') . '/api/pos/receive-order';
+                    if (!$token) {
+                        Log::error('Failed to retrieve auth token for POS sync', [
+                            'attempt' => $attempt,
+                            'order_id' => $order->id
+                        ]);
 
-            // Send API request with Bearer token
-            $response = Http::withToken($token)
-                ->post($api_url, [
+                        // If we can't get token, wait before retry
+                        if ($attempt < $maxAttempts) {
+                            $delay = pow(2, $attempt - 1); // Exponential: 1s, 2s, 4s
+                            sleep($delay);
+                            continue;
+                        } else {
+                            break; // Max attempts reached
+                        }
+                    }
+
+                    // Prepare the API URL
+                    $api_url = config('services.accounts.base') . '/api/pos/receive-order';
+
+                    // Send API request with Bearer token
+                    $response = Http::timeout(10)
+                        ->withToken($token)
+                        ->post($api_url, [
                     'woocommerce_order_id' => $order->id,
                     'created' => $transaction->id, // This is the POS order ID
+                        ]);
+
+                    // Check if request was successful
+                    if ($response->successful() && isset($response->json()['success']) && $response->json()['success']) {
+                        Log::info('POS Order synced successfully', [
+                            'order_id' => $order->id,
+                            'pos_order_id' => $transaction->id,
+                            'attempt' => $attempt
+                        ]);
+                        $success = true;
+                    } else {
+                        Log::warning('POS Sync attempt failed', [
+                            'attempt' => $attempt,
+                            'order_id' => $order->id,
+                            'response' => $response->body(),
+                            'status' => $response->status()
+                        ]);
+
+                        // Wait before retry with exponential backoff
+                        if ($attempt < $maxAttempts) {
+                            $delay = pow(2, $attempt - 1); // Exponential: 1s, 2s, 4s
+                            sleep($delay);
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::error('POS Sync exception', [
+                        'attempt' => $attempt,
+                        'order_id' => $order->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+
+                    // Wait before retry with exponential backoff
+                    if ($attempt < $maxAttempts) {
+                        $delay = pow(2, $attempt - 1); // Exponential: 1s, 2s, 4s
+                        sleep($delay);
+                    }
+                }
+            }
+
+            // Log final failure if all attempts exhausted
+            if (!$success) {
+                Log::error('POS Sync failed after all attempts', [
+                    'order_id' => $order->id,
+                    'pos_order_id' => $transaction->id,
+                    'total_attempts' => $maxAttempts
                 ]);
 
-            // Check if request was successful
-            if ($response->successful() && $response->json()['success']) {
-                Log::info('POS Order synced successfully', [
-                    'order_id' => $order->id,
-                    'pos_order_id' => $transaction->id
-                ]);
-            } else {
-                Log::error('POS Sync Failed', [
-                    'response' => $response->body(),
-                    'status' => $response->status()
-                ]);
+                // Optional: Queue for later retry or store in failed_syncs table
+                // You could dispatch a job here to retry later
             }
         }
         return $transaction;
