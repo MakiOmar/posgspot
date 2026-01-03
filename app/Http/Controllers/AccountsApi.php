@@ -62,7 +62,7 @@ class AccountsApi extends Controller
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             \Log::error('AccountsApi::orderCreated Error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -70,7 +70,7 @@ class AccountsApi extends Controller
                 'trace' => $e->getTraceAsString(),
                 'business_id' => $business_id ?? null,
             ]);
-            
+
             return response()->json([
                 'message' => 'Error occured!',
                 'error' => config('app.debug') ? $e->getMessage() : 'An error occurred while processing the order'
@@ -101,7 +101,7 @@ class AccountsApi extends Controller
         DB::beginTransaction();
 
         $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id, false);
-        
+
         // Set created_at and updated_at to match transaction_date
         $transaction_date = \Carbon\Carbon::parse($transaction->transaction_date);
         $transaction->created_at = $transaction_date;
@@ -365,6 +365,14 @@ class AccountsApi extends Controller
             }
         }
 
+        if (!empty($order->woocommerce_order_id)) {
+            $invoice_no = $order->woocommerce_order_id;
+        } elseif (!empty($order->id)) {
+            $invoice_no = $order->id;
+        } else {
+            $invoice_no = null;
+        }
+        // Prepare data for creating a new sale
         $new_sell_data = [
             'business_id' => $business_id,
             'location_id' => $order->location_id,
@@ -385,7 +393,7 @@ class AccountsApi extends Controller
             'sale_note' => null,
             'staff_note' => $sell_line_note,
             'commission_agent' => null,
-            'invoice_no' => $order->number ?? $order->id ?? null,
+            'invoice_no' => $invoice_no,
             'order_addresses' => json_encode($addresses),
             'shipping_charges' => ! empty($order->shipping_total) ? $order->shipping_total : 0,
             'shipping_details' => ! empty($shipping_lines_array) ? implode(', ', $shipping_lines_array) : '',
