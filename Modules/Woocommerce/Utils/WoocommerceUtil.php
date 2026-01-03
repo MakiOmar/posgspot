@@ -20,6 +20,8 @@ use DB;
 use Modules\Woocommerce\Entities\WoocommerceSyncLog;
 use Modules\Woocommerce\Exceptions\WooCommerceError;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class WoocommerceUtil extends Util
 {
@@ -68,7 +70,7 @@ class WoocommerceUtil extends Util
         $skipped_orders = ! empty($business->woocommerce_skipped_orders) ? json_decode($business->woocommerce_skipped_orders, true) : [];
 
         $skipped_orders = empty($skipped_orders) ? [] : $skipped_orders;
-        
+
         if (in_array($order_id, $skipped_orders)) {
             $skipped_orders = array_diff($skipped_orders, [$order_id]);
         }
@@ -693,7 +695,6 @@ class WoocommerceUtil extends Util
         $variable_products = $query->get();
         $business_location_id = $woocommerce_api_settings->location_id;
         foreach ($variable_products as $product) {
-
             //Skip product if last updated is less than last sync
             $last_updated = $product->updated_at;
 
@@ -834,7 +835,7 @@ class WoocommerceUtil extends Util
             }
 
             if (! empty($variation_data)) {
-                $response = $woocommerce->post('products/'.$product->woocommerce_product_id.'/variations/batch', $variation_data);
+                $response = $woocommerce->post('products/' . $product->woocommerce_product_id . '/variations/batch', $variation_data);
 
                 //update woocommerce_variation_id
                 if (! empty($response->create)) {
@@ -925,7 +926,7 @@ class WoocommerceUtil extends Util
             $sell_status = $this->woocommerceOrderStatusToPosSellStatus($order->status, $business_id);
 
             if ($sell_status == 'draft') {
-                $order_number .= ' ('.__('sale.draft').')';
+                $order_number .= ' (' . __('sale.draft') . ')';
             }
             if (empty($sell)) {
                 $created = $this->createNewSaleFromOrder($business_id, $user_id, $order, $business_data);
@@ -957,7 +958,54 @@ class WoocommerceUtil extends Util
             $this->createSyncLog($business_id, $user_id, 'orders', null, [], $error_data);
         }
     }
+    /**
+     * Get authentication token for API requests
+     *
+     * @return string|null
+     */
+    private function getAuthToken()
+    {
+        // Check if we have a cached token
+        $cachedToken = Cache::get('pos_auth_token');
 
+        if ($cachedToken) {
+            return $cachedToken;
+        }
+
+        // If no cached token, get a new one
+        return $this->getNewAuthToken();
+    }
+
+    /**
+     * Fetch a new authentication token
+     *
+     * @return string|null
+     */
+    private function getNewAuthToken()
+    {
+        try {
+            // Make login request to get token
+            $response = Http::post(config('app.url') . '/api/login', [
+            'phone' => config('services.pos.phone'),
+            'password' => config('services.pos.password'),
+            ]);
+
+            if ($response->successful() && isset($response->json()['token'])) {
+                $token = $response->json()['token'];
+
+                // Cache the token for 7 days (matching your WordPress transient)
+                Cache::put('pos_auth_token', $token, now()->addDays(7));
+
+                return $token;
+            }
+
+            Log::error('Failed to get auth token', ['response' => $response->body()]);
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Auth token error: ' . $e->getMessage());
+            return null;
+        }
+    }
     /**
      * Creates new sales in POSfrom woocommerce order list
      *
@@ -1024,7 +1072,40 @@ class WoocommerceUtil extends Util
         $this->remove_from_skipped_orders($business_data['business'], $order->id);
 
         DB::commit();
-
+        if ($transaction) {
+            // We send the transaction id to accounts
+            
+            // Get the authentication token
+            $token = $this->getAuthToken();
+            
+            if (!$token) {
+                Log::error('Failed to retrieve auth token for POS sync');
+                return; // or handle error appropriately
+            }
+            
+            // Prepare the API URL
+            $api_url = config('app.url') . '/api/pos/receive-order';
+            
+            // Send API request with Bearer token
+            $response = Http::withToken($token)
+                ->post($api_url, [
+                    'woocommerce_order_id' => $order->id,
+                    'created' => $transaction->id, // This is the POS order ID
+                ]);
+            
+            // Check if request was successful
+            if ($response->successful() && $response->json()['success']) {
+                Log::info('POS Order synced successfully', [
+                    'order_id' => $order->id,
+                    'pos_order_id' => $transaction->id
+                ]);
+            } else {
+                Log::error('POS Sync Failed', [
+                    'response' => $response->body(),
+                    'status' => $response->status()
+                ]);
+            }
+        }
         return $transaction;
     }
 
@@ -1050,7 +1131,6 @@ class WoocommerceUtil extends Util
         }
         $sell_line_note = '';
         foreach ($order->line_items as $product_line) {
-            
             $game_title = null;
             $account = null;
             $password = null;
@@ -1072,7 +1152,7 @@ class WoocommerceUtil extends Util
             }
 
             $sell_line_note .= "\nGame Title: " . ($game_title ?? 'N/A') . "\nType: " . ($type ?? 'N/A') . "\nAccount: " . ($account ?? 'N/A') . "\nPassword: " . ($password ?? 'N/A') . "<br>----------------------<br>";
-            
+
             $product = Product::where('business_id', $business_id)
                             ->where('woocommerce_product_id', $product_line->product_id)
                             ->with(['variations'])
@@ -1083,7 +1163,6 @@ class WoocommerceUtil extends Util
             $unit_line_tax = $line_tax / $product_line->quantity;
             $unit_price_inc_tax = $unit_price + $unit_line_tax;
             if (! empty($product)) {
-
                 //Set sale line variation;If single product then first variation
                 //else search for woocommerce_variation_id in all the variations
                 if ($product->type == 'single') {
@@ -1100,7 +1179,7 @@ class WoocommerceUtil extends Util
                     return ['has_error' => [
                         'error_type' => 'order_product_not_found',
                         'order_number' => $order->number,
-                        'product' => $product_line->name.' SKU:'.$product_line->sku,
+                        'product' => $product_line->name . ' SKU:' . $product_line->sku,
                     ],
                     ];
                     exit;
@@ -1136,8 +1215,10 @@ class WoocommerceUtil extends Util
                 //append transaction_sell_lines_id if update
                 if (! empty($sell_lines)) {
                     foreach ($sell_lines as $sell_line) {
-                        if ($sell_line->woocommerce_line_items_id ==
-                            $product_line->id) {
+                        if (
+                            $sell_line->woocommerce_line_items_id ==
+                            $product_line->id
+                        ) {
                             $product_data['transaction_sell_lines_id'] = $sell_line->id;
                         }
                     }
@@ -1148,7 +1229,7 @@ class WoocommerceUtil extends Util
                 return ['has_error' => [
                     'error_type' => 'order_product_not_found',
                     'order_number' => $order->number,
-                    'product' => $product_line->name.' SKU:'.$product_line->sku,
+                    'product' => $product_line->name . ' SKU:' . $product_line->sku,
                 ],
                 ];
                 exit;
@@ -1168,7 +1249,7 @@ class WoocommerceUtil extends Util
                 'first_name' => $f_name,
                 'last_name' => $l_name,
                 'email' => ! empty($order->billing->email) ? $order->billing->email : null,
-                'name' => $f_name.' '.$l_name,
+                'name' => $f_name . ' ' . $l_name,
                 'mobile' => $order->billing->phone,
                 'address_line_1' => ! empty($order->billing->address_1) ? $order->billing->address_1 : null,
                 'address_line_2' => ! empty($order->billing->address_2) ? $order->billing->address_2 : null,
@@ -1180,13 +1261,13 @@ class WoocommerceUtil extends Util
         } else {
             //woocommerce api client object
             $woocommerce = $this->woo_client($business_id);
-            $order_customer = $woocommerce->get('customers/'.$order_customer_id);
+            $order_customer = $woocommerce->get('customers/' . $order_customer_id);
 
             $customer_details = [
                 'first_name' => $order_customer->first_name,
                 'last_name' => $order_customer->last_name,
                 'email' => $order_customer->email,
-                'name' => $order_customer->first_name.' '.$order_customer->last_name,
+                'name' => $order_customer->first_name . ' ' . $order_customer->last_name,
                 'mobile' => $order_customer->billing->phone,
                 'city' => $order_customer->billing->city,
                 'state' => $order_customer->billing->state,
@@ -1205,7 +1286,7 @@ class WoocommerceUtil extends Util
         }
 
         if (empty($order_customer_id) && empty($customer_details['email'])) {
-            $contactUtil = new ContactUtil;
+            $contactUtil = new ContactUtil();
             $customer = $contactUtil->getWalkInCustomer($business_id, false);
         }
 
@@ -1244,7 +1325,7 @@ class WoocommerceUtil extends Util
         $shipping_status = $this->woocommerceOrderStatusToPosShippingStatus($order->status, $business_id);
         $shipping_address = [];
         if (! empty($order->shipping->first_name)) {
-            $shipping_address[] = $order->shipping->first_name.' '.$order->shipping->last_name;
+            $shipping_address[] = $order->shipping->first_name . ' ' . $order->shipping->last_name;
         }
         if (! empty($order->shipping->company)) {
             $shipping_address[] = $order->shipping->company;
@@ -1268,7 +1349,7 @@ class WoocommerceUtil extends Util
             $shipping_address[] = $order->shipping->postcode;
         }
         $addresses['shipping_address'] = [
-            'shipping_name' => $order->shipping->first_name.' '.$order->shipping->last_name,
+            'shipping_name' => $order->shipping->first_name . ' ' . $order->shipping->last_name,
             'company' => $order->shipping->company,
             'shipping_address_line_1' => $order->shipping->address_1,
             'shipping_address_line_2' => $order->shipping->address_2,
@@ -1278,7 +1359,7 @@ class WoocommerceUtil extends Util
             'shipping_zip_code' => $order->shipping->postcode,
         ];
         $addresses['billing_address'] = [
-            'billing_name' => $order->billing->first_name.' '.$order->billing->last_name,
+            'billing_name' => $order->billing->first_name . ' ' . $order->billing->last_name,
             'company' => $order->billing->company,
             'billing_address_line_1' => $order->billing->address_1,
             'billing_address_line_2' => $order->billing->address_2,
