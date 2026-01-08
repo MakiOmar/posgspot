@@ -282,6 +282,132 @@ class WoocommerceWebhookController extends Controller
     }
 
     /**
+     * API endpoint to receive order from WooCommerce
+     * Can be called from WooCommerce or external systems
+     * 
+     * @param  Request  $request
+     * @param  int  $business_id
+     * @return Response
+     */
+    public function receiveOrder(Request $request, $business_id)
+    {
+        try {
+            $business = Business::findOrFail($business_id);
+            
+            // Get order data from request
+            $order_data = $request->input('order');
+            
+            // If order is sent as JSON string, decode it
+            if (is_string($order_data)) {
+                $order_data = json_decode($order_data, true);
+            }
+            
+            // If order is sent directly in request body, get it
+            if (empty($order_data)) {
+                $order_data = $request->all();
+            }
+            
+            // Convert array to object for compatibility with existing methods
+            if (is_array($order_data)) {
+                $order_data = json_decode(json_encode($order_data));
+            }
+            
+            if (empty($order_data) || empty($order_data->id)) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'Invalid order data. Order ID is required.'
+                ], 400);
+            }
+            
+            // Check if order already exists in POS - skip if it does
+            $existing_transaction = Transaction::where('business_id', $business_id)
+                ->where('woocommerce_order_id', $order_data->id)
+                ->first();
+            
+            if (!empty($existing_transaction)) {
+                Log::info('WooCommerce order already exists in POS, skipping', [
+                    'woocommerce_order_id' => $order_data->id,
+                    'pos_transaction_id' => $existing_transaction->id,
+                    'invoice_no' => $existing_transaction->invoice_no,
+                ]);
+                
+                return response()->json([
+                    'success' => 1,
+                    'msg' => 'Order already exists in POS',
+                    'action' => 'skipped',
+                    'transaction_id' => $existing_transaction->id,
+                    'invoice_no' => $existing_transaction->invoice_no,
+                    'woocommerce_order_id' => $order_data->id,
+                ], 200);
+            }
+            
+            $user_id = auth()->id() ?? $business->owner_id;
+            $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
+            $business_data = [
+                'id' => $business_id,
+                'accounting_method' => $business->accounting_method,
+                'location_id' => $woocommerce_api_settings->location_id,
+                'business' => $business,
+            ];
+
+            DB::beginTransaction();
+            
+            $created = $this->woocommerceUtil->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
+            
+            // Check if it's an error array
+            if (is_array($created) && isset($created['error_type'])) {
+                // Error occurred
+                DB::rollBack();
+                return response()->json([
+                    'success' => 0,
+                    'msg' => $created['msg'] ?? 'Failed to create order',
+                    'error' => $created,
+                ], 400);
+            }
+            
+            // If it returns true, order was skipped (already exists check inside method)
+            if ($created === true) {
+                DB::commit();
+                return response()->json([
+                    'success' => 1,
+                    'msg' => 'Order already exists, skipped',
+                    'action' => 'skipped',
+                ], 200);
+            }
+            
+            // Success - transaction object returned
+            $transaction = $created;
+            $created_data = [$order_data->number];
+            $create_error_data = [];
+            
+            if (!empty($created_data)) {
+                $this->woocommerceUtil->createSyncLog($business_id, $user_id, 'orders', 'created', $created_data, $create_error_data);
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => 1,
+                'msg' => 'Order received and created successfully',
+                'action' => 'created',
+                'transaction_id' => $transaction->id,
+                'invoice_no' => $transaction->invoice_no,
+                'woocommerce_order_id' => $order_data->id,
+                'order_number' => $order_data->number ?? $transaction->invoice_no,
+            ], 200);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            
+            return response()->json([
+                'success' => 0,
+                'msg' => 'Failed to receive order: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * API endpoint to update custom meta data (staff_note) for a specific order
      * Can be called from WooCommerce or external systems
      *

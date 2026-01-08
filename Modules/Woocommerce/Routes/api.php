@@ -15,3 +15,8 @@ Route::middleware('auth:api')->post(
     [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'bulkSendOrders']
 );
 
+Route::middleware('auth:api')->post(
+    '/receive-order/{business_id}',
+    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'receiveOrder']
+);
+
