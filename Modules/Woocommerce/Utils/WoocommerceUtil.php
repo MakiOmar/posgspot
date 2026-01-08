@@ -917,10 +917,16 @@ class WoocommerceUtil extends Util
             if ((! empty($last_synced) && strtotime($order->date_modified) <= strtotime($last_synced) && ! in_array($order->id, $skipped_orders)) || in_array($order->status, ['auto-draft'])) {
                 continue;
             }
-            //Search if order already exists
+            
+            //Search if order already exists - skip if it does
             $sell = $woocommerce_sells->filter(function ($item) use ($order) {
                 return $item->woocommerce_order_id == $order->id;
             })->first();
+
+            // Skip orders that already exist in POS
+            if (!empty($sell)) {
+                continue;
+            }
 
             $order_number = $order->number;
             $sell_status = $this->woocommerceOrderStatusToPosSellStatus($order->status, $business_id);
@@ -928,20 +934,13 @@ class WoocommerceUtil extends Util
             if ($sell_status == 'draft') {
                 $order_number .= ' (' . __('sale.draft') . ')';
             }
-            if (empty($sell)) {
-                $created = $this->createNewSaleFromOrder($business_id, $user_id, $order, $business_data);
-                $created_data[] = $order_number;
+            
+            // Only create new orders, skip existing ones
+            $created = $this->createNewSaleFromOrder($business_id, $user_id, $order, $business_data);
+            $created_data[] = $order_number;
 
-                if ($created !== true) {
-                    $create_error_data[] = $created;
-                }
-            } else {
-                $updated = $this->updateSaleFromOrder($business_id, $user_id, $order, $sell, $business_data);
-                $updated_data[] = $order_number;
-
-                if ($updated !== true) {
-                    $update_error_data[] = $updated;
-                }
+            if ($created !== true) {
+                $create_error_data[] = $created;
             }
         }
 
@@ -1016,6 +1015,20 @@ class WoocommerceUtil extends Util
      */
     public function createNewSaleFromOrder($business_id, $user_id, $order, $business_data)
     {
+        // Check if order already exists in POS - skip if it does
+        $existing_transaction = Transaction::where('business_id', $business_id)
+            ->where('woocommerce_order_id', $order->id)
+            ->first();
+        
+        if (!empty($existing_transaction)) {
+            Log::info('WooCommerce order already exists in POS, skipping creation', [
+                'woocommerce_order_id' => $order->id,
+                'pos_transaction_id' => $existing_transaction->id,
+                'invoice_no' => $existing_transaction->invoice_no,
+            ]);
+            return true; // Return true to indicate it was handled (skipped)
+        }
+
         $input = $this->formatOrderToSale($business_id, $user_id, $order);
 
         if (! empty($input['has_error'])) {
@@ -1701,5 +1714,221 @@ class WoocommerceUtil extends Util
         $valid_extenstions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
         return ! empty($path) && file_exists($path) && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $valid_extenstions);
+    }
+
+    /**
+     * Converts POS transaction to WooCommerce order format
+     *
+     * @param  Transaction  $transaction
+     * @param  int  $business_id
+     * @return array
+     */
+    public function formatSaleToOrder($transaction, $business_id)
+    {
+        $woocommerce = $this->woo_client($business_id);
+        
+        // Get customer details
+        $contact = $transaction->contact;
+        $customer_id = null;
+        
+        // Try to find WooCommerce customer ID if contact has email
+        if (!empty($contact) && !empty($contact->email)) {
+            try {
+                $customers = $woocommerce->get('customers', ['email' => $contact->email]);
+                if (!empty($customers) && isset($customers[0])) {
+                    $customer_id = $customers[0]->id;
+                }
+            } catch (\Exception $e) {
+                Log::warning('Could not find WooCommerce customer', ['email' => $contact->email]);
+            }
+        }
+
+        // Parse addresses from order_addresses JSON
+        $addresses = [];
+        if (!empty($transaction->order_addresses)) {
+            $addresses = json_decode($transaction->order_addresses, true);
+        }
+
+        // Parse shipping name if it's a full name string
+        $shipping_name_parts = ['', ''];
+        if (!empty($addresses['shipping_address']['shipping_name'])) {
+            $name_parts = explode(' ', $addresses['shipping_address']['shipping_name'], 2);
+            $shipping_name_parts[0] = $name_parts[0] ?? '';
+            $shipping_name_parts[1] = $name_parts[1] ?? '';
+        }
+
+        // Build billing address
+        $billing = [
+            'first_name' => $contact ? ($contact->first_name ?? '') : '',
+            'last_name' => $contact ? ($contact->last_name ?? '') : '',
+            'company' => $addresses['billing_address']['company'] ?? '',
+            'address_1' => $addresses['billing_address']['billing_address_line_1'] ?? ($contact ? ($contact->address_line_1 ?? '') : ''),
+            'address_2' => $addresses['billing_address']['billing_address_line_2'] ?? ($contact ? ($contact->address_line_2 ?? '') : ''),
+            'city' => $addresses['billing_address']['billing_city'] ?? ($contact ? ($contact->city ?? '') : ''),
+            'state' => $addresses['billing_address']['billing_state'] ?? ($contact ? ($contact->state ?? '') : ''),
+            'postcode' => $addresses['billing_address']['billing_zip_code'] ?? ($contact ? ($contact->zip_code ?? '') : ''),
+            'country' => $addresses['billing_address']['billing_country'] ?? ($contact ? ($contact->country ?? '') : ''),
+            'email' => $contact ? ($contact->email ?? '') : '',
+            'phone' => $contact ? ($contact->mobile ?? '') : '',
+        ];
+
+        // Build shipping address
+        $shipping = [
+            'first_name' => $shipping_name_parts[0] ?: ($contact ? ($contact->first_name ?? '') : ''),
+            'last_name' => $shipping_name_parts[1] ?: ($contact ? ($contact->last_name ?? '') : ''),
+            'company' => $addresses['shipping_address']['company'] ?? '',
+            'address_1' => $addresses['shipping_address']['shipping_address_line_1'] ?? '',
+            'address_2' => $addresses['shipping_address']['shipping_address_line_2'] ?? '',
+            'city' => $addresses['shipping_address']['shipping_city'] ?? '',
+            'state' => $addresses['shipping_address']['shipping_state'] ?? '',
+            'postcode' => $addresses['shipping_address']['shipping_zip_code'] ?? '',
+            'country' => $addresses['shipping_address']['shipping_country'] ?? '',
+        ];
+
+        // Build line items
+        $line_items = [];
+        foreach ($transaction->sell_lines as $sell_line) {
+            $product = $sell_line->product;
+            $variation = $sell_line->variations;
+            
+            // Skip if product doesn't have WooCommerce ID
+            if (empty($product->woocommerce_product_id)) {
+                continue;
+            }
+
+            $line_item = [
+                'product_id' => $product->woocommerce_product_id,
+                'quantity' => (float) $sell_line->quantity,
+                'total' => (string) $this->formatDecimalPoint($sell_line->quantity * $sell_line->unit_price_inc_tax),
+            ];
+
+            // Add variation ID if product has variations
+            if ($product->type == 'variable' && !empty($variation->woocommerce_variation_id)) {
+                $line_item['variation_id'] = $variation->woocommerce_variation_id;
+            }
+
+            // Add tax if exists
+            if (!empty($sell_line->item_tax) && $sell_line->item_tax > 0) {
+                $line_item['total_tax'] = (string) $this->formatDecimalPoint($sell_line->item_tax);
+            }
+
+            $line_items[] = $line_item;
+        }
+
+        // Build order data
+        $order_data = [
+            'payment_method' => 'pos',
+            'payment_method_title' => 'POS',
+            'set_paid' => $transaction->payment_status == 'paid',
+            'billing' => $billing,
+            'shipping' => $shipping,
+            'line_items' => $line_items,
+            'shipping_lines' => [],
+            'fee_lines' => [],
+            'coupon_lines' => [],
+        ];
+
+        // Add customer ID if found
+        if (!empty($customer_id)) {
+            $order_data['customer_id'] = $customer_id;
+        }
+
+        // Add shipping if exists
+        if (!empty($transaction->shipping_charges) && $transaction->shipping_charges > 0) {
+            $order_data['shipping_lines'][] = [
+                'method_id' => 'flat_rate',
+                'method_title' => $transaction->shipping_details ?? 'Shipping',
+                'total' => (string) $this->formatDecimalPoint($transaction->shipping_charges),
+            ];
+        }
+
+        // Add discount if exists
+        if (!empty($transaction->discount_amount) && $transaction->discount_amount > 0) {
+            $order_data['coupon_lines'][] = [
+                'code' => 'POS Discount',
+                'discount' => (string) $this->formatDecimalPoint($transaction->discount_amount),
+            ];
+        }
+
+        // Add meta data
+        $order_data['meta_data'] = [
+            [
+                'key' => '_pos_transaction_id',
+                'value' => $transaction->id,
+            ],
+            [
+                'key' => '_pos_invoice_no',
+                'value' => $transaction->invoice_no,
+            ],
+        ];
+
+        // Add staff note if exists
+        if (!empty($transaction->staff_note)) {
+            $order_data['customer_note'] = $transaction->staff_note;
+        }
+
+        return $order_data;
+    }
+
+    /**
+     * Creates or updates WooCommerce order from POS transaction
+     *
+     * @param  Transaction  $transaction
+     * @param  int  $business_id
+     * @return array
+     */
+    public function sendTransactionToWooCommerce($transaction, $business_id)
+    {
+        try {
+            $woocommerce = $this->woo_client($business_id);
+            $order_data = $this->formatSaleToOrder($transaction, $business_id);
+
+            // If transaction already has WooCommerce order ID, update it
+            if (!empty($transaction->woocommerce_order_id)) {
+                try {
+                    $order = $woocommerce->put('orders/' . $transaction->woocommerce_order_id, $order_data);
+                    return [
+                        'success' => true,
+                        'action' => 'updated',
+                        'woocommerce_order_id' => $order->id,
+                        'order_number' => $order->number,
+                        'invoice_no' => $transaction->invoice_no,
+                    ];
+                } catch (\Exception $e) {
+                    // If update fails, try to create new order
+                    Log::warning('Failed to update WooCommerce order, creating new one', [
+                        'woocommerce_order_id' => $transaction->woocommerce_order_id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // Create new order
+            $order = $woocommerce->post('orders', $order_data);
+            
+            // Update transaction with WooCommerce order ID
+            $transaction->woocommerce_order_id = $order->id;
+            $transaction->save();
+
+            return [
+                'success' => true,
+                'action' => 'created',
+                'woocommerce_order_id' => $order->id,
+                'order_number' => $order->number,
+                'invoice_no' => $transaction->invoice_no,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to send transaction to WooCommerce', [
+                'transaction_id' => $transaction->id,
+                'invoice_no' => $transaction->invoice_no,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'invoice_no' => $transaction->invoice_no,
+                'error' => $e->getMessage(),
+            ];
+        }
     }
 }

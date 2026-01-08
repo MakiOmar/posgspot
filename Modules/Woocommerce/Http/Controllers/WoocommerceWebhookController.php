@@ -60,6 +60,22 @@ class WoocommerceWebhookController extends Controller
                 return;
             }
     
+            $order_data = json_decode($payload);
+            
+            // Check if order already exists in POS
+            $existing_transaction = Transaction::where('business_id', $business_id)
+                ->where('woocommerce_order_id', $order_data->id)
+                ->first();
+            
+            if (!empty($existing_transaction)) {
+                Log::info('WooCommerce order already exists in POS, skipping', [
+                    'woocommerce_order_id' => $order_data->id,
+                    'pos_transaction_id' => $existing_transaction->id,
+                    'invoice_no' => $existing_transaction->invoice_no,
+                ]);
+                return;
+            }
+    
             $user_id = $business->owner->id;
             $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
             $business_data = [
@@ -68,7 +84,6 @@ class WoocommerceWebhookController extends Controller
                 'location_id' => $woocommerce_api_settings->location_id,
                 'business' => $business,
             ];
-            $order_data = json_decode($payload);
 
             DB::beginTransaction();
             $created = $this->woocommerceUtil->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
@@ -230,33 +245,32 @@ class WoocommerceWebhookController extends Controller
                 ];
 
                 $order_data = json_decode($payload);
+                
+                // Check if order already exists in POS - skip if it does
                 $sell = Transaction::where('business_id', $business_id)
                                 ->where('woocommerce_order_id', $order_data->id)
                                 ->with('sell_lines', 'sell_lines.product', 'payment_lines')
                                 ->first();
 
+                if (!empty($sell)) {
+                    Log::info('WooCommerce order already exists in POS, skipping restore', [
+                        'woocommerce_order_id' => $order_data->id,
+                        'pos_transaction_id' => $sell->id,
+                        'invoice_no' => $sell->invoice_no,
+                    ]);
+                    return;
+                }
+
                 DB::beginTransaction();
-                //If sell not deleted restore from draft else create new sale
-                if (! empty($sell)) {
-                    $updated = $this->woocommerceUtil->updateSaleFromOrder($business_id, $user_id, $order_data, $sell, $business_data);
+                // Create new sale since order doesn't exist
+                $created = $this->woocommerceUtil->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
 
-                    $updated_data[] = $order_data->number;
-                    $update_error_data = $updated !== true ? $updated : [];
+                $create_error_data = $created !== true ? $created : [];
+                $created_data[] = $order_data->number;
 
-                    //Create log
-                    if (! empty($updated_data)) {
-                        $this->woocommerceUtil->createSyncLog($business_id, $user_id, 'orders', 'restored', $updated_data, $update_error_data);
-                    }
-                } else {
-                    $created = $this->woocommerceUtil->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
-
-                    $create_error_data = $created !== true ? $created : [];
-                    $created_data[] = $order_data->number;
-
-                    //Create log
-                    if (! empty($created_data)) {
-                        $this->woocommerceUtil->createSyncLog($business_id, $user_id, 'orders', 'created', $created_data, $create_error_data);
-                    }
+                //Create log
+                if (! empty($created_data)) {
+                    $this->woocommerceUtil->createSyncLog($business_id, $user_id, 'orders', 'created', $created_data, $create_error_data);
                 }
 
                 DB::commit();
@@ -362,6 +376,105 @@ class WoocommerceWebhookController extends Controller
             return response()->json([
                 'success' => 0,
                 'msg' => 'Failed to update: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk send POS transactions to WooCommerce as orders
+     *
+     * @param  Request  $request
+     * @param  int  $business_id
+     * @return Response
+     */
+    public function bulkSendOrders(Request $request, $business_id)
+    {
+        try {
+            $business = Business::findOrFail($business_id);
+            
+            // Validate request
+            $transaction_ids = $request->input('transaction_ids', []);
+            
+            if (empty($transaction_ids) || !is_array($transaction_ids)) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'Transaction IDs array is required'
+                ], 400);
+            }
+
+            // Get transactions
+            $transactions = Transaction::where('business_id', $business_id)
+                ->where('type', 'sell')
+                ->whereIn('id', $transaction_ids)
+                ->with(['sell_lines.product', 'sell_lines.variations', 'contact', 'payment_lines'])
+                ->get();
+
+            if ($transactions->isEmpty()) {
+                return response()->json([
+                    'success' => 0,
+                    'msg' => 'No valid transactions found'
+                ], 404);
+            }
+
+            $results = [
+                'success' => [],
+                'failed' => [],
+                'total' => count($transaction_ids),
+                'processed' => 0,
+            ];
+
+            // Process each transaction individually (no transaction wrapper for bulk operations)
+            // This ensures successful sends are saved even if some fail
+            foreach ($transactions as $transaction) {
+                $result = $this->woocommerceUtil->sendTransactionToWooCommerce($transaction, $business_id);
+                
+                if ($result['success']) {
+                    $results['success'][] = [
+                        'transaction_id' => $transaction->id,
+                        'invoice_no' => $transaction->invoice_no,
+                        'woocommerce_order_id' => $result['woocommerce_order_id'],
+                        'order_number' => $result['order_number'],
+                        'action' => $result['action'],
+                    ];
+                } else {
+                    $results['failed'][] = [
+                        'transaction_id' => $transaction->id,
+                        'invoice_no' => $transaction->invoice_no,
+                        'error' => $result['error'] ?? 'Unknown error',
+                    ];
+                }
+                
+                $results['processed']++;
+            }
+
+            // Create sync log
+            $user_id = auth()->id() ?? $business->owner_id;
+            $this->woocommerceUtil->createSyncLog(
+                $business_id,
+                $user_id,
+                'orders',
+                'bulk_sent',
+                $results['success'],
+                $results['failed']
+            );
+
+            return response()->json([
+                'success' => 1,
+                'msg' => sprintf(
+                    'Processed %d transactions. %d successful, %d failed.',
+                    $results['processed'],
+                    count($results['success']),
+                    count($results['failed'])
+                ),
+                'data' => $results,
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            return response()->json([
+                'success' => 0,
+                'msg' => 'Failed to bulk send orders: ' . $e->getMessage()
             ], 500);
         }
     }

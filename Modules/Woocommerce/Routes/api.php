@@ -10,3 +10,8 @@ Route::middleware('auth:api')->post(
     [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'updateOrderCustomMeta']
 );
 
+Route::middleware('auth:api')->post(
+    '/bulk-send-orders/{business_id}',
+    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'bulkSendOrders']
+);
+
