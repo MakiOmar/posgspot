@@ -104,6 +104,6 @@ Route::middleware('auth:api')->get(
 )->name('contacts.getInfo');*/
 
 Route::get(
-    '/contacts/{mobile}/info',
+    '/contacts/{mobile}/details',
     [ContactController::class, 'getContactInfoByMobileApi']
 )->name('contacts.getInfo');
