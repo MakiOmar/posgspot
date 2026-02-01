@@ -428,16 +428,16 @@ class AccountsApi extends Controller
     public function createContact(Request $request)
     {
         $data = $request->validate([
-        'billing.first_name' => 'required|string',
-        'billing.last_name' => 'nullable|string',
-        'billing.email' => 'nullable|email',
-        'billing.phone' => 'required|string', // ضروري للتحقق
-        'billing.address_1' => 'nullable|string',
-        'billing.address_2' => 'nullable|string',
-        'billing.city' => 'nullable|string',
-        'billing.state' => 'nullable|string',
-        'billing.postcode' => 'nullable|string',
-        'billing.country' => 'nullable|string',
+            'billing.first_name' => 'required|string',
+            'billing.last_name'  => 'nullable|string',
+            'billing.email'      => 'nullable|email',
+            'billing.phone'      => 'required|string',
+            'billing.address_1'  => 'nullable|string',
+            'billing.address_2'  => 'nullable|string',
+            'billing.city'       => 'nullable|string',
+            'billing.state'      => 'nullable|string',
+            'billing.postcode'   => 'nullable|string',
+            'billing.country'    => 'nullable|string',
         ]);
 
         try {
@@ -448,73 +448,87 @@ class AccountsApi extends Controller
             $billing = $data['billing'];
 
             $customer_details = [
-            'first_name' => $billing['first_name'],
-            'last_name' => $billing['last_name'] ?? '',
-            'email' => $billing['email'] ?? '',
-            'mobile' => $billing['phone'],
-            'city' => $billing['city'] ?? '',
-            'state' => $billing['state'] ?? '',
-            'country' => $billing['country'] ?? '',
-            'address_line_1' => $billing['address_1'] ?? '',
-            'address_line_2' => $billing['address_2'] ?? '',
-            'zip_code' => $billing['postcode'] ?? '',
+                'first_name'     => $billing['first_name'],
+                'last_name'      => $billing['last_name'] ?? '',
+                'email'          => $billing['email'] ?? '',
+                'mobile'         => $billing['phone'],
+                'city'           => $billing['city'] ?? '',
+                'state'          => $billing['state'] ?? '',
+                'country'        => $billing['country'] ?? '',
+                'address_line_1'  => $billing['address_1'] ?? '',
+                'address_line_2'  => $billing['address_2'] ?? '',
+                'zip_code'        => $billing['postcode'] ?? '',
             ];
 
             $customer_details['name'] = trim($customer_details['first_name'] . ' ' . $customer_details['last_name']);
 
             // 🔍 Check if customer exists using mobile only
             $customer = \App\Contact::where('business_id', $business_id)
-                        ->where('mobile', $customer_details['mobile'])
-                        ->OnlyCustomers()
-                        ->first();
+                ->where('mobile', $customer_details['mobile'])
+                ->OnlyCustomers()
+                ->first();
 
-            if (empty($customer)) {
-                $ref_count = $this->transactionUtil->setAndGetReferenceCount('contacts', $business_id);
-                $contact_id = $this->transactionUtil->generateReferenceNumber('contacts', $ref_count, $business_id);
+            // ✅ If customer exists: return its data
+            if (!empty($customer)) {
+                DB::commit();
 
-                $customer_data = [
-                'business_id' => $business_id,
-                'type' => 'customer',
-                'first_name' => $customer_details['first_name'],
-                'last_name' => $customer_details['last_name'],
-                'name' => $customer_details['name'],
-                'email' => $customer_details['email'],
-                'contact_id' => $contact_id,
-                'mobile' => $customer_details['mobile'],
-                'city' => $customer_details['city'],
-                'state' => $customer_details['state'],
-                'country' => $customer_details['country'],
-                'created_by' => $user_id,
-                'address_line_1' => $customer_details['address_line_1'],
-                'address_line_2' => $customer_details['address_line_2'],
-                'zip_code' => $customer_details['zip_code'],
-                ];
-
-                if (empty(trim($customer_data['name']))) {
-                    $customer_data['first_name'] = $customer_details['email'];
-                    $customer_data['name'] = $customer_details['email'];
-                }
-
-                $customer = \App\Contact::create($customer_data);
+                return response()->json([
+                    'success'   => true,
+                    'contact_id'=> $customer->id,
+                    'data'      => $customer, // full existing customer data
+                    'msg'       => 'Customer already exists',
+                ], 200);
             }
+
+            // ✅ Otherwise create new customer
+            $ref_count  = $this->transactionUtil->setAndGetReferenceCount('contacts', $business_id);
+            $contact_id = $this->transactionUtil->generateReferenceNumber('contacts', $ref_count, $business_id);
+
+            $customer_data = [
+                'business_id'     => $business_id,
+                'type'            => 'customer',
+                'first_name'      => $customer_details['first_name'],
+                'last_name'       => $customer_details['last_name'],
+                'name'            => $customer_details['name'],
+                'email'           => $customer_details['email'],
+                'contact_id'      => $contact_id,
+                'mobile'          => $customer_details['mobile'],
+                'city'            => $customer_details['city'],
+                'state'           => $customer_details['state'],
+                'country'         => $customer_details['country'],
+                'created_by'      => $user_id,
+                'address_line_1'  => $customer_details['address_line_1'],
+                'address_line_2'  => $customer_details['address_line_2'],
+                'zip_code'        => $customer_details['zip_code'],
+            ];
+
+            if (empty(trim($customer_data['name']))) {
+                $customer_data['first_name'] = $customer_details['email'];
+                $customer_data['name'] = $customer_details['email'];
+            }
+
+            $customer = \App\Contact::create($customer_data);
 
             DB::commit();
 
             return response()->json([
-            'success' => true,
-            'contact_id' => $customer->id,
-            'msg' => 'Customer created successfully',
+                'success'    => true,
+                'contact_id' => $customer->id,
+                'data'       => $customer, // full created customer data
+                'msg'        => 'Customer created successfully',
             ], 201);
+
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error("Error creating contact: " . $e->getMessage());
 
             return response()->json([
-            'success' => false,
-            'msg' => 'Something went wrong.',
+                'success' => false,
+                'msg'     => 'Something went wrong.',
             ], 500);
         }
     }
+
 
     public function getOrdersByPhone(Request $request)
     {
