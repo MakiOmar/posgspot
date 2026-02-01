@@ -757,6 +757,17 @@ class ContactController extends Controller
             'data' => $contact
         ]);
     }
+
+    public function getContactInfoByMobileApi($mobile)
+    {
+        $business_id = 1; // or auth()->user()->business_id if applicable
+
+        $contact = $this->contactUtil->getContactInfoByMobile($business_id, $mobile);
+        return response()->json([
+            'success' => true,
+            'data' => $contact
+        ]);
+    }
     /**
      * Show the form for editing the specified resource.
      *
