@@ -97,21 +97,24 @@ class ContactUtil extends Util
     public function getContactInfoByMobile($business_id, $mobile)
     {
         $contact = Contact::where('contacts.mobile', $mobile)
-                    ->where('contacts.business_id', $business_id)
-                    ->leftjoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
-                    ->with(['business'])
-                    ->select(
-                        DB::raw("SUM(IF(t.type = 'purchase', final_total, 0)) as total_purchase"),
-                        DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', final_total, 0)) as total_invoice"),
-                        DB::raw("SUM(IF(t.type = 'purchase', (SELECT SUM(amount) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as purchase_paid"),
-                        DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', (SELECT SUM(IF(is_return = 1,-1*amount,amount)) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as invoice_received"),
-                        DB::raw("SUM(IF(t.type = 'opening_balance', final_total, 0)) as opening_balance"),
-                        DB::raw("SUM(IF(t.type = 'opening_balance', (SELECT SUM(amount) FROM transaction_payments WHERE transaction_payments.transaction_id=t.id), 0)) as opening_balance_paid"),
-                        'contacts.*'
-                    )->first();
+            ->where('contacts.business_id', $business_id)
+            ->leftJoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
+            ->with(['business'])
+            ->select(
+                DB::raw("COALESCE(SUM(IF(t.type = 'purchase', t.final_total, 0)), 0) as total_purchase"),
+                DB::raw("COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', t.final_total, 0)), 0) as total_invoice"),
+                DB::raw("COALESCE(SUM(IF(t.type = 'purchase', (SELECT SUM(tp.amount) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as purchase_paid"),
+                DB::raw("COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', (SELECT SUM(IF(tp.is_return = 1,-1*tp.amount,tp.amount)) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as invoice_received"),
+                DB::raw("COALESCE(SUM(IF(t.type = 'opening_balance', t.final_total, 0)), 0) as opening_balance"),
+                DB::raw("COALESCE(SUM(IF(t.type = 'opening_balance', (SELECT SUM(tp.amount) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as opening_balance_paid"),
+                'contacts.*'
+            )
+            ->groupBy('contacts.id')
+            ->first();
 
         return $contact;
-    }
+}
+
     public function createNewContact($input)
     {
         //Check Contact id
