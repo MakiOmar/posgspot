@@ -97,8 +97,13 @@ Route::middleware('auth:api')->get(
     '/contacts/{contact_id}/info',
     [ContactController::class, 'getContactInfoApi']
 )->name('contacts.getInfo');
-
+/*
 Route::middleware('auth:api')->get(
+    '/contacts/{mobile}/info',
+    [ContactController::class, 'getContactInfoByMobileApi']
+)->name('contacts.getInfo');*/
+
+Route::get(
     '/contacts/{mobile}/info',
     [ContactController::class, 'getContactInfoByMobileApi']
 )->name('contacts.getInfo');
