@@ -93,7 +93,7 @@ Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 
 Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
 
 Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
-Route::get(
+Route::middleware('auth:api')->get(
     '/contacts/{contact_id}/info',
     [ContactController::class, 'getContactInfoApi']
 )->name('contacts.getInfo');
