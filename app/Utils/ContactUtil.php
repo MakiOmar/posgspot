@@ -96,24 +96,19 @@ class ContactUtil extends Util
      */
     public function getContactInfoByMobile($business_id, $mobile)
     {
-        $contact = Contact::where('contacts.mobile', $mobile)
-            ->where('contacts.business_id', $business_id)
-            ->leftJoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
-            ->with(['business'])
-            ->select(
-                DB::raw("COALESCE(SUM(IF(t.type = 'purchase', t.final_total, 0)), 0) as total_purchase"),
-                DB::raw("COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', t.final_total, 0)), 0) as total_invoice"),
-                DB::raw("COALESCE(SUM(IF(t.type = 'purchase', (SELECT SUM(tp.amount) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as purchase_paid"),
-                DB::raw("COALESCE(SUM(IF(t.type = 'sell' AND t.status = 'final', (SELECT SUM(IF(tp.is_return = 1,-1*tp.amount,tp.amount)) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as invoice_received"),
-                DB::raw("COALESCE(SUM(IF(t.type = 'opening_balance', t.final_total, 0)), 0) as opening_balance"),
-                DB::raw("COALESCE(SUM(IF(t.type = 'opening_balance', (SELECT SUM(tp.amount) FROM transaction_payments tp WHERE tp.transaction_id=t.id), 0)), 0) as opening_balance_paid"),
-                'contacts.*'
-            )
-            ->groupBy('contacts.id')
+        // Normalize mobile (optional but recommended)
+        $mobile = preg_replace('/\s+/', '', trim($mobile));
+
+        // Just fetch the contact (no transactions, no aggregates)
+        $contact = Contact::with(['business'])
+            ->where('business_id', $business_id)
+            ->where('mobile', $mobile)
             ->first();
 
-        return $contact;
-}
+        return $contact; // null if not found
+    }
+
+
 
     public function createNewContact($input)
     {
