@@ -746,6 +746,17 @@ class ContactController extends Controller
              ->with(compact('contact', 'reward_enabled', 'contact_dropdown', 'business_locations', 'view_type', 'contact_view_tabs', 'activities'));
     }
 
+    public function getContactInfoApi($contact_id)
+    {
+        $business_id = 1; // or auth()->user()->business_id if applicable
+
+        $contact = $this->contactUtil->getContactInfo($business_id, $contact_id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $contact
+        ]);
+    }
     /**
      * Show the form for editing the specified resource.
      *

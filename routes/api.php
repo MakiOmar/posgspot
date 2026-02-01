@@ -6,6 +6,7 @@ use App\User;
 use App\Http\Controllers\AccountsApi;
 use Laravel\Passport\Passport;
 use App\Http\Controllers\SellPosController;
+use App\Http\Controllers\ContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,3 +93,7 @@ Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 
 Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
 
 Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
+Route::get(
+    '/contacts/{contact_id}/info',
+    [ContactController::class, 'getContactInfoApi']
+)->name('contacts.getInfo');
