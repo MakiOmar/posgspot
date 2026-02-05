@@ -2631,6 +2631,157 @@ class SellPosController extends Controller
         ]);
     }
 
+    /**
+     * Redeem reward points for API clients (Woo/Custom integrations).
+     *
+     * Expected payload:
+     * - customer_id (int, required)
+     * - used_points (int, required)
+     * - order_total (numeric, optional; if provided, min order total will be enforced)
+     */
+    public function redeemRewardPoints(Request $request)
+    {
+        $user = $request->user();
+        if (empty($user)) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $business_id = $user->business_id;
+        $business = Business::find($business_id);
+        if (empty($business) || $business->enable_rp != 1) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Reward points are not enabled.',
+            ], 400);
+        }
+
+        $customer_id = (int) $request->input('customer_id');
+        $used_points_input = $request->input('used_points', $request->input('requested_points'));
+        $order_total = $request->input('order_total');
+
+        if (empty($customer_id)
+            || !is_numeric($used_points_input)
+            || $used_points_input < 0
+            || (!is_null($order_total) && (!is_numeric($order_total) || $order_total < 0))) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Invalid request payload.',
+            ], 422);
+        }
+
+        $used_points = (int) $used_points_input;
+        if ($used_points <= 0) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Invalid request payload.',
+            ], 422);
+        }
+
+        try {
+            return DB::transaction(function () use ($business, $business_id, $customer_id, $used_points, $order_total) {
+                $customer = Contact::where('business_id', $business_id)
+                    ->where('id', $customer_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (empty($customer)) {
+                    return response()->json([
+                        'success' => false,
+                        'is_valid' => false,
+                        'msg' => 'Customer not found.',
+                    ], 404);
+                }
+
+                $customer_points = (int) $customer->total_rp;
+                $max_points = 0;
+                if ($customer->is_default != 1 && $customer_points > 0) {
+                    $max_points = $customer_points;
+                    $min_redeem_point = (int) $business->min_redeem_point;
+                    if (!empty($min_redeem_point) && $customer_points < $min_redeem_point) {
+                        $max_points = 0;
+                    }
+
+                    $max_redeem_point = (int) $business->max_redeem_point;
+                    if ($max_points > 0 && !empty($max_redeem_point) && $max_redeem_point <= $max_points) {
+                        $max_points = $max_redeem_point;
+                    }
+                }
+
+                $amount_per_unit_point = (float) $business->redeem_amount_per_unit_rp;
+                $min_order_total = (float) $business->min_order_total_for_redeem;
+                $response_data = [
+                    'enable_rp' => (int) $business->enable_rp,
+                    'rp_name' => $business->rp_name,
+                    'min_redeem_point' => (int) $business->min_redeem_point,
+                    'max_redeem_point' => (int) $business->max_redeem_point,
+                    'customer_total_points' => (int) $customer_points,
+                    'customer_total_points_used' => (int) $customer->total_rp_used,
+                    'max_points' => (int) $max_points,
+                    'used_points' => (int) $used_points,
+                    'redeem_amount' => $used_points * $amount_per_unit_point,
+                    'amount_per_unit_point' => $amount_per_unit_point,
+                    'min_order_total_for_redeem' => $min_order_total,
+                ];
+
+                if ($max_points <= 0) {
+                    return response()->json([
+                        'success' => false,
+                        'is_valid' => false,
+                        'msg' => 'Customer is not eligible to redeem reward points.',
+                        'data' => $response_data,
+                    ], 200);
+                }
+
+                if ($used_points > $max_points) {
+                    return response()->json([
+                        'success' => false,
+                        'is_valid' => false,
+                        'msg' => 'Used points exceed maximum redeemable points.',
+                        'data' => $response_data,
+                    ], 200);
+                }
+
+                if (!is_null($order_total) && $order_total < $min_order_total) {
+                    return response()->json([
+                        'success' => false,
+                        'is_valid' => false,
+                        'msg' => 'Order total does not meet minimum required for redeeming points.',
+                        'data' => $response_data,
+                    ], 200);
+                }
+
+                $customer->total_rp = $customer_points - $used_points;
+                $customer->total_rp_used = (int) $customer->total_rp_used + $used_points;
+                $customer->save();
+
+                $response_data['customer_total_points'] = (int) $customer->total_rp;
+                $response_data['customer_total_points_used'] = (int) $customer->total_rp_used;
+
+                return response()->json([
+                    'success' => true,
+                    'is_valid' => true,
+                    'msg' => 'Reward points redeemed successfully.',
+                    'data' => $response_data,
+                ]);
+            });
+        } catch (\Exception $e) {
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Something went wrong.',
+            ], 500);
+        }
+    }
+
     public function placeOrdersApi(Request $request)
     {
         try {

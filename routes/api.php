@@ -107,6 +107,11 @@ Route::middleware('auth:api')->post(
     '/rewards/validate',
     [SellPosController::class, 'validateRewardRedeem']
 )->name('rewards.validate');
+
+Route::middleware('auth:api')->post(
+    '/rewards/redeem',
+    [SellPosController::class, 'redeemRewardPoints']
+)->name('rewards.redeem');
 /*
 Route::get(
     '/contacts/{mobile}/details',
