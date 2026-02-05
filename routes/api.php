@@ -102,6 +102,11 @@ Route::middleware('auth:api')->get(
     '/contacts/{mobile}/details',
     [ContactController::class, 'getContactInfoByMobileApi']
 )->name('contacts.getInfo');
+
+Route::middleware('auth:api')->post(
+    '/rewards/validate',
+    [SellPosController::class, 'validateRewardRedeem']
+)->name('rewards.validate');
 /*
 Route::get(
     '/contacts/{mobile}/details',

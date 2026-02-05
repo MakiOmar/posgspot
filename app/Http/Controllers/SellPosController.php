@@ -2474,6 +2474,163 @@ class SellPosController extends Controller
         return json_encode($redeem_details);
     }
 
+    /**
+     * Validate reward point redemption for API clients (Woo/Custom integrations).
+     *
+     * Expected payload:
+     * - customer_id (int, required)
+     * - order_total (numeric, required)
+     * - requested_points (int, optional; default 0)
+     */
+    public function validateRewardRedeem(Request $request)
+    {
+        $user = $request->user();
+        if (empty($user)) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Unauthorized.',
+            ], 401);
+        }
+
+        $business_id = $user->business_id;
+        $business = Business::find($business_id);
+        if (empty($business) || $business->enable_rp != 1) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Reward points are not enabled.',
+            ], 400);
+        }
+
+        $customer_id = (int) $request->input('customer_id');
+        $order_total = $request->input('order_total');
+        $requested_points = $request->input('requested_points', 0);
+
+        if (empty($customer_id) || !is_numeric($order_total) || $order_total < 0 || !is_numeric($requested_points) || $requested_points < 0) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Invalid request payload.',
+            ], 422);
+        }
+
+        $customer = Contact::where('business_id', $business_id)->find($customer_id);
+        if (empty($customer)) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Customer not found.',
+            ], 404);
+        }
+
+        $redeem_details = $this->transactionUtil->getRewardRedeemDetails($business_id, $customer_id);
+        $max_points = (int) $redeem_details['points'];
+        $amount_per_unit_point = (float) $business->redeem_amount_per_unit_rp;
+        $min_order_total = (float) $business->min_order_total_for_redeem;
+        $requested_points = (int) $requested_points;
+
+        if ($requested_points === 0) {
+            return response()->json([
+                'success' => true,
+                'is_valid' => true,
+                'msg' => '',
+                'data' => [
+                    'enable_rp' => (int) $business->enable_rp,
+                    'rp_name' => $business->rp_name,
+                    'min_redeem_point' => (int) $business->min_redeem_point,
+                    'max_redeem_point' => (int) $business->max_redeem_point,
+                    'customer_total_points' => (int) $customer->total_rp,
+                    'max_points' => $max_points,
+                    'requested_points' => 0,
+                    'redeem_amount' => 0,
+                    'amount_per_unit_point' => $amount_per_unit_point,
+                    'min_order_total_for_redeem' => $min_order_total,
+                ],
+            ]);
+        }
+
+        if ($max_points <= 0) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Customer is not eligible to redeem reward points.',
+                'data' => [
+                    'enable_rp' => (int) $business->enable_rp,
+                    'rp_name' => $business->rp_name,
+                    'min_redeem_point' => (int) $business->min_redeem_point,
+                    'max_redeem_point' => (int) $business->max_redeem_point,
+                    'customer_total_points' => (int) $customer->total_rp,
+                    'max_points' => $max_points,
+                    'requested_points' => $requested_points,
+                    'redeem_amount' => 0,
+                    'amount_per_unit_point' => $amount_per_unit_point,
+                    'min_order_total_for_redeem' => $min_order_total,
+                ],
+            ], 200);
+        }
+
+        if ($requested_points > $max_points) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Requested points exceed maximum redeemable points.',
+                'data' => [
+                    'enable_rp' => (int) $business->enable_rp,
+                    'rp_name' => $business->rp_name,
+                    'min_redeem_point' => (int) $business->min_redeem_point,
+                    'max_redeem_point' => (int) $business->max_redeem_point,
+                    'customer_total_points' => (int) $customer->total_rp,
+                    'max_points' => $max_points,
+                    'requested_points' => $requested_points,
+                    'redeem_amount' => 0,
+                    'amount_per_unit_point' => $amount_per_unit_point,
+                    'min_order_total_for_redeem' => $min_order_total,
+                ],
+            ], 200);
+        }
+
+        if ($order_total < $min_order_total) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Order total does not meet minimum required for redeeming points.',
+                'data' => [
+                    'enable_rp' => (int) $business->enable_rp,
+                    'rp_name' => $business->rp_name,
+                    'min_redeem_point' => (int) $business->min_redeem_point,
+                    'max_redeem_point' => (int) $business->max_redeem_point,
+                    'customer_total_points' => (int) $customer->total_rp,
+                    'max_points' => $max_points,
+                    'requested_points' => $requested_points,
+                    'redeem_amount' => 0,
+                    'amount_per_unit_point' => $amount_per_unit_point,
+                    'min_order_total_for_redeem' => $min_order_total,
+                ],
+            ], 200);
+        }
+
+        $redeem_amount = $requested_points * $amount_per_unit_point;
+
+        return response()->json([
+            'success' => true,
+            'is_valid' => true,
+            'msg' => '',
+            'data' => [
+                'enable_rp' => (int) $business->enable_rp,
+                'rp_name' => $business->rp_name,
+                'min_redeem_point' => (int) $business->min_redeem_point,
+                'max_redeem_point' => (int) $business->max_redeem_point,
+                'customer_total_points' => (int) $customer->total_rp,
+                'max_points' => $max_points,
+                'requested_points' => $requested_points,
+                'redeem_amount' => $redeem_amount,
+                'amount_per_unit_point' => $amount_per_unit_point,
+                'min_order_total_for_redeem' => $min_order_total,
+            ],
+        ]);
+    }
+
     public function placeOrdersApi(Request $request)
     {
         try {
