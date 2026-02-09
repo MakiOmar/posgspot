@@ -28,6 +28,7 @@ Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'Admi
     Route::post('/update-api-settings', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'updateSettings']);
     Route::get('/sync-categories', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncCategories']);
     Route::get('/sync-products', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncProducts']);
+    Route::get('/sync-variation-terms', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncVariationAttributeTerms']);
     Route::get('/sync-log', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'getSyncLog']);
     Route::get('/sync-orders', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncOrders']);
     Route::post('/map-taxrates', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'mapTaxRates']);

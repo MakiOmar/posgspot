@@ -343,6 +343,58 @@ class WoocommerceController extends Controller
     }
 
     /**
+     * Synchronizes variation templates and their values with WooCommerce attributes/terms
+     *
+     * @return Response
+     */
+    public function syncVariationAttributeTerms()
+    {
+        $notAllowed = $this->woocommerceUtil->notAllowedInDemo();
+        if (! empty($notAllowed)) {
+            return $notAllowed;
+        }
+
+        $business_id = request()->session()->get('business.id');
+        if (! (auth()->user()->can('superadmin') || ($this->moduleUtil->hasThePermissionInSubscription($business_id, 'woocommerce_module') && auth()->user()->can('woocommerce.sync_products')))) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $summary = $this->woocommerceUtil->syncVariationAttributeTerms($business_id);
+            $missing_count = count($summary['attributes_missing']);
+            $errors_count = count($summary['errors']);
+
+            $msg = __('woocommerce::lang.variation_terms_sync_success', [
+                'created' => $summary['terms_created'],
+                'skipped' => $summary['terms_skipped'],
+                'failed' => $summary['terms_failed'],
+                'missing' => $missing_count,
+            ]);
+
+            $output = [
+                'success' => 1,
+                'msg' => $msg,
+                'data' => $summary,
+            ];
+
+            if ($missing_count > 0 || $errors_count > 0) {
+                $output['warning_msg'] = __('woocommerce::lang.variation_terms_sync_warning', [
+                    'missing' => $missing_count,
+                    'errors' => $errors_count,
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            $output = ['success' => 0,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+
+        return $output;
+    }
+
+    /**
      * Synchronizes Woocommers Orders with POS sales
      *
      * @return Response

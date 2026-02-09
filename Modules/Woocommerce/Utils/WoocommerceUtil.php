@@ -669,6 +669,98 @@ class WoocommerceUtil extends Util
     }
 
     /**
+     * Synchronizes variation template values with WooCommerce attribute terms
+     *
+     * @param  int  $business_id
+     * @return array
+     */
+    public function syncVariationAttributeTerms($business_id)
+    {
+        $woocommerce = $this->woo_client($business_id);
+
+        // Ensure attributes exist and are mapped to templates
+        $this->syncVariationAttributes($business_id);
+
+        $templates = VariationTemplate::where('business_id', $business_id)
+                        ->with(['values'])
+                        ->get();
+
+        $summary = [
+            'attributes_missing' => [],
+            'terms_created' => 0,
+            'terms_skipped' => 0,
+            'terms_failed' => 0,
+            'errors' => [],
+        ];
+
+        foreach ($templates as $template) {
+            $attribute_id = $template->woocommerce_attr_id;
+            if (empty($attribute_id)) {
+                $summary['attributes_missing'][] = $template->name;
+                continue;
+            }
+
+            $existing_terms = [];
+            $page = 1;
+            do {
+                try {
+                    $terms = $woocommerce->get('products/attributes/' . $attribute_id . '/terms', [
+                        'per_page' => 100,
+                        'page' => $page,
+                    ]);
+                } catch (\Exception $e) {
+                    $summary['errors'][] = [
+                        'attribute' => $template->name,
+                        'attribute_id' => $attribute_id,
+                        'msg' => $e->getMessage(),
+                    ];
+                    $terms = [];
+                    break;
+                }
+
+                foreach ($terms as $term) {
+                    if (! empty($term->name)) {
+                        $existing_terms[strtolower($term->name)] = true;
+                    }
+                }
+
+                $page++;
+            } while (! empty($terms));
+
+            foreach ($template->values as $value) {
+                $name = trim($value->name ?? '');
+                if ($name === '') {
+                    continue;
+                }
+
+                $key = strtolower($name);
+                if (isset($existing_terms[$key])) {
+                    $summary['terms_skipped']++;
+                    continue;
+                }
+
+                try {
+                    $woocommerce->post('products/attributes/' . $attribute_id . '/terms', [
+                        'name' => $name,
+                    ]);
+                    $existing_terms[$key] = true;
+                    $summary['terms_created']++;
+                } catch (\Exception $e) {
+                    $summary['terms_failed']++;
+                    $summary['errors'][] = [
+                        'attribute' => $template->name,
+                        'attribute_id' => $attribute_id,
+                        'term' => $name,
+                        'msg' => $e->getMessage(),
+                    ];
+                }
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
      * Synchronizes pos products variations with Woocommerce product variations
      *
      * @param  int  $business_id

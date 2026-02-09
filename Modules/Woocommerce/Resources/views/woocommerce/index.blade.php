@@ -184,6 +184,12 @@
                                 </div>
                                 <div class="col-sm-12">
                                     <br>
+                                    <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary" id="sync_variation_terms">
+                                        <i class="fa fa-refresh"></i> @lang('woocommerce::lang.sync_variation_terms')</button>
+                                    &nbsp;@show_tooltip(__('woocommerce::lang.sync_variation_terms_help'))
+                                </div>
+                                <div class="col-sm-12">
+                                    <br>
                                     <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-error" id="reset_products"> <i
                                             class="fa fa-undo"></i> @lang('woocommerce::lang.reset_synced_products')</button>
                                 </div>
@@ -250,6 +256,36 @@
                 btn.attr('disabled', true);
 
                 sync_products(btn, btn_html);
+            });
+
+            //Sync Variation Attributes & Terms
+            $('#sync_variation_terms').click(function() {
+                $(window).bind('beforeunload', function() {
+                    return true;
+                });
+                var btn = $(this);
+                var btn_html = btn.html();
+                btn.html(syncing_text);
+                btn.attr('disabled', true);
+
+                $.ajax({
+                    url: "{{ action([\Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncVariationAttributeTerms']) }}",
+                    dataType: "json",
+                    timeout: 0,
+                    success: function(result) {
+                        if (result.success) {
+                            toastr.success(result.msg);
+                            if (result.warning_msg) {
+                                toastr.warning(result.warning_msg);
+                            }
+                        } else {
+                            toastr.error(result.msg);
+                        }
+                        btn.html(btn_html);
+                        btn.removeAttr('disabled');
+                        $(window).unbind('beforeunload');
+                    }
+                });
             });
 
             //Sync Orders
