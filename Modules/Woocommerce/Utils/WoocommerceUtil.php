@@ -674,16 +674,17 @@ class WoocommerceUtil extends Util
      * @param  int  $business_id
      * @return array
      */
-    public function syncVariationAttributeTerms($business_id)
+    public function syncVariationAttributeTerms($business_id, $debug = false)
     {
         $woocommerce = $this->woo_client($business_id);
-
-        // Ensure attributes exist and are mapped to templates
-        $this->syncVariationAttributes($business_id);
 
         $templates = VariationTemplate::where('business_id', $business_id)
                         ->with(['values'])
                         ->get();
+        $attr_id_before = $templates->pluck('woocommerce_attr_id', 'id')->toArray();
+
+        // Ensure attributes exist and are mapped to templates
+        $this->syncVariationAttributes($business_id);
 
         $summary = [
             'attributes_missing' => [],
@@ -693,10 +694,28 @@ class WoocommerceUtil extends Util
             'errors' => [],
         ];
 
+        if ($debug) {
+            $summary['debug'] = [
+                'templates' => [],
+                'terms' => [],
+            ];
+        }
+
         foreach ($templates as $template) {
+            $template->refresh();
             $attribute_id = $template->woocommerce_attr_id;
             if (empty($attribute_id)) {
                 $summary['attributes_missing'][] = $template->name;
+                if ($debug) {
+                    $summary['debug']['templates'][] = [
+                        'template_id' => $template->id,
+                        'template_name' => $template->name,
+                        'attribute_id_before' => $attr_id_before[$template->id] ?? null,
+                        'attribute_id_after' => null,
+                        'values_count' => $template->values->count(),
+                        'status' => 'missing_attribute',
+                    ];
+                }
                 continue;
             }
 
@@ -714,6 +733,16 @@ class WoocommerceUtil extends Util
                         'attribute_id' => $attribute_id,
                         'msg' => $e->getMessage(),
                     ];
+                    if ($debug) {
+                        $summary['debug']['templates'][] = [
+                            'template_id' => $template->id,
+                            'template_name' => $template->name,
+                            'attribute_id_before' => $attr_id_before[$template->id] ?? null,
+                            'attribute_id_after' => $attribute_id,
+                            'values_count' => $template->values->count(),
+                            'status' => 'terms_fetch_failed',
+                        ];
+                    }
                     $terms = [];
                     break;
                 }
@@ -727,6 +756,17 @@ class WoocommerceUtil extends Util
                 $page++;
             } while (! empty($terms));
 
+            if ($debug) {
+                $summary['debug']['templates'][] = [
+                    'template_id' => $template->id,
+                    'template_name' => $template->name,
+                    'attribute_id_before' => $attr_id_before[$template->id] ?? null,
+                    'attribute_id_after' => $attribute_id,
+                    'values_count' => $template->values->count(),
+                    'status' => 'ready',
+                ];
+            }
+
             foreach ($template->values as $value) {
                 $name = trim($value->name ?? '');
                 if ($name === '') {
@@ -736,6 +776,15 @@ class WoocommerceUtil extends Util
                 $key = strtolower($name);
                 if (isset($existing_terms[$key])) {
                     $summary['terms_skipped']++;
+                    if ($debug) {
+                        $summary['debug']['terms'][] = [
+                            'template_id' => $template->id,
+                            'template_name' => $template->name,
+                            'attribute_id' => $attribute_id,
+                            'term' => $name,
+                            'status' => 'skipped_exists',
+                        ];
+                    }
                     continue;
                 }
 
@@ -745,6 +794,15 @@ class WoocommerceUtil extends Util
                     ]);
                     $existing_terms[$key] = true;
                     $summary['terms_created']++;
+                    if ($debug) {
+                        $summary['debug']['terms'][] = [
+                            'template_id' => $template->id,
+                            'template_name' => $template->name,
+                            'attribute_id' => $attribute_id,
+                            'term' => $name,
+                            'status' => 'created',
+                        ];
+                    }
                 } catch (\Exception $e) {
                     $summary['terms_failed']++;
                     $summary['errors'][] = [
@@ -753,6 +811,16 @@ class WoocommerceUtil extends Util
                         'term' => $name,
                         'msg' => $e->getMessage(),
                     ];
+                    if ($debug) {
+                        $summary['debug']['terms'][] = [
+                            'template_id' => $template->id,
+                            'template_name' => $template->name,
+                            'attribute_id' => $attribute_id,
+                            'term' => $name,
+                            'status' => 'failed',
+                            'error' => $e->getMessage(),
+                        ];
+                    }
                 }
             }
         }

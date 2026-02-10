@@ -17,6 +17,8 @@ return [
     'sync_new_help' => '<ul><li>Synchronizes only newly created products with the Woocommerce App.</li><li><b><i>*(Less time consuming process)</i></b></li><li>Please, Do not refresh or leave the page while synchronizing</li></ul>',
     'sync_variation_terms' => 'Sync Variation Attributes & Terms',
     'sync_variation_terms_help' => '<ul><li>Creates or updates WooCommerce attributes from POS variation templates.</li><li>Creates missing terms from variation values.</li></ul>',
+    'sync_variation_terms_debug' => 'Debug',
+    'debug_details' => 'Debug details',
     'last_synced' => 'Last Synced',
     'sync_orders' => 'Sync Orders',
     'product_not_found_exception' => 'Product: :product not found in order #:order_no',

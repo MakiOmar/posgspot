@@ -360,7 +360,8 @@ class WoocommerceController extends Controller
         }
 
         try {
-            $summary = $this->woocommerceUtil->syncVariationAttributeTerms($business_id);
+            $debug = request()->boolean('debug');
+            $summary = $this->woocommerceUtil->syncVariationAttributeTerms($business_id, $debug);
             $missing_count = count($summary['attributes_missing']);
             $errors_count = count($summary['errors']);
 
@@ -381,6 +382,13 @@ class WoocommerceController extends Controller
                 $output['warning_msg'] = __('woocommerce::lang.variation_terms_sync_warning', [
                     'missing' => $missing_count,
                     'errors' => $errors_count,
+                ]);
+            }
+
+            if ($debug) {
+                \Log::info('WooCommerce variation terms sync debug', [
+                    'business_id' => $business_id,
+                    'summary' => $summary,
                 ]);
             }
         } catch (\Exception $e) {

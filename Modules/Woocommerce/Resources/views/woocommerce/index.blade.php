@@ -187,6 +187,10 @@
                                     <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary" id="sync_variation_terms">
                                         <i class="fa fa-refresh"></i> @lang('woocommerce::lang.sync_variation_terms')</button>
                                     &nbsp;@show_tooltip(__('woocommerce::lang.sync_variation_terms_help'))
+                                    <label class="tw-ml-2 tw-text-xs tw-text-gray-600">
+                                        <input type="checkbox" id="sync_variation_terms_debug">
+                                        @lang('woocommerce::lang.sync_variation_terms_debug')
+                                    </label>
                                 </div>
                                 <div class="col-sm-12">
                                     <br>
@@ -267,9 +271,14 @@
                 var btn_html = btn.html();
                 btn.html(syncing_text);
                 btn.attr('disabled', true);
+                var debug = $('#sync_variation_terms_debug').is(':checked') ? 1 : 0;
+                var url = "{{ action([\Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncVariationAttributeTerms']) }}";
+                if (debug) {
+                    url = url + "?debug=1";
+                }
 
                 $.ajax({
-                    url: "{{ action([\Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'syncVariationAttributeTerms']) }}",
+                    url: url,
                     dataType: "json",
                     timeout: 0,
                     success: function(result) {
@@ -277,6 +286,16 @@
                             toastr.success(result.msg);
                             if (result.warning_msg) {
                                 toastr.warning(result.warning_msg);
+                            }
+                            if (debug && result.data) {
+                                var pre = document.createElement('pre');
+                                pre.style.whiteSpace = 'pre-wrap';
+                                pre.style.textAlign = 'left';
+                                pre.textContent = JSON.stringify(result.data, null, 2);
+                                swal({
+                                    title: "{{ __('woocommerce::lang.debug_details') }}",
+                                    content: pre,
+                                });
                             }
                         } else {
                             toastr.error(result.msg);
