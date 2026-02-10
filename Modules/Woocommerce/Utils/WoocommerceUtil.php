@@ -633,9 +633,15 @@ class WoocommerceUtil extends Util
         $attributes = $query->get();
         $data = [];
         $new_attrs = [];
+        $needs_mapping = [];
         foreach ($attributes as $attr) {
             if (empty($attr->woocommerce_attr_id)) {
-                $data['create'][] = ['name' => $attr->name];
+                $payload = ['name' => $attr->name];
+                $slug = $this->normalizeWooSlug($attr->name);
+                if (! empty($slug)) {
+                    $payload['slug'] = $slug;
+                }
+                $data['create'][] = $payload;
                 $new_attrs[] = $attr;
             } else {
                 $data['update'][] = [
@@ -654,13 +660,31 @@ class WoocommerceUtil extends Util
                     $new_attr = $new_attrs[$key];
                     if ($value->id != 0) {
                         $new_attr->woocommerce_attr_id = $value->id;
+                        $new_attr->save();
                     } else {
-                        $all_attrs = $woocommerce->get('products/attributes');
-                        foreach ($all_attrs as $attr) {
-                            if (strtolower($attr->name) == strtolower($new_attr->name)) {
-                                $new_attr->woocommerce_attr_id = $attr->id;
-                            }
-                        }
+                        $needs_mapping[] = $new_attr;
+                    }
+                }
+            }
+
+            if (! empty($needs_mapping)) {
+                $all_attrs = $this->getAllResponse($business_id, 'products/attributes');
+                $attr_map = [];
+                foreach ($all_attrs as $attr) {
+                    $name_key = $this->normalizeWooKey($attr->name ?? '');
+                    $slug_key = $this->normalizeWooKey($attr->slug ?? '');
+                    if ($name_key !== '') {
+                        $attr_map[$name_key] = $attr->id;
+                    }
+                    if ($slug_key !== '') {
+                        $attr_map[$slug_key] = $attr->id;
+                    }
+                }
+
+                foreach ($needs_mapping as $new_attr) {
+                    $key = $this->normalizeWooKey($new_attr->name);
+                    if ($key !== '' && ! empty($attr_map[$key])) {
+                        $new_attr->woocommerce_attr_id = $attr_map[$key];
                     }
                     $new_attr->save();
                 }
@@ -747,11 +771,16 @@ class WoocommerceUtil extends Util
                     break;
                 }
 
-                foreach ($terms as $term) {
-                    if (! empty($term->name)) {
-                        $existing_terms[strtolower($term->name)] = true;
-                    }
+            foreach ($terms as $term) {
+                $name_key = $this->normalizeWooKey($term->name ?? '');
+                $slug_key = $this->normalizeWooKey($term->slug ?? '');
+                if ($name_key !== '') {
+                    $existing_terms[$name_key] = true;
                 }
+                if ($slug_key !== '') {
+                    $existing_terms[$slug_key] = true;
+                }
+            }
 
                 $page++;
             } while (! empty($terms));
@@ -773,7 +802,7 @@ class WoocommerceUtil extends Util
                     continue;
                 }
 
-                $key = strtolower($name);
+                $key = $this->normalizeWooKey($name);
                 if (isset($existing_terms[$key])) {
                     $summary['terms_skipped']++;
                     if ($debug) {
@@ -789,9 +818,13 @@ class WoocommerceUtil extends Util
                 }
 
                 try {
-                    $woocommerce->post('products/attributes/' . $attribute_id . '/terms', [
-                        'name' => $name,
-                    ]);
+                    $payload = ['name' => $name];
+                    $slug = $this->normalizeWooSlug($name);
+                    if (! empty($slug)) {
+                        $payload['slug'] = $slug;
+                    }
+
+                    $woocommerce->post('products/attributes/' . $attribute_id . '/terms', $payload);
                     $existing_terms[$key] = true;
                     $summary['terms_created']++;
                     if ($debug) {
@@ -826,6 +859,50 @@ class WoocommerceUtil extends Util
         }
 
         return $summary;
+    }
+
+    /**
+     * Normalize WooCommerce attribute/term names for matching.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    private function normalizeWooKey($name)
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return '';
+        }
+
+        $lower = function_exists('mb_strtolower') ? mb_strtolower($name, 'UTF-8') : strtolower($name);
+
+        if (function_exists('iconv')) {
+            $translit = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $lower);
+            if ($translit !== false) {
+                $lower = $translit;
+            }
+        }
+
+        $lower = preg_replace('/[^a-z0-9]+/i', ' ', $lower);
+        $lower = preg_replace('/\s+/', ' ', $lower);
+
+        return trim($lower);
+    }
+
+    /**
+     * Normalize WooCommerce slugs for creation/matching.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    private function normalizeWooSlug($name)
+    {
+        $key = $this->normalizeWooKey($name);
+        if ($key === '') {
+            return '';
+        }
+
+        return str_replace(' ', '-', $key);
     }
 
     /**
