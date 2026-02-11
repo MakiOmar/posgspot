@@ -782,6 +782,22 @@ class WoocommerceUtil extends Util
                         ->with(['values'])
                         ->get();
         $attr_id_before = $templates->pluck('woocommerce_attr_id', 'id')->toArray();
+        $all_attrs = $this->getAllResponse($business_id, 'products/attributes');
+        $existing_attr_ids = [];
+        $attr_map = [];
+        foreach ($all_attrs as $attr) {
+            if (! empty($attr->id)) {
+                $existing_attr_ids[(string) $attr->id] = true;
+            }
+            $name_key = $this->normalizeWooKey($attr->name ?? '');
+            $slug_key = $this->normalizeWooKey($attr->slug ?? '');
+            if ($name_key !== '') {
+                $attr_map[$name_key] = $attr->id;
+            }
+            if ($slug_key !== '') {
+                $attr_map[$slug_key] = $attr->id;
+            }
+        }
 
         // Ensure attributes exist and are mapped to templates
         $this->syncVariationAttributes($business_id);
@@ -804,6 +820,7 @@ class WoocommerceUtil extends Util
         foreach ($templates as $template) {
             $template->refresh();
             $attribute_id = $template->woocommerce_attr_id;
+            $template_status = 'ready';
             if (empty($attribute_id)) {
                 $summary['attributes_missing'][] = $template->name;
                 if ($debug) {
@@ -819,7 +836,43 @@ class WoocommerceUtil extends Util
                 continue;
             }
 
+            $attribute_id_key = (string) $attribute_id;
+            if (! empty($existing_attr_ids) && empty($existing_attr_ids[$attribute_id_key])) {
+                $mapped_attr_id = null;
+                $name_key = $this->normalizeWooKey($template->name);
+                if ($name_key !== '' && ! empty($attr_map[$name_key])) {
+                    $mapped_attr_id = $attr_map[$name_key];
+                }
+
+                if (! empty($mapped_attr_id)) {
+                    $template->woocommerce_attr_id = $mapped_attr_id;
+                    $template->save();
+                    $template->refresh();
+                    $attribute_id = $template->woocommerce_attr_id;
+                    $template_status = 'attribute_remapped';
+                } else {
+                    $summary['errors'][] = [
+                        'template_id' => $template->id,
+                        'attribute' => $template->name,
+                        'attribute_id' => $attribute_id,
+                        'msg' => 'Attribute mapping points to missing WooCommerce taxonomy.',
+                    ];
+                    if ($debug) {
+                        $summary['debug']['templates'][] = [
+                            'template_id' => $template->id,
+                            'template_name' => $template->name,
+                            'attribute_id_before' => $attr_id_before[$template->id] ?? null,
+                            'attribute_id_after' => $attribute_id,
+                            'values_count' => $template->values->count(),
+                            'status' => 'attribute_id_invalid',
+                        ];
+                    }
+                    continue;
+                }
+            }
+
             $existing_terms = [];
+            $terms_fetch_failed = false;
             $page = 1;
             do {
                 try {
@@ -829,10 +882,12 @@ class WoocommerceUtil extends Util
                     ]);
                 } catch (\Exception $e) {
                     $summary['errors'][] = [
+                        'template_id' => $template->id,
                         'attribute' => $template->name,
                         'attribute_id' => $attribute_id,
                         'msg' => $e->getMessage(),
                     ];
+                    $terms_fetch_failed = true;
                     if ($debug) {
                         $summary['debug']['templates'][] = [
                             'template_id' => $template->id,
@@ -847,19 +902,23 @@ class WoocommerceUtil extends Util
                     break;
                 }
 
-            foreach ($terms as $term) {
-                $name_key = $this->normalizeWooKey($term->name ?? '');
-                $slug_key = $this->normalizeWooKey($term->slug ?? '');
-                if ($name_key !== '') {
-                    $existing_terms[$name_key] = true;
+                foreach ($terms as $term) {
+                    $name_key = $this->normalizeWooKey($term->name ?? '');
+                    $slug_key = $this->normalizeWooKey($term->slug ?? '');
+                    if ($name_key !== '') {
+                        $existing_terms[$name_key] = true;
+                    }
+                    if ($slug_key !== '') {
+                        $existing_terms[$slug_key] = true;
+                    }
                 }
-                if ($slug_key !== '') {
-                    $existing_terms[$slug_key] = true;
-                }
-            }
 
                 $page++;
             } while (! empty($terms));
+
+            if ($terms_fetch_failed) {
+                continue;
+            }
 
             if ($debug) {
                 $summary['debug']['templates'][] = [
@@ -868,7 +927,7 @@ class WoocommerceUtil extends Util
                     'attribute_id_before' => $attr_id_before[$template->id] ?? null,
                     'attribute_id_after' => $attribute_id,
                     'values_count' => $template->values->count(),
-                    'status' => 'ready',
+                    'status' => $template_status,
                 ];
             }
 
@@ -915,6 +974,7 @@ class WoocommerceUtil extends Util
                 } catch (\Exception $e) {
                     $summary['terms_failed']++;
                     $summary['errors'][] = [
+                        'template_id' => $template->id,
                         'attribute' => $template->name,
                         'attribute_id' => $attribute_id,
                         'term' => $name,
