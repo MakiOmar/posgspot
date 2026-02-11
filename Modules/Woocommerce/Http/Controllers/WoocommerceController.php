@@ -13,6 +13,7 @@ use App\TaxRate;
 use App\Utils\ModuleUtil;
 use App\Variation;
 use App\VariationTemplate;
+use Arcanedev\LogViewer\Entities\Log;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,6 +21,7 @@ use Illuminate\Routing\Controller;
 use Modules\Woocommerce\Entities\WoocommerceSyncLog;
 use Modules\Woocommerce\Utils\WoocommerceUtil;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\Log as LogFacade;
 
 class WoocommerceController extends Controller
 {
@@ -293,6 +295,10 @@ class WoocommerceController extends Controller
      */
     public function syncProducts()
     {
+        LogFacade::info('Starting product sync with WooCommerce', [
+            'business_id' => request()->session()->get('business.id'),
+            'user_id' => request()->session()->get('user.id'),
+        ]);
         $notAllowed = $this->woocommerceUtil->notAllowedInDemo();
         if (! empty($notAllowed)) {
             return $notAllowed;

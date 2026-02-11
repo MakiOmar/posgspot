@@ -627,11 +627,13 @@ class WoocommerceUtil extends Util
      */
     public function syncVariationAttributes($business_id)
     {
+        $started_at = microtime(true);
         $woocommerce = $this->woo_client($business_id);
         $query = VariationTemplate::where('business_id', $business_id);
 
         $attributes = $query->get();
-        $data = [];
+        $create_data = [];
+        $update_data = [];
         $new_attrs = [];
         $needs_mapping = [];
         foreach ($attributes as $attr) {
@@ -641,54 +643,117 @@ class WoocommerceUtil extends Util
                 if (! empty($slug)) {
                     $payload['slug'] = $slug;
                 }
-                $data['create'][] = $payload;
+                $create_data[] = $payload;
                 $new_attrs[] = $attr;
             } else {
-                $data['update'][] = [
+                $update_data[] = [
                     'name' => $attr->name,
                     'id' => $attr->woocommerce_attr_id,
                 ];
             }
         }
 
-        if (! empty($data)) {
-            $response = $woocommerce->post('products/attributes/batch', $data);
+        $next_new_attr_index = 0;
+        foreach (array_chunk($create_data, 100) as $create_chunk) {
+            try {
+                $response = $woocommerce->post('products/attributes/batch', [
+                    'create' => $create_chunk,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WooCommerce attribute create batch failed', [
+                    'business_id' => $business_id,
+                    'chunk_size' => count($create_chunk),
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
 
-            //update woocommerce_attr_id
+            $processed_count = 0;
             if (! empty($response->create)) {
-                foreach ($response->create as $key => $value) {
-                    $new_attr = $new_attrs[$key];
-                    if ($value->id != 0) {
+                foreach ($response->create as $value) {
+                    if (empty($new_attrs[$next_new_attr_index])) {
+                        break;
+                    }
+
+                    $new_attr = $new_attrs[$next_new_attr_index];
+                    if (! empty($value->id) && $value->id != 0) {
                         $new_attr->woocommerce_attr_id = $value->id;
                         $new_attr->save();
                     } else {
                         $needs_mapping[] = $new_attr;
                     }
+                    $processed_count++;
+                    $next_new_attr_index++;
                 }
             }
 
-            if (! empty($needs_mapping)) {
-                $all_attrs = $this->getAllResponse($business_id, 'products/attributes');
-                $attr_map = [];
-                foreach ($all_attrs as $attr) {
-                    $name_key = $this->normalizeWooKey($attr->name ?? '');
-                    $slug_key = $this->normalizeWooKey($attr->slug ?? '');
-                    if ($name_key !== '') {
-                        $attr_map[$name_key] = $attr->id;
-                    }
-                    if ($slug_key !== '') {
-                        $attr_map[$slug_key] = $attr->id;
-                    }
-                }
+            // If WooCommerce response omitted records, mark remaining chunk attributes for mapping.
+            while ($processed_count < count($create_chunk) && ! empty($new_attrs[$next_new_attr_index])) {
+                $needs_mapping[] = $new_attrs[$next_new_attr_index];
+                $processed_count++;
+                $next_new_attr_index++;
+            }
+        }
 
-                foreach ($needs_mapping as $new_attr) {
-                    $key = $this->normalizeWooKey($new_attr->name);
-                    if ($key !== '' && ! empty($attr_map[$key])) {
-                        $new_attr->woocommerce_attr_id = $attr_map[$key];
-                    }
-                    $new_attr->save();
+        foreach (array_chunk($update_data, 100) as $update_chunk) {
+            try {
+                $woocommerce->post('products/attributes/batch', [
+                    'update' => $update_chunk,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('WooCommerce attribute update batch failed', [
+                    'business_id' => $business_id,
+                    'chunk_size' => count($update_chunk),
+                    'error' => $e->getMessage(),
+                ]);
+                throw $e;
+            }
+        }
+
+        if (! empty($needs_mapping)) {
+            $all_attrs = $this->getAllResponse($business_id, 'products/attributes');
+            $attr_map = [];
+            foreach ($all_attrs as $attr) {
+                $name_key = $this->normalizeWooKey($attr->name ?? '');
+                $slug_key = $this->normalizeWooKey($attr->slug ?? '');
+                if ($name_key !== '') {
+                    $attr_map[$name_key] = $attr->id;
+                }
+                if ($slug_key !== '') {
+                    $attr_map[$slug_key] = $attr->id;
                 }
             }
+
+            $unmapped_after_fallback = 0;
+            foreach ($needs_mapping as $new_attr) {
+                $key = $this->normalizeWooKey($new_attr->name);
+                if ($key !== '' && ! empty($attr_map[$key])) {
+                    $new_attr->woocommerce_attr_id = $attr_map[$key];
+                }
+                if (empty($new_attr->woocommerce_attr_id)) {
+                    $unmapped_after_fallback++;
+                }
+                $new_attr->save();
+            }
+
+            if ($unmapped_after_fallback > 0) {
+                Log::warning('WooCommerce attribute fallback mapping incomplete', [
+                    'business_id' => $business_id,
+                    'needs_mapping_count' => count($needs_mapping),
+                    'unmapped_after_fallback' => $unmapped_after_fallback,
+                ]);
+            }
+        }
+
+        if (! empty($create_data) || ! empty($update_data)) {
+            Log::info('WooCommerce variation attributes sync completed', [
+                'business_id' => $business_id,
+                'templates_total' => count($attributes),
+                'create_count' => count($create_data),
+                'update_count' => count($update_data),
+                'needs_mapping_count' => count($needs_mapping),
+                'duration_ms' => (int) round((microtime(true) - $started_at) * 1000),
+            ]);
         }
     }
 
@@ -1890,22 +1955,85 @@ class WoocommerceUtil extends Util
         $woocommerce = $this->woo_client($business_id);
 
         $page = 1;
-        $list = [];
         $all_list = [];
-        $params['per_page'] = 100;
+        $per_page = isset($params['per_page']) && (int) $params['per_page'] > 0 ? (int) $params['per_page'] : 100;
+        $params['per_page'] = min($per_page, 100);
+        $max_pages = 1000;
+        $seen_page_signatures = [];
 
-        do {
+        while (true) {
             $params['page'] = $page;
             try {
                 $list = $woocommerce->get($endpoint, $params);
             } catch (\Exception $e) {
-                return [];
+                if ($page === 1) {
+                    return [];
+                }
+
+                Log::warning('WooCommerce pagination stopped after exception', [
+                    'business_id' => $business_id,
+                    'endpoint' => $endpoint,
+                    'page' => $page,
+                    'fetched_count' => count($all_list),
+                    'error' => $e->getMessage(),
+                ]);
+                break;
             }
+
+            if (! is_array($list)) {
+                $list = is_object($list) ? [$list] : [];
+            }
+
+            if (empty($list)) {
+                break;
+            }
+
+            $page_signature = $this->getWooPageSignature($list);
+            if (isset($seen_page_signatures[$page_signature])) {
+                Log::warning('WooCommerce pagination loop detected; stopping early', [
+                    'business_id' => $business_id,
+                    'endpoint' => $endpoint,
+                    'page' => $page,
+                    'fetched_count' => count($all_list),
+                ]);
+                break;
+            }
+            $seen_page_signatures[$page_signature] = true;
+
             $all_list = array_merge($all_list, $list);
+
+            if (count($list) < $params['per_page']) {
+                break;
+            }
+
             $page++;
-        } while (count($list) > 0);
+            if ($page > $max_pages) {
+                Log::warning('WooCommerce pagination hard page limit reached; stopping early', [
+                    'business_id' => $business_id,
+                    'endpoint' => $endpoint,
+                    'max_pages' => $max_pages,
+                    'fetched_count' => count($all_list),
+                ]);
+                break;
+            }
+        }
 
         return $all_list;
+    }
+
+    private function getWooPageSignature($list)
+    {
+        $signature_parts = [];
+        foreach ($list as $item) {
+            if (is_object($item) && isset($item->id)) {
+                $signature_parts[] = (string) $item->id;
+            } else {
+                $encoded = json_encode($item);
+                $signature_parts[] = $encoded !== false ? $encoded : '';
+            }
+        }
+
+        return md5(implode('|', $signature_parts));
     }
 
     /**
