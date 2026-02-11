@@ -639,7 +639,7 @@ class WoocommerceUtil extends Util
         foreach ($attributes as $attr) {
             if (empty($attr->woocommerce_attr_id)) {
                 $payload = ['name' => $attr->name];
-                $slug = $this->normalizeWooSlug($attr->name);
+                $slug = $this->normalizeWooAttributeSlug($attr->name);
                 if (! empty($slug)) {
                     $payload['slug'] = $slug;
                 }
@@ -681,6 +681,17 @@ class WoocommerceUtil extends Util
                         $new_attr->save();
                     } else {
                         $needs_mapping[] = $new_attr;
+                        $error_message = $value->error->message ?? null;
+                        $error_code = $value->error->code ?? null;
+                        if (! empty($error_message) || ! empty($error_code)) {
+                            Log::warning('WooCommerce attribute create item failed', [
+                                'business_id' => $business_id,
+                                'template_id' => $new_attr->id,
+                                'template_name' => $new_attr->name,
+                                'error_code' => $error_code,
+                                'error_message' => $error_message,
+                            ]);
+                        }
                     }
                     $processed_count++;
                     $next_new_attr_index++;
@@ -968,6 +979,35 @@ class WoocommerceUtil extends Util
         }
 
         return str_replace(' ', '-', $key);
+    }
+
+    /**
+     * Normalize WooCommerce attribute slug (taxonomy) within Woo limits.
+     *
+     * WooCommerce stores attribute taxonomies as `pa_{slug}` and limits slug length.
+     *
+     * @param  string  $name
+     * @return string
+     */
+    private function normalizeWooAttributeSlug($name)
+    {
+        $slug = $this->normalizeWooSlug($name);
+        if ($slug === '') {
+            return '';
+        }
+
+        if (strlen($slug) <= 28) {
+            return $slug;
+        }
+
+        $hash = substr(md5($slug), 0, 4);
+        $base = rtrim(substr($slug, 0, 23), '-');
+
+        if ($base === '') {
+            return $hash;
+        }
+
+        return $base . '-' . $hash;
     }
 
     /**
