@@ -19,6 +19,8 @@ return [
     'sync_variation_terms_help' => '<ul><li>Creates or updates WooCommerce attributes from POS variation templates.</li><li>Creates missing terms from variation values.</li></ul>',
     'sync_variation_terms_debug' => 'Debug',
     'debug_details' => 'Debug details',
+    'debug_not_synced_products' => 'Debug Not Synced',
+    'debug_not_synced_products_help' => 'Analyze why products cannot be synced and show possible causes.',
     'last_synced' => 'Last Synced',
     'sync_orders' => 'Sync Orders',
     'product_not_found_exception' => 'Product: :product not found in order #:order_no',

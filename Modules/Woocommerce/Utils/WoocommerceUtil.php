@@ -585,32 +585,64 @@ class WoocommerceUtil extends Util
             $response = $woocommerce->post('products/batch', $sync_data);
             if (! empty($response->create)) {
                 foreach ($response->create as $key => $value) {
+                    if (empty($new_products[$count])) {
+                        Log::warning('WooCommerce sync: response item index mismatch', [
+                            'business_id' => $business_id,
+                            'count' => $count,
+                            'new_products_count' => count($new_products),
+                        ]);
+                        $count++;
+                        continue;
+                    }
                     $new_product = $new_products[$count];
                     if ($value->id != 0) {
                         $new_product->woocommerce_product_id = $value->id;
                         //Sync woocommerce media id
-                        $new_product->woocommerce_media_id = ! empty($value->images[0]->id) ? $value->images[0]->id : null;
+                        $new_product->woocommerce_media_id = (! empty($value->images) && ! empty($value->images[0]->id)) ? $value->images[0]->id : null;
+                        $new_product->save();
+                        $new_woocommerce_product_ids[] = $new_product->woocommerce_product_id;
                     } else {
-                        if (! empty($value->error->data->resource_id)) {
-                            $new_product->woocommerce_product_id = $value->error->data->resource_id;
+                        $resource_id = ! empty($value->error->data->resource_id) ? $value->error->data->resource_id : null;
+                        if (! empty($resource_id)) {
+                            $new_product->woocommerce_product_id = $resource_id;
+                            $new_product->save();
+                            $new_woocommerce_product_ids[] = $new_product->woocommerce_product_id;
+                        } else {
+                            $error_msg = ! empty($value->error->message) ? $value->error->message : 'Unknown error';
+                            $error_code = ! empty($value->error->code) ? $value->error->code : null;
+                            Log::warning('WooCommerce product sync failed – product not updated', [
+                                'business_id' => $business_id,
+                                'product_id' => $new_product->id,
+                                'product_name' => $new_product->name,
+                                'sku' => $new_product->sku,
+                                'error_code' => $error_code,
+                                'error_message' => $error_msg,
+                            ]);
                         }
                     }
-                    $new_product->save();
-
-                    $new_woocommerce_product_ids[] = $new_product->woocommerce_product_id;
                     $count++;
                 }
             }
 
             if (! empty($response->update)) {
                 foreach ($response->update as $key => $value) {
+                    if (empty($new_products[$count])) {
+                        Log::warning('WooCommerce sync update: response item index mismatch', [
+                            'business_id' => $business_id,
+                            'count' => $count,
+                        ]);
+                        $count++;
+                        continue;
+                    }
                     $updated_product = $new_products[$count];
                     if ($value->id != 0) {
                         //Sync woocommerce media id
-                        $updated_product->woocommerce_media_id = ! empty($value->images[0]->id) ? $value->images[0]->id : null;
+                        $updated_product->woocommerce_media_id = (! empty($value->images) && ! empty($value->images[0]->id)) ? $value->images[0]->id : null;
                         $updated_product->save();
                     }
-                    $new_woocommerce_product_ids[] = $updated_product->woocommerce_product_id;
+                    if (! empty($updated_product->woocommerce_product_id)) {
+                        $new_woocommerce_product_ids[] = $updated_product->woocommerce_product_id;
+                    }
                     $count++;
                 }
             }

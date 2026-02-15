@@ -679,6 +679,143 @@ class WoocommerceController extends Controller
     }
 
     /**
+     * Debug endpoint: analyzes why products cannot be synced.
+     * Returns diagnostic info for products that show as "not synced".
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function debugNotSyncedProducts()
+    {
+        $business_id = request()->session()->get('business.id');
+
+        if (! (auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'woocommerce_module') && auth()->user()->can('woocommerce.sync_products'))) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
+            $business_location_id = ! empty($woocommerce_api_settings) ? ($woocommerce_api_settings->location_id ?? null) : null;
+
+            // Same query as index page to get "not synced" products
+            $query = Product::where('business_id', $business_id)
+                ->whereIn('type', ['single', 'variable'])
+                ->join('variations as v', 'v.product_id', '=', 'products.id')
+                ->whereNull('woocommerce_product_id')
+                ->where('woocommerce_disable_sync', 0)
+                ->whereNull('v.deleted_at')
+                ->groupBy('products.id')
+                ->select('products.*');
+
+            if (! empty($business_location_id)) {
+                $query->ForLocation($business_location_id);
+            }
+
+            $not_synced_products = $query->get();
+            $diagnostics = [];
+            $product_fields_for_create = (! empty($woocommerce_api_settings) && ! empty($woocommerce_api_settings->product_fields_for_create))
+                ? $woocommerce_api_settings->product_fields_for_create
+                : [];
+
+            foreach ($not_synced_products as $product) {
+                $product->load(['variations', 'variations.product_variation.variation_template', 'category', 'sub_category']);
+                $reasons = [];
+
+                // Check 1: Product has no variations (would be skipped in sync)
+                $first_variation = $product->variations->first();
+                if (empty($first_variation)) {
+                    $reasons[] = 'No variations found (product would be skipped during sync)';
+
+                    $diagnostics[] = [
+                        'id' => $product->id,
+                        'name' => $product->name,
+                        'sku' => $product->sku,
+                        'type' => $product->type,
+                        'reasons' => $reasons,
+                    ];
+                    continue;
+                }
+
+                // Check 2: Variable product - variation templates missing woocommerce_attr_id
+                if ($product->type == 'variable') {
+                    $missing_attr = [];
+                    $has_any_attr = false;
+                    foreach ($product->variations as $variation) {
+                        $template = $variation->product_variation->variation_template ?? null;
+                        if ($template) {
+                            if (empty($template->woocommerce_attr_id)) {
+                                $missing_attr[$template->name] = true;
+                            } else {
+                                $has_any_attr = true;
+                            }
+                        }
+                    }
+                    if (! empty($missing_attr)) {
+                        $reasons[] = 'Variable product has variation attributes not synced to WooCommerce: ' . implode(', ', array_keys($missing_attr)) . '. Run "Sync Variation Attributes & Terms" first.';
+                    }
+                    if (! $has_any_attr && ! empty($product->variations)) {
+                        $reasons[] = 'Variable product has no variation attributes mapped to WooCommerce. Run "Sync Variation Attributes & Terms" first.';
+                    }
+                }
+
+                // Check 3: Category required but missing woocommerce_cat_id
+                if (in_array('category', $product_fields_for_create)) {
+                    if (! empty($product->category_id) && (empty($product->category) || empty($product->category->woocommerce_cat_id))) {
+                        $reasons[] = 'Category not synced to WooCommerce (woocommerce_cat_id missing). Sync categories first.';
+                    }
+                    if (! empty($product->sub_category_id) && (empty($product->sub_category) || empty($product->sub_category->woocommerce_cat_id))) {
+                        $reasons[] = 'Sub-category not synced to WooCommerce. Sync categories first.';
+                    }
+                }
+
+                // Check 4: Product not in location (when location is set)
+                if (! empty($business_location_id)) {
+                    $in_location = DB::table('product_locations')
+                        ->where('product_id', $product->id)
+                        ->where('location_id', $business_location_id)
+                        ->exists();
+                    if (! $in_location) {
+                        $reasons[] = 'Product is not assigned to the WooCommerce location (location_id: ' . $business_location_id . '). Assign product to this location in product settings.';
+                    }
+                }
+
+                // Check 5: Image invalid when image sync is enabled
+                if (in_array('image', $product_fields_for_create) && ! empty($product->image)) {
+                    $image_path = $product->image_path;
+                    if (empty($image_path) || ! file_exists($image_path)) {
+                        $reasons[] = 'Product image file missing or invalid: ' . ($product->image ?? 'N/A');
+                    }
+                }
+
+                if (empty($reasons)) {
+                    $reasons[] = 'No obvious local issue. May fail at WooCommerce API (e.g. duplicate SKU, API error). Check Laravel logs after running sync.';
+                }
+
+                $diagnostics[] = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'type' => $product->type,
+                    'reasons' => $reasons,
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'total' => count($diagnostics),
+                'location_id' => $business_location_id,
+                'products' => $diagnostics,
+            ]);
+        } catch (\Exception $e) {
+            \Log::emergency('File:' . $e->getFile() . ' Line:' . $e->getLine() . ' Message:' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Resets synced products
      *
      * @return json

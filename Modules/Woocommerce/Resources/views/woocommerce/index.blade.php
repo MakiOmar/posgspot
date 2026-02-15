@@ -194,8 +194,11 @@
                                 </div>
                                 <div class="col-sm-12">
                                     <br>
-                                    <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-error" id="reset_products"> <i
+                                    <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-error" id="reset_products"> <i
                                             class="fa fa-undo"></i> @lang('woocommerce::lang.reset_synced_products')</button>
+                                    <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-info tw-ml-2" id="debug_not_synced_products" title="{{ __('woocommerce::lang.debug_not_synced_products_help') }}">
+                                        <i class="fa fa-bug"></i> @lang('woocommerce::lang.debug_not_synced_products')
+                                    </button>
                                 </div>
                             </div>
                         @endcomponent
@@ -401,6 +404,57 @@
                             }
                         });
                     }
+                }
+            });
+        });
+
+        // Debug Not Synced Products
+        $(document).on('click', 'button#debug_not_synced_products', function() {
+            var btn = $(this);
+            var btn_html = btn.html();
+            btn.html('<i class="fa fa-spinner fa-spin"></i> ' + "{{ __('woocommerce::lang.syncing') }}...");
+            btn.attr('disabled', true);
+            $.ajax({
+                url: "{{ action([\Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'debugNotSyncedProducts']) }}",
+                dataType: "json",
+                success: function(result) {
+                    btn.html(btn_html);
+                    btn.removeAttr('disabled');
+                    if (result.success) {
+                        var html = '<p><strong>' + result.total + ' products not synced.</strong></p>';
+                        if (result.total > 0) {
+                            html += '<div class="text-left" style="max-height: 400px; overflow-y: auto;">';
+                            result.products.forEach(function(p) {
+                                html += '<div class="tw-mb-3 tw-p-2 tw-border tw-border-gray-200 tw-rounded">';
+                                html += '<strong>' + (p.name || '') + '</strong> (SKU: ' + (p.sku || '-') + ', Type: ' + (p.type || '-') + ')<br>';
+                                html += '<ul class="tw-mt-1 tw-ml-3 tw-list-disc tw-text-sm">';
+                                p.reasons.forEach(function(r) {
+                                    html += '<li>' + r + '</li>';
+                                });
+                                html += '</ul></div>';
+                            });
+                            html += '</div>';
+                        }
+                        var contentEl = document.createElement('div');
+                        contentEl.className = 'text-left';
+                        contentEl.style.maxHeight = '400px';
+                        contentEl.style.overflowY = 'auto';
+                        contentEl.innerHTML = html;
+                        swal({
+                            title: "{{ __('woocommerce::lang.debug_details') }}",
+                            content: contentEl,
+                            icon: result.total > 0 ? "info" : "success",
+                            buttons: true
+                        });
+                    } else {
+                        toastr.error(result.msg || "{{ __('messages.something_went_wrong') }}");
+                    }
+                },
+                error: function(xhr) {
+                    btn.html(btn_html);
+                    btn.removeAttr('disabled');
+                    var msg = xhr.responseJSON && xhr.responseJSON.msg ? xhr.responseJSON.msg : "{{ __('messages.something_went_wrong') }}";
+                    toastr.error(msg);
                 }
             });
         });

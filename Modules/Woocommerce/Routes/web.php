@@ -36,4 +36,5 @@ Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'Admi
     Route::get('/get-log-details/{id}', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'getLogDetails']);
     Route::get('/reset-categories', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'resetCategories']);
     Route::get('/reset-products', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'resetProducts']);
+    Route::get('/debug-not-synced-products', [Modules\Woocommerce\Http\Controllers\WoocommerceController::class, 'debugNotSyncedProducts']);
 });
