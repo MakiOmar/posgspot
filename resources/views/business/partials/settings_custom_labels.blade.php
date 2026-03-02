@@ -4,55 +4,19 @@
             <h4>@lang('lang_v1.labels_for_custom_payments'):</h4>
         </div>
         <div class="clearfix"></div>
+        @for($i = 1; $i <= 30; $i++)
         <div class="col-sm-4">
             <div class="form-group">
-                {!! Form::label('custom_payment_1_label', __('lang_v1.custom_payment_1')); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_1]', !empty($custom_labels['payments']['custom_pay_1']) ? $custom_labels['payments']['custom_pay_1'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_1']); !!}
+                @php
+                    $labelKey = $i <= 3 ? 'lang_v1.custom_payment_' . $i : 'lang_v1.custom_payment';
+                    $label = $i <= 3 ? __($labelKey) : __('lang_v1.custom_payment', ['number' => $i]);
+                @endphp
+                {!! Form::label('custom_payment_' . $i . '_label', $label); !!}
+                {!! Form::text('custom_labels[payments][custom_pay_' . $i . ']', !empty($custom_labels['payments']['custom_pay_' . $i]) ? $custom_labels['payments']['custom_pay_' . $i] : null,
+                ['class' => 'form-control', 'id' => 'custom_payment_' . $i]); !!}
             </div>
         </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_2_label', __('lang_v1.custom_payment_2')); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_2]', !empty($custom_labels['payments']['custom_pay_2']) ? $custom_labels['payments']['custom_pay_2'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_2']); !!}
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_3_label', __('lang_v1.custom_payment_3')); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_3]', !empty($custom_labels['payments']['custom_pay_3']) ? $custom_labels['payments']['custom_pay_3'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_3']); !!}
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_4_label', __('lang_v1.custom_payment', ['number' => 4])); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_4]', !empty($custom_labels['payments']['custom_pay_4']) ? $custom_labels['payments']['custom_pay_4'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_4']); !!}
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_5_label', __('lang_v1.custom_payment', ['number' => 5])); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_5]', !empty($custom_labels['payments']['custom_pay_5']) ? $custom_labels['payments']['custom_pay_5'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_5']); !!}
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_6_label', __('lang_v1.custom_payment', ['number' => 6])); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_6]', !empty($custom_labels['payments']['custom_pay_6']) ? $custom_labels['payments']['custom_pay_6'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_6']); !!}
-            </div>
-        </div>
-        <div class="col-sm-4">
-            <div class="form-group">
-                {!! Form::label('custom_payment_6_label', __('lang_v1.custom_payment', ['number' => 7])); !!}
-                {!! Form::text('custom_labels[payments][custom_pay_7]', !empty($custom_labels['payments']['custom_pay_7']) ? $custom_labels['payments']['custom_pay_7'] : null,
-                ['class' => 'form-control', 'id' => 'custom_payment_7']); !!}
-            </div>
-        </div>
+        @endfor
         <div class="clearfix"></div>
         <div class="col-sm-12">
             <h4>@lang('lang_v1.labels_for_contact_custom_fields'):</h4>

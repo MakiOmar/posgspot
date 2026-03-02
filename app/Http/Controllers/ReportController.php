@@ -1015,7 +1015,7 @@ class ReportController extends Controller
 
             $registers = $this->transactionUtil->registerReport($business_id, $permitted_locations, $start_date, $end_date, $user_id);
 
-            return Datatables::of($registers)
+            $datatable = Datatables::of($registers)
                 ->editColumn('total_card_payment', function ($row) {
                     return '<span data-orig-value="'.$row->total_card_payment.'" >'.$this->transactionUtil->num_f($row->total_card_payment, true).' ('.$row->total_card_slips.')</span>';
                 })
@@ -1033,28 +1033,16 @@ class ReportController extends Controller
                 })
                 ->editColumn('total_advance_payment', function ($row) {
                     return '<span data-orig-value="'.$row->total_advance_payment.'" >'.$this->transactionUtil->num_f($row->total_advance_payment, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_1', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_1.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_1, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_2', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_2.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_2, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_3', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_3.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_3, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_4', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_4.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_4, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_5', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_5.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_5, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_6', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_6.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_6, true).'</span>';
-                })
-                ->editColumn('total_custom_pay_7', function ($row) {
-                    return '<span data-orig-value="'.$row->total_custom_pay_7.'" >'.$this->transactionUtil->num_f($row->total_custom_pay_7, true).'</span>';
-                })
+                });
+            for ($i = 1; $i <= 30; $i++) {
+                $col = 'total_custom_pay_'.$i;
+                $datatable = $datatable->editColumn($col, function ($row) use ($col) {
+                    $val = $row->$col ?? 0;
+
+                    return '<span data-orig-value="'.$val.'" >'.$this->transactionUtil->num_f($val, true).'</span>';
+                });
+            }
+            return $datatable
                 ->editColumn('closed_at', function ($row) {
                     if ($row->status == 'close') {
                         return $this->productUtil->format_date($row->closed_at, true);
@@ -1066,7 +1054,11 @@ class ReportController extends Controller
                     return $this->productUtil->format_date($row->created_at, true);
                 })
                 ->addColumn('total', function ($row) {
-                    $total = $row->total_card_payment + $row->total_cheque_payment + $row->total_cash_payment + $row->total_bank_transfer_payment + $row->total_other_payment + $row->total_advance_payment + $row->total_custom_pay_1 + $row->total_custom_pay_2 + $row->total_custom_pay_3 + $row->total_custom_pay_4 + $row->total_custom_pay_5 + $row->total_custom_pay_6 + $row->total_custom_pay_7;
+                    $total = $row->total_card_payment + $row->total_cheque_payment + $row->total_cash_payment + $row->total_bank_transfer_payment + $row->total_other_payment + $row->total_advance_payment;
+                    for ($i = 1; $i <= 30; $i++) {
+                        $col = 'total_custom_pay_'.$i;
+                        $total += $row->$col ?? 0;
+                    }
 
                     return '<span data-orig-value="'.$total.'" >'.$this->transactionUtil->num_f($total, true).'</span>';
                 })
@@ -1076,7 +1068,10 @@ class ReportController extends Controller
                 ->filterColumn('user_name', function ($query, $keyword) {
                     $query->whereRaw("CONCAT(COALESCE(surname, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, ''), '<br>', COALESCE(u.email, '')) like ?", ["%{$keyword}%"]);
                 })
-                ->rawColumns(['action', 'user_name', 'total_card_payment', 'total_cheque_payment', 'total_cash_payment', 'total_bank_transfer_payment', 'total_other_payment', 'total_advance_payment', 'total_custom_pay_1', 'total_custom_pay_2', 'total_custom_pay_3', 'total_custom_pay_4', 'total_custom_pay_5', 'total_custom_pay_6', 'total_custom_pay_7', 'total'])
+                ->rawColumns(array_merge(
+                    ['action', 'user_name', 'total_card_payment', 'total_cheque_payment', 'total_cash_payment', 'total_bank_transfer_payment', 'total_other_payment', 'total_advance_payment', 'total'],
+                    array_map(function ($i) { return 'total_custom_pay_'.$i; }, range(1, 30))
+                ))
                 ->make(true);
         }
 

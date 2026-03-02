@@ -70,97 +70,22 @@
           <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_advance_expense }}</span>
         </td>
       </tr>
-      @if(array_key_exists('custom_pay_1', $payment_types))
+      @for($i = 1; $i <= 30; $i++)
+      @php $key = 'custom_pay_'.$i; @endphp
+      @if(array_key_exists($key, $payment_types))
         <tr>
           <td>
-            {{$payment_types['custom_pay_1']}}:
+            {{ $payment_types[$key] }}:
           </td>
           <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_1 }}</span>
+            <span class="display_currency" data-currency_symbol="true">{{ $register_details->{'total_'.$key} ?? 0 }}</span>
           </td>
           <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_1_expense }}</span>
+            <span class="display_currency" data-currency_symbol="true">{{ $register_details->{'total_'.$key.'_expense'} ?? 0 }}</span>
           </td>
         </tr>
       @endif
-      @if(array_key_exists('custom_pay_2', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_2']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_2 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_2_expense }}</span>
-          </td>
-        </tr>
-      @endif
-      @if(array_key_exists('custom_pay_3', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_3']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_3 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_3_expense }}</span>
-          </td>
-        </tr>
-      @endif
-      @if(array_key_exists('custom_pay_4', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_4']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_4 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_4_expense }}</span>
-          </td>
-        </tr>
-      @endif
-      @if(array_key_exists('custom_pay_5', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_5']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_5 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_5_expense }}</span>
-          </td>
-        </tr>
-      @endif
-      @if(array_key_exists('custom_pay_6', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_6']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_6 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_6_expense }}</span>
-          </td>
-        </tr>
-      @endif
-      @if(array_key_exists('custom_pay_7', $payment_types))
-        <tr>
-          <td>
-            {{$payment_types['custom_pay_7']}}:
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_7 }}</span>
-          </td>
-          <td>
-            <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_7_expense }}</span>
-          </td>
-        </tr>
-      @endif
+      @endfor
       <tr>
         <td>
           @lang('cash_register.other_payments'):
@@ -204,15 +129,12 @@
           @if($register_details->total_bank_transfer_refund != 0)
             Bank Transfer: <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_bank_transfer_refund }}</span><br>
           @endif
-          @if(array_key_exists('custom_pay_1', $payment_types) && $register_details->total_custom_pay_1_refund != 0)
-              {{$payment_types['custom_pay_1']}}: <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_1_refund }}</span>
+          @for($i = 1; $i <= 30; $i++)
+          @php $key = 'custom_pay_'.$i; $refund_col = 'total_'.$key.'_refund'; @endphp
+          @if(array_key_exists($key, $payment_types) && ($register_details->$refund_col ?? 0) != 0)
+              {{ $payment_types[$key] }}: <span class="display_currency" data-currency_symbol="true">{{ $register_details->$refund_col }}</span><br>
           @endif
-          @if(array_key_exists('custom_pay_2', $payment_types) && $register_details->total_custom_pay_2_refund != 0)
-              {{$payment_types['custom_pay_2']}}: <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_2_refund }}</span>
-          @endif
-          @if(array_key_exists('custom_pay_3', $payment_types) && $register_details->total_custom_pay_3_refund != 0)
-              {{$payment_types['custom_pay_3']}}: <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_custom_pay_3_refund }}</span>
-          @endif
+          @endfor
           @if($register_details->total_other_refund != 0)
             Other: <span class="display_currency" data-currency_symbol="true">{{ $register_details->total_other_refund }}</span>
           @endif
