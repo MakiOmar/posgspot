@@ -15,6 +15,7 @@ use App\Utils\TransactionUtil;
 use App\Utils\Util;
 use App\VariationLocationDetails;
 use App\VariationTemplate;
+use App\Variation;
 use Automattic\WooCommerce\Client;
 use DB;
 use Modules\Woocommerce\Entities\WoocommerceSyncLog;
@@ -281,7 +282,7 @@ class WoocommerceUtil extends Util
         $business_location_id = $woocommerce_api_settings->location_id;
         $offset = $page * $limit;
         $query = Product::where('business_id', $business_id)
-                        ->whereIn('type', ['single', 'variable'])
+                        ->whereIn('type', ['single', 'variable', 'combo'])
                         ->where('woocommerce_disable_sync', 0)
                         ->with(['variations', 'category', 'sub_category',
                             'variations.variation_location_details',
@@ -326,8 +327,19 @@ class WoocommerceUtil extends Util
             }
 
             //Set common data
+            if ($product->type == 'single') {
+                $woocommerce_type = 'simple';
+            } elseif ($product->type == 'variable') {
+                $woocommerce_type = 'variable';
+            } elseif ($product->type == 'combo') {
+                $woocommerce_type = 'pos_combo';
+            } else {
+                //Unsupported type for WooCommerce sync
+                continue;
+            }
+
             $array = [
-                'type' => $product->type == 'single' ? 'simple' : 'variable',
+                'type' => $woocommerce_type,
                 'sku' => $product->sku,
             ];
 
@@ -388,6 +400,53 @@ class WoocommerceUtil extends Util
                         'options' => $value,
                     ];
                 }
+            }
+
+            //Build combo meta payload for combo products
+            if ($product->type == 'combo') {
+                $combo_variations = $first_variation->combo_variations ?? [];
+                if (empty($combo_variations) || ! is_array($combo_variations)) {
+                    //No combo definition, skip
+                    continue;
+                }
+
+                $combo_items = [];
+                $missing_component = false;
+
+                foreach ($combo_variations as $combo_item) {
+                    if (empty($combo_item['variation_id'])) {
+                        $missing_component = true;
+                        break;
+                    }
+
+                    $component_variation = Variation::with('product')->find($combo_item['variation_id']);
+                    if (empty($component_variation) || empty($component_variation->product) || empty($component_variation->product->woocommerce_product_id)) {
+                        $missing_component = true;
+                        break;
+                    }
+
+                    $combo_items[] = [
+                        'woocommerce_product_id' => $component_variation->product->woocommerce_product_id,
+                        'woocommerce_variation_id' => $component_variation->woocommerce_variation_id,
+                        'quantity' => $this->num_uf($combo_item['quantity'] ?? 0),
+                    ];
+                }
+
+                if ($missing_component || empty($combo_items)) {
+                    Log::info('WooCommerce combo product skipped due to missing component WooCommerce IDs', [
+                        'business_id' => $business_id,
+                        'product_id' => $product->id,
+                        'product_name' => $product->name,
+                        'sku' => $product->sku,
+                    ]);
+                    continue;
+                }
+
+                $array['manage_stock'] = false;
+                $array['meta_data'][] = [
+                    'key' => '_pos_combo_items',
+                    'value' => $combo_items,
+                ];
             }
 
             $sync_description_as = ! empty($woocommerce_api_settings->sync_description_as) ? $woocommerce_api_settings->sync_description_as : 'long';
@@ -452,6 +511,11 @@ class WoocommerceUtil extends Util
                         }
                     }
 
+                    $array['regular_price'] = $this->formatDecimalPoint($price);
+                } elseif ($product->type == 'combo') {
+                    //For combo products, price is managed at combo level, stock is derived from components in POS
+                    $array['manage_stock'] = false;
+                    $array['in_stock'] = true;
                     $array['regular_price'] = $this->formatDecimalPoint($price);
                 }
 
@@ -601,12 +665,30 @@ class WoocommerceUtil extends Util
                         $new_product->woocommerce_media_id = (! empty($value->images) && ! empty($value->images[0]->id)) ? $value->images[0]->id : null;
                         $new_product->save();
                         $new_woocommerce_product_ids[] = $new_product->woocommerce_product_id;
+                        if ($new_product->type === 'combo') {
+                            Log::info('WooCommerce combo product created', [
+                                'business_id' => $business_id,
+                                'product_id' => $new_product->id,
+                                'product_name' => $new_product->name,
+                                'sku' => $new_product->sku,
+                                'woocommerce_product_id' => $new_product->woocommerce_product_id,
+                            ]);
+                        }
                     } else {
                         $resource_id = ! empty($value->error->data->resource_id) ? $value->error->data->resource_id : null;
                         if (! empty($resource_id)) {
                             $new_product->woocommerce_product_id = $resource_id;
                             $new_product->save();
                             $new_woocommerce_product_ids[] = $new_product->woocommerce_product_id;
+                            if ($new_product->type === 'combo') {
+                                Log::info('WooCommerce combo product created using existing resource id', [
+                                    'business_id' => $business_id,
+                                    'product_id' => $new_product->id,
+                                    'product_name' => $new_product->name,
+                                    'sku' => $new_product->sku,
+                                    'woocommerce_product_id' => $new_product->woocommerce_product_id,
+                                ]);
+                            }
                         } else {
                             $error_msg = ! empty($value->error->message) ? $value->error->message : 'Unknown error';
                             $error_code = ! empty($value->error->code) ? $value->error->code : null;
@@ -639,6 +721,15 @@ class WoocommerceUtil extends Util
                         //Sync woocommerce media id
                         $updated_product->woocommerce_media_id = (! empty($value->images) && ! empty($value->images[0]->id)) ? $value->images[0]->id : null;
                         $updated_product->save();
+                        if ($updated_product->type === 'combo') {
+                            Log::info('WooCommerce combo product updated', [
+                                'business_id' => $business_id,
+                                'product_id' => $updated_product->id,
+                                'product_name' => $updated_product->name,
+                                'sku' => $updated_product->sku,
+                                'woocommerce_product_id' => $updated_product->woocommerce_product_id,
+                            ]);
+                        }
                     }
                     if (! empty($updated_product->woocommerce_product_id)) {
                         $new_woocommerce_product_ids[] = $updated_product->woocommerce_product_id;

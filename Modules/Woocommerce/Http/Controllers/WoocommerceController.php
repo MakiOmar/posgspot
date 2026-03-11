@@ -90,7 +90,7 @@ class WoocommerceController extends Controller
 
             $products_last_synced = $this->woocommerceUtil->getLastSync($business_id, 'all_products', false);
             $query = Product::where('business_id', $business_id)
-                                        ->whereIn('type', ['single', 'variable'])
+                                        ->whereIn('type', ['single', 'variable', 'combo'])
                                         ->join('variations as v', 'v.product_id', '=', 'products.id')
                                         ->whereNull('woocommerce_product_id')
                                         ->where('woocommerce_disable_sync', 0)
@@ -109,7 +109,7 @@ class WoocommerceController extends Controller
                 $updated_product_count = Product::where('business_id', $business_id)
                                         ->whereNotNull('woocommerce_product_id')
                                         ->where('woocommerce_disable_sync', 0)
-                                        ->whereIn('type', ['single', 'variable'])
+                                        ->whereIn('type', ['single', 'variable', 'combo'])
                                         ->where('updated_at', '>', $products_last_synced)
                                         ->count();
             }
@@ -698,7 +698,7 @@ class WoocommerceController extends Controller
 
             // Same query as index page to get "not synced" products
             $query = Product::where('business_id', $business_id)
-                ->whereIn('type', ['single', 'variable'])
+                ->whereIn('type', ['single', 'variable', 'combo'])
                 ->join('variations as v', 'v.product_id', '=', 'products.id')
                 ->whereNull('woocommerce_product_id')
                 ->where('woocommerce_disable_sync', 0)
