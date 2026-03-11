@@ -447,6 +447,17 @@ class WoocommerceUtil extends Util
                     'key' => '_pos_combo_items',
                     'value' => $combo_items,
                 ];
+
+                Log::info('WooCommerce combo product payload prepared', [
+                    'business_id' => $business_id,
+                    'product_id' => $product->id,
+                    'product_name' => $product->name,
+                    'sku' => $product->sku,
+                    'meta_data_keys' => array_map(function ($meta) {
+                        return isset($meta['key']) ? $meta['key'] : null;
+                    }, $array['meta_data']),
+                    'combo_items' => $combo_items,
+                ]);
             }
 
             $sync_description_as = ! empty($woocommerce_api_settings->sync_description_as) ? $woocommerce_api_settings->sync_description_as : 'long';
