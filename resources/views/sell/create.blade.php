@@ -53,6 +53,7 @@
 @php
 	$custom_labels = json_decode(session('business.custom_labels'), true);
 	$common_settings = session()->get('business.common_settings');
+	$walk_in_customer = $walk_in_customer ?? [];
 @endphp
 <input type="hidden" id="item_addition_method" value="{{$business_details->item_addition_method}}">
 	{!! Form::open(['url' => action([\App\Http\Controllers\SellPosController::class, 'store']), 'method' => 'post', 'id' => 'add_sell_form', 'files' => true ]) !!}
@@ -133,9 +134,9 @@
 								<i class="fa fa-user"></i>
 							</span>
 							<input type="hidden" id="default_customer_id" 
-							value="{{ $walk_in_customer['id']}}" >
+							value="{{ $walk_in_customer['id'] ?? ''}}" >
 							<input type="hidden" id="default_customer_name" 
-							value="{{ $walk_in_customer['name']}}" >
+							value="{{ $walk_in_customer['name'] ?? ''}}" >
 							<input type="hidden" id="default_customer_balance" value="{{ $walk_in_customer['balance'] ?? ''}}" >
 							<input type="hidden" id="default_customer_address" value="{{ $walk_in_customer['shipping_address'] ?? ''}}" >
 							@if(!empty($walk_in_customer['price_calculation_type']) && $walk_in_customer['price_calculation_type'] == 'selling_price_group')
@@ -177,12 +178,12 @@
 					@endphp
 		              {!! Form::label('pay_term_number', __('contact.pay_term') . ':') !!} @show_tooltip(__('tooltip.pay_term'))
 		              <br/>
-		              {!! Form::number('pay_term_number', $walk_in_customer['pay_term_number'], ['class' => 'form-control width-40 pull-left', 'placeholder' => __('contact.pay_term'), 'required' => $is_pay_term_required]); !!}
+		              {!! Form::number('pay_term_number', $walk_in_customer['pay_term_number'] ?? null, ['class' => 'form-control width-40 pull-left', 'placeholder' => __('contact.pay_term'), 'required' => $is_pay_term_required]); !!}
 
 		              {!! Form::select('pay_term_type', 
 		              	['months' => __('lang_v1.months'), 
 		              		'days' => __('lang_v1.days')], 
-		              		$walk_in_customer['pay_term_type'], 
+		              		$walk_in_customer['pay_term_type'] ?? null, 
 		              	['class' => 'form-control width-60 pull-left','placeholder' => __('messages.please_select'), 'required' => $is_pay_term_required]); !!}
 		            </div>
 		          </div>

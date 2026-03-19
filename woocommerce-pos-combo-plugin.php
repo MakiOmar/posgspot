@@ -11,6 +11,24 @@ if (! defined('ABSPATH')) {
 }
 
 /**
+ * Custom product class for POS Combo products.
+ */
+if (! class_exists('WC_Product_Pos_Combo') && class_exists('WC_Product_Simple')) {
+    class WC_Product_Pos_Combo extends WC_Product_Simple
+    {
+        /**
+         * Product type identifier.
+         *
+         * @return string
+         */
+        public function get_type()
+        {
+            return 'pos_combo';
+        }
+    }
+}
+
+/**
  * Register custom product type: pos_combo.
  */
 add_filter('product_type_selector', function ($types) {
@@ -21,7 +39,7 @@ add_filter('product_type_selector', function ($types) {
 
 add_filter('woocommerce_product_class', function ($classname, $product_type) {
     if ($product_type === 'pos_combo') {
-        return WC_Product_Simple::class;
+        return WC_Product_Pos_Combo::class;
     }
 
     return $classname;
@@ -100,7 +118,7 @@ add_action('woocommerce_single_product_summary', function () {
 
     echo '</ul>';
     echo '</div>';
-});
+},40);
 
 /**
  * Persist _pos_combo_items meta from REST API payload.
