@@ -300,13 +300,20 @@ class StockTransferController extends Controller
 
             $purchase_transfer = Transaction::create($input_data);
 
-            //Sell Product from first location
+            //Sell Product from first location (use source location for stock checks / sell lines)
             if (! empty($sell_lines)) {
-                $this->transactionUtil->createOrUpdateSellLines($sell_transfer, $sell_lines, $input_data['location_id'], false, null, [], false);
+                $this->transactionUtil->createOrUpdateSellLines($sell_transfer, $sell_lines, $sell_transfer->location_id, false, null, [], false);
             }
 
-            //Purchase product in second location
+            //Purchase product in second location — one purchase_line per sell line (duplicate SKUs supported)
             if (! empty($purchase_lines)) {
+                $sell_line_models = $sell_transfer->sell_lines()->orderBy('id')->get();
+                if ($sell_line_models->count() !== count($purchase_lines)) {
+                    throw new \Exception(__('messages.something_went_wrong'));
+                }
+                foreach ($purchase_lines as $idx => $pLine) {
+                    $purchase_lines[$idx]['transaction_sell_line_id'] = $sell_line_models[$idx]->id;
+                }
                 $purchase_transfer->purchase_lines()->createMany($purchase_lines);
             }
 
@@ -711,8 +718,7 @@ class StockTransferController extends Controller
 
             $products = $request->input('products');
             $sell_lines = [];
-            $purchase_lines = [];
-            $edited_purchase_lines = [];
+            $purchase_line_payloads = [];
             if (! empty($products)) {
                 foreach ($products as $product) {
                     $sell_line_arr = [
@@ -767,22 +773,7 @@ class StockTransferController extends Controller
                     unset($purchase_line_arr['product_unit_id']);
 
                     $sell_lines[] = $sell_line_arr;
-
-                    $purchase_line = [];
-                    //check if purchase_line for the variation exists else create new
-                    foreach ($purchase_transfer->purchase_lines as $pl) {
-                        if ($pl->variation_id == $purchase_line_arr['variation_id']) {
-                            $pl->update($purchase_line_arr);
-                            $edited_purchase_lines[] = $pl->id;
-                            $purchase_line = $pl;
-                            break;
-                        }
-                    }
-                    if (empty($purchase_line)) {
-                        $purchase_line = new PurchaseLine($purchase_line_arr);
-                    }
-
-                    $purchase_lines[] = $purchase_line;
+                    $purchase_line_payloads[] = $purchase_line_arr;
                 }
             }
 
@@ -803,13 +794,71 @@ class StockTransferController extends Controller
                 $this->transactionUtil->createOrUpdateSellLines($sell_transfer, $sell_lines, $sell_transfer->location_id, false, 'draft', [], false);
             }
 
-            //Purchase product in second location
-            if (! empty($purchase_lines)) {
-                if (! empty($edited_purchase_lines)) {
-                    PurchaseLine::where('transaction_id', $purchase_transfer->id)
-                    ->whereNotIn('id', $edited_purchase_lines)
-                    ->delete();
+            //Purchase product in second location — pair each purchase_line to its sell line (duplicate SKUs supported)
+            if (! empty($purchase_line_payloads)) {
+                $requested_sell_ids = collect($products)
+                    ->pluck('transaction_sell_lines_id')
+                    ->filter()
+                    ->map(fn ($v) => (int) $v)
+                    ->values()
+                    ->all();
+
+                $new_sell_ids_sorted = $sell_transfer->sell_lines()
+                    ->whereNotIn('id', $requested_sell_ids)
+                    ->orderBy('id')
+                    ->pluck('id')
+                    ->values()
+                    ->all();
+
+                $products_without_sell_lines_id = collect($products)->filter(fn ($p) => empty($p['transaction_sell_lines_id']))->count();
+                if (count($new_sell_ids_sorted) !== $products_without_sell_lines_id) {
+                    throw new \Exception(__('messages.something_went_wrong'));
                 }
+
+                $sell_line_ids_for_purchase = [];
+                $new_idx = 0;
+                foreach ($products as $product) {
+                    if (! empty($product['transaction_sell_lines_id'])) {
+                        $sell_line_ids_for_purchase[] = (int) $product['transaction_sell_lines_id'];
+                    } else {
+                        $sid = $new_sell_ids_sorted[$new_idx++] ?? null;
+                        if (empty($sid)) {
+                            throw new \Exception(__('messages.something_went_wrong'));
+                        }
+                        $sell_line_ids_for_purchase[] = (int) $sid;
+                    }
+                }
+
+                if (count($sell_line_ids_for_purchase) !== count($purchase_line_payloads)) {
+                    throw new \Exception(__('messages.something_went_wrong'));
+                }
+
+                PurchaseLine::where('transaction_id', $purchase_transfer->id)
+                    ->where(function ($q) use ($sell_line_ids_for_purchase) {
+                        $q->whereNull('transaction_sell_line_id')
+                            ->orWhereNotIn('transaction_sell_line_id', $sell_line_ids_for_purchase);
+                    })
+                    ->delete();
+
+                $purchase_lines = [];
+                foreach ($products as $i => $product) {
+                    $sell_line_id = $sell_line_ids_for_purchase[$i];
+                    $purchase_line_arr = $purchase_line_payloads[$i];
+                    $purchase_line_arr['transaction_id'] = $purchase_transfer->id;
+                    $purchase_line_arr['transaction_sell_line_id'] = $sell_line_id;
+
+                    $pl = PurchaseLine::where('transaction_id', $purchase_transfer->id)
+                        ->where('transaction_sell_line_id', $sell_line_id)
+                        ->first();
+
+                    if ($pl) {
+                        $pl->fill($purchase_line_arr);
+                        $purchase_lines[] = $pl;
+                    } else {
+                        $purchase_lines[] = new PurchaseLine($purchase_line_arr);
+                    }
+                }
+
                 $purchase_transfer->purchase_lines()->saveMany($purchase_lines);
             }
 
