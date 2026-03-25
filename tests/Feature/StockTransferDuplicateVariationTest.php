@@ -23,4 +23,13 @@ class StockTransferDuplicateVariationTest extends TestCase
         $this->artisan('stock-transfer:backfill-purchase-line-sell-links', ['--dry-run' => true])
             ->assertExitCode(0);
     }
+
+    /**
+     * Repair command links missing purchase lines without persisting in dry-run.
+     */
+    public function test_stock_transfer_repair_purchase_lines_command_runs(): void
+    {
+        $this->artisan('stock-transfer:repair-purchase-lines', ['--dry-run' => true])
+            ->assertExitCode(0);
+    }
 }
