@@ -2666,6 +2666,23 @@ function getTotalUnreadNotifications(){
 }
 
 $(document).on('shown.bs.modal', '.view_modal', function (e) {
+    // AJAX-loaded modal HTML does not run embedded <script> tags; format money and init widgets here.
+    __currency_convert_recursively($(this));
+    var $patternHost = $(this).find('#security_pattern_container');
+    if ($patternHost.length && typeof PatternLock !== 'undefined') {
+        var pat = $patternHost.data('pattern');
+        $patternHost.empty();
+        if (pat) {
+            try {
+                var security_pattern = new PatternLock('#security_pattern_container', {
+                    enableSetPattern: true,
+                });
+                security_pattern.setPattern(String(pat));
+            } catch (err) {
+                console.warn(err);
+            }
+        }
+    }
     if ($(this).find('#email_body').length) {
         tinymce.init({
             selector: 'textarea#email_body',

@@ -595,7 +595,7 @@ class RepairController extends Controller
                     )
                     ->with(['contact', 'sell_lines' => function ($q) {
                         $q->whereNull('parent_sell_line_id');
-                    }, 'sell_lines.product', 'sell_lines.product.unit', 'sell_lines.variations', 'sell_lines.variations.product_variation', 'payment_lines', 'sell_lines.modifiers', 'sell_lines.lot_details', 'tax', 'sell_lines.sub_unit', 'media'])
+                    }, 'sell_lines.product', 'sell_lines.product.unit', 'sell_lines.product.second_unit', 'sell_lines.product.brand', 'sell_lines.variations', 'sell_lines.variations.product_variation', 'sell_lines.warranties', 'payment_lines', 'sell_lines.modifiers', 'sell_lines.lot_details', 'sell_lines.service_staff', 'tax', 'sell_lines.sub_unit', 'types_of_service', 'media'])
                     ->select(
                         'transactions.*',
                         'rs.name as repair_status',
@@ -610,14 +610,35 @@ class RepairController extends Controller
                     )
                     ->first();
 
+        $line_taxes = [];
         foreach ($sell->sell_lines as $key => $value) {
             if (! empty($value->sub_unit_id)) {
                 $formated_sell_line = $this->transactionUtil->recalculateSellLineTotals($business_id, $value);
                 $sell->sell_lines[$key] = $formated_sell_line;
             }
+
+            if (! empty($taxes[$value->tax_id])) {
+                if (isset($line_taxes[$taxes[$value->tax_id]])) {
+                    $line_taxes[$taxes[$value->tax_id]] += ($value->item_tax * $value->quantity);
+                } else {
+                    $line_taxes[$taxes[$value->tax_id]] = ($value->item_tax * $value->quantity);
+                }
+            }
         }
 
-        $payment_types = $this->transactionUtil->payment_types();
+        $payment_types = $this->transactionUtil->payment_types($sell->location_id, true);
+
+        $business_details = $this->businessUtil->getDetails($business_id);
+        $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+
+        $shipping_statuses = $this->transactionUtil->shipping_statuses();
+        $shipping_status_colors = [
+            'ordered' => 'bg-yellow',
+            'packed' => 'bg-info',
+            'shipped' => 'bg-navy',
+            'delivered' => 'bg-green',
+            'cancelled' => 'bg-red',
+        ];
 
         $warranty_expires_in = $this->repairUtil->repairWarrantyExpiresIn($sell);
 
@@ -655,7 +676,7 @@ class RepairController extends Controller
         }
 
         return view('repair::repair.show')
-            ->with(compact('taxes', 'sell', 'payment_types', 'order_taxes', 'activities', 'warranty_expires_in', 'is_warranty_enabled', 'checklists'));
+            ->with(compact('taxes', 'sell', 'payment_types', 'order_taxes', 'activities', 'warranty_expires_in', 'is_warranty_enabled', 'checklists', 'pos_settings', 'shipping_statuses', 'shipping_status_colors', 'line_taxes'));
     }
 
     /**
