@@ -717,6 +717,12 @@ class StockTransferController extends Controller
             $input_data['status'] = $status == 'completed' ? 'final' : $status;
 
             $products = $request->input('products');
+            // Form row indices stay sparse when users delete rows (e.g. products[1], products[3]);
+            // downstream logic expects 0..n-1 keys matching sell_line_ids_for_purchase / payloads.
+            if (! empty($products) && is_array($products)) {
+                $products = array_values($products);
+            }
+
             $sell_lines = [];
             $purchase_line_payloads = [];
             if (! empty($products)) {
