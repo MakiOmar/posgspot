@@ -148,6 +148,7 @@ return [
     'show_repair_status' => 'إظهار حالة الإصلاح',
     'repair_status_label' => 'ملصق حالة الإصلاح',
     'pick_up_on_site_addr' => 'الاستلام / عنوان الموقع',
+    'customer_job_sheets_all_statuses' => 'أوراق عمل هذا العميل (كل الحالات)',
     'job_sheets_by_status' => 'أوراق العمل حسب الحالة',
     'job_sheets_by_service_staff' => 'أوراق العمل حسب موظفي الخدمة',
     'total_job_sheets' => 'إجمالي أوراق العمل',

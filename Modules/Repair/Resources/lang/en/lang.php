@@ -147,6 +147,7 @@ return [
     'show_repair_status' => 'Show repair status',
     'repair_status_label' => 'Repair status label',
     'pick_up_on_site_addr' => 'Pick up/On site address',
+    'customer_job_sheets_all_statuses' => 'Job sheets for this customer (all statuses)',
     'job_sheets_by_status' => 'Job sheets by status',
     'job_sheets_by_service_staff' => 'Job sheets by service staff',
     'total_job_sheets' => 'Total job sheets',

@@ -50,7 +50,32 @@
             </div>
         </div>
     @else
-        <div class="row">
+        <!-- Single table: all statuses when a customer is selected in filters -->
+        <div class="row hide" id="job_sheet_customer_all_section">
+            <div class="col-md-12">
+                <h4 class="tw-mb-3 tw-font-semibold tw-text-gray-800">
+                    @lang('repair::lang.customer_job_sheets_all_statuses')
+                </h4>
+                <div class="row">
+                    <div class="col-md-12 mb-12">
+                        <a type="button" class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right"
+                            href="{{ action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'create']) }}" id="add_job_sheet_customer_view">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
+                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                <path d="M12 5l0 14" />
+                                <path d="M5 12l14 0" />
+                            </svg> @lang('messages.add')
+                        </a>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    @include('repair::job_sheet.partials.table', ['table_id' => 'job_sheet_table_customer_all'])
+                </div>
+            </div>
+        </div>
+        <div class="row" id="job_sheet_tabs_container">
             <div class="col-md-12">
                 <div class="nav-tabs-custom">
                     <ul class="nav nav-tabs" role="tablist">
@@ -112,10 +137,113 @@
             @endphp
             var jobSheetStatusConfigs = @json($jobSheetStatusConfigs);
 
-            function reloadJobSheetTables() {
-                $.each(jobSheetTables, function (key, table) {
-                    table.ajax.reload();
+            function destroyJobSheetCustomerTable() {
+                if ($.fn.DataTable.isDataTable('#job_sheet_table_customer_all')) {
+                    $('#job_sheet_table_customer_all').DataTable().clear().destroy();
+                }
+            }
+
+            function updateJobSheetViewMode() {
+                if ($('#contact_id').val()) {
+                    $('#job_sheet_tabs_container').addClass('hide');
+                    $('#job_sheet_customer_all_section').removeClass('hide');
+                } else {
+                    $('#job_sheet_customer_all_section').addClass('hide');
+                    $('#job_sheet_tabs_container').removeClass('hide');
+                    destroyJobSheetCustomerTable();
+                }
+            }
+
+            function initJobSheetCustomerTable() {
+                var customerTableSelector = '#job_sheet_table_customer_all';
+                if (! $(customerTableSelector).length || $.fn.DataTable.isDataTable(customerTableSelector)) {
+                    return;
+                }
+                $(customerTableSelector).DataTable({
+                    processing: true,
+                    serverSide: true,
+                    fixedHeader: false,
+                    ajax: {
+                        url: '/repair/job-sheet',
+                        data: function (d) {
+                            if ($('#sell_list_filter_date_range').val()) {
+                                var dateRange = $('#sell_list_filter_date_range').data('daterangepicker');
+                                if (dateRange) {
+                                    d.start_date = dateRange.startDate.format('YYYY-MM-DD');
+                                    d.end_date = dateRange.endDate.format('YYYY-MM-DD');
+                                }
+                            }
+                            d.location_id = $('#location_id').val();
+                            d.contact_id = $('#contact_id').val();
+                            d.customer_all_statuses = 1;
+                            @if(in_array('service_staff' ,$enabled_modules))
+                                d.technician = $('#technician').val();
+                            @endif
+                        }
+                    },
+                    columnDefs: [
+                        {
+                            targets: [0, 4],
+                            orderable: false,
+                            searchable: false
+                        }
+                    ],
+                    aaSorting: [[2, 'asc']],
+                    columns: [
+                        { data: 'action', name: 'action' },
+                        { data: 'service_type', name: 'service_type' },
+                        { data: 'delivery_date', name: 'delivery_date' },
+                        { data: 'job_sheet_no', name: 'job_sheet_no' },
+                        { data: 'repair_no', name: 'repair_no' },
+                        { data: 'status', name: 'rs.name' },
+                        @if(in_array('service_staff' ,$enabled_modules))
+                            { data: 'technecian', name: 'technecian', searchable: false },
+                        @endif
+                        { data: 'customer', name: 'contacts.name' },
+                        { data: 'contact_id', name: 'contacts.contact_id' },
+                        { data: 'mobile', name: 'contacts.mobile' },
+                        { data: 'location', name: 'bl.name' },
+                        { data: 'brand', name: 'b.name' },
+                        { data: 'device', name: 'device.name' },
+                        { data: 'device_model', name: 'rdm.name' },
+                        { data: 'serial_no', name: 'serial_no' },
+                        { data: 'estimated_cost', name: 'estimated_cost' },
+                        @if(!empty($repair_settings['job_sheet_custom_field_1']))
+                            { data: 'custom_field_1', name: 'repair_job_sheets.custom_field_1' },
+                        @endif
+                        @if(!empty($repair_settings['job_sheet_custom_field_2']))
+                            { data: 'custom_field_2', name: 'repair_job_sheets.custom_field_2' },
+                        @endif
+                        @if(!empty($repair_settings['job_sheet_custom_field_3']))
+                            { data: 'custom_field_3', name: 'repair_job_sheets.custom_field_3' },
+                        @endif
+                        @if(!empty($repair_settings['job_sheet_custom_field_4']))
+                            { data: 'custom_field_4', name: 'repair_job_sheets.custom_field_4' },
+                        @endif
+                        @if(!empty($repair_settings['job_sheet_custom_field_5']))
+                            { data: 'custom_field_5', name: 'repair_job_sheets.custom_field_5' },
+                        @endif
+                        { data: 'added_by', name: 'added_by', searchable: false },
+                        { data: 'created_at', name: 'repair_job_sheets.created_at' }
+                    ],
+                    fnDrawCallback: function () {
+                        __currency_convert_recursively($(customerTableSelector));
+                    }
                 });
+            }
+
+            function reloadJobSheetTables() {
+                if ($('#contact_id').val()) {
+                    if (! $.fn.DataTable.isDataTable('#job_sheet_table_customer_all')) {
+                        initJobSheetCustomerTable();
+                    } else {
+                        $('#job_sheet_table_customer_all').DataTable().ajax.reload();
+                    }
+                } else {
+                    $.each(jobSheetTables, function (key, table) {
+                        table.ajax.reload();
+                    });
+                }
             }
 
             jobSheetStatusConfigs.forEach(function (statusConfig) {
@@ -335,9 +463,14 @@
                 });
             });
 
-            $(document).on('change', '#location_id, #contact_id, #technician',  function() {
+            $(document).on('change', '#location_id, #contact_id, #technician', function () {
+                if ($(this).attr('id') === 'contact_id') {
+                    updateJobSheetViewMode();
+                }
                 reloadJobSheetTables();
             });
+
+            updateJobSheetViewMode();
 
             $('#sell_list_filter_date_range').daterangepicker(
                 dateRangeSettings,
