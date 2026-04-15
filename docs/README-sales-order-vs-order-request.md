@@ -4,6 +4,55 @@ This application stores both **sales orders** and **CRM order requests** as the 
 
 ---
 
+## What is a sales order?
+
+A **sales order** is a structured **commitment to sell** before (or instead of) ringing everything through as an immediate cash-and-carry invoice. In this POS, it is a transaction in **ordered** or **partial** status (and eventually **completed** when fully fulfilled) with lines, customer, location, totals, and optional **shipping** tracking.
+
+**Typical business meaning**
+
+- You record **what** the customer agreed to buy, **quantities**, and **pricing** early.
+- You can **fulfil in stages** (partial deliveries or partial invoicing) while the system tracks **quantity remaining** on the order.
+- Staff can later **pull that order into the POS screen**, load its lines, and complete a sale so stock and payments align with what was promised on the order.
+
+**Why it matters in this POS**
+
+- Separates **“customer ordered these items”** from **“we finalized payment and stock movement for this visit”**, which reduces errors for phone orders, pre-orders, B2B batches, and multi-step fulfilment.
+- The register flow can **attach a checkout to an existing sales order** (open orders for that customer and location are offered in POS; lines can be brought into the cart from `/get-sales-orders` / `/get-sales-order-lines`). When the sale is saved, linked sales order status is updated.
+- The **Sales order** menu gives operations a single place to monitor order status, shipping, and remaining quantities across customers and locations.
+
+---
+
+## What is an order request?
+
+An **order request** is still stored as a **sales order** row, but it is created through the **CRM customer portal** and marked with **`crm_is_order_request = 1`**. Think of it as the customer’s **self-service “I want to order this”** submission rather than something a cashier typed in at the shop.
+
+**Typical business meaning**
+
+- The buyer enters products and quantities **outside** the shop (often B2B reordering).
+- The business may still need to **confirm stock, prices, credit, or delivery** before treating it as a firm operational order—your internal process can treat the queue as “inbound requests” first.
+- Once accepted and processed, it follows the **same fulfilment mechanics** as any other sales order (statuses, remaining quantities, POS linkage), so you do not maintain a second parallel order system.
+
+**Why it differs from a staff-only sales order in practice**
+
+- **Provenance:** created by the logged-in **contact user**, scoped to their **contact** in the portal.
+- **Reference:** can use CRM settings (for example **order request prefix** / `crm_order_request` reference type) so request numbers are recognizable in lists and on documents.
+- **Visibility:** staff can isolate these in **CRM → Order request** without clutter from every counter-created sales order.
+
+---
+
+## Why use sales orders and order requests in this POS system?
+
+| Need | How the system helps |
+|------|----------------------|
+| **Avoid mixing “quote intent” with a paid ticket** | A sales order holds agreed lines and value **before** the final POS sale, with clear statuses. |
+| **Fulfil over time** | Partial status and **quantity remaining** support split picking, partial dispatch, or multiple register visits against one order. |
+| **POS checkout tied to the promise** | Staff select the customer’s open sales order in POS and load lines so the **invoice matches the original order** and stock logic stays consistent. |
+| **Shipping and back-office filters** | The main **Sales order** screen supports **shipping status** and the same filters you use for operational follow-up. |
+| **B2B / wholesale self-service** | **Order requests** let trusted customers submit demand **24/7** from the portal; your team reviews them on **CRM → Order request** or alongside all orders on **Sales order**. |
+| **One fulfilment pipeline** | Order requests are **not** a duplicate document type—they reuse **sales order** behaviour, so training and reporting stay simpler. |
+
+---
+
 ## Routes and who uses them
 
 | Route (path) | Typical user | Purpose |
