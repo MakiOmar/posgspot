@@ -24,48 +24,12 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            position: relative;
         }
-        .email-content-wrapper {
-            position: relative;
-            overflow: hidden;
-            min-height: 420px;
-        }
-        .email-watermark-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            min-height: 420px;
-            overflow: hidden;
-            pointer-events: none;
-            z-index: 1;
-        }
-        .email-watermark-item {
-            position: absolute;
-            transform: rotate(-45deg);
-            -webkit-transform: rotate(-45deg);
-            opacity: 0.13;
-            color: #999999;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 26px;
-            font-weight: 400;
-            letter-spacing: 3px;
-            white-space: nowrap;
-            line-height: 1;
-        }
-        .email-watermark-item img {
-            width: 72px;
-            height: auto;
-            opacity: 0.9;
-        }
-        .email-body-content {
-            position: relative;
-            z-index: 2;
+        .email-content-cell {
+            padding: 0;
         }
         .header {
-            background-color: #FFD700;
+            background-color: rgba(255, 215, 0, 0.88);
             color: #000000;
             text-align: center;
             padding: 20px;
@@ -75,6 +39,7 @@
         .content {
             padding: 25px;
             line-height: 1.6;
+            background-color: transparent;
         }
         .content h2 {
             margin-top: 0;
@@ -83,7 +48,7 @@
         .invoice-details {
             margin: 20px 0;
             padding: 15px;
-            background: #f1f5f9;
+            background: rgba(241, 245, 249, 0.82);
             border-radius: 6px;
         }
         .invoice-details p {
@@ -93,7 +58,7 @@
             display: inline-block;
             margin: 20px 0;
             padding: 12px 20px;
-            background-color: #FFD700;
+            background-color: rgba(255, 215, 0, 0.92);
             color: #000000!important;
             text-decoration: none;
             border-radius: 5px;
@@ -104,6 +69,7 @@
             padding: 15px;
             font-size: 12px;
             color: #999999;
+            background-color: transparent;
         }
         .footer img {
             margin-top: 10px;
@@ -112,19 +78,19 @@
     </style>
 </head>
 <body>
+    @php
+        $watermark_style = $watermark_style ?? '';
+    @endphp
     <div class="email-wrapper">
-        <div class="email-container">
-            <div class="email-content-wrapper">
-                {{-- Repeating staggered watermark overlay --}}
-                @include('emails.partials.watermark_pattern')
-
-                <div class="email-body-content">
+        <table role="presentation" class="email-container" width="100%" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+            <tr>
+                <td class="email-content-cell" style="padding: 0; {{ $watermark_style }}">
                     @if (isset($content))
                         {!! $content !!}
                     @endif
-                </div>
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
 </html>

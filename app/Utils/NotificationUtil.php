@@ -404,9 +404,12 @@ class NotificationUtil extends Util
             $business = Business::find(session('user.business_id'));
         }
 
+        $watermark = $business_util->getEmailWatermarkViewData($email_settings, $business);
+
         return [
             'content' => $content,
-            'watermark' => $business_util->getEmailWatermarkViewData($email_settings, $business),
+            'watermark' => $watermark,
+            'watermark_style' => $business_util->getEmailWatermarkBackgroundStyle($watermark),
         ];
     }
 

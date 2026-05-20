@@ -77,14 +77,26 @@ class EmailWatermarkSettingsTest extends TestCase
         $this->assertStringContainsString('logo.png', $watermark['logo_url']);
     }
 
-    public function test_email_watermark_pattern_generates_staggered_grid()
+    public function test_email_watermark_builds_repeating_background_url()
     {
         $business_util = new BusinessUtil();
-        $items = $business_util->getEmailWatermarkPatternItems(4, 2);
+        $watermark = [
+            'enabled' => true,
+            'type' => 'business_name',
+            'business_name' => 'Games Spot',
+        ];
 
-        $this->assertCount(8, $items);
-        $this->assertArrayHasKey('left', $items[0]);
-        $this->assertArrayHasKey('top', $items[0]);
-        $this->assertNotSame($items[0]['left'], $items[1]['left']);
+        $url = $business_util->buildEmailWatermarkBackgroundUrl($watermark);
+
+        $this->assertNotNull($url);
+        $this->assertStringStartsWith('data:image/svg+xml;base64,', $url);
+    }
+
+    public function test_email_watermark_background_style_is_empty_when_disabled()
+    {
+        $business_util = new BusinessUtil();
+        $style = $business_util->getEmailWatermarkBackgroundStyle(['enabled' => false]);
+
+        $this->assertSame('', $style);
     }
 }

@@ -466,64 +466,102 @@ class BusinessUtil extends Util
         $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
 
         if ($watermark_type === 'logo' && ! empty($business->logo)) {
-            return [
+            $watermark = [
                 'enabled' => true,
                 'type' => 'logo',
                 'logo_url' => url('storage/business_logos/'.$business->logo),
-                'items' => $this->getEmailWatermarkPatternItems(),
+                'logo_path' => public_path('storage/business_logos/'.$business->logo),
+                'business_name' => $business->name ?? '',
             ];
+            $watermark['background_url'] = $this->buildEmailWatermarkBackgroundUrl($watermark);
+
+            return $watermark;
         }
 
-        return [
+        $watermark = [
             'enabled' => true,
             'type' => 'business_name',
             'business_name' => $business->name ?? '',
-            'items' => $this->getEmailWatermarkPatternItems(),
         ];
+        $watermark['background_url'] = $this->buildEmailWatermarkBackgroundUrl($watermark);
+
+        return $watermark;
     }
 
     /**
-     * Build staggered grid positions for repeating email watermarks.
+     * Build a repeating SVG tile for email/PDF watermark backgrounds.
      *
-     * @param  int  $rows
-     * @param  int  $cols
-     * @return array
+     * @param  array  $watermark
+     * @return string|null
      */
-    public function getEmailWatermarkPatternItems($rows = 14, $cols = 3)
+    public function buildEmailWatermarkBackgroundUrl(array $watermark)
     {
-        $items = [];
-
-        for ($row = 0; $row < $rows; $row++) {
-            for ($col = 0; $col < $cols; $col++) {
-                $stagger = ($row % 2 === 1) ? 17 : 0;
-                $jitter = (($row * 7 + $col * 11) % 5) - 2;
-
-                $items[] = [
-                    'left' => ($col * 34) + $stagger + $jitter,
-                    'top' => ($row * 12) + ((($row + $col) % 3) - 1),
-                ];
-            }
+        if (empty($watermark['enabled'])) {
+            return null;
         }
 
-        return $items;
+        if (! empty($watermark['type']) && $watermark['type'] === 'logo' && ! empty($watermark['logo_path']) && file_exists($watermark['logo_path'])) {
+            $mime = mime_content_type($watermark['logo_path']) ?: 'image/png';
+            $encoded_logo = base64_encode((string) file_get_contents($watermark['logo_path']));
+
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="300" height="200" viewBox="0 0 300 200">'
+                .'<g opacity="0.12">'
+                .'<image xlink:href="data:'.$mime.';base64,'.$encoded_logo.'" x="20" y="20" width="72" height="72" transform="rotate(-45 56 56)"/>'
+                .'<image xlink:href="data:'.$mime.';base64,'.$encoded_logo.'" x="170" y="100" width="72" height="72" transform="rotate(-45 206 136)"/>'
+                .'</g></svg>';
+
+            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+        }
+
+        $label = mb_strtoupper($watermark['business_name'] ?? '');
+        $label = htmlspecialchars($label, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+
+        if ($label === '') {
+            return null;
+        }
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">'
+            .'<g opacity="0.12" fill="#888888" font-family="Georgia, Times New Roman, serif" font-size="20" letter-spacing="3">'
+            .'<text transform="rotate(-45 80 60)" x="80" y="60" text-anchor="middle">'.$label.'</text>'
+            .'<text transform="rotate(-45 220 150)" x="220" y="150" text-anchor="middle">'.$label.'</text>'
+            .'</g></svg>';
+
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 
     /**
-     * Render repeating watermark HTML to prepend to PDF bodies.
+     * Inline CSS for applying the tiled watermark background.
      *
+     * @param  array  $watermark
+     * @return string
+     */
+    public function getEmailWatermarkBackgroundStyle(array $watermark)
+    {
+        if (empty($watermark['enabled']) || empty($watermark['background_url'])) {
+            return '';
+        }
+
+        return 'background-image: url('.$watermark['background_url'].'); background-repeat: repeat; background-size: 300px 200px;';
+    }
+
+    /**
+     * Wrap HTML with a repeating watermark background container.
+     *
+     * @param  string  $html
      * @param  \App\Business  $business
      * @param  array|null  $email_settings
      * @return string
      */
-    public function renderEmailWatermarkOverlayHtml($business, $email_settings = null)
+    public function wrapHtmlWithEmailWatermark($html, $business, $email_settings = null)
     {
         $watermark = $this->getEmailWatermarkViewData($email_settings, $business);
+        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark);
 
-        if (empty($watermark['enabled'])) {
-            return '';
+        if ($background_style === '') {
+            return $html;
         }
 
-        return view('emails.partials.watermark_overlay_pdf', compact('watermark'))->render();
+        return view('emails.partials.watermark_wrapper_pdf', compact('html', 'background_style'))->render();
     }
 
     /**
@@ -536,13 +574,7 @@ class BusinessUtil extends Util
      */
     public function prependEmailWatermarkToHtml($html, $business, $email_settings = null)
     {
-        $overlay = $this->renderEmailWatermarkOverlayHtml($business, $email_settings);
-
-        if (empty($overlay)) {
-            return $html;
-        }
-
-        return $overlay.$html;
+        return $this->wrapHtmlWithEmailWatermark($html, $business, $email_settings);
     }
 
     /**

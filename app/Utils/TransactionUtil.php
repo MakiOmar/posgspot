@@ -6244,7 +6244,7 @@ class TransactionUtil extends Util
 
         $business = Business::findOrFail($business_id);
         $business_util = new BusinessUtil();
-        $body = $business_util->prependEmailWatermarkToHtml($body, $business);
+        $body = $business_util->wrapHtmlWithEmailWatermark($body, $business);
 
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
