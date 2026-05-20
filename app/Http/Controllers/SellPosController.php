@@ -745,22 +745,13 @@ class SellPosController extends Controller
             'decimal_separator' => $business_details->decimal_separator,
         ];
         $receipt_details->currency = $currency_details;
+        $output['print_title'] = $receipt_details->invoice_no;
 
         if ($is_package_slip) {
             $output['html_content'] = view('sale_pos.receipts.packing_slip', compact('receipt_details'))->render();
-
-            return $output;
-        }
-
-        if ($is_delivery_note) {
+        } elseif ($is_delivery_note) {
             $output['html_content'] = view('sale_pos.receipts.delivery_note', compact('receipt_details'))->render();
-
-            return $output;
-        }
-
-        $output['print_title'] = $receipt_details->invoice_no;
-        //If print type browser - return the content, printer - return printer config data, and invoice format config
-        if ($receipt_printer_type == 'printer') {
+        } elseif ($receipt_printer_type == 'printer') {
             $output['print_type'] = 'printer';
             $output['printer_config'] = $this->businessUtil->printerConfig($business_id, $location_details->printer_id);
             $output['data'] = $receipt_details;
@@ -768,6 +759,14 @@ class SellPosController extends Controller
             $layout = !empty($receipt_details->design) ? 'sale_pos.receipts.' . $receipt_details->design : 'sale_pos.receipts.classic';
 
             $output['html_content'] = view($layout, compact('receipt_details'))->render();
+        }
+
+        if (! empty($output['html_content'])) {
+            $business = Business::find($business_id);
+
+            if (! empty($business)) {
+                $output['html_content'] = $this->businessUtil->wrapHtmlWithDocumentWatermark($output['html_content'], $business, false);
+            }
         }
 
         return $output;
@@ -3295,6 +3294,31 @@ class SellPosController extends Controller
     }
 
     /**
+     * Render invoice PDF with optional document watermark.
+     */
+    private function renderDocumentPdf($body, $business_id, $title, $output_filename)
+    {
+        $business = Business::findOrFail($business_id);
+        $body = $this->businessUtil->wrapHtmlWithDocumentWatermark($body, $business, true);
+
+        $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
+            'mode' => 'utf-8',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => true,
+            'autoVietnamese' => true,
+            'autoArabic' => true,
+            'margin_top' => 8,
+            'margin_bottom' => 8,
+            'format' => 'A4',
+        ]);
+
+        $mpdf->useSubstitutions = true;
+        $mpdf->SetTitle($title);
+        $mpdf->WriteHTML($body);
+        $mpdf->Output($output_filename, 'I');
+    }
+
+    /**
      * download pdf for given transaction
      */
     public function downloadPdf($id)
@@ -3320,23 +3344,12 @@ class SellPosController extends Controller
             ->with(compact('receipt_details', 'location_details', 'is_email_attachment'))
             ->render();
 
-        $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
-            'mode' => 'utf-8',
-            'autoScriptToLang' => true,
-            'autoLangToFont' => true,
-            'autoVietnamese' => true,
-            'autoArabic' => true,
-            'margin_top' => 8,
-            'margin_bottom' => 8,
-            'format' => 'A4',
-        ]);
-
-        $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
-        $mpdf->SetTitle('INVOICE-' . $receipt_details->invoice_no . '.pdf');
-        $mpdf->WriteHTML($body);
-        $mpdf->Output('INVOICE-' . $receipt_details->invoice_no . '.pdf', 'I');
+        $this->renderDocumentPdf(
+            $body,
+            $business_id,
+            'INVOICE-' . $receipt_details->invoice_no . '.pdf',
+            'INVOICE-' . $receipt_details->invoice_no . '.pdf'
+        );
     }
 
     /**
@@ -3359,23 +3372,13 @@ class SellPosController extends Controller
             ->with(compact('receipt_details', 'location_details', 'sub_status'))
             ->render();
         $pdf_name = (!empty($sub_status) && $sub_status == 'proforma') ? __('lang_v1.proforma_invoice') : 'QUOTATION';
-        $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
-            'mode' => 'utf-8',
-            'autoScriptToLang' => true,
-            'autoLangToFont' => true,
-            'autoVietnamese' => true,
-            'autoArabic' => true,
-            'margin_top' => 8,
-            'margin_bottom' => 8,
-            'format' => 'A4',
-        ]);
 
-        $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
-        $mpdf->SetTitle($pdf_name . '-' . $receipt_details->invoice_no . '.pdf');
-        $mpdf->WriteHTML($body);
-        $mpdf->Output($pdf_name . '-' . $receipt_details->invoice_no . '.pdf', 'I');
+        $this->renderDocumentPdf(
+            $body,
+            $business_id,
+            $pdf_name . '-' . $receipt_details->invoice_no . '.pdf',
+            $pdf_name . '-' . $receipt_details->invoice_no . '.pdf'
+        );
     }
 
     /**
@@ -3398,23 +3401,12 @@ class SellPosController extends Controller
             ->with(compact('receipt_details', 'location_details'))
             ->render();
 
-        $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
-            'mode' => 'utf-8',
-            'autoScriptToLang' => true,
-            'autoLangToFont' => true,
-            'autoVietnamese' => true,
-            'autoArabic' => true,
-            'margin_top' => 8,
-            'margin_bottom' => 8,
-            'format' => 'A4',
-        ]);
-
-        $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
-        $mpdf->SetTitle('PACKINGSLIP-' . $receipt_details->invoice_no . '.pdf');
-        $mpdf->WriteHTML($body);
-        $mpdf->Output('PACKINGSLIP-' . $receipt_details->invoice_no . '.pdf', 'I');
+        $this->renderDocumentPdf(
+            $body,
+            $business_id,
+            'PACKINGSLIP-' . $receipt_details->invoice_no . '.pdf',
+            'PACKINGSLIP-' . $receipt_details->invoice_no . '.pdf'
+        );
     }
 
     public function showServiceStaffAvailibility()

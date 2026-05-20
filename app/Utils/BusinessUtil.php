@@ -714,23 +714,41 @@ class BusinessUtil extends Util
      *
      * @param  string  $html
      * @param  \App\Business  $business
+     * @param  bool  $for_pdf
      * @param  array|null  $email_settings
      * @return string
      */
-    public function wrapHtmlWithEmailWatermark($html, $business, $email_settings = null)
+    public function wrapHtmlWithDocumentWatermark($html, $business, $for_pdf = false, $email_settings = null)
     {
+        if (empty($business)) {
+            return $html;
+        }
+
         $watermark = $this->getEmailWatermarkViewData($email_settings, $business);
-        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark, true);
+        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark, $for_pdf);
 
         if ($background_style === '') {
             return $html;
         }
 
-        return view('emails.partials.watermark_wrapper_pdf', [
+        return view('emails.partials.watermark_document_wrapper', [
             'html' => $html,
             'background_style' => $background_style,
             'watermark_background_url' => $watermark['background_url'] ?? '',
         ])->render();
+    }
+
+    /**
+     * Wrap HTML with a repeating watermark background container.
+     *
+     * @param  string  $html
+     * @param  \App\Business  $business
+     * @param  array|null  $email_settings
+     * @return string
+     */
+    public function wrapHtmlWithEmailWatermark($html, $business, $email_settings = null)
+    {
+        return $this->wrapHtmlWithDocumentWatermark($html, $business, true, $email_settings);
     }
 
     /**

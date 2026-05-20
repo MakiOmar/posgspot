@@ -846,6 +846,8 @@ class PurchaseOrderController extends Controller
                     ->with(compact('purchase', 'invoice_layout', 'location_details', 'logo', 'total_in_words', 'custom_labels', 'taxes', 'last_purchase'))
                     ->render();
 
+        $body = $this->businessUtil->wrapHtmlWithDocumentWatermark($body, $purchase->business, true);
+
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
             'autoScriptToLang' => true,
@@ -858,8 +860,6 @@ class PurchaseOrderController extends Controller
         ]);
 
         $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($purchase->business->name, 0.1);
-        $mpdf->showWatermarkText = true;
         $mpdf->SetTitle('PO-'.$purchase->ref_no.'.pdf');
         $mpdf->WriteHTML($body);
         $mpdf->Output('PO-'.$purchase->ref_no.'.pdf', 'I');

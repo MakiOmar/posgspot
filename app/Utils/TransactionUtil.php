@@ -6244,7 +6244,7 @@ class TransactionUtil extends Util
 
         $business = Business::findOrFail($business_id);
         $business_util = new BusinessUtil();
-        $body = $business_util->wrapHtmlWithEmailWatermark($body, $business);
+        $body = $business_util->wrapHtmlWithDocumentWatermark($body, $business, true);
 
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
@@ -6359,7 +6359,7 @@ class TransactionUtil extends Util
                     ->render();
 
         $business_util = new BusinessUtil();
-        $body = $business_util->prependEmailWatermarkToHtml($body, $purchase->business);
+        $body = $business_util->wrapHtmlWithDocumentWatermark($body, $purchase->business, true);
 
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
