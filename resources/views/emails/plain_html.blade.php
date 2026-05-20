@@ -28,8 +28,8 @@
             padding: 0;
         }
         .header {
-            background-color: rgba(255, 215, 0, 0.9);
-            color: #000000;
+            background-color: #f37c16;
+            color: #ffffff;
             text-align: center;
             padding: 20px;
             font-size: 20px;
@@ -42,7 +42,7 @@
         }
         .content h2 {
             margin-top: 0;
-            color: #FFD700;
+            color: #f37c16;
         }
         .invoice-details {
             margin: 20px 0;
@@ -57,8 +57,8 @@
             display: inline-block;
             margin: 20px 0;
             padding: 12px 20px;
-            background-color: rgba(255, 215, 0, 0.94);
-            color: #000000!important;
+            background-color: #f37c16;
+            color: #ffffff!important;
             text-decoration: none;
             border-radius: 5px;
             font-weight: bold;
@@ -75,12 +75,12 @@
             max-width: 120px;
         }
         .wm-fallback-row td {
-            padding: 28px 8px;
+            padding: 18px 4px;
             text-align: center;
             color: #d0d0d0;
             font-family: Georgia, "Times New Roman", serif;
-            font-size: 20px;
-            letter-spacing: 3px;
+            font-size: 16px;
+            letter-spacing: 2px;
             line-height: 1;
         }
     </style>

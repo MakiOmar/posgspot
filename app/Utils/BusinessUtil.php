@@ -518,6 +518,7 @@ class BusinessUtil extends Util
             $watermark['type'] ?? '',
             $watermark['business_name'] ?? '',
             $logo_mtime,
+            'dense_v2',
         ]));
 
         $filename = 'wm_'.$business_id.'_'.$signature.'.png';
@@ -546,8 +547,8 @@ class BusinessUtil extends Util
      */
     protected function generateEmailWatermarkTilePng(array $watermark, $path)
     {
-        $width = 300;
-        $height = 200;
+        $width = 200;
+        $height = 140;
         $canvas = imagecreatetruecolor($width, $height);
 
         if ($canvas === false) {
@@ -558,19 +559,30 @@ class BusinessUtil extends Util
         $transparent = imagecolorallocatealpha($canvas, 255, 255, 255, 127);
         imagefill($canvas, 0, 0, $transparent);
 
+        $positions = [
+            [6, 4], [108, 4],
+            [52, 42], [6, 78],
+            [108, 78], [52, 108],
+        ];
+
         if (! empty($watermark['type']) && $watermark['type'] === 'logo' && ! empty($watermark['logo_path']) && file_exists($watermark['logo_path'])) {
             $logo = $this->loadImageFromPath($watermark['logo_path']);
 
             if ($logo !== false) {
-                $logo = imagescale($logo, 72, 72);
-                $this->mergeRotatedImage($canvas, $logo, 10, 10, -45, 18);
-                $this->mergeRotatedImage($canvas, $logo, 160, 90, -45, 18);
+                $logo = imagescale($logo, 52, 52);
+
+                foreach ($positions as $position) {
+                    $this->mergeRotatedImage($canvas, $logo, $position[0], $position[1], -45, 18);
+                }
+
                 imagedestroy($logo);
             }
         } else {
             $label = $this->truncateWatermarkLabel($watermark['business_name'] ?? '');
-            $this->drawWatermarkText($canvas, $label, 20, 30, -45);
-            $this->drawWatermarkText($canvas, $label, 150, 110, -45);
+
+            foreach ($positions as $position) {
+                $this->drawWatermarkText($canvas, $label, $position[0], $position[1], -45);
+            }
         }
 
         imagepng($canvas, $path);
@@ -642,14 +654,14 @@ class BusinessUtil extends Util
      */
     protected function drawWatermarkText($canvas, $text, $dest_x, $dest_y, $angle)
     {
-        $text_width = max(120, strlen($text) * 14);
-        $text_height = 50;
+        $text_width = max(100, strlen($text) * 11);
+        $text_height = 40;
         $text_image = imagecreatetruecolor($text_width, $text_height);
         imagesavealpha($text_image, true);
         $transparent = imagecolorallocatealpha($text_image, 255, 255, 255, 127);
         imagefill($text_image, 0, 0, $transparent);
         $grey = imagecolorallocate($text_image, 170, 170, 170);
-        imagestring($text_image, 5, 8, 16, $text, $grey);
+        imagestring($text_image, 4, 6, 14, $text, $grey);
         $this->mergeRotatedImage($canvas, $text_image, $dest_x, $dest_y, $angle, 22);
         imagedestroy($text_image);
     }
@@ -694,7 +706,7 @@ class BusinessUtil extends Util
             return '';
         }
 
-        return "background-image: url('".$background_ref."'); background-repeat: repeat; background-size: 300px 200px;";
+        return "background-image: url('".$background_ref."'); background-repeat: repeat; background-size: 200px 140px;";
     }
 
     /**
