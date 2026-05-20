@@ -472,61 +472,202 @@ class BusinessUtil extends Util
                 'logo_url' => url('storage/business_logos/'.$business->logo),
                 'logo_path' => public_path('storage/business_logos/'.$business->logo),
                 'business_name' => $business->name ?? '',
+                'business_id' => $business->id,
             ];
-            $watermark['background_url'] = $this->buildEmailWatermarkBackgroundUrl($watermark);
-
-            return $watermark;
+        } else {
+            $watermark = [
+                'enabled' => true,
+                'type' => 'business_name',
+                'business_name' => $business->name ?? '',
+                'business_id' => $business->id,
+            ];
         }
 
-        $watermark = [
-            'enabled' => true,
-            'type' => 'business_name',
-            'business_name' => $business->name ?? '',
-        ];
-        $watermark['background_url'] = $this->buildEmailWatermarkBackgroundUrl($watermark);
+        $tile = $this->getOrCreateEmailWatermarkTile($watermark);
+        $watermark['tile'] = $tile;
+        $watermark['background_url'] = ! empty($tile['url']) ? $tile['url'] : null;
 
         return $watermark;
     }
 
     /**
-     * Build a repeating SVG tile for email/PDF watermark backgrounds.
+     * Generate (or reuse) a PNG tile for email clients that block SVG data URIs.
      *
      * @param  array  $watermark
-     * @return string|null
+     * @return array|null  ['url' => string, 'path' => string]
      */
-    public function buildEmailWatermarkBackgroundUrl(array $watermark)
+    public function getOrCreateEmailWatermarkTile(array $watermark)
     {
-        if (empty($watermark['enabled'])) {
+        if (empty($watermark['enabled']) || ! extension_loaded('gd')) {
             return null;
         }
+
+        $business_id = $watermark['business_id'] ?? 0;
+        $dir = public_path('uploads/email_watermarks');
+
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $logo_mtime = '';
+        if (! empty($watermark['logo_path']) && file_exists($watermark['logo_path'])) {
+            $logo_mtime = (string) filemtime($watermark['logo_path']);
+        }
+
+        $signature = md5(json_encode([
+            $watermark['type'] ?? '',
+            $watermark['business_name'] ?? '',
+            $logo_mtime,
+        ]));
+
+        $filename = 'wm_'.$business_id.'_'.$signature.'.png';
+        $path = $dir.DIRECTORY_SEPARATOR.$filename;
+
+        if (! file_exists($path)) {
+            $this->generateEmailWatermarkTilePng($watermark, $path);
+        }
+
+        if (! file_exists($path)) {
+            return null;
+        }
+
+        return [
+            'url' => url('uploads/email_watermarks/'.$filename),
+            'path' => $path,
+        ];
+    }
+
+    /**
+     * Draw a repeating PNG watermark tile.
+     *
+     * @param  array  $watermark
+     * @param  string  $path
+     * @return void
+     */
+    protected function generateEmailWatermarkTilePng(array $watermark, $path)
+    {
+        $width = 300;
+        $height = 200;
+        $canvas = imagecreatetruecolor($width, $height);
+
+        if ($canvas === false) {
+            return;
+        }
+
+        imagesavealpha($canvas, true);
+        $transparent = imagecolorallocatealpha($canvas, 255, 255, 255, 127);
+        imagefill($canvas, 0, 0, $transparent);
 
         if (! empty($watermark['type']) && $watermark['type'] === 'logo' && ! empty($watermark['logo_path']) && file_exists($watermark['logo_path'])) {
-            $mime = mime_content_type($watermark['logo_path']) ?: 'image/png';
-            $encoded_logo = base64_encode((string) file_get_contents($watermark['logo_path']));
+            $logo = $this->loadImageFromPath($watermark['logo_path']);
 
-            $svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="300" height="200" viewBox="0 0 300 200">'
-                .'<g opacity="0.12">'
-                .'<image xlink:href="data:'.$mime.';base64,'.$encoded_logo.'" x="20" y="20" width="72" height="72" transform="rotate(-45 56 56)"/>'
-                .'<image xlink:href="data:'.$mime.';base64,'.$encoded_logo.'" x="170" y="100" width="72" height="72" transform="rotate(-45 206 136)"/>'
-                .'</g></svg>';
-
-            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+            if ($logo !== false) {
+                $logo = imagescale($logo, 72, 72);
+                $this->mergeRotatedImage($canvas, $logo, 10, 10, -45, 18);
+                $this->mergeRotatedImage($canvas, $logo, 160, 90, -45, 18);
+                imagedestroy($logo);
+            }
+        } else {
+            $label = $this->truncateWatermarkLabel($watermark['business_name'] ?? '');
+            $this->drawWatermarkText($canvas, $label, 20, 30, -45);
+            $this->drawWatermarkText($canvas, $label, 150, 110, -45);
         }
 
-        $label = mb_strtoupper($watermark['business_name'] ?? '');
-        $label = htmlspecialchars($label, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+        imagepng($canvas, $path);
+        imagedestroy($canvas);
+    }
 
-        if ($label === '') {
-            return null;
+    /**
+     * @param  string  $path
+     * @return resource|false
+     */
+    protected function loadImageFromPath($path)
+    {
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        if ($extension === 'png') {
+            return imagecreatefrompng($path);
         }
 
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">'
-            .'<g opacity="0.12" fill="#888888" font-family="Georgia, Times New Roman, serif" font-size="20" letter-spacing="3">'
-            .'<text transform="rotate(-45 80 60)" x="80" y="60" text-anchor="middle">'.$label.'</text>'
-            .'<text transform="rotate(-45 220 150)" x="220" y="150" text-anchor="middle">'.$label.'</text>'
-            .'</g></svg>';
+        if (in_array($extension, ['jpg', 'jpeg'])) {
+            return imagecreatefromjpeg($path);
+        }
 
-        return 'data:image/svg+xml;base64,'.base64_encode($svg);
+        if ($extension === 'gif') {
+            return imagecreatefromgif($path);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  resource  $canvas
+     * @param  resource  $source
+     * @param  int  $dest_x
+     * @param  int  $dest_y
+     * @param  int  $angle
+     * @param  int  $opacity
+     * @return void
+     */
+    protected function mergeRotatedImage($canvas, $source, $dest_x, $dest_y, $angle, $opacity = 20)
+    {
+        $transparent = imagecolorallocatealpha($source, 255, 255, 255, 127);
+        $rotated = imagerotate($source, $angle, $transparent);
+
+        if ($rotated === false) {
+            return;
+        }
+
+        imagecopymerge(
+            $canvas,
+            $rotated,
+            $dest_x,
+            $dest_y,
+            0,
+            0,
+            imagesx($rotated),
+            imagesy($rotated),
+            $opacity
+        );
+        imagedestroy($rotated);
+    }
+
+    /**
+     * @param  resource  $canvas
+     * @param  string  $text
+     * @param  int  $dest_x
+     * @param  int  $dest_y
+     * @param  int  $angle
+     * @return void
+     */
+    protected function drawWatermarkText($canvas, $text, $dest_x, $dest_y, $angle)
+    {
+        $text_width = max(120, strlen($text) * 14);
+        $text_height = 50;
+        $text_image = imagecreatetruecolor($text_width, $text_height);
+        imagesavealpha($text_image, true);
+        $transparent = imagecolorallocatealpha($text_image, 255, 255, 255, 127);
+        imagefill($text_image, 0, 0, $transparent);
+        $grey = imagecolorallocate($text_image, 170, 170, 170);
+        imagestring($text_image, 5, 8, 16, $text, $grey);
+        $this->mergeRotatedImage($canvas, $text_image, $dest_x, $dest_y, $angle, 22);
+        imagedestroy($text_image);
+    }
+
+    /**
+     * @param  string  $label
+     * @param  int  $max
+     * @return string
+     */
+    protected function truncateWatermarkLabel($label, $max = 24)
+    {
+        $label = mb_strtoupper(trim($label));
+
+        if (mb_strlen($label) <= $max) {
+            return $label;
+        }
+
+        return mb_substr($label, 0, $max);
     }
 
     /**
@@ -535,13 +676,25 @@ class BusinessUtil extends Util
      * @param  array  $watermark
      * @return string
      */
-    public function getEmailWatermarkBackgroundStyle(array $watermark)
+    public function getEmailWatermarkBackgroundStyle(array $watermark, $for_pdf = false)
     {
-        if (empty($watermark['enabled']) || empty($watermark['background_url'])) {
+        if (empty($watermark['enabled'])) {
             return '';
         }
 
-        return 'background-image: url('.$watermark['background_url'].'); background-repeat: repeat; background-size: 300px 200px;';
+        $background_ref = null;
+
+        if ($for_pdf && ! empty($watermark['tile']['path'])) {
+            $background_ref = str_replace('\\', '/', $watermark['tile']['path']);
+        } elseif (! empty($watermark['background_url'])) {
+            $background_ref = $watermark['background_url'];
+        }
+
+        if (empty($background_ref)) {
+            return '';
+        }
+
+        return "background-image: url('".$background_ref."'); background-repeat: repeat; background-size: 300px 200px;";
     }
 
     /**
@@ -555,13 +708,17 @@ class BusinessUtil extends Util
     public function wrapHtmlWithEmailWatermark($html, $business, $email_settings = null)
     {
         $watermark = $this->getEmailWatermarkViewData($email_settings, $business);
-        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark);
+        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark, true);
 
         if ($background_style === '') {
             return $html;
         }
 
-        return view('emails.partials.watermark_wrapper_pdf', compact('html', 'background_style'))->render();
+        return view('emails.partials.watermark_wrapper_pdf', [
+            'html' => $html,
+            'background_style' => $background_style,
+            'watermark_background_url' => $watermark['background_url'] ?? '',
+        ])->render();
     }
 
     /**

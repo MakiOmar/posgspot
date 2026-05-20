@@ -1,4 +1,3 @@
-{{-- PDF wrapper: repeating watermark background behind the full document body --}}
-<div style="{{ $background_style }} position: relative; width: 100%;">
+<div style="{{ $background_style }} background-color: #ffffff; position: relative; width: 100%;">
     {!! $html !!}
 </div>

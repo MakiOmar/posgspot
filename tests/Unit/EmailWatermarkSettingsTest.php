@@ -77,19 +77,24 @@ class EmailWatermarkSettingsTest extends TestCase
         $this->assertStringContainsString('logo.png', $watermark['logo_url']);
     }
 
-    public function test_email_watermark_builds_repeating_background_url()
+    public function test_email_watermark_builds_png_tile_background_url()
     {
+        if (! extension_loaded('gd')) {
+            $this->markTestSkipped('GD extension is required for watermark tile generation.');
+        }
+
         $business_util = new BusinessUtil();
-        $watermark = [
-            'enabled' => true,
-            'type' => 'business_name',
-            'business_name' => 'Games Spot',
+        $business = new Business(['id' => 99, 'name' => 'Games Spot']);
+        $email_settings = [
+            'enable_email_watermark' => 1,
+            'email_watermark_type' => 'business_name',
         ];
 
-        $url = $business_util->buildEmailWatermarkBackgroundUrl($watermark);
+        $watermark = $business_util->getEmailWatermarkViewData($email_settings, $business);
 
-        $this->assertNotNull($url);
-        $this->assertStringStartsWith('data:image/svg+xml;base64,', $url);
+        $this->assertNotEmpty($watermark['background_url']);
+        $this->assertStringContainsString('uploads/email_watermarks', $watermark['background_url']);
+        $this->assertFileExists($watermark['tile']['path']);
     }
 
     public function test_email_watermark_background_style_is_empty_when_disabled()

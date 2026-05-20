@@ -410,6 +410,7 @@ class NotificationUtil extends Util
             'content' => $content,
             'watermark' => $watermark,
             'watermark_style' => $business_util->getEmailWatermarkBackgroundStyle($watermark),
+            'watermark_background_url' => $watermark['background_url'] ?? '',
         ];
     }
 

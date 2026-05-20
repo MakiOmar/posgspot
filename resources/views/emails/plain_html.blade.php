@@ -20,7 +20,6 @@
         .email-container {
             max-width: 600px;
             margin: 0 auto;
-            background: #ffffff;
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -29,7 +28,7 @@
             padding: 0;
         }
         .header {
-            background-color: rgba(255, 215, 0, 0.88);
+            background-color: rgba(255, 215, 0, 0.9);
             color: #000000;
             text-align: center;
             padding: 20px;
@@ -48,7 +47,7 @@
         .invoice-details {
             margin: 20px 0;
             padding: 15px;
-            background: rgba(241, 245, 249, 0.82);
+            background: rgba(241, 245, 249, 0.85);
             border-radius: 6px;
         }
         .invoice-details p {
@@ -58,7 +57,7 @@
             display: inline-block;
             margin: 20px 0;
             padding: 12px 20px;
-            background-color: rgba(255, 215, 0, 0.92);
+            background-color: rgba(255, 215, 0, 0.94);
             color: #000000!important;
             text-decoration: none;
             border-radius: 5px;
@@ -75,16 +74,36 @@
             margin-top: 10px;
             max-width: 120px;
         }
+        .wm-fallback-row td {
+            padding: 28px 8px;
+            text-align: center;
+            color: #d0d0d0;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 20px;
+            letter-spacing: 3px;
+            line-height: 1;
+        }
     </style>
 </head>
 <body>
     @php
         $watermark_style = $watermark_style ?? '';
+        $watermark_background_url = $watermark_background_url ?? '';
+        $has_tile_background = ! empty($watermark_background_url);
     @endphp
     <div class="email-wrapper">
-        <table role="presentation" class="email-container" width="100%" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
+        <table role="presentation" class="email-container" width="100%" cellspacing="0" cellpadding="0" border="0" align="center" style="max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);">
             <tr>
-                <td class="email-content-cell" style="padding: 0; {{ $watermark_style }}">
+                <td
+                    class="email-content-cell"
+                    @if($has_tile_background) background="{{ $watermark_background_url }}" @endif
+                    bgcolor="#ffffff"
+                    style="padding: 0; background-color: #ffffff; {{ $watermark_style }}"
+                >
+                    @if(!empty($watermark['enabled']) && !$has_tile_background)
+                        @include('emails.partials.watermark_html_fallback')
+                    @endif
+
                     @if (isset($content))
                         {!! $content !!}
                     @endif
