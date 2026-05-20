@@ -115,6 +115,17 @@ class EmailWatermarkSettingsTest extends TestCase
         $this->assertFileExists($watermark['tile']['path']);
     }
 
+    public function test_document_watermark_pattern_has_balanced_spacing()
+    {
+        $business_util = new BusinessUtil();
+        $items = $business_util->getDocumentWatermarkPatternItems();
+
+        $this->assertCount(30, $items);
+        $this->assertSame(0, $items[0]['left']);
+        $this->assertSame(17, $items[3]['left']);
+        $this->assertSame(15, $items[3]['top']);
+    }
+
     public function test_email_watermark_background_style_is_empty_when_disabled()
     {
         $business_util = new BusinessUtil();

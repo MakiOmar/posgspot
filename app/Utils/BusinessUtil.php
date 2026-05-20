@@ -502,18 +502,17 @@ class BusinessUtil extends Util
      * @param  int  $cols
      * @return array
      */
-    public function getDocumentWatermarkPatternItems($rows = 18, $cols = 4)
+    public function getDocumentWatermarkPatternItems($rows = 10, $cols = 3)
     {
         $items = [];
 
         for ($row = 0; $row < $rows; $row++) {
             for ($col = 0; $col < $cols; $col++) {
-                $stagger = ($row % 2 === 1) ? 12 : 0;
-                $jitter = (($row * 7 + $col * 11) % 5) - 2;
+                $stagger = ($row % 2 === 1) ? 17 : 0;
 
                 $items[] = [
-                    'left' => ($col * 24) + $stagger + $jitter,
-                    'top' => ($row * 9) + ((($row + $col) % 3) - 1),
+                    'left' => min(78, ($col * 34) + $stagger),
+                    'top' => min(90, $row * 15),
                 ];
             }
         }
@@ -549,7 +548,7 @@ class BusinessUtil extends Util
             $watermark['type'] ?? '',
             $watermark['business_name'] ?? '',
             $logo_mtime,
-            'dense_v2',
+            'sparse_v3',
         ]));
 
         $filename = 'wm_'.$business_id.'_'.$signature.'.png';
@@ -578,8 +577,8 @@ class BusinessUtil extends Util
      */
     protected function generateEmailWatermarkTilePng(array $watermark, $path)
     {
-        $width = 200;
-        $height = 140;
+        $width = 300;
+        $height = 200;
         $canvas = imagecreatetruecolor($width, $height);
 
         if ($canvas === false) {
@@ -590,20 +589,20 @@ class BusinessUtil extends Util
         $transparent = imagecolorallocatealpha($canvas, 255, 255, 255, 127);
         imagefill($canvas, 0, 0, $transparent);
 
+        // Two staggered marks per tile — repeats cleanly without crowding.
         $positions = [
-            [6, 4], [108, 4],
-            [52, 42], [6, 78],
-            [108, 78], [52, 108],
+            [35, 25],
+            [175, 115],
         ];
 
         if (! empty($watermark['type']) && $watermark['type'] === 'logo' && ! empty($watermark['logo_path']) && file_exists($watermark['logo_path'])) {
             $logo = $this->loadImageFromPath($watermark['logo_path']);
 
             if ($logo !== false) {
-                $logo = imagescale($logo, 52, 52);
+                $logo = imagescale($logo, 60, 60);
 
                 foreach ($positions as $position) {
-                    $this->mergeRotatedImage($canvas, $logo, $position[0], $position[1], -45, 18);
+                    $this->mergeRotatedImage($canvas, $logo, $position[0], $position[1], -45, 16);
                 }
 
                 imagedestroy($logo);
@@ -737,7 +736,7 @@ class BusinessUtil extends Util
             return '';
         }
 
-        return "background-image: url('".$background_ref."'); background-repeat: repeat; background-size: 200px 140px;";
+        return "background-image: url('".$background_ref."'); background-repeat: repeat; background-size: 300px 200px;";
     }
 
     /**

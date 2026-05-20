@@ -21,20 +21,20 @@
         position: absolute;
         transform: rotate(-45deg);
         -webkit-transform: rotate(-45deg);
-        opacity: 0.12;
-        color: #999999;
+        opacity: 0.10;
+        color: #aaaaaa;
         font-family: Georgia, "Times New Roman", serif;
-        font-size: 22px;
-        letter-spacing: 3px;
+        font-size: 18px;
+        letter-spacing: 2px;
         white-space: nowrap;
         line-height: 1;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     .document-watermark-item img {
-        width: 56px;
+        width: 48px;
         height: auto;
-        opacity: 0.9;
+        opacity: 0.85;
     }
     .document-watermark-content {
         position: relative;
@@ -58,7 +58,7 @@
             print-color-adjust: exact !important;
         }
         .document-watermark-item {
-            opacity: 0.14 !important;
+            opacity: 0.11 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
