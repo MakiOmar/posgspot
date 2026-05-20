@@ -76,7 +76,7 @@ body .hover\:tw-to-blue-600:hover {
                             if (! $logo_path) {
                                 $business = \App\Business::whereNotNull('logo')->first();
                                 if ($business && ! empty($business->logo)) {
-                                    $logo_path = asset('uploads/business_logos/' . $business->logo);
+                                    $logo_path = business_logo_url($business);
                                 }
                             }
 

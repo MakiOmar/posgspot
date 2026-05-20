@@ -13,7 +13,7 @@
         // Get first business logo from database
         $business = \App\Business::whereNotNull('logo')->first();
         if ($business && !empty($business->logo)) {
-            $logo_path = asset('uploads/business_logos/' . $business->logo);
+            $logo_path = business_logo_url($business);
         }
     }
     

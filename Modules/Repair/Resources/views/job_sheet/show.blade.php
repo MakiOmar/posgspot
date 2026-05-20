@@ -51,7 +51,7 @@ $jobsheet_settings['contact_custom_fields'] : [];
                     <div class="width-100">
                         <div class="width-50 f-left" style="padding-top: 40px;">
                             @if(!empty(Session::get('business.logo')))
-                            <img src="{{ asset( 'uploads/business_logos/' . Session::get('business.logo') ) }}" alt="Logo" style="width: auto; max-height: 90px; margin: auto;">
+                            <img src="{{ business_logo_url() }}" alt="Logo" style="width: auto; max-height: 90px; margin: auto;">
                             @endif
                         </div>
                         <div class="width-50 f-left">

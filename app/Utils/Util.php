@@ -846,8 +846,8 @@ class Util
 
             //Replace business_logo
             if (strpos($value, '{business_logo}') !== false) {
-                $logo_name = $business->logo;
-                $business_logo = ! empty($logo_name) ? '<img src="'.url('uploads/business_logos/'.$logo_name).'" alt="Business Logo" >' : '';
+                $business_util = new \App\Utils\BusinessUtil();
+                $business_logo = $business_util->getBusinessLogoHtml($business);
 
                 $data[$key] = str_replace('{business_logo}', $business_logo, $data[$key]);
             }

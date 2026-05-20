@@ -242,6 +242,118 @@ class BusinessUtil extends Util
     }
 
     /**
+     * Resolve the filesystem path for a business logo file.
+     *
+     * @param  string|null  $logo_name
+     * @return string|null
+     */
+    public function getBusinessLogoPath($logo_name)
+    {
+        if (empty($logo_name)) {
+            return null;
+        }
+
+        $paths = [
+            public_path('uploads/business_logos/'.$logo_name),
+            public_path('storage/business_logos/'.$logo_name),
+            storage_path('app/business_logos/'.$logo_name),
+        ];
+
+        foreach ($paths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get public URL for the business logo from settings.
+     *
+     * @param  \App\Business|object|array|string|null  $business
+     * @param  bool  $respect_show_logo
+     * @param  int  $show_logo_flag
+     * @return string|false
+     */
+    public function getBusinessLogoUrl($business, $respect_show_logo = false, $show_logo_flag = 1)
+    {
+        if ($respect_show_logo && empty($show_logo_flag)) {
+            return false;
+        }
+
+        $logo_name = $this->resolveBusinessLogoName($business);
+
+        if (empty($logo_name)) {
+            return false;
+        }
+
+        $logo_path = $this->getBusinessLogoPath($logo_name);
+
+        if (empty($logo_path)) {
+            return false;
+        }
+
+        if (str_contains($logo_path, public_path('storage'.DIRECTORY_SEPARATOR.'business_logos'))) {
+            return url('storage/business_logos/'.$logo_name);
+        }
+
+        return asset('uploads/business_logos/'.$logo_name);
+    }
+
+    /**
+     * Get invoice/document logo URL using business settings logo.
+     *
+     * @param  \App\Business|object|array|null  $business
+     * @param  object|null  $invoice_layout
+     * @return string|false
+     */
+    public function getDocumentLogoUrl($business, $invoice_layout = null)
+    {
+        $show_logo = ! empty($invoice_layout) ? ($invoice_layout->show_logo ?? 0) : 1;
+
+        return $this->getBusinessLogoUrl($business, true, $show_logo);
+    }
+
+    /**
+     * Build HTML img tag for business logo tag replacements.
+     *
+     * @param  \App\Business|object|array|null  $business
+     * @return string
+     */
+    public function getBusinessLogoHtml($business)
+    {
+        $logo_url = $this->getBusinessLogoUrl($business);
+
+        if (empty($logo_url)) {
+            return '';
+        }
+
+        return '<img src="'.$logo_url.'" alt="Business Logo">';
+    }
+
+    /**
+     * @param  mixed  $business
+     * @return string|null
+     */
+    protected function resolveBusinessLogoName($business)
+    {
+        if (is_string($business)) {
+            return $business;
+        }
+
+        if (is_array($business)) {
+            return $business['logo'] ?? null;
+        }
+
+        if (is_object($business)) {
+            return $business->logo ?? null;
+        }
+
+        return null;
+    }
+
+    /**
      * Gives current financial year
      *
      * @return array
@@ -470,11 +582,12 @@ class BusinessUtil extends Util
         $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
 
         if ($watermark_type === 'logo' && ! empty($business->logo)) {
+            $logo_path = $this->getBusinessLogoPath($business->logo);
             $watermark = [
                 'enabled' => true,
                 'type' => 'logo',
-                'logo_url' => url('storage/business_logos/'.$business->logo),
-                'logo_path' => public_path('storage/business_logos/'.$business->logo),
+                'logo_url' => $this->getBusinessLogoUrl($business),
+                'logo_path' => $logo_path,
                 'business_name' => $business->name ?? '',
                 'business_id' => $business->id,
             ];

@@ -46,8 +46,8 @@
                     <ul class="dropdown-menu">
                         <!-- The user image in the menu -->
                         <li class="user-header">
-                            @if(!empty(Session::get('business.logo')))
-                                <img src="{{ url( 'uploads/business_logos/' . Session::get('business.logo') ) }}" alt="Logo">
+                            @if(!empty(business_logo_url()))
+                                <img src="{{ business_logo_url() }}" alt="Logo">
                                 </span>
                             @endif
                             <p>

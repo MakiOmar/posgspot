@@ -56,7 +56,7 @@
 <div class="width-100 box mb-10">
 	<div class="width-50 f-left" align="center">
 		@if(!empty(Session::get('business.logo')))
-          <img src="{{ asset( 'uploads/business_logos/' . Session::get('business.logo') ) }}" alt="Logo" style="width: auto; max-height: 90px; margin: auto;">
+          <img src="{{ business_logo_url() }}" alt="Logo" style="width: auto; max-height: 90px; margin: auto;">
         @endif
 	</div>
 	<div class="width-50 f-left" align="center">

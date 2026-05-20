@@ -145,3 +145,22 @@ if (! function_exists('str_ordinal')) {
         return number_format($number).$suffix;
     }
 }
+
+if (! function_exists('business_logo_url')) {
+    /**
+     * Get the public URL for the current/specified business logo.
+     *
+     * @param  mixed  $business
+     * @param  bool  $respect_show_logo
+     * @param  int  $show_logo
+     * @return string|false
+     */
+    function business_logo_url($business = null, $respect_show_logo = false, $show_logo = 1)
+    {
+        if (empty($business) && session()->has('business')) {
+            $business = session('business');
+        }
+
+        return app(\App\Utils\BusinessUtil::class)->getBusinessLogoUrl($business, $respect_show_logo, $show_logo);
+    }
+}

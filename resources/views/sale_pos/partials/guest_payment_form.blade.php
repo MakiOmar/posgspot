@@ -12,7 +12,9 @@
                         <tr>
                             @if(!empty($transaction->business->logo))
                                 <td class="width-50 text-center">
-                                    <img src="{{ asset( 'uploads/business_logos/' . $transaction->business->logo ) }}" alt="Logo" style="max-width: 80%;">
+                                    @if(!empty(business_logo_url($transaction->business)))
+                                    <img src="{{ business_logo_url($transaction->business) }}" alt="Logo" style="max-width: 80%;">
+                                    @endif
                                 </td>
                             @endif
                             <td class="text-center">

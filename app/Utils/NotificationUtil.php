@@ -263,8 +263,8 @@ class NotificationUtil extends Util
 
             //Replace business_logo
             if (strpos($value, '{business_logo}') !== false) {
-                $logo_name = $business->logo;
-                $business_logo = ! empty($logo_name) ? '<img src="'.url('storage/business_logos/'.$logo_name).'" alt="Business Logo" >' : '';
+                $business_util = new BusinessUtil();
+                $business_logo = $business_util->getBusinessLogoHtml($business);
 
                 $data[$key] = str_replace('{business_logo}', $business_logo, $data[$key]);
             }
@@ -336,10 +336,10 @@ class NotificationUtil extends Util
             }
              //Replace business_logo
              if (strpos($value, '{business_logo}') !== false) {
-                $logo_name = $business->logo;
-                $business_logo = ! empty($logo_name) ? '<img src="'.url('storage/business_logos/'.$logo_name).'" alt="Business Logo" >' : '';
+                $business_util = new BusinessUtil();
+                $business_logo = $business_util->getBusinessLogoHtml($business);
                 $data[$key] = str_replace('{business_logo}', $business_logo, $data[$key]);
-            }
+             }
 
             //Replace business id
              if (strpos($value, '{booking_id}') !== false) {
