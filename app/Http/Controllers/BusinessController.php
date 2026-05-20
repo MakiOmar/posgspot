@@ -315,7 +315,9 @@ class BusinessController extends Controller
 
         $pos_settings = empty($business->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business->pos_settings, true);
 
-        $email_settings = empty($business->email_settings) ? $this->businessUtil->defaultEmailSettings() : $business->email_settings;
+        $email_settings = empty($business->email_settings)
+            ? $this->businessUtil->defaultEmailSettings()
+            : array_merge($this->businessUtil->defaultEmailSettings(), $business->email_settings);
 
         $sms_settings = empty($business->sms_settings) ? $this->businessUtil->defaultSmsSettings() : $business->sms_settings;
 
@@ -451,6 +453,21 @@ class BusinessController extends Controller
 
             $business_details['common_settings'] = ! empty($request->input('common_settings')) ? $request->input('common_settings') : [];
 
+            if (! empty($business_details['email_settings'])) {
+                $email_settings = $business_details['email_settings'];
+                $email_settings['enable_email_watermark'] = ! empty($email_settings['enable_email_watermark']) ? 1 : 0;
+                $email_settings['use_superadmin_settings'] = ! empty($email_settings['use_superadmin_settings']) ? 1 : 0;
+
+                if (empty($email_settings['email_watermark_type'])) {
+                    $email_settings['email_watermark_type'] = 'business_name';
+                }
+
+                $business_details['email_settings'] = array_merge(
+                    $this->businessUtil->defaultEmailSettings(),
+                    $email_settings
+                );
+            }
+
             //Enabled modules
             $enabled_modules = $request->input('enabled_modules');
             $business_details['enabled_modules'] = ! empty($enabled_modules) ? $enabled_modules : null;
@@ -547,15 +564,56 @@ class BusinessController extends Controller
     public function testEmailConfiguration(Request $request)
     {
         try {
-            $email_settings = $request->input();
+            $notAllowed = $this->businessUtil->notAllowedInDemo();
+            if (! empty($notAllowed)) {
+                return $notAllowed;
+            }
 
-            $data['email_settings'] = $email_settings;
-            \Notification::route('mail', $email_settings['mail_from_address'])
+            $request->validate([
+                'test_email' => 'required|email',
+            ]);
+
+            $email_settings = $request->only([
+                'mail_driver',
+                'mail_host',
+                'mail_port',
+                'mail_username',
+                'mail_password',
+                'mail_encryption',
+                'mail_from_address',
+                'mail_from_name',
+                'enable_email_watermark',
+                'email_watermark_type',
+                'use_superadmin_settings',
+            ]);
+
+            $email_settings['enable_email_watermark'] = ! empty($email_settings['enable_email_watermark']) ? 1 : 0;
+            $email_settings['use_superadmin_settings'] = ! empty($email_settings['use_superadmin_settings']) ? 1 : 0;
+
+            if (empty($email_settings['email_watermark_type'])) {
+                $email_settings['email_watermark_type'] = 'business_name';
+            }
+
+            $business_id = $request->session()->get('user.business_id');
+            $business = Business::findOrFail($business_id);
+
+            $data['email_settings'] = array_merge(
+                $this->businessUtil->defaultEmailSettings(),
+                $email_settings
+            );
+            $data['business'] = $business;
+
+            \Notification::route('mail', $request->input('test_email'))
             ->notify(new TestEmailNotification($data));
 
             $output = [
                 'success' => 1,
                 'msg' => __('lang_v1.email_tested_successfully'),
+            ];
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $output = [
+                'success' => 0,
+                'msg' => __('lang_v1.test_email_address_is_required'),
             ];
         } catch (\Exception $e) {
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());

@@ -379,5 +379,36 @@ class NotificationUtil extends Util
         return $data;
     }
 
+    /**
+     * Build view data for plain HTML emails including watermark settings.
+     *
+     * @param  string  $content
+     * @param  array  $notification_info
+     * @return array
+     */
+    public function getPlainHtmlViewData($content, $notification_info = [])
+    {
+        $business_util = new BusinessUtil();
+        $email_settings = $notification_info['email_settings'] ?? session('business.email_settings') ?? [];
+
+        if (empty($email_settings)) {
+            $email_settings = $business_util->defaultEmailSettings();
+        }
+
+        $business = null;
+        if (! empty($notification_info['business'])) {
+            $business = $notification_info['business'];
+        } elseif (session()->has('business')) {
+            $business = session('business');
+        } elseif (! empty(session('user.business_id'))) {
+            $business = Business::find(session('user.business_id'));
+        }
+
+        return [
+            'content' => $content,
+            'watermark' => $business_util->getEmailWatermarkViewData($email_settings, $business),
+        ];
+    }
+
 }
 

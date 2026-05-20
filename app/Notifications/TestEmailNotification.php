@@ -22,7 +22,7 @@ class TestEmailNotification extends Notification
     {
         $this->notificationInfo = $notificationInfo;
         $notificationUtil = new NotificationUtil();
-        $notificationUtil->configureEmail($notificationInfo, false);
+        $notificationUtil->configureEmail($notificationInfo);
     }
 
     /**
@@ -44,8 +44,19 @@ class TestEmailNotification extends Notification
      */
     public function toMail($notifiable)
     {
+        $notification_util = new NotificationUtil();
+        $business_name = ! empty($this->notificationInfo['business'])
+            ? $this->notificationInfo['business']->name
+            : config('app.name');
+
+        $sample_content = view('emails.test_sample_content', compact('business_name'))->render();
+
         return (new MailMessage)
-                    ->line('This is a test email');
+                    ->subject(__('lang_v1.test_email_subject', ['business' => $business_name]))
+                    ->view(
+                        'emails.plain_html',
+                        $notification_util->getPlainHtmlViewData($sample_content, $this->notificationInfo)
+                    );
     }
 
     /**

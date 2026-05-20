@@ -104,10 +104,8 @@
     $(document).on('ifToggled', '#use_superadmin_settings', function() {
         if ($('#use_superadmin_settings').is(':checked')) {
             $('#toggle_visibility').addClass('hide');
-            $('.test_email_btn').addClass('hide');
         } else {
             $('#toggle_visibility').removeClass('hide');
-            $('.test_email_btn').removeClass('hide');
         }
     });
 
@@ -115,7 +113,16 @@
 
     
         $('#test_email_btn').click( function() {
+            var test_email = $('#test_email').val();
+            if (test_email.trim() == '') {
+                toastr.error('{{ __("lang_v1.test_email_address_is_required") }}');
+                $('#test_email').focus();
+
+                return false;
+            }
+
             var data = {
+                test_email: test_email,
                 mail_driver: $('#mail_driver').val(),
                 mail_host: $('#mail_host').val(),
                 mail_port: $('#mail_port').val(),
@@ -124,6 +131,9 @@
                 mail_encryption: $('#mail_encryption').val(),
                 mail_from_address: $('#mail_from_address').val(),
                 mail_from_name: $('#mail_from_name').val(),
+                enable_email_watermark: $('#enable_email_watermark').is(':checked') ? 1 : 0,
+                email_watermark_type: $('#email_watermark_type').val(),
+                use_superadmin_settings: $('#use_superadmin_settings').is(':checked') ? 1 : 0,
             };
             $.ajax({
                 method: 'post',

@@ -2,6 +2,7 @@
 
 namespace Modules\Crm\Notifications;
 
+use App\Utils\NotificationUtil;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -48,11 +49,16 @@ class SendCampaignNotification extends Notification
 
         $body = preg_replace(['/{contact_name}/', '/{campaign_name}/', '/{business_name}/'], [$notifiable->name, $this->campaign->name, $this->business->name], $this->campaign->email_body);
 
+        $notification_util = new NotificationUtil();
+
         return (new MailMessage)
             ->subject($subject)
             ->view(
                 'emails.plain_html',
-                ['content' => $body]
+                $notification_util->getPlainHtmlViewData($body, [
+                    'business' => $this->business,
+                    'email_settings' => $this->business->email_settings,
+                ])
             );
     }
 

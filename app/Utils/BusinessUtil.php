@@ -426,7 +426,95 @@ class BusinessUtil extends Util
      */
     public function defaultEmailSettings()
     {
-        return ['mail_host' => '', 'mail_port' => '', 'mail_username' => '', 'mail_password' => '', 'mail_encryption' => '', 'mail_from_address' => '', 'mail_from_name' => ''];
+        return [
+            'mail_host' => '',
+            'mail_port' => '',
+            'mail_username' => '',
+            'mail_password' => '',
+            'mail_encryption' => '',
+            'mail_from_address' => '',
+            'mail_from_name' => '',
+            'enable_email_watermark' => 0,
+            'email_watermark_type' => 'business_name',
+        ];
+    }
+
+    /**
+     * Build view data for the email watermark overlay.
+     *
+     * @param  array|null  $email_settings
+     * @param  \App\Business|null  $business
+     * @return array
+     */
+    public function getEmailWatermarkViewData($email_settings = null, $business = null)
+    {
+        if (empty($email_settings)) {
+            $email_settings = $this->defaultEmailSettings();
+        }
+
+        if (empty($email_settings['enable_email_watermark'])) {
+            return ['enabled' => false];
+        }
+
+        if (empty($business)) {
+            $business_id = session('user.business_id');
+            if (! empty($business_id)) {
+                $business = Business::find($business_id);
+            }
+        }
+
+        $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
+
+        if ($watermark_type === 'logo' && ! empty($business->logo)) {
+            return [
+                'enabled' => true,
+                'type' => 'logo',
+                'logo_url' => url('storage/business_logos/'.$business->logo),
+            ];
+        }
+
+        return [
+            'enabled' => true,
+            'type' => 'business_name',
+            'business_name' => $business->name ?? '',
+        ];
+    }
+
+    /**
+     * Apply watermark to an mPDF document based on email settings.
+     *
+     * @param  \Mpdf\Mpdf  $mpdf
+     * @param  \App\Business  $business
+     * @param  array|null  $email_settings
+     * @return void
+     */
+    public function applyMpdfEmailWatermark($mpdf, $business, $email_settings = null)
+    {
+        if (empty($email_settings)) {
+            $email_settings = ! empty($business->email_settings)
+                ? $business->email_settings
+                : $this->defaultEmailSettings();
+        }
+
+        if (empty($email_settings['enable_email_watermark'])) {
+            return;
+        }
+
+        $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
+
+        if ($watermark_type === 'logo' && ! empty($business->logo)) {
+            $logo_path = public_path('storage/business_logos/'.$business->logo);
+
+            if (file_exists($logo_path)) {
+                $mpdf->SetWatermarkImage($logo_path, 0.1);
+                $mpdf->showWatermarkImage = true;
+
+                return;
+            }
+        }
+
+        $mpdf->SetWatermarkText($business->name ?? '', 0.1);
+        $mpdf->showWatermarkText = true;
     }
 
     /**

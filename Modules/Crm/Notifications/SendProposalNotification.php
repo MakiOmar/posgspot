@@ -48,11 +48,12 @@ class SendProposalNotification extends Notification
      */
     public function toMail($notifiable)
     {
+        $notification_util = new NotificationUtil();
         $mail = (new MailMessage)
                 ->subject($this->proposal->subject)
                 ->view(
                     'emails.plain_html',
-                    ['content' => $this->proposal->body]
+                    $notification_util->getPlainHtmlViewData($this->proposal->body)
                 );
 
         if (! empty($this->proposal->cc)) {

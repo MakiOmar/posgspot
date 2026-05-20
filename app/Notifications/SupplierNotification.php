@@ -52,11 +52,12 @@ class SupplierNotification extends Notification
     public function toMail($notifiable)
     {
         $data = $this->notificationInfo;
+        $notification_util = new NotificationUtil();
         $mail = (new MailMessage)
                     ->subject($data['subject'])
                     ->view(
                         'emails.plain_html',
-                        ['content' => $data['email_body']]
+                        $notification_util->getPlainHtmlViewData($data['email_body'], $data)
                     );
         if (! empty($this->cc)) {
             $mail->cc($this->cc);

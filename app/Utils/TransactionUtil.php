@@ -6254,8 +6254,9 @@ class TransactionUtil extends Util
         ]);
 
         $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($receipt_details->business_name, 0.1);
-        $mpdf->showWatermarkText = true;
+        $business = Business::findOrFail($business_id);
+        $business_util = new BusinessUtil();
+        $business_util->applyMpdfEmailWatermark($mpdf, $business);
         $mpdf->SetTitle('INVOICE-'.$receipt_details->invoice_no.'.pdf');
         $mpdf->WriteHTML($body);
 
@@ -6368,8 +6369,8 @@ class TransactionUtil extends Util
         ]);
 
         $mpdf->useSubstitutions = true;
-        $mpdf->SetWatermarkText($purchase->business->name, 0.1);
-        $mpdf->showWatermarkText = true;
+        $business_util = new BusinessUtil();
+        $business_util->applyMpdfEmailWatermark($mpdf, $purchase->business);
         $mpdf->SetTitle('PO-'.$purchase->ref_no.'.pdf');
         $mpdf->WriteHTML($body);
 

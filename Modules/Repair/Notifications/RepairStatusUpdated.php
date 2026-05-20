@@ -2,6 +2,7 @@
 
 namespace Modules\Repair\Notifications;
 
+use App\Utils\NotificationUtil;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -41,11 +42,16 @@ class RepairStatusUpdated extends Notification
      */
     public function toMail($notifiable)
     {
+        $notification_util = new NotificationUtil();
+
         return (new MailMessage)
                     ->subject($this->notification_data['subject'])
                     ->view(
                         'emails.plain_html',
-                        ['content' => $this->notification_data['body']]
+                        $notification_util->getPlainHtmlViewData(
+                            $this->notification_data['body'],
+                            $this->notification_data
+                        )
                     );
     }
 
