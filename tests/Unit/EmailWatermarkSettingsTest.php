@@ -19,6 +19,24 @@ class EmailWatermarkSettingsTest extends TestCase
         $this->assertSame('business_name', $defaults['email_watermark_type']);
     }
 
+    public function test_email_watermark_uses_business_settings_when_not_provided()
+    {
+        $business_util = new BusinessUtil();
+        $business = new Business([
+            'id' => 1,
+            'name' => 'Games Spot',
+            'email_settings' => [
+                'enable_email_watermark' => 1,
+                'email_watermark_type' => 'business_name',
+            ],
+        ]);
+
+        $watermark = $business_util->getEmailWatermarkViewData(null, $business);
+
+        $this->assertTrue($watermark['enabled']);
+        $this->assertSame('business_name', $watermark['type']);
+    }
+
     public function test_email_watermark_is_disabled_by_default()
     {
         $business_util = new BusinessUtil();

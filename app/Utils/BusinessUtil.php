@@ -448,19 +448,23 @@ class BusinessUtil extends Util
      */
     public function getEmailWatermarkViewData($email_settings = null, $business = null)
     {
-        if (empty($email_settings)) {
-            $email_settings = $this->defaultEmailSettings();
-        }
-
-        if (empty($email_settings['enable_email_watermark'])) {
-            return ['enabled' => false];
-        }
-
         if (empty($business)) {
             $business_id = session('user.business_id');
             if (! empty($business_id)) {
                 $business = Business::find($business_id);
             }
+        }
+
+        if ($email_settings === null) {
+            $email_settings = ! empty($business) && ! empty($business->email_settings)
+                ? array_merge($this->defaultEmailSettings(), $business->email_settings)
+                : $this->defaultEmailSettings();
+        } elseif (empty($email_settings)) {
+            $email_settings = $this->defaultEmailSettings();
+        }
+
+        if (empty($email_settings['enable_email_watermark'])) {
+            return ['enabled' => false];
         }
 
         $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
@@ -486,8 +490,35 @@ class BusinessUtil extends Util
         $tile = $this->getOrCreateEmailWatermarkTile($watermark);
         $watermark['tile'] = $tile;
         $watermark['background_url'] = ! empty($tile['url']) ? $tile['url'] : null;
+        $watermark['items'] = $this->getDocumentWatermarkPatternItems();
 
         return $watermark;
+    }
+
+    /**
+     * Build staggered positions for HTML document/print watermarks.
+     *
+     * @param  int  $rows
+     * @param  int  $cols
+     * @return array
+     */
+    public function getDocumentWatermarkPatternItems($rows = 18, $cols = 4)
+    {
+        $items = [];
+
+        for ($row = 0; $row < $rows; $row++) {
+            for ($col = 0; $col < $cols; $col++) {
+                $stagger = ($row % 2 === 1) ? 12 : 0;
+                $jitter = (($row * 7 + $col * 11) % 5) - 2;
+
+                $items[] = [
+                    'left' => ($col * 24) + $stagger + $jitter,
+                    'top' => ($row * 9) + ((($row + $col) % 3) - 1),
+                ];
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -725,16 +756,19 @@ class BusinessUtil extends Util
         }
 
         $watermark = $this->getEmailWatermarkViewData($email_settings, $business);
-        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark, $for_pdf);
 
-        if ($background_style === '') {
+        if (empty($watermark['enabled'])) {
             return $html;
         }
+
+        $background_style = $this->getEmailWatermarkBackgroundStyle($watermark, $for_pdf);
 
         return view('emails.partials.watermark_document_wrapper', [
             'html' => $html,
             'background_style' => $background_style,
             'watermark_background_url' => $watermark['background_url'] ?? '',
+            'watermark' => $watermark,
+            'for_pdf' => $for_pdf,
         ])->render();
     }
 
