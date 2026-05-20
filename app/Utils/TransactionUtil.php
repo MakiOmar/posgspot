@@ -6242,6 +6242,10 @@ class TransactionUtil extends Util
                     ->with(compact('receipt_details', 'location_details', 'is_email_attachment'))
                     ->render();
 
+        $business = Business::findOrFail($business_id);
+        $business_util = new BusinessUtil();
+        $body = $business_util->prependEmailWatermarkToHtml($body, $business);
+
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
             'autoScriptToLang' => true,
@@ -6254,9 +6258,6 @@ class TransactionUtil extends Util
         ]);
 
         $mpdf->useSubstitutions = true;
-        $business = Business::findOrFail($business_id);
-        $business_util = new BusinessUtil();
-        $business_util->applyMpdfEmailWatermark($mpdf, $business);
         $mpdf->SetTitle('INVOICE-'.$receipt_details->invoice_no.'.pdf');
         $mpdf->WriteHTML($body);
 
@@ -6357,6 +6358,9 @@ class TransactionUtil extends Util
                     ->with(compact('purchase', 'invoice_layout', 'location_details', 'logo', 'total_in_words', 'custom_labels', 'taxes'))
                     ->render();
 
+        $business_util = new BusinessUtil();
+        $body = $business_util->prependEmailWatermarkToHtml($body, $purchase->business);
+
         $mpdf = new \Mpdf\Mpdf(['tempDir' => public_path('uploads/temp'),
             'mode' => 'utf-8',
             'autoScriptToLang' => true,
@@ -6369,8 +6373,6 @@ class TransactionUtil extends Util
         ]);
 
         $mpdf->useSubstitutions = true;
-        $business_util = new BusinessUtil();
-        $business_util->applyMpdfEmailWatermark($mpdf, $purchase->business);
         $mpdf->SetTitle('PO-'.$purchase->ref_no.'.pdf');
         $mpdf->WriteHTML($body);
 

@@ -76,4 +76,15 @@ class EmailWatermarkSettingsTest extends TestCase
         $this->assertSame('logo', $watermark['type']);
         $this->assertStringContainsString('logo.png', $watermark['logo_url']);
     }
+
+    public function test_email_watermark_pattern_generates_staggered_grid()
+    {
+        $business_util = new BusinessUtil();
+        $items = $business_util->getEmailWatermarkPatternItems(4, 2);
+
+        $this->assertCount(8, $items);
+        $this->assertArrayHasKey('left', $items[0]);
+        $this->assertArrayHasKey('top', $items[0]);
+        $this->assertNotSame($items[0]['left'], $items[1]['left']);
+    }
 }

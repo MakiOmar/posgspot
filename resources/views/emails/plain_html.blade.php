@@ -29,27 +29,36 @@
         .email-content-wrapper {
             position: relative;
             overflow: hidden;
+            min-height: 420px;
         }
-        .email-watermark {
+        .email-watermark-layer {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-35deg);
-            opacity: 0.08;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 420px;
+            overflow: hidden;
             pointer-events: none;
             z-index: 1;
-            text-align: center;
-            width: 100%;
         }
-        .email-watermark-text {
-            font-size: 42px;
-            font-weight: bold;
-            color: #666666;
+        .email-watermark-item {
+            position: absolute;
+            transform: rotate(-45deg);
+            -webkit-transform: rotate(-45deg);
+            opacity: 0.13;
+            color: #999999;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 26px;
+            font-weight: 400;
+            letter-spacing: 3px;
             white-space: nowrap;
+            line-height: 1;
         }
-        .email-watermark-logo img {
-            max-width: 220px;
-            max-height: 220px;
+        .email-watermark-item img {
+            width: 72px;
+            height: auto;
+            opacity: 0.9;
         }
         .email-body-content {
             position: relative;
@@ -106,18 +115,8 @@
     <div class="email-wrapper">
         <div class="email-container">
             <div class="email-content-wrapper">
-                {{-- Email watermark overlay --}}
-                @if(!empty($watermark['enabled']))
-                    <div class="email-watermark">
-                        @if(!empty($watermark['type']) && $watermark['type'] === 'logo' && !empty($watermark['logo_url']))
-                            <div class="email-watermark-logo">
-                                <img src="{{ $watermark['logo_url'] }}" alt="Business Logo">
-                            </div>
-                        @elseif(!empty($watermark['business_name']))
-                            <div class="email-watermark-text">{{ $watermark['business_name'] }}</div>
-                        @endif
-                    </div>
-                @endif
+                {{-- Repeating staggered watermark overlay --}}
+                @include('emails.partials.watermark_pattern')
 
                 <div class="email-body-content">
                     @if (isset($content))

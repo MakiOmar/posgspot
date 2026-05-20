@@ -470,6 +470,7 @@ class BusinessUtil extends Util
                 'enabled' => true,
                 'type' => 'logo',
                 'logo_url' => url('storage/business_logos/'.$business->logo),
+                'items' => $this->getEmailWatermarkPatternItems(),
             ];
         }
 
@@ -477,44 +478,71 @@ class BusinessUtil extends Util
             'enabled' => true,
             'type' => 'business_name',
             'business_name' => $business->name ?? '',
+            'items' => $this->getEmailWatermarkPatternItems(),
         ];
     }
 
     /**
-     * Apply watermark to an mPDF document based on email settings.
+     * Build staggered grid positions for repeating email watermarks.
      *
-     * @param  \Mpdf\Mpdf  $mpdf
-     * @param  \App\Business  $business
-     * @param  array|null  $email_settings
-     * @return void
+     * @param  int  $rows
+     * @param  int  $cols
+     * @return array
      */
-    public function applyMpdfEmailWatermark($mpdf, $business, $email_settings = null)
+    public function getEmailWatermarkPatternItems($rows = 14, $cols = 3)
     {
-        if (empty($email_settings)) {
-            $email_settings = ! empty($business->email_settings)
-                ? $business->email_settings
-                : $this->defaultEmailSettings();
-        }
+        $items = [];
 
-        if (empty($email_settings['enable_email_watermark'])) {
-            return;
-        }
+        for ($row = 0; $row < $rows; $row++) {
+            for ($col = 0; $col < $cols; $col++) {
+                $stagger = ($row % 2 === 1) ? 17 : 0;
+                $jitter = (($row * 7 + $col * 11) % 5) - 2;
 
-        $watermark_type = $email_settings['email_watermark_type'] ?? 'business_name';
-
-        if ($watermark_type === 'logo' && ! empty($business->logo)) {
-            $logo_path = public_path('storage/business_logos/'.$business->logo);
-
-            if (file_exists($logo_path)) {
-                $mpdf->SetWatermarkImage($logo_path, 0.1);
-                $mpdf->showWatermarkImage = true;
-
-                return;
+                $items[] = [
+                    'left' => ($col * 34) + $stagger + $jitter,
+                    'top' => ($row * 12) + ((($row + $col) % 3) - 1),
+                ];
             }
         }
 
-        $mpdf->SetWatermarkText($business->name ?? '', 0.1);
-        $mpdf->showWatermarkText = true;
+        return $items;
+    }
+
+    /**
+     * Render repeating watermark HTML to prepend to PDF bodies.
+     *
+     * @param  \App\Business  $business
+     * @param  array|null  $email_settings
+     * @return string
+     */
+    public function renderEmailWatermarkOverlayHtml($business, $email_settings = null)
+    {
+        $watermark = $this->getEmailWatermarkViewData($email_settings, $business);
+
+        if (empty($watermark['enabled'])) {
+            return '';
+        }
+
+        return view('emails.partials.watermark_overlay_pdf', compact('watermark'))->render();
+    }
+
+    /**
+     * Prepend tiled watermark markup to HTML used for PDF generation.
+     *
+     * @param  string  $html
+     * @param  \App\Business  $business
+     * @param  array|null  $email_settings
+     * @return string
+     */
+    public function prependEmailWatermarkToHtml($html, $business, $email_settings = null)
+    {
+        $overlay = $this->renderEmailWatermarkOverlayHtml($business, $email_settings);
+
+        if (empty($overlay)) {
+            return $html;
+        }
+
+        return $overlay.$html;
     }
 
     /**
