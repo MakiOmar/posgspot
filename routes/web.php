@@ -368,6 +368,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('sales-commission-agents', SalesCommissionAgentController::class);
 
     //Stock Transfer
+    Route::get('stock-transfers/products-report', [StockTransferController::class, 'productsReport']);
     Route::get('stock-transfers/print/{id}', [StockTransferController::class, 'printInvoice']);
     Route::post('stock-transfers/update-status/{id}', [StockTransferController::class, 'updateStatus']);
     Route::resource('stock-transfers', StockTransferController::class);

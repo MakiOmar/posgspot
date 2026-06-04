@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\BusinessLocation;
 use App\PurchaseLine;
 use App\Transaction;
+use App\TransactionSellLine;
 use App\TransactionSellLinesPurchaseLines;
 use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
@@ -150,6 +151,176 @@ class StockTransferController extends Controller
         }
 
         return view('stock_transfer.index')->with(compact('statuses'));
+    }
+
+    /**
+     * Product-level stock transfer report (one row per product line per transfer).
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function productsReport(Request $request)
+    {
+        if (! auth()->user()->can('purchase.view') && ! auth()->user()->can('view_own_purchase')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+        $statuses = $this->stockTransferStatuses();
+        $statuses['final'] = __('restaurant.completed');
+
+        if ($request->ajax()) {
+            $query = TransactionSellLine::join('transactions as t', 'transaction_sell_lines.transaction_id', '=', 't.id')
+                ->join('transactions as t2', 't2.transfer_parent_id', '=', 't.id')
+                ->join('business_locations as l1', 't.location_id', '=', 'l1.id')
+                ->join('business_locations as l2', 't2.location_id', '=', 'l2.id')
+                ->join('products as p', 'transaction_sell_lines.product_id', '=', 'p.id')
+                ->join('variations as v', 'transaction_sell_lines.variation_id', '=', 'v.id')
+                ->leftJoin('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+                ->leftJoin('units as u', 'p.unit_id', '=', 'u.id')
+                ->leftJoin('units as su', 'transaction_sell_lines.sub_unit_id', '=', 'su.id')
+                ->where('t.business_id', $business_id)
+                ->where('t.type', 'sell_transfer')
+                ->select(
+                    'transaction_sell_lines.id as sell_line_id',
+                    't.id as stock_transfer_id',
+                    't.ref_no',
+                    't.transaction_date',
+                    't.status',
+                    't.final_total',
+                    't.shipping_charges',
+                    't.additional_notes',
+                    'l1.name as location_from',
+                    'l2.name as location_to',
+                    'p.name as product_name',
+                    'p.type as product_type',
+                    'pv.name as product_variation',
+                    'v.name as variation_name',
+                    'v.sub_sku',
+                    'transaction_sell_lines.quantity',
+                    'transaction_sell_lines.unit_price_inc_tax',
+                    DB::raw('(transaction_sell_lines.quantity * transaction_sell_lines.unit_price_inc_tax) as line_subtotal'),
+                    'u.short_name as unit',
+                    'su.short_name as sub_unit',
+                    'transaction_sell_lines.base_unit_multiplier'
+                );
+
+            if (! auth()->user()->can('purchase.view') && auth()->user()->can('view_own_purchase')) {
+                $query->where('t2.created_by', $request->session()->get('user.id'));
+            }
+
+            $permitted_locations = auth()->user()->permitted_locations();
+            if ($permitted_locations != 'all') {
+                $query->where(function ($q) use ($permitted_locations) {
+                    $q->whereIn('t.location_id', $permitted_locations)
+                        ->orWhereIn('t2.location_id', $permitted_locations);
+                });
+            }
+
+            $variation_id = $request->get('variation_id');
+            if (! empty($variation_id)) {
+                $query->where('transaction_sell_lines.variation_id', $variation_id);
+            }
+
+            $product_name = $request->get('product_name');
+            if (empty($variation_id) && ! empty($product_name)) {
+                $query->where(function ($q) use ($product_name) {
+                    $q->where('p.name', 'like', '%'.$product_name.'%')
+                        ->orWhere('v.sub_sku', 'like', '%'.$product_name.'%')
+                        ->orWhere('pv.name', 'like', '%'.$product_name.'%')
+                        ->orWhere('v.name', 'like', '%'.$product_name.'%');
+                });
+            }
+
+            $start_date = $request->get('start_date');
+            $end_date = $request->get('end_date');
+            if (! empty($start_date) && ! empty($end_date)) {
+                $query->whereBetween(DB::raw('date(t.transaction_date)'), [$start_date, $end_date]);
+            }
+
+            $location_from_id = $request->get('location_from_id');
+            if (! empty($location_from_id)) {
+                $query->where('t.location_id', $location_from_id);
+            }
+
+            $location_to_id = $request->get('location_to_id');
+            if (! empty($location_to_id)) {
+                $query->where('t2.location_id', $location_to_id);
+            }
+
+            return Datatables::of($query)
+                ->addColumn('action', function ($row) {
+                    return '<button type="button" title="'.__('stock_adjustment.view_details').'" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-accent btn-modal" data-container=".view_modal" data-href="'.action([self::class, 'show'], [$row->stock_transfer_id]).'"><i class="fa fa-eye" aria-hidden="true"></i> '.__('messages.view').'</button>';
+                })
+                ->editColumn('product_name', function ($row) {
+                    $product_name = $row->product_name;
+                    if ($row->product_type == 'variable') {
+                        $product_name .= ' - '.$row->product_variation.' - '.$row->variation_name;
+                    }
+
+                    return $product_name;
+                })
+                ->editColumn('stock_transfer_id', function ($row) {
+                    return '<a href="#" class="btn-modal" data-container=".view_modal" data-href="'.action([self::class, 'show'], [$row->stock_transfer_id]).'">'.$row->stock_transfer_id.'</a>';
+                })
+                ->editColumn('ref_no', function ($row) {
+                    return '<a href="#" class="btn-modal" data-container=".view_modal" data-href="'.action([self::class, 'show'], [$row->stock_transfer_id]).'">'.$row->ref_no.'</a>';
+                })
+                ->editColumn('status', function ($row) use ($statuses) {
+                    $status_key = $row->status == 'final' ? 'completed' : $row->status;
+                    $status_color = ! empty($this->status_colors[$status_key]) ? $this->status_colors[$status_key] : 'bg-gray';
+
+                    return '<span class="label '.$status_color.'">'.($statuses[$row->status] ?? $statuses[$status_key] ?? $row->status).'</span>';
+                })
+                ->editColumn('quantity', function ($row) {
+                    $unit = ! empty($row->sub_unit) ? $row->sub_unit : $row->unit;
+
+                    return '<span data-is_quantity="true" class="display_currency transfer_qty" data-currency_symbol="false" data-orig-value="'.(float) $row->quantity.'" data-unit="'.$unit.'">'.(float) $row->quantity.'</span> '.$unit;
+                })
+                ->editColumn('unit_price_inc_tax', function ($row) {
+                    if (auth()->user()->can('view_purchase_price')) {
+                        return '<span class="display_currency" data-currency_symbol="true" data-orig-value="'.$row->unit_price_inc_tax.'">'.$row->unit_price_inc_tax.'</span>';
+                    }
+
+                    return '<span>-</span>';
+                })
+                ->editColumn('line_subtotal', function ($row) {
+                    if (auth()->user()->can('view_purchase_price')) {
+                        return '<span class="row_subtotal display_currency" data-currency_symbol="true" data-orig-value="'.$row->line_subtotal.'">'.$row->line_subtotal.'</span>';
+                    }
+
+                    return '<span>-</span>';
+                })
+                ->editColumn('final_total', function ($row) {
+                    if (auth()->user()->can('view_purchase_price')) {
+                        return '<span class="display_currency" data-currency_symbol="true" data-orig-value="'.$row->final_total.'">'.$row->final_total.'</span>';
+                    }
+
+                    return '<span>-</span>';
+                })
+                ->editColumn('shipping_charges', function ($row) {
+                    if (auth()->user()->can('view_purchase_price')) {
+                        return '<span class="display_currency" data-currency_symbol="true" data-orig-value="'.$row->shipping_charges.'">'.$row->shipping_charges.'</span>';
+                    }
+
+                    return '<span>-</span>';
+                })
+                ->editColumn('transaction_date', '{{@format_datetime($transaction_date)}}')
+                ->filterColumn('product_name', function ($query, $keyword) {
+                    $query->where(function ($q) use ($keyword) {
+                        $q->where('p.name', 'like', '%'.$keyword.'%')
+                            ->orWhere('v.sub_sku', 'like', '%'.$keyword.'%')
+                            ->orWhere('pv.name', 'like', '%'.$keyword.'%')
+                            ->orWhere('v.name', 'like', '%'.$keyword.'%');
+                    });
+                })
+                ->rawColumns(['action', 'stock_transfer_id', 'ref_no', 'status', 'quantity', 'unit_price_inc_tax', 'line_subtotal', 'final_total', 'shipping_charges'])
+                ->make(true);
+        }
+
+        $business_locations = BusinessLocation::forDropdown($business_id, true);
+
+        return view('stock_transfer.products_report')
+            ->with(compact('business_locations'));
     }
 
     /**

@@ -27,6 +27,8 @@ return [
     'all_stock_transfers' => 'جميع تحويلات المخزون',
     'add_stock_transfer' => 'إضافة تحويل مخزون',
     'list_stock_transfers' => 'قائمة تحويلات المخزون',
+    'stock_transfer_products_report' => 'تقرير منتجات تحويل المخزون',
+    'stock_transfer_id' => 'رقم تحويل المخزون',
     'location_from' => 'الفرع (من)',
     'location_to' => 'الفرع (إلى)',
     'shipping_charges' => 'تكاليف الشحن',

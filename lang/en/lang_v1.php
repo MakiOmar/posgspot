@@ -27,6 +27,8 @@ return [
     'all_stock_transfers' => 'All Stock Transfers',
     'add_stock_transfer' => 'Add Stock Transfer',
     'list_stock_transfers' => 'List Stock Transfers',
+    'stock_transfer_products_report' => 'Stock Transfer Products Report',
+    'stock_transfer_id' => 'Stock Transfer ID',
     'location_from' => 'Location (From)',
     'location_to' => 'Location (To)',
     'shipping_charges' => 'Shipping Charges',

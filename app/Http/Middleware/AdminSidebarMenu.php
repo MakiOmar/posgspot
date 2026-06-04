@@ -426,6 +426,11 @@ class AdminSidebarMenu
                                 __('lang_v1.list_stock_transfers'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'stock-transfers' && request()->segment(2) == null]
                             );
+                            $sub->url(
+                                action([\App\Http\Controllers\StockTransferController::class, 'productsReport']),
+                                __('lang_v1.stock_transfer_products_report'),
+                                ['icon' => '', 'active' => request()->segment(1) == 'stock-transfers' && request()->segment(2) == 'products-report']
+                            );
                         }
                         if (auth()->user()->can('purchase.create')) {
                             $sub->url(
