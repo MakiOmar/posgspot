@@ -51,7 +51,12 @@
                 <div class="col-md-3">
                     <div class="form-group">
                         {!! Form::label('stock_transfer_products_date_filter', __('report.date_range') . ':') !!}
-                        {!! Form::text('date_range', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'id' => 'stock_transfer_products_date_filter', 'readonly']); !!}
+                        <div class="input-group">
+                            <span class="input-group-addon" id="stock_transfer_products_date_filter_trigger" style="cursor: pointer;">
+                                <i class="fa fa-calendar"></i>
+                            </span>
+                            {!! Form::text('date_range', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'id' => 'stock_transfer_products_date_filter', 'readonly']); !!}
+                        </div>
                     </div>
                 </div>
             {!! Form::close() !!}

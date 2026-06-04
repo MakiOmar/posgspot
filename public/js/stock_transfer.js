@@ -96,30 +96,38 @@ $(document).ready(function() {
         });
     });
 
+    // Stock transfer products report (must run before list-only inits that require #stock_transfer_table)
+    initStockTransferProductsReport();
+
     //Date picker
-    $('#transaction_date').datetimepicker({
-        format: moment_date_format + ' ' + moment_time_format,
-        ignoreReadonly: true,
-    });
+    if ($('#transaction_date').length) {
+        $('#transaction_date').datetimepicker({
+            format: moment_date_format + ' ' + moment_time_format,
+            ignoreReadonly: true,
+        });
+    }
 
-    jQuery.validator.addMethod(
-        'notEqual',
-        function(value, element, param) {
-            return this.optional(element) || value != param;
-        },
-        'Please select different location'
-    );
+    if ($('form#stock_transfer_form').length) {
+        jQuery.validator.addMethod(
+            'notEqual',
+            function(value, element, param) {
+                return this.optional(element) || value != param;
+            },
+            'Please select different location'
+        );
 
-    $('form#stock_transfer_form').validate({
-        rules: {
-            transfer_location_id: {
-                notEqual: function() {
-                    return $('select#location_id').val();
+        $('form#stock_transfer_form').validate({
+            rules: {
+                transfer_location_id: {
+                    notEqual: function() {
+                        return $('select#location_id').val();
+                    },
                 },
             },
-        },
-    });
-    $('#save_stock_transfer').click(function(e) {
+        });
+    }
+
+    $('#save_stock_transfer').on('click', function(e) {
         e.preventDefault();
 
         if ($('table#stock_adjustment_product_table tbody').find('.product_row').length <= 0) {
@@ -133,6 +141,7 @@ $(document).ready(function() {
         }
     });
 
+    if ($('#stock_transfer_table').length) {
     stock_transfer_table = $('#stock_transfer_table').DataTable({
         processing: true,
         serverSide: true,
@@ -198,93 +207,129 @@ $(document).ready(function() {
             $('#' + id + ' .view_stock_transfer').trigger('click');
         });
     });
+    }
 
-    // Stock transfer products report
-    if ($('#stock_transfer_products_date_filter').length == 1) {
-        $('#stock_transfer_products_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
-            $('#stock_transfer_products_date_filter').val(
-                start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
-            );
-            if (typeof stock_transfer_products_report !== 'undefined') {
-                stock_transfer_products_report.ajax.reload();
+    //Delete Stock Transfer
+    $(document).on('click', 'button.delete_stock_transfer', function() {
+        swal({
+            title: LANG.sure,
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then(willDelete => {
+            if (willDelete) {
+                var href = $(this).data('href');
+                $.ajax({
+                    method: 'DELETE',
+                    url: href,
+                    dataType: 'json',
+                    success: function(result) {
+                        if (result.success) {
+                            toastr.success(result.msg);
+                            if (typeof stock_transfer_table !== 'undefined') {
+                                stock_transfer_table.ajax.reload();
+                            }
+                        } else {
+                            toastr.error(result.msg);
+                        }
+                    },
+                });
             }
         });
+    });
+});
+
+function initStockTransferProductsReport() {
+    if (!$('#stock_transfer_products_report_table').length) {
+        return;
+    }
+
+    stock_transfer_products_report = $('#stock_transfer_products_report_table').DataTable({
+        processing: true,
+        serverSide: true,
+        fixedHeader: false,
+        aaSorting: [[4, 'desc']],
+        ajax: {
+            url: '/stock-transfers/products-report',
+            data: function(d) {
+                var start = '';
+                var end = '';
+                var $dateFilter = $('#stock_transfer_products_date_filter');
+                if ($dateFilter.length && $dateFilter.val() && $dateFilter.data('daterangepicker')) {
+                    start = $dateFilter.data('daterangepicker').startDate.format('YYYY-MM-DD');
+                    end = $dateFilter.data('daterangepicker').endDate.format('YYYY-MM-DD');
+                }
+                d.start_date = start;
+                d.end_date = end;
+                d.variation_id = $('#stock_transfer_products_report_form #variation_id').val();
+                d.product_name = $('#stock_transfer_products_report_form #search_product').val();
+                d.location_from_id = $('#stock_transfer_products_report_form #location_from_id').val();
+                d.location_to_id = $('#stock_transfer_products_report_form #location_to_id').val();
+            },
+        },
+        columns: [
+            { data: 'product_name', name: 'p.name' },
+            { data: 'sub_sku', name: 'v.sub_sku' },
+            { data: 'stock_transfer_id', name: 't.id' },
+            { data: 'ref_no', name: 't.ref_no' },
+            { data: 'transaction_date', name: 't.transaction_date' },
+            { data: 'location_from', name: 'l1.name' },
+            { data: 'location_to', name: 'l2.name' },
+            { data: 'status', name: 't.status' },
+            { data: 'quantity', name: 'transaction_sell_lines.quantity' },
+            { data: 'unit_price_inc_tax', name: 'transaction_sell_lines.unit_price_inc_tax' },
+            { data: 'line_subtotal', name: 'line_subtotal', searchable: false },
+            { data: 'shipping_charges', name: 't.shipping_charges' },
+            { data: 'final_total', name: 't.final_total' },
+            { data: 'additional_notes', name: 't.additional_notes' },
+            { data: 'action', name: 'action', searchable: false, orderable: false },
+        ],
+        fnDrawCallback: function(oSettings) {
+            $('#footer_line_subtotal').text(
+                sum_table_col($('#stock_transfer_products_report_table'), 'row_subtotal')
+            );
+            $('#footer_total_qty').html(
+                __sum_stock($('#stock_transfer_products_report_table'), 'transfer_qty')
+            );
+            __currency_convert_recursively($('#stock_transfer_products_report_table'));
+        },
+    });
+
+    if ($('#stock_transfer_products_date_filter').length) {
+        var reportDateRangeSettings = $.extend(true, {}, dateRangeSettings, {
+            autoUpdateInput: false,
+        });
+
+        $('#stock_transfer_products_date_filter').daterangepicker(reportDateRangeSettings);
+
+        $('#stock_transfer_products_date_filter').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(
+                picker.startDate.format(moment_date_format) +
+                    ' ~ ' +
+                    picker.endDate.format(moment_date_format)
+            );
+            stock_transfer_products_report.ajax.reload();
+        });
+
         $('#stock_transfer_products_date_filter').on('cancel.daterangepicker', function(ev, picker) {
-            $('#stock_transfer_products_date_filter').val('');
-            if (typeof stock_transfer_products_report !== 'undefined') {
-                stock_transfer_products_report.ajax.reload();
-            }
+            $(this).val('');
+            stock_transfer_products_report.ajax.reload();
+        });
+
+        $('#stock_transfer_products_date_filter_trigger').on('click', function() {
+            $('#stock_transfer_products_date_filter').trigger('click');
         });
     }
 
     $(
         '#stock_transfer_products_report_form #variation_id, \
         #stock_transfer_products_report_form #location_from_id, \
-        #stock_transfer_products_report_form #location_to_id, \
-        #stock_transfer_products_report_form #stock_transfer_products_date_filter'
+        #stock_transfer_products_report_form #location_to_id'
     ).change(function() {
-        if (typeof stock_transfer_products_report !== 'undefined') {
-            stock_transfer_products_report.ajax.reload();
-        }
+        stock_transfer_products_report.ajax.reload();
     });
 
-    if ($('#stock_transfer_products_report_table').length) {
-        stock_transfer_products_report = $('#stock_transfer_products_report_table').DataTable({
-            processing: true,
-            serverSide: true,
-            fixedHeader: false,
-            aaSorting: [[4, 'desc']],
-            ajax: {
-                url: '/stock-transfers/products-report',
-                data: function(d) {
-                    var start = '';
-                    var end = '';
-                    if ($('#stock_transfer_products_date_filter').val()) {
-                        start = $('#stock_transfer_products_date_filter')
-                            .data('daterangepicker')
-                            .startDate.format('YYYY-MM-DD');
-                        end = $('#stock_transfer_products_date_filter')
-                            .data('daterangepicker')
-                            .endDate.format('YYYY-MM-DD');
-                    }
-                    d.start_date = start;
-                    d.end_date = end;
-                    d.variation_id = $('#stock_transfer_products_report_form #variation_id').val();
-                    d.product_name = $('#stock_transfer_products_report_form #search_product').val();
-                    d.location_from_id = $('#stock_transfer_products_report_form #location_from_id').val();
-                    d.location_to_id = $('#stock_transfer_products_report_form #location_to_id').val();
-                },
-            },
-            columns: [
-                { data: 'product_name', name: 'p.name' },
-                { data: 'sub_sku', name: 'v.sub_sku' },
-                { data: 'stock_transfer_id', name: 't.id' },
-                { data: 'ref_no', name: 't.ref_no' },
-                { data: 'transaction_date', name: 't.transaction_date' },
-                { data: 'location_from', name: 'l1.name' },
-                { data: 'location_to', name: 'l2.name' },
-                { data: 'status', name: 't.status' },
-                { data: 'quantity', name: 'transaction_sell_lines.quantity' },
-                { data: 'unit_price_inc_tax', name: 'transaction_sell_lines.unit_price_inc_tax' },
-                { data: 'line_subtotal', name: 'line_subtotal', searchable: false },
-                { data: 'shipping_charges', name: 't.shipping_charges' },
-                { data: 'final_total', name: 't.final_total' },
-                { data: 'additional_notes', name: 't.additional_notes' },
-                { data: 'action', name: 'action', searchable: false, orderable: false },
-            ],
-            fnDrawCallback: function(oSettings) {
-                $('#footer_line_subtotal').text(
-                    sum_table_col($('#stock_transfer_products_report_table'), 'row_subtotal')
-                );
-                $('#footer_total_qty').html(
-                    __sum_stock($('#stock_transfer_products_report_table'), 'transfer_qty')
-                );
-                __currency_convert_recursively($('#stock_transfer_products_report_table'));
-            },
-        });
-    }
-
-    if ($('#stock_transfer_products_report_form #search_product').length > 0) {
+    if ($('#stock_transfer_products_report_form #search_product').length) {
         $('#stock_transfer_products_report_form #search_product').autocomplete({
             source: function(request, response) {
                 $.ajax({
@@ -332,40 +377,11 @@ $(document).ready(function() {
             }
             clearTimeout(stock_transfer_product_search_timer);
             stock_transfer_product_search_timer = setTimeout(function() {
-                if (typeof stock_transfer_products_report !== 'undefined') {
-                    stock_transfer_products_report.ajax.reload();
-                }
+                stock_transfer_products_report.ajax.reload();
             }, 600);
         });
     }
-
-    //Delete Stock Transfer
-    $(document).on('click', 'button.delete_stock_transfer', function() {
-        swal({
-            title: LANG.sure,
-            icon: 'warning',
-            buttons: true,
-            dangerMode: true,
-        }).then(willDelete => {
-            if (willDelete) {
-                var href = $(this).data('href');
-                $.ajax({
-                    method: 'DELETE',
-                    url: href,
-                    dataType: 'json',
-                    success: function(result) {
-                        if (result.success) {
-                            toastr.success(result.msg);
-                            stock_transfer_table.ajax.reload();
-                        } else {
-                            toastr.error(result.msg);
-                        }
-                    },
-                });
-            }
-        });
-    });
-});
+}
 
 function stock_transfer_product_row(variation_id) {
     var row_index = parseInt($('#product_row_index').val());
@@ -538,7 +554,9 @@ $(document).on('submit', '#update_stock_transfer_status_form', function(e) {
             if (result.success == true) {
                 $('div#update_stock_transfer_status_modal').modal('hide');
                 toastr.success(result.msg);
-                stock_transfer_table.ajax.reload();
+                if (typeof stock_transfer_table !== 'undefined') {
+                    stock_transfer_table.ajax.reload();
+                }
             } else {
                 toastr.error(result.msg);
             }
