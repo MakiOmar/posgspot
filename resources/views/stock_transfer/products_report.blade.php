@@ -115,6 +115,26 @@
 
         var stpr_report_url = '{{ action([\App\Http\Controllers\StockTransferController::class, 'productsReport']) }}';
 
+        if ($('#stpr_date_filter').length) {
+            var stprDateRangeSettings = $.extend(true, {}, dateRangeSettings, {
+                autoUpdateInput: false,
+            });
+            $('#stpr_date_filter').daterangepicker(stprDateRangeSettings, function(start, end) {
+                $('#stpr_date_filter').val(
+                    start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
+                );
+                if (typeof stpr_datatable !== 'undefined') {
+                    stpr_datatable.ajax.reload();
+                }
+            });
+            $('#stpr_date_filter').on('cancel.daterangepicker', function(ev, picker) {
+                $('#stpr_date_filter').val('');
+                if (typeof stpr_datatable !== 'undefined') {
+                    stpr_datatable.ajax.reload();
+                }
+            });
+        }
+
         var stpr_datatable = $('#stock_transfer_products_report_table').DataTable({
             processing: true,
             serverSide: true,
@@ -125,9 +145,11 @@
                 data: function(d) {
                     var start = '';
                     var end = '';
-                    if ($('#stpr_date_filter').val()) {
-                        start = $('#stpr_date_filter').data('daterangepicker').startDate.format('YYYY-MM-DD');
-                        end = $('#stpr_date_filter').data('daterangepicker').endDate.format('YYYY-MM-DD');
+                    var $dateFilter = $('#stpr_date_filter');
+                    var picker = $dateFilter.data('daterangepicker');
+                    if ($dateFilter.val() && picker) {
+                        start = picker.startDate.format('YYYY-MM-DD');
+                        end = picker.endDate.format('YYYY-MM-DD');
                     }
                     d.start_date = start;
                     d.end_date = end;
@@ -164,19 +186,6 @@
                 __currency_convert_recursively($('#stock_transfer_products_report_table'));
             },
         });
-
-        if ($('#stpr_date_filter').length) {
-            $('#stpr_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
-                $('#stpr_date_filter').val(
-                    start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format)
-                );
-                stpr_datatable.ajax.reload();
-            });
-            $('#stpr_date_filter').on('cancel.daterangepicker', function(ev, picker) {
-                $('#stpr_date_filter').val('');
-                stpr_datatable.ajax.reload();
-            });
-        }
 
         $(document).on(
             'change',
