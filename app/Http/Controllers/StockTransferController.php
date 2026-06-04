@@ -200,8 +200,7 @@ class StockTransferController extends Controller
                     'transaction_sell_lines.unit_price_inc_tax',
                     DB::raw('(transaction_sell_lines.quantity * transaction_sell_lines.unit_price_inc_tax) as line_subtotal'),
                     'u.short_name as unit',
-                    'su.short_name as sub_unit',
-                    'transaction_sell_lines.base_unit_multiplier'
+                    'su.short_name as sub_unit'
                 );
 
             if (! auth()->user()->can('purchase.view') && auth()->user()->can('view_own_purchase')) {
