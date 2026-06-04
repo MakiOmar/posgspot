@@ -140,10 +140,12 @@
                 false;
             @endif
 
-        $('#calendar').fullCalendar('option', {
-            locale: locale,
-            isRTL: isRTL
-        });
+        if ($('#calendar').length) {
+            $('#calendar').fullCalendar('option', {
+                locale: locale,
+                isRTL: isRTL
+            });
+        }
         // side bar toggle  
         $(".drop_down").click(function(event) {
             event.preventDefault();
