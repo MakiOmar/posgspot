@@ -139,14 +139,14 @@
 		<br/>
 		<table class="table table-bordered table-no-top-cell-border">
 			<thead>
-				<tr style="background-color: #357ca5 !important; color: white !important; font-size: 20px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
-					<td style="background-color: #357ca5 !important; color: white !important; width: 5% !important">#</td>
+				<tr style="background-color: #ca6800 !important; color: white !important; font-size: 20px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 5% !important">#</td>
 					
-					<td style="background-color: #357ca5 !important; color: white !important; width: 65% !important">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 65% !important">
 						{{$receipt_details->table_product_label}}
 					</td>
 					
-					<td style="background-color: #357ca5 !important; color: white !important; width: 30% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 30% !important;">
 						{{$receipt_details->table_qty_label}}
 					</td>
 				</tr>

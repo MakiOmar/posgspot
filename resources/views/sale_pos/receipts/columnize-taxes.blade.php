@@ -383,41 +383,41 @@
 		<br/>
 		<table class="table table-bordered table-no-top-cell-border table-slim">
 			<thead>
-				<tr style="background-color: #357ca5 !important; color: white !important; font-size: 15px !important font-weight: bold;" class="table-no-side-cell-border table-no-top-cell-border text-center">
-					<td style="background-color: #357ca5 !important; color: white !important;">#</td>
+				<tr style="background-color: #ca6800 !important; color: white !important; font-size: 15px !important font-weight: bold;" class="table-no-side-cell-border table-no-top-cell-border text-center">
+					<td style="background-color: #ca6800 !important; color: white !important;">#</td>
 					
-					<td style="background-color: #357ca5 !important; color: white !important;" class="text-left" width="30%">
+					<td style="background-color: #ca6800 !important; color: white !important;" class="text-left" width="30%">
 						{!! $receipt_details->table_product_label !!}
 					</td>
 
 					@if($receipt_details->show_cat_code == 1)
-						<td style="background-color: #357ca5 !important; color: white !important;" class="text-right">{!! $receipt_details->cat_code_label !!}</td>
+						<td style="background-color: #ca6800 !important; color: white !important;" class="text-right">{!! $receipt_details->cat_code_label !!}</td>
 					@endif
 					
-					<td style="background-color: #357ca5 !important; color: white !important;" class="text-right">
+					<td style="background-color: #ca6800 !important; color: white !important;" class="text-right">
 						{!! $receipt_details->table_qty_label !!}
 					</td>
-					<td style="background-color: #357ca5 !important; color: white !important;" class="text-right">
+					<td style="background-color: #ca6800 !important; color: white !important;" class="text-right">
 						{!! $receipt_details->table_unit_price_label !!} <span class="small color-white"> ({{$receipt_details->currency['symbol']}})</span>
 					</td>
 					@if(!empty($receipt_details->discounted_unit_price_label))
-					<td style="background-color: #357ca5 !important; color: white !important;">
+					<td style="background-color: #ca6800 !important; color: white !important;">
 						{{$receipt_details->discounted_unit_price_label}}
 					</td>
 					@endif
 					@if(!empty($receipt_details->item_discount_label))
-					<td style="background-color: #357ca5 !important; color: white !important;">
+					<td style="background-color: #ca6800 !important; color: white !important;">
 						{!! $receipt_details->item_discount_label !!}
 					</td>
 					@endif
-					<td style="background-color: #357ca5 !important; color: white !important;" class="text-right">
+					<td style="background-color: #ca6800 !important; color: white !important;" class="text-right">
 						Taxable Value <span class="small color-white"> ({{$receipt_details->currency['symbol']}})</span>
 					</td>
 
 					@if(!empty($receipt_details->table_tax_headings))
 					
 						@foreach($receipt_details->table_tax_headings as $tax_heading)
-							<td style="background-color: #357ca5 !important; color: white !important;" class="word-wrap text-right">
+							<td style="background-color: #ca6800 !important; color: white !important;" class="word-wrap text-right">
 								{{$tax_heading}} <span class="small color-white"> ({{$receipt_details->currency['symbol']}})</span>
 							</td>
 
@@ -428,7 +428,7 @@
 
 					@endif
 					
-					<td style="background-color: #357ca5 !important; color: white !important;" class="text-right">
+					<td style="background-color: #ca6800 !important; color: white !important;" class="text-right">
 						{!! $receipt_details->table_subtotal_label !!}  <span class="small color-white"> ({{$receipt_details->currency['symbol']}})</span>
 					</td>
 				</tr>
@@ -858,10 +858,10 @@
 
 				<!-- Total -->
 				<tr>
-					<th style="background-color: #357ca5 !important; color: white !important" class="font-23 padding-10">
+					<th style="background-color: #ca6800 !important; color: white !important" class="font-23 padding-10">
 						{!! $receipt_details->total_label !!}
 					</th>
-					<td class="text-right font-23 padding-10" style="background-color: #357ca5 !important; color: white !important">
+					<td class="text-right font-23 padding-10" style="background-color: #ca6800 !important; color: white !important">
 						{{$receipt_details->total}}
 					</td>
 				</tr>

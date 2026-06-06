@@ -16,6 +16,7 @@
 
     <!-- app css -->
     <link rel="stylesheet" href="{{ asset('css/app.css?v='.$asset_v) }}">
+    <link rel="stylesheet" href="{{ asset('css/brand.css?v='.$asset_v) }}">
 
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>

@@ -247,8 +247,8 @@ class RestaurantUtil extends Util
             $customer_name = $booking->customer->name;
             $table_name = $booking->table?->name;
 
-            $backgroundColor = '#3c8dbc';
-            $borderColor = '#3c8dbc';
+            $backgroundColor = '#fc8200';
+            $borderColor = '#fc8200';
             if ($booking->booking_status == 'completed') {
                 $backgroundColor = '#00a65a';
                 $borderColor = '#00a65a';

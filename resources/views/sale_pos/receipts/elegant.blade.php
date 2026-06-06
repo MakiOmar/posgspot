@@ -377,8 +377,8 @@
 	<div class="col-xs-12">
 		<table class="table table-bordered table-no-top-cell-border table-slim mb-12">
 			<thead>
-				<tr style="background-color: #357ca5 !important; color: white !important; font-size: 20px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
-					<td style="background-color: #357ca5 !important; color: white !important; width: 5% !important">#</td>
+				<tr style="background-color: #ca6800 !important; color: white !important; font-size: 20px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 5% !important">#</td>
 					
 					@php
 						$p_width = 40;
@@ -398,31 +398,31 @@
 							$p_width -= 5;
 						@endphp
 					@endif
-					<td style="background-color: #357ca5 !important; color: white !important; width: {{$p_width}}% !important">
+					<td style="background-color: #ca6800 !important; color: white !important; width: {{$p_width}}% !important">
 						{{$receipt_details->table_product_label}}
 					</td>
 
 					@if($receipt_details->show_cat_code == 1)
-						<td style="background-color: #357ca5 !important; color: white !important; width: 10% !important;">{{$receipt_details->cat_code_label}}</td>
+						<td style="background-color: #ca6800 !important; color: white !important; width: 10% !important;">{{$receipt_details->cat_code_label}}</td>
 					@endif
 					
-					<td style="background-color: #357ca5 !important; color: white !important; width: 15% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 15% !important;">
 						{{$receipt_details->table_qty_label}}
 					</td>
-					<td style="background-color: #357ca5 !important; color: white !important; width: 15% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 15% !important;">
 						{{$receipt_details->table_unit_price_label}}
 					</td>
 					@if(!empty($receipt_details->discounted_unit_price_label))
-					<td style="background-color: #357ca5 !important; color: white !important; width: 10% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 10% !important;">
 						{{$receipt_details->discounted_unit_price_label}}
 					</td>
 					@endif
 					@if(!empty($receipt_details->item_discount_label))
-					<td style="background-color: #357ca5 !important; color: white !important; width: 10% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 10% !important;">
 						{{$receipt_details->item_discount_label}}
 					</td>
 					@endif
-					<td style="background-color: #357ca5 !important; color: white !important; width: 10% !important;">
+					<td style="background-color: #ca6800 !important; color: white !important; width: 10% !important;">
 						{{$receipt_details->table_subtotal_label}}
 					</td>
 				</tr>
@@ -739,10 +739,10 @@
 				
 				<!-- Total -->
 				<tr>
-					<th style="background-color: #357ca5 !important; color: white !important" class="font-23 padding-10">
+					<th style="background-color: #ca6800 !important; color: white !important" class="font-23 padding-10">
 						{!! $receipt_details->total_label !!}
 					</th>
-					<td class="text-right font-23 padding-10" style="background-color: #357ca5 !important; color: white !important">
+					<td class="text-right font-23 padding-10" style="background-color: #ca6800 !important; color: white !important">
 						{{$receipt_details->total}}
 					</td>
 				</tr>

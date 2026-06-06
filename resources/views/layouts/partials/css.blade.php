@@ -11,6 +11,9 @@
 <!-- app css -->
 <link rel="stylesheet" href="{{ asset('css/app.css?v='.$asset_v) }}">
 
+<!-- brand colors (overrides blue/indigo primary shades) -->
+<link rel="stylesheet" href="{{ asset('css/brand.css?v='.$asset_v) }}">
+
 @if(isset($pos_layout) && $pos_layout)
 	<style type="text/css">
 		.content{
@@ -28,7 +31,7 @@
 	  z-index: 10;
 	}
 	.patt-circ.hovered {
-	  background-color: #cde2f2;
+	  background-color: #ffe4cc;
 	  border: none;
 	}
 	.patt-circ.hovered .patt-dots {

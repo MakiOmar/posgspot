@@ -26,22 +26,22 @@
 	background: #243949!important;
 }
 body .tw-from-indigo-500 {
-	--tw-gradient-from: #db890a var(--tw-gradient-from-position);
-	--tw-gradient-to: rgba(219, 137, 10, 0) var(--tw-gradient-to-position);
+	--tw-gradient-from: #fc8200 var(--tw-gradient-from-position);
+	--tw-gradient-to: rgba(252, 130, 0, 0) var(--tw-gradient-to-position);
 	--tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
 body .tw-to-blue-500 {
-	--tw-gradient-to: #db890a var(--tw-gradient-to-position);
+	--tw-gradient-to: #ffa033 var(--tw-gradient-to-position);
 }
 body .hover\:tw-from-indigo-600:hover {
-	--tw-gradient-from: #db890a var(--tw-gradient-from-position);
-	--tw-gradient-to: rgba(219, 137, 10, 0) var(--tw-gradient-to-position);
+	--tw-gradient-from: #e37500 var(--tw-gradient-from-position);
+	--tw-gradient-to: rgba(227, 117, 0, 0) var(--tw-gradient-to-position);
 	--tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
 }
 
 body .hover\:tw-to-blue-600:hover {
-	--tw-gradient-to: #db890a var(--tw-gradient-to-position);
+	--tw-gradient-to: #fc8200 var(--tw-gradient-to-position);
 }
 
 
