@@ -2923,28 +2923,16 @@ class ReportController extends Controller
         $business_id = request()->session()->get('user.business_id');
 
         $query = TransactionSellLine::join('transactions as sale', 'transaction_sell_lines.transaction_id', '=', 'sale.id')
-            ->leftjoin('transaction_sell_lines_purchase_lines as TSPL', 'transaction_sell_lines.id', '=', 'TSPL.sell_line_id')
-            ->leftjoin(
-                'purchase_lines as PL',
-                'TSPL.purchase_line_id',
-                '=',
-                'PL.id'
-            )
+            ->join('products as P', 'transaction_sell_lines.product_id', '=', 'P.id')
+            ->join('variations as V', 'transaction_sell_lines.variation_id', '=', 'V.id')
             ->where('sale.type', 'sell')
             ->where('sale.status', 'final')
-            ->join('products as P', 'transaction_sell_lines.product_id', '=', 'P.id')
             ->where('sale.business_id', $business_id)
             ->where('transaction_sell_lines.children_type', '!=', 'combo');
-        //If type combo: find childrens, sale price parent - get PP of childrens
-        $query->select(DB::raw('SUM(IF (TSPL.id IS NULL AND P.type="combo", ( 
-            SELECT Sum((tspl2.quantity - tspl2.qty_returned) * (tsl.unit_price_inc_tax - pl2.purchase_price_inc_tax)) AS total
-                FROM transaction_sell_lines AS tsl
-                    JOIN transaction_sell_lines_purchase_lines AS tspl2
-                ON tsl.id=tspl2.sell_line_id 
-                JOIN purchase_lines AS pl2 
-                ON tspl2.purchase_line_id = pl2.id 
-                WHERE tsl.parent_sell_line_id = transaction_sell_lines.id), IF(P.enable_stock=0,(transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price_inc_tax,   
-                (TSPL.quantity - TSPL.qty_returned) * (transaction_sell_lines.unit_price_inc_tax - PL.purchase_price_inc_tax)) )) AS gross_profit')
+        $query->select(DB::raw('SUM(IF(P.enable_stock=0,
+                (transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price_inc_tax,
+                (transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * (transaction_sell_lines.unit_price_inc_tax - V.dpp_inc_tax)
+            )) AS gross_profit')
             );
 
         $permitted_locations = auth()->user()->permitted_locations();
@@ -2964,22 +2952,19 @@ class ReportController extends Controller
         }
 
         if ($by == 'product') {
-            $query->join('variations as V', 'transaction_sell_lines.variation_id', '=', 'V.id')
-                ->leftJoin('product_variations as PV', 'PV.id', '=', 'V.product_variation_id')
+            $query->leftJoin('product_variations as PV', 'PV.id', '=', 'V.product_variation_id')
                 ->addSelect(DB::raw("IF(P.type='variable', CONCAT(P.name, ' - ', PV.name, ' - ', V.name, ' (', V.sub_sku, ')'), CONCAT(P.name, ' (', P.sku, ')')) as product"))
                 ->groupBy('V.id');
         }
 
         if ($by == 'category') {
-            $query->join('variations as V', 'transaction_sell_lines.variation_id', '=', 'V.id')
-                ->leftJoin('categories as C', 'C.id', '=', 'P.category_id')
+            $query->leftJoin('categories as C', 'C.id', '=', 'P.category_id')
                 ->addSelect('C.name as category')
                 ->groupBy('C.id');
         }
 
         if ($by == 'brand') {
-            $query->join('variations as V', 'transaction_sell_lines.variation_id', '=', 'V.id')
-                ->leftJoin('brands as B', 'B.id', '=', 'P.brand_id')
+            $query->leftJoin('brands as B', 'B.id', '=', 'P.brand_id')
                 ->addSelect('B.name as brand')
                 ->groupBy('B.id');
         }
