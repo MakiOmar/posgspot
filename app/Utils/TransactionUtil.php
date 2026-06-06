@@ -3800,7 +3800,7 @@ class TransactionUtil extends Util
      * @param  bool  $is_opening = false
      * @return float
      */
-    public function getOpeningClosingStock($business_id, $date, $location_id, $is_opening = false, $by_sale_price = false, $filters = [], $permitted_locations = null)
+    public function getOpeningClosingStock($business_id, $date, $location_id, $is_opening = false, $by_sale_price = false, $filters = [], $permitted_locations = null, $by_product_purchase_price = false)
     {
         $query = PurchaseLine::join(
             'transactions as purchase',
@@ -3816,6 +3816,8 @@ class TransactionUtil extends Util
 
         if ($by_sale_price) {
             $price_query_part = 'v.sell_price_inc_tax';
+        } elseif ($by_product_purchase_price) {
+            $price_query_part = 'v.dpp_inc_tax';
         }
 
         $query->leftjoin('variations as v', 'v.id', '=', 'purchase_lines.variation_id')
@@ -4610,28 +4612,16 @@ class TransactionUtil extends Util
     public function getGrossProfit($business_id, $start_date = null, $end_date = null, $location_id = null, $user_id = null, $permitted_locations)
     {
         $query = TransactionSellLine::join('transactions as sale', 'transaction_sell_lines.transaction_id', '=', 'sale.id')
-            ->leftjoin('transaction_sell_lines_purchase_lines as TSPL', 'transaction_sell_lines.id', '=', 'TSPL.sell_line_id')
-            ->leftjoin(
-                'purchase_lines as PL',
-                'TSPL.purchase_line_id',
-                '=',
-                'PL.id'
-            )
+            ->join('products as P', 'transaction_sell_lines.product_id', '=', 'P.id')
+            ->join('variations as V', 'transaction_sell_lines.variation_id', '=', 'V.id')
             ->where('sale.type', 'sell')
             ->where('sale.status', 'final')
-            ->join('products as P', 'transaction_sell_lines.product_id', '=', 'P.id')
             ->where('sale.business_id', $business_id)
             ->where('transaction_sell_lines.children_type', '!=', 'combo');
-        //If type combo: find childrens, sale price parent - get PP of childrens
-        $query->select(DB::raw('SUM(IF (TSPL.id IS NULL AND P.type="combo", ( 
-            SELECT Sum((tspl2.quantity - tspl2.qty_returned) * (tsl.unit_price_inc_tax - pl2.purchase_price_inc_tax)) AS total
-                FROM transaction_sell_lines AS tsl
-                    JOIN transaction_sell_lines_purchase_lines AS tspl2
-                ON tsl.id=tspl2.sell_line_id 
-                JOIN purchase_lines AS pl2 
-                ON tspl2.purchase_line_id = pl2.id 
-                WHERE tsl.parent_sell_line_id = transaction_sell_lines.id), IF(P.enable_stock=0,(transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price_inc_tax,   
-                (TSPL.quantity - TSPL.qty_returned) * (transaction_sell_lines.unit_price_inc_tax - PL.purchase_price_inc_tax)) )) AS gross_profit')
+        $query->select(DB::raw('SUM(IF(P.enable_stock=0,
+                (transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price_inc_tax,
+                (transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * (transaction_sell_lines.unit_price_inc_tax - V.dpp_inc_tax)
+            )) AS gross_profit')
             );
 
         if (! empty($start_date) && ! empty($end_date) && $start_date != $end_date) {
@@ -5544,10 +5534,10 @@ class TransactionUtil extends Util
         $day_before_start_date = \Carbon::createFromFormat('Y-m-d', $start_date)->subDay()->format('Y-m-d');
 
         $filters = ['user_id' => $user_id];
-        //Get Opening stock
-        $opening_stock = $this->getOpeningClosingStock($business_id, $day_before_start_date, $location_id, true, false, $filters, $permitted_locations);
+        //Get Opening stock (valued at current product unit purchase price)
+        $opening_stock = $this->getOpeningClosingStock($business_id, $day_before_start_date, $location_id, true, false, $filters, $permitted_locations, true);
 
-        //Get Closing stock
+        //Get Closing stock (valued at current product unit purchase price)
         $closing_stock = $this->getOpeningClosingStock(
             $business_id,
             $end_date,
@@ -5555,7 +5545,8 @@ class TransactionUtil extends Util
             false,
             false,
             $filters,
-            $permitted_locations
+            $permitted_locations,
+            true
         );
 
         //Get Purchase details
