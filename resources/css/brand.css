@@ -1,18 +1,134 @@
-/* Games Spot brand colors — replaces all blue/indigo primary shades */
-:root {
+/* Games Spot brand — overrides compiled Tailwind/DaisyUI/AdminLTE blue shades */
+:root,
+[data-theme] {
   --brand-primary: #fc8200;
   --brand-primary-dark: #e37500;
   --brand-primary-darker: #ca6800;
   --brand-primary-light: #ffa033;
   --brand-primary-lighter: #ffb84d;
   --brand-primary-pale: #ffe4cc;
-  --p: 72.88% 0.177 52.53;
-  --pc: 100% 0 0;
-  --fallback-p: #fc8200;
-  --fallback-pc: #ffffff;
+  --brand-primary-50: #fff4e6;
+  --p: 72.88% 0.177 52.53 !important;
+  --pc: 100% 0 0 !important;
+  --fallback-p: #fc8200 !important;
+  --fallback-pc: #ffffff !important;
 }
 
-/* Bootstrap / AdminLTE primary blues */
+/* Tailwind "primary" scale (dashboard header, nav buttons) */
+.tw-from-primary-800,
+.tw-from-sky-800 {
+  --tw-gradient-from: #fc8200 !important;
+  --tw-gradient-to: rgb(252 130 0 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.tw-to-primary-900,
+.tw-to-sky-900 {
+  --tw-gradient-to: #ca6800 !important;
+}
+
+.tw-bg-primary-800,
+.hover\:tw-bg-primary-800:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-bg-primary-700,
+.hover\:tw-bg-primary-700:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(227 117 0 / var(--tw-bg-opacity)) !important;
+}
+
+.hover\:tw-bg-primary-50:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(255 244 230 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-text-primary-800,
+.tw-text-primary-700 {
+  --tw-text-opacity: 1 !important;
+  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
+}
+
+.tw-border-primary-500 {
+  --tw-border-opacity: 1 !important;
+  border-color: rgb(252 130 0 / var(--tw-border-opacity)) !important;
+}
+
+/* Sky blues on dashboard stat icons */
+.tw-bg-sky-100 {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(255 228 204 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-text-sky-500 {
+  --tw-text-opacity: 1 !important;
+  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
+}
+
+/* Tailwind indigo/blue gradients (POS category/brand buttons, add buttons) */
+.tw-from-indigo-500,
+.tw-from-indigo-600,
+.hover\:tw-from-indigo-600:hover,
+.active\:tw-from-indigo-700:active {
+  --tw-gradient-from: #fc8200 !important;
+  --tw-gradient-to: rgb(252 130 0 / 0) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.tw-to-blue-500,
+.tw-to-blue-600,
+.hover\:tw-to-blue-600:hover,
+.active\:tw-to-blue-700:active {
+  --tw-gradient-to: #ffa033 !important;
+}
+
+.tw-bg-blue-500,
+.tw-bg-blue-600,
+.tw-bg-blue-700 {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-ring-blue-500,
+.focus\:tw-ring-blue-500:focus {
+  --tw-ring-opacity: 1 !important;
+  --tw-ring-color: rgb(252 130 0 / var(--tw-ring-opacity)) !important;
+}
+
+/* DaisyUI buttons */
+.tw-dw-btn-primary,
+.tw-dw-btn.tw-dw-btn-primary {
+  --btn-color: #fc8200 !important;
+  background-color: #fc8200 !important;
+  border-color: #fc8200 !important;
+  color: #fff !important;
+}
+
+.tw-dw-btn-primary:hover,
+.tw-dw-btn.tw-dw-btn-primary:hover {
+  --btn-color: #e37500 !important;
+  background-color: #e37500 !important;
+  border-color: #e37500 !important;
+  color: #fff !important;
+}
+
+.tw-dw-btn-outline.tw-dw-btn-primary,
+.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-primary {
+  --btn-color: #fc8200 !important;
+  background-color: transparent !important;
+  border-color: #fc8200 !important;
+  color: #fc8200 !important;
+}
+
+.tw-dw-btn-outline.tw-dw-btn-primary:hover,
+.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-primary:hover {
+  background-color: #fc8200 !important;
+  border-color: #fc8200 !important;
+  color: #fff !important;
+}
+
+/* Bootstrap / AdminLTE primary */
 .bg-light-blue,
 .bg-light-blue-active,
 .label-primary,
@@ -23,194 +139,155 @@
 .btn-primary,
 .box.box-primary,
 .box.box-solid.box-primary,
-.box.box-solid.box-primary > .box-header,
-.skin-blue .main-header .navbar,
-.skin-blue-light .main-header .navbar,
-.skin-blue .main-header li.user-header,
-.skin-blue-light .main-header li.user-header {
-  background-color: var(--brand-primary) !important;
-  border-color: var(--brand-primary) !important;
+.box.box-solid.box-primary > .box-header {
+  background-color: #fc8200 !important;
+  border-color: #fc8200 !important;
 }
 
-.bg-light-blue-active,
-.skin-blue .main-header .logo:hover,
-.skin-blue-light .main-header .logo:hover {
-  background-color: var(--brand-primary-darker) !important;
+.bg-light-blue-active {
+  background-color: #ca6800 !important;
 }
 
 .btn-primary:hover,
 .btn-primary:active,
-.btn-primary.hover,
 .btn-primary:focus,
-.btn-primary.focus {
-  background-color: var(--brand-primary-dark) !important;
-  border-color: var(--brand-primary-darker) !important;
+.btn-primary.focus,
+.btn-primary.hover {
+  background-color: #e37500 !important;
+  border-color: #ca6800 !important;
 }
 
 .text-light-blue,
-.text-primary,
-.text-blue {
-  color: var(--brand-primary) !important;
+.text-primary {
+  color: #fc8200 !important;
 }
 
 .box.box-primary {
-  border-top-color: var(--brand-primary) !important;
-}
-
-.todo-list .primary {
-  border-left-color: var(--brand-primary) !important;
+  border-top-color: #fc8200 !important;
 }
 
 .bg-light-blue-gradient {
-  background: var(--brand-primary) !important;
-  background: linear-gradient(to top, var(--brand-primary), var(--brand-primary-lighter)) !important;
+  background: linear-gradient(to top, #fc8200, #ffb84d) !important;
 }
 
 .bg-blue-gradient {
-  background: var(--brand-primary-darker) !important;
-  background: linear-gradient(to top, var(--brand-primary-darker), var(--brand-primary-light)) !important;
+  background: linear-gradient(to top, #ca6800, #ffa033) !important;
 }
 
-.bg-blue,
-.text-blue {
-  background-color: var(--brand-primary-darker) !important;
+/* AdminLTE skin-blue header */
+.skin-blue .main-header .navbar,
+.skin-blue-light .main-header .navbar {
+  background-color: #ffa033 !important;
+  background-image: linear-gradient(to right, #ffa033, #1d1f33) !important;
 }
 
-/* Custom theme header / logo (custom.css equivalents) */
 .skin-blue .main-header .logo,
 .skin-blue-light .main-header .logo,
 .skin-blue .main-sidebar .logo,
 .skin-blue-light .main-sidebar .logo {
-  background: var(--brand-primary) !important;
-}
-
-.skin-blue .main-header .logo:hover,
-.skin-blue-light .main-header .logo:hover,
-.skin-blue .main-sidebar .logo:hover,
-.skin-blue-light .main-sidebar .logo:hover {
-  background: var(--brand-primary) !important;
-}
-
-.skin-blue .main-header .navbar,
-.skin-blue-light .main-header .navbar {
-  background-color: var(--brand-primary-light) !important;
-  background-image: linear-gradient(to right, var(--brand-primary-light), #1d1f33) !important;
-}
-
-.skin-blue .content-wrapper .content-header-custom,
-.skin-blue-light .content-wrapper .content-header-custom {
-  background-color: var(--brand-primary-light) !important;
-  background-image: linear-gradient(to right, var(--brand-primary-light), #1d1f33) !important;
-}
-
-.btn-border-primary {
-  border-color: var(--brand-primary) !important;
-  color: var(--brand-primary) !important;
-}
-
-.btn-border-primary:hover {
-  border-color: var(--brand-primary-darker) !important;
-  color: var(--brand-primary-darker) !important;
-}
-
-.navbar-nav > .dropdown > .dropdown-menu > li.footer > a,
-.navbar-nav > .dropdown > .dropdown-menu > li.footer > a:hover {
-  color: var(--brand-primary) !important;
-}
-
-/* Tailwind indigo/blue gradients -> brand orange */
-.tw-from-indigo-500,
-.hover\:tw-from-indigo-600:hover,
-.active\:tw-from-indigo-700:active,
-.tw-from-indigo-600 {
-  --tw-gradient-from: var(--brand-primary-light) var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(255 160 51 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-}
-
-.tw-to-blue-500,
-.hover\:tw-to-blue-600:hover,
-.active\:tw-to-blue-700:active,
-.tw-to-blue-600 {
-  --tw-gradient-to: var(--brand-primary) var(--tw-gradient-to-position);
-}
-
-.tw-ring-blue-500,
-.focus\:tw-ring-blue-500:focus {
-  --tw-ring-color: var(--brand-primary) !important;
-}
-
-/* DaisyUI primary buttons */
-.tw-dw-btn-primary,
-.tw-dw-btn-outline.tw-dw-btn-primary {
-  --tw-bg-opacity: 1;
-  background-color: var(--brand-primary) !important;
-  border-color: var(--brand-primary) !important;
-  color: #fff !important;
-}
-
-.tw-dw-btn-primary:hover,
-.tw-dw-btn-outline.tw-dw-btn-primary:hover {
-  background-color: var(--brand-primary-dark) !important;
-  border-color: var(--brand-primary-dark) !important;
-  color: #fff !important;
-}
-
-.tw-dw-btn-outline.tw-dw-btn-primary {
-  background-color: transparent !important;
-  color: var(--brand-primary) !important;
-}
-
-.tw-dw-btn-outline.tw-dw-btn-primary:hover {
-  background-color: var(--brand-primary) !important;
-  color: #fff !important;
-}
-
-/* Auth pages gradient background */
-body[style*="6366f1"],
-body[style*="3b82f6"] {
-  background: linear-gradient(to right, var(--brand-primary), var(--brand-primary-light)) !important;
-}
-
-/* Pattern lock hover */
-.patt-circ.hovered {
-  background-color: var(--brand-primary-pale) !important;
-}
-
-/* AdminLTE skin-blue (from vendor.css) */
-.skin-blue .main-header .navbar,
-.skin-blue-light .main-header .navbar {
-  background-color: var(--brand-primary-light) !important;
-  background-image: linear-gradient(to right, var(--brand-primary-light), #1d1f33) !important;
-}
-
-.skin-blue .main-header .logo,
-.skin-blue-light .main-header .logo {
-  background-color: var(--brand-primary-dark) !important;
+  background-color: #fc8200 !important;
 }
 
 .skin-blue .main-header .logo:hover,
 .skin-blue-light .main-header .logo:hover {
-  background-color: var(--brand-primary-darker) !important;
+  background-color: #ca6800 !important;
 }
 
 .skin-blue .main-header li.user-header,
 .skin-blue-light .main-header li.user-header {
-  background-color: var(--brand-primary) !important;
+  background-color: #fc8200 !important;
 }
 
 .skin-blue .sidebar-menu > li.active > a,
 .skin-blue-light .sidebar-menu > li.active > a {
-  border-left-color: var(--brand-primary) !important;
+  border-left-color: #fc8200 !important;
 }
 
-.select2-container--default .select2-results__option--highlighted[aria-selected],
-.select2-container--default.select2-container--focus .select2-selection--multiple,
-.select2-container--default.select2-container--open .select2-selection--single {
-  background-color: var(--brand-primary) !important;
-  border-color: var(--brand-primary) !important;
+.skin-blue .content-wrapper .content-header-custom,
+.skin-blue-light .content-wrapper .content-header-custom {
+  background-color: #ffa033 !important;
+  background-image: linear-gradient(to right, #ffa033, #1d1f33) !important;
 }
 
-.select2-container--default.select2-container--open .select2-selection--single {
-  border-color: var(--brand-primary) !important;
+.btn-border-primary {
+  border-color: #fc8200 !important;
+  color: #fc8200 !important;
+}
+
+.btn-border-primary:hover {
+  border-color: #ca6800 !important;
+  color: #ca6800 !important;
+}
+
+.navbar-nav > .dropdown > .dropdown-menu > li.footer > a,
+.navbar-nav > .dropdown > .dropdown-menu > li.footer > a:hover {
+  color: #fc8200 !important;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: #fc8200 !important;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+  border-color: #fc8200 !important;
+}
+
+.patt-circ.hovered {
+  background-color: #ffe4cc !important;
+}
+
+/* POS hardcoded blue/purple arbitrary Tailwind colors */
+.tw-bg-\[\#001F3E\] {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-bg-\[\#646EE4\] {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
+}
+
+.hover\:tw-bg-\[\#414aac\]:hover {
+  --tw-bg-opacity: 1 !important;
+  background-color: rgb(227 117 0 / var(--tw-bg-opacity)) !important;
+}
+
+.tw-text-\[\#009ce4\],
+.tw-text-\[\#009EE4\] {
+  --tw-text-opacity: 1 !important;
+  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
+}
+
+.tw-text-\[\#646EE4\] {
+  --tw-text-opacity: 1 !important;
+  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
+}
+
+.bg-blue {
+  background-color: #fc8200 !important;
+}
+
+/* DaisyUI info (cyan) buttons used on POS */
+.tw-dw-btn-info,
+.tw-dw-btn.tw-dw-btn-info {
+  --btn-color: #ffa033 !important;
+  background-color: #ffa033 !important;
+  border-color: #ffa033 !important;
+  color: #fff !important;
+}
+
+.tw-dw-btn-outline.tw-dw-btn-info,
+.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-info {
+  --btn-color: #fc8200 !important;
+  background-color: transparent !important;
+  border-color: #fc8200 !important;
+  color: #fc8200 !important;
+}
+
+.tw-dw-btn-outline.tw-dw-btn-info:hover,
+.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-info:hover {
+  background-color: #fc8200 !important;
+  border-color: #fc8200 !important;
+  color: #fff !important;
 }

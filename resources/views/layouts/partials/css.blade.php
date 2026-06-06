@@ -11,7 +11,11 @@
 <!-- app css -->
 <link rel="stylesheet" href="{{ asset('css/app.css?v='.$asset_v) }}">
 
-<!-- brand colors (overrides blue/indigo primary shades) -->
+@if(!empty($__system_settings['additional_css']))
+    {!! $__system_settings['additional_css'] !!}
+@endif
+
+<!-- brand colors — must load last to override Tailwind/DaisyUI blues -->
 <link rel="stylesheet" href="{{ asset('css/brand.css?v='.$asset_v) }}">
 
 @if(isset($pos_layout) && $pos_layout)
@@ -75,7 +79,3 @@
 	  transform: rotate(315deg);
 	}
 </style>
-@if(!empty($__system_settings['additional_css']))
-    {!! $__system_settings['additional_css'] !!}
-@endif
-
