@@ -1,3 +1,4 @@
+@include('sale_pos.receipts.partials.invoice_styles')
 <!-- business information here -->
 
 <div class="row" style="color: #000000 !important;">
@@ -289,17 +290,17 @@
 		@endif
 		<table class="table table-responsive table-slim">
 			<thead>
-				<tr>
-					<th width="{{$p_width}}%">{{$receipt_details->table_product_label}}</th>
-					<th class="text-right" width="15%">{{$receipt_details->table_qty_label}}</th>
-					<th class="text-right" width="15%">{{$receipt_details->table_unit_price_label}}</th>
+				<tr style="background-color: #f98007 !important; color: #ffffff !important;">
+					<th width="{{$p_width}}%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->table_product_label}}</th>
+					<th class="text-right" width="15%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->table_qty_label}}</th>
+					<th class="text-right" width="15%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->table_unit_price_label}}</th>
 					@if(!empty($receipt_details->discounted_unit_price_label))
-						<th class="text-right" width="10%">{{$receipt_details->discounted_unit_price_label}}</th>
+						<th class="text-right" width="10%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->discounted_unit_price_label}}</th>
 					@endif
 					@if(!empty($receipt_details->item_discount_label))
-						<th class="text-right" width="10%">{{$receipt_details->item_discount_label}}</th>
+						<th class="text-right" width="10%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->item_discount_label}}</th>
 					@endif
-					<th class="text-right" width="15%">{{$receipt_details->table_subtotal_label}}</th>
+					<th class="text-right" width="15%" style="background-color: #f98007 !important; color: #ffffff !important;">{{$receipt_details->table_subtotal_label}}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -593,10 +594,10 @@
 
 					<!-- Total -->
 					<tr>
-						<th>
+						<th style="background-color: #f98007 !important; color: #ffffff !important;">
 							{!! $receipt_details->total_label !!}
 						</th>
-						<td class="text-right">
+						<td class="text-right" style="background-color: #f98007 !important; color: #ffffff !important;">
 							{{$receipt_details->total}}
 							@if(!empty($receipt_details->total_in_words))
 								<br>

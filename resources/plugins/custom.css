@@ -222,7 +222,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   padding: 0 15px 15px; }
 
 .bg-light-blue, .label-primary, .modal-primary .modal-body, .progress-bar {
-  background-color: #fc8200 !important; }
+  background-color: #f98007 !important; }
 
 .bg-red, .callout.callout-danger, .alert-danger, .alert-error, .label-danger, .modal-danger .modal-body, .progress-bar-red, .progress-bar-danger {
   background-color: #f5365c !important; }

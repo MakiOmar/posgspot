@@ -1,3 +1,4 @@
+@include('sale_pos.receipts.partials.invoice_styles')
 <table style="width:100%;">
 	<thead>
 		<tr>
@@ -64,8 +65,8 @@
 
 		<!-- Total Due-->
 		@if(!empty($receipt_details->total_due) && !empty($receipt_details->total_due_label))
-			<div class="bg-light-blue-active text-right font-23 padding-5">
-				<span class="pull-left bg-light-blue-active">
+			<div class="text-right font-23 padding-5" style="background-color: #f98007 !important; color: #ffffff !important;">
+				<span class="pull-left" style="background-color: #f98007 !important; color: #ffffff !important;">
 					{!! $receipt_details->total_due_label !!}
 				</span>
 
@@ -74,8 +75,8 @@
 		@endif
 
 		@if(!empty($receipt_details->all_due))
-			<div class="bg-light-blue-active text-right font-23 padding-5">
-				<span class="pull-left bg-light-blue-active">
+			<div class="text-right font-23 padding-5" style="background-color: #f98007 !important; color: #ffffff !important;">
+				<span class="pull-left" style="background-color: #f98007 !important; color: #ffffff !important;">
 					{!! $receipt_details->all_bal_label !!}
 				</span>
 
@@ -377,8 +378,8 @@
 		<br/>
 		<table class="table table-bordered table-no-top-cell-border table-slim">
 			<thead>
-				<tr style="background-color: #ca6800 !important; color: white !important; font-size: 15px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
-					<td style="background-color: #ca6800 !important; color: white !important;width: 3% !important">#</td>
+				<tr style="background-color: #f98007 !important; color: white !important; font-size: 15px !important" class="table-no-side-cell-border table-no-top-cell-border text-center">
+					<td style="background-color: #f98007 !important; color: white !important;width: 3% !important">#</td>
 					
 					@php
 						$p_width = 20;
@@ -388,33 +389,33 @@
 							$p_width = 30;
 						@endphp
 					@endif
-					<td style="background-color: #ca6800 !important; color: white !important; width: {{$p_width}}% !important">
+					<td style="background-color: #f98007 !important; color: white !important; width: {{$p_width}}% !important">
 						{{$receipt_details->table_product_label}}
 					</td>
 
 					@if($receipt_details->show_cat_code == 1)
-						<td style="background-color: #ca6800 !important; color: white !important; width: 10% !important;">{{$receipt_details->cat_code_label}}</td>
+						<td style="background-color: #f98007 !important; color: white !important; width: 10% !important;">{{$receipt_details->cat_code_label}}</td>
 					@endif
 					
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->table_qty_label}}
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->table_unit_price_label}}
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->discounted_unit_price_label}}
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 8% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 8% !important;">
 						{{$receipt_details->line_discount_label}}
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->line_tax_label}}
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->table_unit_price_label}} (@lang('product.inc_of_tax'))
 					</td>
-					<td style="background-color: #ca6800 !important; color: white !important;width: 10% !important;">
+					<td style="background-color: #f98007 !important; color: white !important;width: 10% !important;">
 						{{$receipt_details->table_subtotal_label}}
 					</td>
 				</tr>
@@ -727,10 +728,10 @@
 				
 				<!-- Total -->
 				<tr>
-					<th style="background-color: #ca6800 !important; color: white !important" class="font-23 padding-10">
+					<th style="background-color: #f98007 !important; color: white !important" class="font-23 padding-10">
 						{!! $receipt_details->total_label !!}
 					</th>
-					<td class="text-right font-23 padding-10" style="background-color: #ca6800 !important; color: white !important">
+					<td class="text-right font-23 padding-10" style="background-color: #f98007 !important; color: white !important">
 						{{$receipt_details->total}}
 					</td>
 				</tr>

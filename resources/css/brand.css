@@ -1,42 +1,52 @@
-/* Games Spot brand — overrides compiled Tailwind/DaisyUI/AdminLTE blue shades */
+/* Games Spot brand — solid backgrounds use #f98007; gradients use lighter orange shades */
 :root,
 [data-theme] {
-  --brand-primary: #fc8200;
-  --brand-primary-dark: #e37500;
-  --brand-primary-darker: #ca6800;
+  --brand-solid: #f98007;
+  --brand-solid-hover: #e07206;
   --brand-primary-light: #ffa033;
   --brand-primary-lighter: #ffb84d;
   --brand-primary-pale: #ffe4cc;
   --brand-primary-50: #fff4e6;
-  --p: 72.88% 0.177 52.53 !important;
+  --p: 73.5% 0.176 52.5 !important;
   --pc: 100% 0 0 !important;
-  --fallback-p: #fc8200 !important;
+  --fallback-p: #f98007 !important;
   --fallback-pc: #ffffff !important;
 }
 
-/* Tailwind "primary" scale (dashboard header, nav buttons) */
+/* Tailwind gradient headers (not solid fills) */
 .tw-from-primary-800,
-.tw-from-sky-800 {
-  --tw-gradient-from: #fc8200 !important;
-  --tw-gradient-to: rgb(252 130 0 / 0) !important;
+.tw-from-sky-800,
+.tw-from-indigo-500,
+.tw-from-indigo-600,
+.hover\:tw-from-indigo-600:hover,
+.active\:tw-from-indigo-700:active {
+  --tw-gradient-from: #f98007 !important;
+  --tw-gradient-to: rgb(249 128 7 / 0) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
 
 .tw-to-primary-900,
-.tw-to-sky-900 {
-  --tw-gradient-to: #ca6800 !important;
+.tw-to-sky-900,
+.tw-to-blue-500,
+.tw-to-blue-600,
+.hover\:tw-to-blue-600:hover,
+.active\:tw-to-blue-700:active {
+  --tw-gradient-to: #ffa033 !important;
 }
 
+/* Solid Tailwind backgrounds (non-gradient) */
 .tw-bg-primary-800,
-.hover\:tw-bg-primary-800:hover {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
-}
-
+.hover\:tw-bg-primary-800:hover,
 .tw-bg-primary-700,
-.hover\:tw-bg-primary-700:hover {
+.hover\:tw-bg-primary-700:hover,
+.tw-bg-blue-500,
+.tw-bg-blue-600,
+.tw-bg-blue-700,
+.tw-bg-\[\#001F3E\],
+.tw-bg-\[\#646EE4\],
+.hover\:tw-bg-\[\#414aac\]:hover {
   --tw-bg-opacity: 1 !important;
-  background-color: rgb(227 117 0 / var(--tw-bg-opacity)) !important;
+  background-color: rgb(249 128 7 / var(--tw-bg-opacity)) !important;
 }
 
 .hover\:tw-bg-primary-50:hover {
@@ -45,90 +55,68 @@
 }
 
 .tw-text-primary-800,
-.tw-text-primary-700 {
+.tw-text-primary-700,
+.tw-text-sky-500,
+.tw-text-\[\#009ce4\],
+.tw-text-\[\#009EE4\],
+.tw-text-\[\#646EE4\] {
   --tw-text-opacity: 1 !important;
-  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
+  color: rgb(249 128 7 / var(--tw-text-opacity)) !important;
 }
 
 .tw-border-primary-500 {
   --tw-border-opacity: 1 !important;
-  border-color: rgb(252 130 0 / var(--tw-border-opacity)) !important;
+  border-color: rgb(249 128 7 / var(--tw-border-opacity)) !important;
 }
 
-/* Sky blues on dashboard stat icons */
 .tw-bg-sky-100 {
   --tw-bg-opacity: 1 !important;
   background-color: rgb(255 228 204 / var(--tw-bg-opacity)) !important;
 }
 
-.tw-text-sky-500 {
-  --tw-text-opacity: 1 !important;
-  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
-}
-
-/* Tailwind indigo/blue gradients (POS category/brand buttons, add buttons) */
-.tw-from-indigo-500,
-.tw-from-indigo-600,
-.hover\:tw-from-indigo-600:hover,
-.active\:tw-from-indigo-700:active {
-  --tw-gradient-from: #fc8200 !important;
-  --tw-gradient-to: rgb(252 130 0 / 0) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-}
-
-.tw-to-blue-500,
-.tw-to-blue-600,
-.hover\:tw-to-blue-600:hover,
-.active\:tw-to-blue-700:active {
-  --tw-gradient-to: #ffa033 !important;
-}
-
-.tw-bg-blue-500,
-.tw-bg-blue-600,
-.tw-bg-blue-700 {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
-}
-
 .tw-ring-blue-500,
 .focus\:tw-ring-blue-500:focus {
   --tw-ring-opacity: 1 !important;
-  --tw-ring-color: rgb(252 130 0 / var(--tw-ring-opacity)) !important;
+  --tw-ring-color: rgb(249 128 7 / var(--tw-ring-opacity)) !important;
 }
 
-/* DaisyUI buttons */
+/* DaisyUI primary buttons (solid) */
 .tw-dw-btn-primary,
 .tw-dw-btn.tw-dw-btn-primary {
-  --btn-color: #fc8200 !important;
-  background-color: #fc8200 !important;
-  border-color: #fc8200 !important;
+  --btn-color: #f98007 !important;
+  background-color: #f98007 !important;
+  border-color: #f98007 !important;
   color: #fff !important;
 }
 
 .tw-dw-btn-primary:hover,
 .tw-dw-btn.tw-dw-btn-primary:hover {
-  --btn-color: #e37500 !important;
-  background-color: #e37500 !important;
-  border-color: #e37500 !important;
+  --btn-color: #e07206 !important;
+  background-color: #e07206 !important;
+  border-color: #e07206 !important;
   color: #fff !important;
 }
 
 .tw-dw-btn-outline.tw-dw-btn-primary,
 .tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-primary {
-  --btn-color: #fc8200 !important;
+  --btn-color: #f98007 !important;
   background-color: transparent !important;
-  border-color: #fc8200 !important;
-  color: #fc8200 !important;
+  border-color: #f98007 !important;
+  color: #f98007 !important;
 }
 
 .tw-dw-btn-outline.tw-dw-btn-primary:hover,
 .tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-primary:hover {
-  background-color: #fc8200 !important;
-  border-color: #fc8200 !important;
+  background-color: #f98007 !important;
+  border-color: #f98007 !important;
   color: #fff !important;
 }
 
-/* Bootstrap / AdminLTE primary */
+/* Invoices & solid primary backgrounds */
+.table-pdf thead tr,
+.table-pdf thead tr th,
+.blue-header th,
+.blue-heading,
 .bg-light-blue,
 .bg-light-blue-active,
 .label-primary,
@@ -139,42 +127,42 @@
 .btn-primary,
 .box.box-primary,
 .box.box-solid.box-primary,
-.box.box-solid.box-primary > .box-header {
-  background-color: #fc8200 !important;
-  border-color: #fc8200 !important;
-}
-
-.bg-light-blue-active {
-  background-color: #ca6800 !important;
+.box.box-solid.box-primary > .box-header,
+.bg-blue,
+.bg-info,
+ul.dt-button-collection {
+  background-color: #f98007 !important;
+  border-color: #f98007 !important;
 }
 
 .btn-primary:hover,
 .btn-primary:active,
 .btn-primary:focus,
 .btn-primary.focus,
-.btn-primary.hover {
-  background-color: #e37500 !important;
-  border-color: #ca6800 !important;
+.btn-primary.hover,
+.bg-info > a:hover {
+  background-color: #e07206 !important;
+  border-color: #e07206 !important;
 }
 
 .text-light-blue,
 .text-primary {
-  color: #fc8200 !important;
+  color: #f98007 !important;
 }
 
 .box.box-primary {
-  border-top-color: #fc8200 !important;
+  border-top-color: #f98007 !important;
 }
 
 .bg-light-blue-gradient {
-  background: linear-gradient(to top, #fc8200, #ffb84d) !important;
+  background: linear-gradient(to top, #f98007, #ffb84d) !important;
 }
 
 .bg-blue-gradient {
-  background: linear-gradient(to top, #ca6800, #ffa033) !important;
+  background: linear-gradient(to top, #f98007, #ffa033) !important;
 }
 
-/* AdminLTE skin-blue header */
+/* AdminLTE skin-blue — navbar stays gradient; logos solid */
 .skin-blue .main-header .navbar,
 .skin-blue-light .main-header .navbar {
   background-color: #ffa033 !important;
@@ -184,23 +172,20 @@
 .skin-blue .main-header .logo,
 .skin-blue-light .main-header .logo,
 .skin-blue .main-sidebar .logo,
-.skin-blue-light .main-sidebar .logo {
-  background-color: #fc8200 !important;
+.skin-blue-light .main-sidebar .logo,
+.skin-blue .main-header li.user-header,
+.skin-blue-light .main-header li.user-header {
+  background-color: #f98007 !important;
 }
 
 .skin-blue .main-header .logo:hover,
 .skin-blue-light .main-header .logo:hover {
-  background-color: #ca6800 !important;
-}
-
-.skin-blue .main-header li.user-header,
-.skin-blue-light .main-header li.user-header {
-  background-color: #fc8200 !important;
+  background-color: #e07206 !important;
 }
 
 .skin-blue .sidebar-menu > li.active > a,
 .skin-blue-light .sidebar-menu > li.active > a {
-  border-left-color: #fc8200 !important;
+  border-left-color: #f98007 !important;
 }
 
 .skin-blue .content-wrapper .content-header-custom,
@@ -210,84 +195,33 @@
 }
 
 .btn-border-primary {
-  border-color: #fc8200 !important;
-  color: #fc8200 !important;
+  border-color: #f98007 !important;
+  color: #f98007 !important;
 }
 
 .btn-border-primary:hover {
-  border-color: #ca6800 !important;
-  color: #ca6800 !important;
+  border-color: #e07206 !important;
+  color: #e07206 !important;
 }
 
 .navbar-nav > .dropdown > .dropdown-menu > li.footer > a,
 .navbar-nav > .dropdown > .dropdown-menu > li.footer > a:hover {
-  color: #fc8200 !important;
+  color: #f98007 !important;
 }
 
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
-  background-color: #fc8200 !important;
+  background-color: #f98007 !important;
 }
 
 .select2-container--default.select2-container--open .select2-selection--single,
 .select2-container--default.select2-container--focus .select2-selection--multiple {
-  border-color: #fc8200 !important;
+  border-color: #f98007 !important;
 }
 
 .patt-circ.hovered {
   background-color: #ffe4cc !important;
 }
 
-/* POS hardcoded blue/purple arbitrary Tailwind colors */
-.tw-bg-\[\#001F3E\] {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
-}
-
-.tw-bg-\[\#646EE4\] {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(252 130 0 / var(--tw-bg-opacity)) !important;
-}
-
-.hover\:tw-bg-\[\#414aac\]:hover {
-  --tw-bg-opacity: 1 !important;
-  background-color: rgb(227 117 0 / var(--tw-bg-opacity)) !important;
-}
-
-.tw-text-\[\#009ce4\],
-.tw-text-\[\#009EE4\] {
-  --tw-text-opacity: 1 !important;
-  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
-}
-
-.tw-text-\[\#646EE4\] {
-  --tw-text-opacity: 1 !important;
-  color: rgb(252 130 0 / var(--tw-text-opacity)) !important;
-}
-
-.bg-blue {
-  background-color: #fc8200 !important;
-}
-
-/* DaisyUI info (cyan) buttons used on POS */
-.tw-dw-btn-info,
-.tw-dw-btn.tw-dw-btn-info {
-  --btn-color: #ffa033 !important;
-  background-color: #ffa033 !important;
-  border-color: #ffa033 !important;
-  color: #fff !important;
-}
-
-.tw-dw-btn-outline.tw-dw-btn-info,
-.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-info {
-  --btn-color: #fc8200 !important;
-  background-color: transparent !important;
-  border-color: #fc8200 !important;
-  color: #fc8200 !important;
-}
-
-.tw-dw-btn-outline.tw-dw-btn-info:hover,
-.tw-dw-btn.tw-dw-btn-outline.tw-dw-btn-info:hover {
-  background-color: #fc8200 !important;
-  border-color: #fc8200 !important;
-  color: #fff !important;
+.active-cell {
+  border-color: #f98007 !important;
 }
