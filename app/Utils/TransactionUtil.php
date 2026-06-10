@@ -749,6 +749,7 @@ class TransactionUtil extends Util
                     $payment_data = [
                         'amount' => $payment_amount,
                         'method' => $payment['method'],
+                        'payment_line_status' => ! empty($payment['payment_line_status']) ? $payment['payment_line_status'] : 'completed',
                         'business_id' => $transaction->business_id,
                         'is_return' => isset($payment['is_return']) ? $payment['is_return'] : 0,
                         'card_transaction_number' => isset($payment['card_transaction_number']) ? $payment['card_transaction_number'] : null,
@@ -808,7 +809,7 @@ class TransactionUtil extends Util
             foreach ($account_transactions as $account_transaction) {
                 $payment = $payment_lines->where('payment_ref_no', $account_transaction['payment_ref_no'])->first();
 
-                if (! empty($payment)) {
+                if (! empty($payment) && $payment->payment_line_status == 'completed') {
                     event(new TransactionPaymentAdded($payment, $account_transaction));
                 }
             }
@@ -2982,11 +2983,30 @@ class TransactionUtil extends Util
     public function getTotalPaid($transaction_id)
     {
         $total_paid = TransactionPayment::where('transaction_id', $transaction_id)
+                ->where('payment_line_status', 'completed')
                 ->select(DB::raw('SUM(IF( is_return = 0, amount, amount*-1))as total_paid'))
                 ->first()
                 ->total_paid;
 
         return $total_paid;
+    }
+
+    /**
+     * Resolve aggregated payment line status for a transaction.
+     */
+    public function getTransactionPaymentLineStatus($transaction)
+    {
+        $payments = $transaction->payment_lines->where('is_return', 0);
+
+        if ($payments->isEmpty()) {
+            return 'pending';
+        }
+
+        if ($payments->where('payment_line_status', 'pending')->count() > 0) {
+            return 'pending';
+        }
+
+        return 'completed';
     }
 
     /**
@@ -5077,7 +5097,7 @@ class TransactionUtil extends Util
                     DB::raw('DATE_FORMAT(transactions.transaction_date, "%Y/%m/%d") as sale_date'),
                     DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as added_by"),
                     DB::raw('(SELECT SUM(IF(TP.is_return = 1,-1*TP.amount,TP.amount)) FROM transaction_payments AS TP WHERE
-                        TP.transaction_id=transactions.id) as total_paid'),
+                        TP.transaction_id=transactions.id AND TP.payment_line_status = "completed") as total_paid'),
                     'bl.name as business_location',
                     DB::raw('COUNT(SR.id) as return_exists'),
                     DB::raw('(SELECT SUM(TP2.amount) FROM transaction_payments AS TP2 WHERE

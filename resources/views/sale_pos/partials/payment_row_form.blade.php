@@ -6,6 +6,13 @@
 			$col_class = 'col-md-4';
 		}
 		$readonly = $payment_line['method'] == 'advance' ? true : false;
+		$payment_line_statuses = [
+			'completed' => __('restaurant.completed'),
+			'pending' => __('lang_v1.pending'),
+		];
+		$default_payment_line_status = !empty($payment_line['payment_line_status'])
+			? $payment_line['payment_line_status']
+			: (!empty($default_payment_line_status) ? $default_payment_line_status : 'completed');
 	@endphp
 	<div class="{{$col_class}}">
 		<div class="form-group">
@@ -31,6 +38,17 @@
 		</div>
 	</div>
 	@endif
+	<div class="{{$col_class}}">
+		<div class="form-group">
+			{!! Form::label("payment_line_status_$row_index" , __('sale.payment_status') . ':*') !!}
+			<div class="input-group">
+				<span class="input-group-addon">
+					<i class="fas fa-check-circle"></i>
+				</span>
+				{!! Form::select("payment[$row_index][payment_line_status]", $payment_line_statuses, $default_payment_line_status, ['class' => 'form-control', 'required', 'id' => "payment_line_status_$row_index", 'style' => 'width:100%;']); !!}
+			</div>
+		</div>
+	</div>
 	<div class="{{$col_class}}">
 		<div class="form-group">
 			{!! Form::label("method_$row_index" , __('lang_v1.payment_method') . ':*') !!}

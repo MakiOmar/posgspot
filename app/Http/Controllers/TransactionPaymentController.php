@@ -74,7 +74,8 @@ class TransactionPaymentController extends Controller
             if ($transaction->payment_status != 'paid') {
                 $inputs = $request->only(['amount', 'method', 'note', 'card_number', 'card_holder_name',
                     'card_transaction_number', 'card_type', 'card_month', 'card_year', 'card_security',
-                    'cheque_number', 'bank_account_number', ]);
+                    'cheque_number', 'bank_account_number', 'payment_line_status', ]);
+                $inputs['payment_line_status'] = ! empty($inputs['payment_line_status']) ? $inputs['payment_line_status'] : 'completed';
                 $inputs['paid_on'] = $this->transactionUtil->uf_date($request->input('paid_on'), true);
                 $inputs['transaction_id'] = $transaction->id;
                 $inputs['amount'] = $this->transactionUtil->num_uf($inputs['amount']);
@@ -124,7 +125,9 @@ class TransactionPaymentController extends Controller
                     }
 
                     $inputs['transaction_type'] = $transaction->type;
-                    event(new TransactionPaymentAdded($tp, $inputs));
+                    if ($tp->payment_line_status == 'completed') {
+                        event(new TransactionPaymentAdded($tp, $inputs));
+                    }
                 }
 
                 //update payment status
@@ -240,7 +243,8 @@ class TransactionPaymentController extends Controller
 
             $inputs = $request->only(['amount', 'method', 'note', 'card_number', 'card_holder_name',
                 'card_transaction_number', 'card_type', 'card_month', 'card_year', 'card_security',
-                'cheque_number', 'bank_account_number', ]);
+                'cheque_number', 'bank_account_number', 'payment_line_status', ]);
+            $inputs['payment_line_status'] = ! empty($inputs['payment_line_status']) ? $inputs['payment_line_status'] : 'completed';
             $inputs['paid_on'] = $this->transactionUtil->uf_date($request->input('paid_on'), true);
             $inputs['amount'] = $this->transactionUtil->num_uf($inputs['amount']);
 

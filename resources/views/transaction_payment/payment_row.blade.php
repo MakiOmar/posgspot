@@ -86,6 +86,24 @@
         </div>
         <div class="col-md-4">
           <div class="form-group">
+            @php
+              $payment_line_statuses = [
+                'completed' => __('restaurant.completed'),
+                'pending' => __('lang_v1.pending'),
+              ];
+              $default_payment_line_status = $transaction->type == 'sales_order' ? 'pending' : 'completed';
+            @endphp
+            {!! Form::label("payment_line_status" , __('sale.payment_status') . ':*') !!}
+            <div class="input-group">
+              <span class="input-group-addon">
+                <i class="fas fa-check-circle"></i>
+              </span>
+              {!! Form::select("payment_line_status", $payment_line_statuses, $default_payment_line_status, ['class' => 'form-control select2', 'required', 'style' => 'width:100%;']); !!}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
             {!! Form::label("amount" , __('sale.amount') . ':*') !!}
             <div class="input-group">
               <span class="input-group-addon">

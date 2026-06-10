@@ -57,7 +57,7 @@ class SellController extends Controller
         $this->productUtil = $productUtil;
 
         $this->dummyPaymentLine = ['method' => '', 'amount' => 0, 'note' => '', 'card_transaction_number' => '', 'card_number' => '', 'card_type' => '', 'card_holder_name' => '', 'card_month' => '', 'card_year' => '', 'card_security' => '', 'cheque_number' => '', 'bank_account_number' => '',
-            'is_return' => 0, 'transaction_no' => '', ];
+            'is_return' => 0, 'transaction_no' => '', 'payment_line_status' => 'completed', ];
 
         $this->shipping_status_colors = [
             'ordered' => 'bg-yellow',
@@ -264,6 +264,27 @@ class SellController extends Controller
 
             if (! empty(request()->input('status'))) {
                 $sells->where('transactions.status', request()->input('status'));
+            }
+
+            if ($sale_type == 'sales_order' && ! empty(request()->input('payment_line_status'))) {
+                $payment_line_status = request()->input('payment_line_status');
+                if ($payment_line_status == 'completed') {
+                    $sells->whereHas('payment_lines', function ($query) {
+                        $query->where('is_return', 0);
+                    })->whereDoesntHave('payment_lines', function ($query) {
+                        $query->where('is_return', 0)
+                            ->where('payment_line_status', 'pending');
+                    });
+                } elseif ($payment_line_status == 'pending') {
+                    $sells->where(function ($query) {
+                        $query->whereDoesntHave('payment_lines', function ($q) {
+                            $q->where('is_return', 0);
+                        })->orWhereHas('payment_lines', function ($q) {
+                            $q->where('is_return', 0)
+                                ->where('payment_line_status', 'pending');
+                        });
+                    });
+                }
             }
 
             if (! empty(request()->input('sales_cmsn_agnt'))) {
@@ -586,6 +607,17 @@ class SellController extends Controller
                     return $status;
                 })
                 ->editColumn('so_qty_remaining', '{{@format_quantity($so_qty_remaining)}}')
+                ->addColumn('payment_line_status', function ($row) {
+                    if ($row->type != 'sales_order') {
+                        return '';
+                    }
+
+                    $status = $this->transactionUtil->getTransactionPaymentLineStatus($row);
+                    $status_class = $status == 'completed' ? 'bg-green' : 'bg-yellow';
+                    $status_label = $status == 'completed' ? __('restaurant.completed') : __('lang_v1.pending');
+
+                    return '<span class="label '.$status_class.' payment-line-status-label" data-orig-value="'.$status.'">'.$status_label.'</span>';
+                })
                 ->setRowAttr([
                     'data-href' => function ($row) {
                         if (auth()->user()->can('sell.view') || auth()->user()->can('view_own_sell_only')) {
@@ -595,7 +627,7 @@ class SellController extends Controller
                         }
                     }, ]);
 
-            $rawColumns = ['final_total', 'action', 'total_paid', 'total_remaining', 'payment_status', 'invoice_no', 'discount_amount', 'tax_amount', 'total_before_tax', 'shipping_status', 'types_of_service_name', 'payment_methods', 'return_due', 'conatct_name', 'status'];
+            $rawColumns = ['final_total', 'action', 'total_paid', 'total_remaining', 'payment_status', 'payment_line_status', 'invoice_no', 'discount_amount', 'tax_amount', 'total_before_tax', 'shipping_status', 'types_of_service_name', 'payment_methods', 'return_due', 'conatct_name', 'status'];
 
             return $datatable->rawColumns($rawColumns)
                       ->make(true);

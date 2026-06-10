@@ -68,8 +68,13 @@ class SalesOrderController extends Controller
             $sales_order_statuses[$key] = $value['label'];
         }
 
+        $payment_line_statuses = [
+            'completed' => __('restaurant.completed'),
+            'pending' => __('lang_v1.pending'),
+        ];
+
         return view('sales_order.index')
-            ->with(compact('business_locations', 'customers', 'shipping_statuses', 'sales_order_statuses'));
+            ->with(compact('business_locations', 'customers', 'shipping_statuses', 'sales_order_statuses', 'payment_line_statuses'));
     }
 
     public function getSalesOrders($customer_id)

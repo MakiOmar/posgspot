@@ -752,7 +752,7 @@
 		@endcan
 	@endif
 
-	@if($transaction->type = 'sell')
+	@if(in_array($transaction->type, ['sell', 'sales_order']))
 	@can('sell.payments')
 		@component('components.widget', ['class' => 'box-solid', 'title' => __('purchase.add_payment')])
 		<div class="row">
@@ -769,7 +769,7 @@
         			{!! Form::hidden("payment[$loop->index][payment_id]", $payment_line['id']); !!}
         		@endif
 				<div class="payment_row" id="payment_rows_div">
-					@include('sale_pos.partials.payment_row_form', ['row_index' => $loop->index, 'show_date' => true, 'payment_line' => $payment_line, 'show_denomination' => true])
+					@include('sale_pos.partials.payment_row_form', ['row_index' => $loop->index, 'show_date' => true, 'payment_line' => $payment_line, 'show_denomination' => true, 'default_payment_line_status' => $transaction->type == 'sales_order' ? 'pending' : 'completed'])
 				</div>
 				@endforeach
 			
