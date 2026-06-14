@@ -53,6 +53,12 @@ Route::middleware('web', 'authh', 'auth', 'SetSessionData', 'language', 'timezon
     Route::get('call-log', [Modules\Crm\Http\Controllers\CallLogController::class, 'index'], ['only' => ['index']]);
     Route::post('mass-delete-call-log', [Modules\Crm\Http\Controllers\CallLogController::class, 'massDestroy']);
 
+    Route::get('escalations/search-users', [Modules\Crm\Http\Controllers\EscalationController::class, 'searchUsers']);
+    Route::get('escalations/search-invoices', [Modules\Crm\Http\Controllers\EscalationController::class, 'searchInvoices']);
+    Route::post('escalations/{id}/status', [Modules\Crm\Http\Controllers\EscalationController::class, 'updateStatus']);
+    Route::resource('escalation-sources', Modules\Crm\Http\Controllers\EscalationSourceController::class)->except(['show']);
+    Route::resource('escalations', Modules\Crm\Http\Controllers\EscalationController::class);
+
     Route::get('edit-proposal-template', [Modules\Crm\Http\Controllers\ProposalTemplateController::class, 'getEdit']);
     Route::post('update-proposal-template', [Modules\Crm\Http\Controllers\ProposalTemplateController::class, 'postEdit']);
     Route::get('view-proposal-template', [Modules\Crm\Http\Controllers\ProposalTemplateController::class, 'getView']);

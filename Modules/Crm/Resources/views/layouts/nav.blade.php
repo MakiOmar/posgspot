@@ -53,6 +53,12 @@
                     @if((auth()->user()->can('crm.view_all_call_log') || auth()->user()->can('crm.view_own_call_log')) && config('constants.enable_crm_call_log'))
                     <li @if(request()->segment(2) == 'call-log') class="active" @endif><a href="{{action([\Modules\Crm\Http\Controllers\CallLogController::class, 'index'])}}">@lang('crm::lang.call_log')</a></li>
                     @endif
+                    @if(auth()->user()->can('crm.escalation.view_all') || auth()->user()->can('crm.escalation.view_own'))
+                    <li @if(request()->segment(2) == 'escalations') class="active" @endif><a href="{{action([\Modules\Crm\Http\Controllers\EscalationController::class, 'index'])}}">@lang('crm::lang.escalations')</a></li>
+                    @endif
+                    @can('crm.escalation.manage_sources')
+                    <li @if(request()->segment(2) == 'escalation-sources') class="active" @endif><a href="{{action([\Modules\Crm\Http\Controllers\EscalationSourceController::class, 'index'])}}">@lang('crm::lang.escalation_sources')</a></li>
+                    @endcan
 
                     @can('crm.view_reports')
                     <li @if(request()->segment(2) == 'reports') class="active" @endif><a href="{{action([\Modules\Crm\Http\Controllers\ReportController::class, 'index'])}}">@lang('report.reports')</a></li>

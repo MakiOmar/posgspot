@@ -371,6 +371,67 @@ class DataController extends Controller
             ];
         }
 
+        $permissions[] = [
+            'value' => 'crm.escalation.view_all',
+            'label' => __('crm::lang.escalation_view_all'),
+            'default' => false,
+            'is_radio' => true,
+            'radio_input_name' => 'escalation_view',
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.view_own',
+            'label' => __('crm::lang.escalation_view_own'),
+            'default' => false,
+            'is_radio' => true,
+            'radio_input_name' => 'escalation_view',
+            'end_group' => true,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.create',
+            'label' => __('crm::lang.escalation_create'),
+            'default' => false,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.update_all',
+            'label' => __('crm::lang.escalation_update_all'),
+            'default' => false,
+            'is_radio' => true,
+            'radio_input_name' => 'escalation_edit',
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.update_own',
+            'label' => __('crm::lang.escalation_update_own'),
+            'default' => false,
+            'is_radio' => true,
+            'radio_input_name' => 'escalation_edit',
+            'end_group' => true,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.delete',
+            'label' => __('crm::lang.escalation_delete'),
+            'default' => false,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.assign_observer',
+            'label' => __('crm::lang.escalation_assign_observer'),
+            'default' => false,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.assign_auditor',
+            'label' => __('crm::lang.escalation_assign_auditor'),
+            'default' => false,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.close',
+            'label' => __('crm::lang.escalation_close'),
+            'default' => false,
+        ];
+        $permissions[] = [
+            'value' => 'crm.escalation.manage_sources',
+            'label' => __('crm::lang.escalation_manage_sources'),
+            'default' => false,
+        ];
+
         return $permissions;
     }
 
