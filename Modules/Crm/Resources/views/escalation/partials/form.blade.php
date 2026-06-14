@@ -40,13 +40,13 @@
     <div class="col-md-4">
         <div class="form-group">
             {!! Form::label('source_id', __('crm::lang.escalation_taken_by') . ':*') !!}
-            {!! Form::select('source_id', $sources, !empty($escalation) ? $escalation->source_id : null, ['class' => 'form-control select2', 'required', 'style' => 'width: 100%;', 'placeholder' => __('messages.please_select')]) !!}
+            {!! Form::select('source_id', $sources, !empty($escalation) ? $escalation->source_id : null, ['class' => 'form-control', 'required', 'style' => 'width: 100%;', 'id' => 'source_id', 'placeholder' => __('messages.please_select')]) !!}
         </div>
     </div>
     <div class="col-md-4">
         <div class="form-group">
             {!! Form::label('location_id', __('business.business_location') . ':*') !!}
-            {!! Form::select('location_id', $locations, !empty($escalation) ? $escalation->location_id : null, ['class' => 'form-control select2', 'required', 'style' => 'width: 100%;', 'placeholder' => __('messages.please_select')]) !!}
+            {!! Form::select('location_id', $locations, !empty($escalation) ? $escalation->location_id : null, ['class' => 'form-control', 'required', 'style' => 'width: 100%;', 'id' => 'location_id', 'placeholder' => __('messages.please_select')]) !!}
         </div>
     </div>
 </div>
@@ -70,11 +70,14 @@
     <div class="col-md-4">
         <div class="form-group">
             {!! Form::label('transaction_id', __('crm::lang.escalation_invoice') . ':') !!}
-            <select name="transaction_id" id="escalation_transaction_id" class="form-control" style="width: 100%;">
+            {{-- Empty option required for Select2 AJAX search to render properly --}}
+            <select name="transaction_id" id="escalation_transaction_id" class="form-control escalation-invoice-select" style="width: 100%;">
+                <option value="">{{ __('messages.please_select') }}</option>
                 @if(!empty($escalation) && !empty($escalation->transaction))
                     <option value="{{ $escalation->transaction_id }}" selected>{{ $escalation->transaction->invoice_no }}</option>
                 @endif
             </select>
+            <p class="help-block">@lang('crm::lang.escalation_invoice_search_help')</p>
         </div>
     </div>
 </div>

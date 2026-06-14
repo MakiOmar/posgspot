@@ -512,7 +512,7 @@ class EscalationController extends Controller
             ->limit(20)
             ->get();
 
-        return json_encode($users);
+        return response()->json($users);
     }
 
     /**
@@ -563,6 +563,6 @@ class EscalationController extends Controller
             ];
         }
 
-        return json_encode($results);
+        return response()->json($results);
     }
 }

@@ -204,6 +204,8 @@ return [
     'escalation_taken_by' => 'Taken by',
     'escalation_time_to_call' => 'Time to call',
     'escalation_invoice' => 'Invoice No.',
+    'escalation_invoice_search_placeholder' => 'Search by invoice number',
+    'escalation_invoice_search_help' => 'Type at least 1 character of the invoice number to search',
     'escalation_comment' => 'Comment',
     'escalation_observer' => 'Observer',
     'escalation_observer_comment' => 'Observer Comment',

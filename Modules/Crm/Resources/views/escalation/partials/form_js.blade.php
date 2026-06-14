@@ -1,7 +1,5 @@
 <script type="text/javascript">
     $(document).ready(function() {
-        $('.select2').select2();
-
         $('.datetimepicker').datetimepicker({
             format: moment_date_format + ' ' + moment_time_format,
             ignoreReadonly: true,
@@ -11,20 +9,26 @@
         var invoiceSearchUrl = '{{ action([\Modules\Crm\Http\Controllers\EscalationController::class, "searchInvoices"]) }}';
 
         function initUserSelect(selector, allowClear) {
-            $(selector).select2({
+            var $el = $(selector);
+            if ($el.length === 0) {
+                return;
+            }
+
+            $el.select2({
                 ajax: {
                     url: userSearchUrl,
                     dataType: 'json',
                     delay: 250,
                     data: function(params) {
-                        return { q: params.term };
+                        return { q: params.term || '' };
                     },
                     processResults: function(data) {
-                        return { results: data };
+                        return { results: data || [] };
                     },
                 },
                 minimumInputLength: 1,
                 allowClear: allowClear || false,
+                width: '100%',
                 placeholder: '{{ __("messages.please_select") }}',
             });
         }
@@ -39,13 +43,14 @@
                 dataType: 'json',
                 delay: 250,
                 data: function(params) {
-                    return { q: params.term };
+                    return { q: params.term || '' };
                 },
                 processResults: function(data) {
-                    return { results: data };
+                    return { results: data || [] };
                 },
             },
             minimumInputLength: 1,
+            width: '100%',
             placeholder: '{{ __("messages.please_select") }}',
             templateResult: function(data) {
                 if (!data.id) {
@@ -79,16 +84,28 @@
                 delay: 250,
                 data: function(params) {
                     return {
-                        q: params.term,
-                        contact_id: $('#escalation_contact_id').val()
+                        q: params.term || '',
+                        contact_id: $('#escalation_contact_id').val() || ''
                     };
                 },
                 processResults: function(data) {
-                    return { results: data };
+                    return { results: data || [] };
                 },
             },
-            minimumInputLength: 0,
+            minimumInputLength: 1,
             allowClear: true,
+            width: '100%',
+            placeholder: '{{ __("crm::lang.escalation_invoice_search_placeholder") }}',
+            language: {
+                inputTooShort: function(args) {
+                    return '{{ __("crm::lang.escalation_invoice_search_help") }}';
+                },
+            },
+        });
+
+        // Static dropdowns only (avoid double-init on AJAX selects)
+        $('#source_id, #location_id').select2({
+            width: '100%',
             placeholder: '{{ __("messages.please_select") }}',
         });
     });
