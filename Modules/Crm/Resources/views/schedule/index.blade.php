@@ -152,7 +152,7 @@
 			                                        </td>
 			                                        <td class="footer_follow_up_status_count"></td>
 			                                        <td class="footer_follow_up_type_count"></td>
-			                                        <td colspan="{{ auth()->user()->can('crm.access_all_schedule') ? 7 : 6 }}"></td>
+			                                        <td colspan="6"></td>
 			                                    </tr>
 			                                </tfoot>
 									    </table>
@@ -188,6 +188,7 @@
 									                </th>
 									            </tr>
 									        </thead>
+									        <tbody></tbody>
 									    </table>
 						            </div>
                     			</div>
@@ -305,6 +306,26 @@
 		    	follow_up_datatable.ajax.reload();
 		    })
 
+		    var follow_up_columns = [];
+		    if (can_bulk_assign) {
+		    	follow_up_columns.push({ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false });
+		    }
+		    follow_up_columns = follow_up_columns.concat([
+		    	{ data: 'action', name: 'action' },
+		    	{ data: 'contact', name: 'contacts.name' },
+		    	{ data: 'start_datetime', name: 'start_datetime' },
+		        { data: 'end_datetime', name: 'end_datetime' },
+		        { data: 'status', name: 'crm_schedules.status' },
+		        { data: 'schedule_type', name: 'schedule_type' },
+		        { data: 'followup_category', name: 'C.name' },
+		        { data: 'users', name: 'users' },
+		        { data: 'description', name: 'description'},
+		        { data: 'additional_info', name: 'additional_info' },
+		        { data: 'title', name: 'title' },
+		        { data: 'added_by', name: 'added_by' },
+		        { data: 'added_on', name: 'crm_schedules.created_at' },
+		    ]);
+
 		    follow_up_datatable = $("#follow_up_table").DataTable({
 				processing: true,
 		        serverSide: true,
@@ -335,24 +356,7 @@
 		            },
 		        ],
 		        aaSorting: [[can_bulk_assign ? 3 : 2, 'desc']],
-		        columns: [
-		        	@if(auth()->user()->can('crm.access_all_schedule'))
-		        		{ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false },
-		        	@endif
-		        	{ data: 'action', name: 'action' },
-		        	{ data: 'contact', name: 'contacts.name' },
-		        	{ data: 'start_datetime', name: 'start_datetime' },
-		            { data: 'end_datetime', name: 'end_datetime' },
-		            { data: 'status', name: 'crm_schedules.status' },
-		            { data: 'schedule_type', name: 'schedule_type' },
-		            { data: 'followup_category', name: 'C.name' },
-		            { data: 'users', name: 'users' },
-		            { data: 'description', name: 'description'},
-		            { data: 'additional_info', name: 'additional_info' },
-		            { data: 'title', name: 'title' },
-		            { data: 'added_by', name: 'added_by' },
-		            { data: 'added_on', name: 'crm_schedules.created_at' },
-		        ],
+		        columns: follow_up_columns,
 		        "fnDrawCallback": function( oSettings ) {
 		        	__show_date_diff_for_human($("#follow_up_table"));
 
@@ -370,6 +374,25 @@
 		            $('.footer_follow_up_type_count').html(__count_status(data, 'schedule_type'));
 		        }
 			});
+
+		    var recursive_follow_up_columns = [];
+		    if (can_bulk_assign) {
+		    	recursive_follow_up_columns.push({ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false });
+		    }
+		    recursive_follow_up_columns = recursive_follow_up_columns.concat([
+		    	{ data: 'action', name: 'action' },
+		        { data: 'status', name: 'crm_schedules.status' },
+		        { data: 'schedule_type', name: 'schedule_type' },
+		        { data: 'followup_category', name: 'C.name' },
+		        { data: 'follow_up_by', name: 'crm_schedules.follow_up_by' },
+		        { data: 'recursion_days', name: 'crm_schedules.recursion_days' },
+		        { data: 'users', name: 'users' },
+		        { data: 'description', name: 'description'},
+		        { data: 'additional_info', name: 'additional_info' },
+		        { data: 'title', name: 'title' },
+		        { data: 'added_by', name: 'added_by' },
+		        { data: 'added_on', name: 'crm_schedules.created_at' },
+		    ]);
 
 			recursive_follow_up_table = $("#recursive_follow_up_table").DataTable({
 				processing: true,
@@ -392,23 +415,7 @@
 		            },
 		        ],
 		        aaSorting: [[can_bulk_assign ? 3 : 2, 'desc']],
-		        columns: [
-		        	@if(auth()->user()->can('crm.access_all_schedule'))
-		        		{ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false },
-		        	@endif
-		        	{ data: 'action', name: 'action' },
-		            { data: 'status', name: 'crm_schedules.status' },
-		            { data: 'schedule_type', name: 'schedule_type' },
-		            { data: 'followup_category', name: 'C.name' },
-		            { data: 'follow_up_by', name: 'crm_schedules.follow_up_by' },
-		            { data: 'recursion_days', name: 'crm_schedules.recursion_days' },
-		            { data: 'users', name: 'users' },
-		            { data: 'description', name: 'description'},
-		            { data: 'additional_info', name: 'additional_info' },
-		            { data: 'title', name: 'title' },
-		            { data: 'added_by', name: 'added_by' },
-		            { data: 'added_on', name: 'crm_schedules.created_at' },
-		        ],
+		        columns: recursive_follow_up_columns,
 		        createdRow: function(row, data, dataIndex) {
 		        	if (can_bulk_assign) {
 		        		$(row).find('td:eq(0)').attr('class', 'selectable_td');
