@@ -129,6 +129,36 @@ class CrmUtil extends Util
         return $schedule;
     }
 
+    /**
+     * Bulk assign users to multiple follow ups.
+     *
+     * @param  array  $schedule_ids
+     * @param  array  $user_ids
+     * @param  \App\User  $user
+     * @return int
+     */
+    public function bulkAssignFollowUp($schedule_ids, $user_ids, $user)
+    {
+        $query = Schedule::where('business_id', $user->business_id)
+            ->whereIn('id', $schedule_ids);
+
+        if (! $user->can('crm.access_all_schedule') && $user->can('crm.access_own_schedule')) {
+            $query->where(function ($qry) use ($user) {
+                $qry->whereHas('users', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })->orWhere('created_by', $user->id);
+            });
+        }
+
+        $schedules = $query->get();
+
+        foreach ($schedules as $schedule) {
+            $schedule->users()->sync($user_ids);
+        }
+
+        return $schedules->count();
+    }
+
     public function getFollowUpForGivenDate($user, $start_date, $end_date = null)
     {
         $query = Schedule::with(['customer', 'followupCategory'])->where('business_id', $user->business_id);

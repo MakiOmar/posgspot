@@ -93,12 +93,32 @@
 			                        <a href="#recur_followup_tab" data-toggle="tab" aria-expanded="true"> @lang('crm::lang.recur_follow_ups')</a>
 			                    </li>
 			                </ul>
+			                @if(auth()->user()->can('crm.access_all_schedule'))
+			                <div class="row" id="bulk_assign_toolbar" style="margin: 10px;">
+			                	<div class="col-md-12">
+			                		{!! Form::open(['url' => action([\Modules\Crm\Http\Controllers\ScheduleController::class, 'massAssign']), 'method' => 'post', 'id' => 'mass_assign_form']) !!}
+			                		{!! Form::hidden('selected_rows', null, ['id' => 'selected_follow_up_rows']); !!}
+			                		<div class="form-inline">
+			                			<div class="form-group" style="width: 250px;">
+			                				{!! Form::select('user_id[]', $assigned_to, null, ['class' => 'form-control select2', 'multiple', 'required', 'style' => 'width: 100%;', 'id' => 'bulk_assign_user_id', 'placeholder' => __('crm::lang.bulk_assign_to')]); !!}
+			                			</div>
+			                			<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary tw-ml-2" id="bulk-assign-selected">
+			                				<i class="fa fa-user"></i> @lang('crm::lang.assign_selected')
+			                			</button>
+			                		</div>
+			                		{!! Form::close() !!}
+			                	</div>
+			                </div>
+			                @endif
 			                <div class="tab-content">
                     			<div class="tab-pane active" id="all_followup_tab">
                     				<div class="table-responsive">
 						            	<table class="table table-bordered table-striped" id="follow_up_table" style="width: 100%">
 									        <thead>
 									            <tr>
+									            	@if(auth()->user()->can('crm.access_all_schedule'))
+									            		<th><input type="checkbox" class="schedule-select-all" data-table-id="follow_up_table"></th>
+									            	@endif
 									            	<th>@lang('messages.action')</th>
 									            	<th>
 									            		@lang('contact.contact')
@@ -127,12 +147,12 @@
 									        <tbody></tbody>
 									        <tfoot>
 			                                    <tr class="bg-gray font-17 footer-total text-center">
-			                                        <td colspan="5">
+			                                        <td colspan="{{ auth()->user()->can('crm.access_all_schedule') ? 6 : 5 }}">
 			                                            <strong>@lang('sale.total'):</strong>
 			                                        </td>
 			                                        <td class="footer_follow_up_status_count"></td>
 			                                        <td class="footer_follow_up_type_count"></td>
-			                                        <td colspan="6"></td>
+			                                        <td colspan="{{ auth()->user()->can('crm.access_all_schedule') ? 7 : 6 }}"></td>
 			                                    </tr>
 			                                </tfoot>
 									    </table>
@@ -143,6 +163,9 @@
 						            	<table class="table table-bordered table-striped" id="recursive_follow_up_table" style="width: 100%">
 									        <thead>
 									            <tr>
+									            	@if(auth()->user()->can('crm.access_all_schedule'))
+									            		<th><input type="checkbox" class="schedule-select-all" data-table-id="recursive_follow_up_table"></th>
+									            	@endif
 									            	<th>@lang('messages.action')</th>
 									                <th>@lang('sale.status')</th>
 									                <th>@lang('crm::lang.schedule_type')</th>
@@ -186,6 +209,87 @@
 	<script src="{{ asset('modules/crm/js/crm.js?v=' . $asset_v) }}"></script>
 	<script type="text/javascript">
 		$(function () {
+			var can_bulk_assign = @json(auth()->user()->can('crm.access_all_schedule'));
+
+			function getSelectedFollowUpRows(tableId) {
+				var selected_rows = [];
+				var i = 0;
+				$('#' + tableId + ' .row-select:checked').each(function () {
+					selected_rows[i++] = $(this).val();
+				});
+				return selected_rows;
+			}
+
+			function getActiveFollowUpTableId() {
+				if ($('#recur_followup_tab').hasClass('active')) {
+					return 'recursive_follow_up_table';
+				}
+				return 'follow_up_table';
+			}
+
+			$(document).on('click', '.schedule-select-all', function() {
+				var table_id = $(this).data('table-id');
+				if (this.checked) {
+					$('#' + table_id).find('tbody').find('input.row-select').each(function() {
+						if (!this.checked) {
+							$(this).prop('checked', true).change();
+						}
+					});
+				} else {
+					$('#' + table_id).find('tbody').find('input.row-select').each(function() {
+						if (this.checked) {
+							$(this).prop('checked', false).change();
+						}
+					});
+				}
+			});
+
+			$(document).on('click', '#bulk-assign-selected', function(e) {
+				e.preventDefault();
+				var tableId = getActiveFollowUpTableId();
+				var selected_rows = getSelectedFollowUpRows(tableId);
+				var user_ids = $('#bulk_assign_user_id').val();
+
+				if (selected_rows.length > 0 && user_ids && user_ids.length > 0) {
+					swal({
+						title: LANG.sure,
+						icon: "warning",
+						buttons: true,
+					}).then((willAssign) => {
+						if (willAssign) {
+							$.ajax({
+								method: 'POST',
+								url: $('form#mass_assign_form').attr('action'),
+								dataType: 'json',
+								data: {
+									selected_rows: selected_rows.join(','),
+									user_id: user_ids,
+									_token: $('form#mass_assign_form input[name="_token"]').val()
+								},
+								success: function(result) {
+									if (result.success) {
+										toastr.success(result.msg);
+										$('#' + tableId + ' .schedule-select-all').prop('checked', false);
+										if (typeof follow_up_datatable != 'undefined') {
+											follow_up_datatable.ajax.reload();
+										}
+										if (typeof recursive_follow_up_table != 'undefined') {
+											recursive_follow_up_table.ajax.reload();
+										}
+									} else {
+										toastr.error(result.msg);
+									}
+								}
+							});
+						}
+					});
+				} else if (selected_rows.length === 0) {
+					swal('@lang("lang_v1.no_row_selected")');
+				} else {
+					toastr.error('@lang("messages.please_select")');
+				}
+			});
+
 			$('#follow_up_date_range').daterangepicker(
 		        dateRangeSettings,
 		        function (start, end) {
@@ -225,13 +329,16 @@
 		        },
 		        columnDefs: [
 		            {
-		                targets: [0, 7, 9],
+		                targets: can_bulk_assign ? [0, 1, 8, 10] : [0, 7, 9],
 		                orderable: false,
 		                searchable: false,
 		            },
 		        ],
-		        aaSorting: [[2, 'desc']],
+		        aaSorting: [[can_bulk_assign ? 3 : 2, 'desc']],
 		        columns: [
+		        	@if(auth()->user()->can('crm.access_all_schedule'))
+		        		{ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false },
+		        	@endif
 		        	{ data: 'action', name: 'action' },
 		        	{ data: 'contact', name: 'contacts.name' },
 		        	{ data: 'start_datetime', name: 'start_datetime' },
@@ -252,6 +359,11 @@
 		        	$('a.view_schedule_log').click(function(){
 		        		getScheduleLog($(this).data('schedule_id'), true);
 		        	})
+			    },
+		        createdRow: function(row, data, dataIndex) {
+		        	if (can_bulk_assign) {
+		        		$(row).find('td:eq(0)').attr('class', 'selectable_td');
+		        	}
 			    },
 		        "footerCallback": function ( row, data, start, end, display ) {
 		        	$('.footer_follow_up_status_count').html(__count_status(data, 'status'));
@@ -274,13 +386,16 @@
 		        },
 		        columnDefs: [
 		            {
-		                targets: [0, 6],
+		                targets: can_bulk_assign ? [0, 1, 7] : [0, 6],
 		                orderable: false,
 		                searchable: false,
 		            },
 		        ],
-		        aaSorting: [[2, 'desc']],
+		        aaSorting: [[can_bulk_assign ? 3 : 2, 'desc']],
 		        columns: [
+		        	@if(auth()->user()->can('crm.access_all_schedule'))
+		        		{ data: 'mass_select', name: 'mass_select', searchable: false, orderable: false },
+		        	@endif
 		        	{ data: 'action', name: 'action' },
 		            { data: 'status', name: 'crm_schedules.status' },
 		            { data: 'schedule_type', name: 'schedule_type' },
@@ -293,7 +408,12 @@
 		            { data: 'title', name: 'title' },
 		            { data: 'added_by', name: 'added_by' },
 		            { data: 'added_on', name: 'crm_schedules.created_at' },
-		        ]
+		        ],
+		        createdRow: function(row, data, dataIndex) {
+		        	if (can_bulk_assign) {
+		        		$(row).find('td:eq(0)').attr('class', 'selectable_td');
+		        	}
+			    }
 			});
 
 			$(document).on('change', '#contact_id_filter, #assgined_to_filter, #status_filter, #schedule_type_filter, #follow_up_by_filter', function() {

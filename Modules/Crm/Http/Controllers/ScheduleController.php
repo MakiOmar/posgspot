@@ -65,6 +65,8 @@ class ScheduleController extends Controller
         }
 
         if (request()->ajax()) {
+            $can_bulk_assign = auth()->user()->can('crm.access_all_schedule');
+
             $schedules = Schedule::leftjoin('contacts', 'crm_schedules.contact_id', '=', 'contacts.id')
                 ->leftjoin('users as U', 'crm_schedules.created_by', '=', 'U.id')
                 ->leftjoin('categories as C', 'crm_schedules.followup_category_id', '=', 'C.id')
@@ -134,7 +136,7 @@ class ScheduleController extends Controller
                 });
             }
 
-            return Datatables::of($schedules)
+            $datatable = Datatables::of($schedules)
                 ->addColumn('action', function ($row) {
                     $html = '<div class="btn-group">
                                 <button class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-info tw-w-max dropdown-toggle" type="button"  data-toggle="dropdown" aria-expanded="false">
@@ -269,12 +271,20 @@ class ScheduleController extends Controller
                     }
 
                     return $follow_up_by;
-                })
+                });
+
+            if ($can_bulk_assign) {
+                $datatable->addColumn('mass_select', function ($row) {
+                    return '<input type="checkbox" class="row-select" value="'.$row->id.'">';
+                });
+            }
+
+            return $datatable
                 ->removeColumn('id')
-                ->rawColumns([
+                ->rawColumns(array_merge([
                     'action', 'start_datetime', 'end_datetime', 'users', 'contact', 'added_on',
                     'additional_info', 'schedule_type', 'status', 'description',
-                ])
+                ], $can_bulk_assign ? ['mass_select'] : []))
                 ->make(true);
         }
 
@@ -527,6 +537,65 @@ class ScheduleController extends Controller
             ];
         } catch (Exception $e) {
             \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+
+            $output = [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+
+        return $output;
+    }
+
+    /**
+     * Bulk assign users to selected follow ups.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    public function massAssign(Request $request)
+    {
+        $business_id = request()->session()->get('user.business_id');
+        $can_access_all_schedule = auth()->user()->can('crm.access_all_schedule');
+        $can_access_own_schedule = auth()->user()->can('crm.access_own_schedule');
+
+        if (!(auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'crm_module')) || !($can_access_all_schedule || $can_access_own_schedule)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $selected_rows = array_filter(explode(',', $request->input('selected_rows', '')));
+            $user_ids = $request->input('user_id', []);
+
+            if (empty($selected_rows) || empty($user_ids)) {
+                return [
+                    'success' => false,
+                    'msg' => __('lang_v1.no_row_selected'),
+                ];
+            }
+
+            $valid_users_count = User::where('business_id', $business_id)
+                ->whereIn('id', $user_ids)
+                ->count();
+
+            if ($valid_users_count != count($user_ids)) {
+                return [
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
+                ];
+            }
+
+            DB::beginTransaction();
+            $this->crmUtil->bulkAssignFollowUp($selected_rows, $user_ids, auth()->user());
+            DB::commit();
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.success'),
+            ];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
 
             $output = [
                 'success' => false,

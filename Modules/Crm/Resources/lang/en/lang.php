@@ -14,6 +14,8 @@ return [
     'notify_via' => 'Notify Via',
     'notify_before' => 'Notify Before',
     'assgined' => 'Assgined to',
+    'assign_selected' => 'Assign selected',
+    'bulk_assign_to' => 'Bulk assign to',
     'add_schedule' => 'Add Follow Up',
     'sms' => 'Sms',
     'meeting' => 'Meeting',

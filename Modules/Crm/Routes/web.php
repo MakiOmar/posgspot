@@ -23,6 +23,7 @@ Route::middleware('web', 'authh', 'auth', 'SetSessionData', 'language', 'timezon
     Route::get('all-contacts-login', [Modules\Crm\Http\Controllers\ContactLoginController::class, 'allContactsLoginList']);
     Route::resource('contact-login', 'Modules\Crm\Http\Controllers\ContactLoginController')->except(['show']);
     Route::resource('follow-ups', 'Modules\Crm\Http\Controllers\ScheduleController')->except(['show']);
+    Route::post('mass-assign-follow-ups', [Modules\Crm\Http\Controllers\ScheduleController::class, 'massAssign']);
     Route::get('todays-follow-ups', [Modules\Crm\Http\Controllers\ScheduleController::class, 'getTodaysSchedule']);
     Route::get('lead-follow-ups', [Modules\Crm\Http\Controllers\ScheduleController::class, 'getLeadSchedule']);
     Route::get('get-invoices', [Modules\Crm\Http\Controllers\ScheduleController::class, 'getInvoicesForFollowUp']);
