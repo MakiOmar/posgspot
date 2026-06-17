@@ -739,6 +739,20 @@ class SellController extends Controller
 
         $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
 
+        $lock_sales_order_location = false;
+        $sales_order_location_id = null;
+        if ($sale_type == 'sales_order' && ! empty($pos_settings['lock_sales_order_location'])) {
+            $sales_order_location_id = ! empty($pos_settings['sales_order_location_id'])
+                ? $pos_settings['sales_order_location_id']
+                : 6;
+
+            if (array_key_exists($sales_order_location_id, $business_locations)) {
+                $default_location = BusinessLocation::findOrFail($sales_order_location_id);
+                $lock_sales_order_location = true;
+                $default_price_group_id = ! empty($default_location->selling_price_group_id) && array_key_exists($default_location->selling_price_group_id, $price_groups) ? $default_location->selling_price_group_id : null;
+            }
+        }
+
         $invoice_schemes = InvoiceScheme::forDropdown($business_id);
         $default_invoice_schemes = InvoiceScheme::getDefault($business_id);
         if (! empty($default_location) && !empty($default_location->sale_invoice_scheme_id)) {
@@ -811,7 +825,9 @@ class SellController extends Controller
                 'is_order_request_enabled',
                 'users',
                 'default_price_group_id',
-                'change_return'
+                'change_return',
+                'lock_sales_order_location',
+                'sales_order_location_id'
             ));
     }
 

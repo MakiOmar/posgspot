@@ -106,6 +106,23 @@
             <div class="form-group">
                 <div class="checkbox">
                     <label>
+                    {!! Form::checkbox('pos_settings[lock_sales_order_location]', 1, !empty($pos_settings['lock_sales_order_location']) , [ 'class' => 'input-icheck', 'id' => 'lock_sales_order_location']); !!} {{ __( 'lang_v1.lock_sales_order_location' ) }}
+                    </label>
+                  @show_tooltip(__('lang_v1.lock_sales_order_location_help'))
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('pos_settings[sales_order_location_id]', __('lang_v1.sales_order_location_id') . ':') !!}
+                {!! Form::number('pos_settings[sales_order_location_id]', $pos_settings['sales_order_location_id'] ?? 6, ['class' => 'form-control', 'id' => 'sales_order_location_id', 'min' => 1]); !!}
+                @show_tooltip(__('lang_v1.sales_order_location_id_help'))
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
                     {!! Form::checkbox('pos_settings[is_pay_term_required]', 1, !empty($pos_settings['is_pay_term_required']) , [ 'class' => 'input-icheck', 'id' => 'is_pay_term_required']); !!} {{ __( 'lang_v1.is_pay_term_required' ) }}
                     </label>
                 </div>

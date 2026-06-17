@@ -31,6 +31,14 @@
     <input type="hidden" id="reward_point_enabled">
 @endif
 @if(count($business_locations) > 0)
+@php
+	$lock_so_location = !empty($lock_sales_order_location) && !empty($sales_order_location_id);
+	$selected_location_id = $lock_so_location ? $sales_order_location_id : ($default_location->id ?? null);
+	$location_select_attributes = ['class' => 'form-control input-sm', 'id' => 'select_location_id', 'required', 'autofocus'];
+	if ($lock_so_location) {
+		$location_select_attributes['disabled'] = 'disabled';
+	}
+@endphp
 <div class="row">
 	<div class="col-sm-3">
 		<div class="form-group">
@@ -38,9 +46,7 @@
 				<span class="input-group-addon">
 					<i class="fa fa-map-marker"></i>
 				</span>
-			{!! Form::select('select_location_id', $business_locations, $default_location->id ?? null, ['class' => 'form-control input-sm',
-			'id' => 'select_location_id', 
-			'required', 'autofocus'], $bl_attributes); !!}
+			{!! Form::select('select_location_id', $business_locations, $selected_location_id, $location_select_attributes, $bl_attributes); !!}
 			<span class="input-group-addon">
 					@show_tooltip(__('tooltip.sale_location'))
 				</span> 
@@ -48,6 +54,9 @@
 		</div>
 	</div>
 </div>
+@if($lock_so_location)
+	<input type="hidden" id="lock_sales_order_location" data-location-id="{{ $sales_order_location_id }}" value="1">
+@endif
 @endif
 
 @php
@@ -922,6 +931,12 @@
     @endif
     <script type="text/javascript">
     	$(document).ready( function() {
+    		if ($('#lock_sales_order_location').length) {
+    			var locked_location_id = $('#lock_sales_order_location').data('location-id');
+    			$('select#select_location_id').val(locked_location_id);
+    			set_location();
+    		}
+
     		$('#status').change(function(){
     			if ($(this).val() == 'final') {
     				$('#payment_rows_div').removeClass('hide');
