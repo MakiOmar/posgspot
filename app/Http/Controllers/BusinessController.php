@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Business;
+use App\BusinessLocation;
 use App\Currency;
 use App\Notifications\TestEmailNotification;
 use App\System;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class BusinessController extends Controller
 {
@@ -337,7 +339,16 @@ class BusinessController extends Controller
 
         $payment_types = $this->moduleUtil->payment_types(null, false, $business_id);
 
-        return view('business.settings', compact('business', 'currencies', 'tax_rates', 'timezone_list', 'months', 'accounting_methods', 'commission_agent_dropdown', 'units_dropdown', 'date_formats', 'shortcuts', 'pos_settings', 'modules', 'theme_colors', 'email_settings', 'sms_settings', 'mail_drivers', 'allow_superadmin_email_settings', 'custom_labels', 'common_settings', 'weighing_scale_setting', 'payment_types'));
+        $business_locations = BusinessLocation::forDropdown($business_id, false, false, true, false);
+
+        $roles = Role::where('business_id', $business_id)
+            ->pluck('name', 'id')
+            ->map(function ($name) use ($business_id) {
+                return str_replace('#'.$business_id, '', $name);
+            })
+            ->all();
+
+        return view('business.settings', compact('business', 'currencies', 'tax_rates', 'timezone_list', 'months', 'accounting_methods', 'commission_agent_dropdown', 'units_dropdown', 'date_formats', 'shortcuts', 'pos_settings', 'modules', 'theme_colors', 'email_settings', 'sms_settings', 'mail_drivers', 'allow_superadmin_email_settings', 'custom_labels', 'common_settings', 'weighing_scale_setting', 'payment_types', 'business_locations', 'roles'));
     }
 
     /**
@@ -446,6 +457,9 @@ class BusinessController extends Controller
                 if (! isset($pos_settings[$key])) {
                     $pos_settings[$key] = $value;
                 }
+            }
+            if (! isset($pos_settings['sales_order_location_lock_role_ids'])) {
+                $pos_settings['sales_order_location_lock_role_ids'] = [];
             }
             $business_details['pos_settings'] = json_encode($pos_settings);
 

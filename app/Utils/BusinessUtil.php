@@ -532,6 +532,56 @@ class BusinessUtil extends Util
     }
 
     /**
+     * Whether sales order location lock applies to the given user.
+     *
+     * @param  array  $pos_settings
+     * @param  \App\User|null  $user
+     * @return bool
+     */
+    public function shouldLockSalesOrderLocationForUser($pos_settings, $user = null)
+    {
+        if (empty($pos_settings['lock_sales_order_location'])) {
+            return false;
+        }
+
+        $user = $user ?? auth()->user();
+        if (empty($user)) {
+            return false;
+        }
+
+        $role_ids = $pos_settings['sales_order_location_lock_role_ids'] ?? [];
+        if (! is_array($role_ids)) {
+            $role_ids = [];
+        }
+
+        $role_ids = array_map('intval', array_filter($role_ids));
+        if (empty($role_ids)) {
+            return false;
+        }
+
+        $user_role_ids = $user->roles->pluck('id')->map(function ($id) {
+            return (int) $id;
+        })->all();
+
+        return ! empty(array_intersect($user_role_ids, $role_ids));
+    }
+
+    /**
+     * Get configured sales order locked location id.
+     *
+     * @param  array  $pos_settings
+     * @return int|null
+     */
+    public function getSalesOrderLockedLocationId($pos_settings)
+    {
+        if (empty($pos_settings['sales_order_location_id'])) {
+            return null;
+        }
+
+        return (int) $pos_settings['sales_order_location_id'];
+    }
+
+    /**
      * Return the default setting for the email.
      *
      * @return array

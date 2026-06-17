@@ -364,10 +364,11 @@ class SellPosController extends Controller
                     $business_details = $this->businessUtil->getDetails($business_id);
                     $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
 
-                    if (! empty($pos_settings['lock_sales_order_location'])) {
-                        $input['location_id'] = ! empty($pos_settings['sales_order_location_id'])
-                            ? $pos_settings['sales_order_location_id']
-                            : 6;
+                    if ($this->businessUtil->shouldLockSalesOrderLocationForUser($pos_settings)) {
+                        $locked_location_id = $this->businessUtil->getSalesOrderLockedLocationId($pos_settings);
+                        if (! empty($locked_location_id)) {
+                            $input['location_id'] = $locked_location_id;
+                        }
                     }
                 }
 

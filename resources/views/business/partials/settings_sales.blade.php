@@ -115,8 +115,15 @@
         <div class="col-sm-4">
             <div class="form-group">
                 {!! Form::label('pos_settings[sales_order_location_id]', __('lang_v1.sales_order_location_id') . ':') !!}
-                {!! Form::number('pos_settings[sales_order_location_id]', $pos_settings['sales_order_location_id'] ?? 6, ['class' => 'form-control', 'id' => 'sales_order_location_id', 'min' => 1]); !!}
+                {!! Form::select('pos_settings[sales_order_location_id]', $business_locations, $pos_settings['sales_order_location_id'] ?? null, ['class' => 'form-control select2', 'style' => 'width: 100%;', 'placeholder' => __('messages.please_select'), 'id' => 'sales_order_location_id']); !!}
                 @show_tooltip(__('lang_v1.sales_order_location_id_help'))
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('pos_settings[sales_order_location_lock_role_ids][]', __('lang_v1.sales_order_location_lock_roles') . ':') !!}
+                {!! Form::select('pos_settings[sales_order_location_lock_role_ids][]', $roles, $pos_settings['sales_order_location_lock_role_ids'] ?? [], ['class' => 'form-control select2', 'style' => 'width: 100%;', 'multiple', 'id' => 'sales_order_location_lock_role_ids']); !!}
+                @show_tooltip(__('lang_v1.sales_order_location_lock_roles_help'))
             </div>
         </div>
         <div class="col-sm-4">
