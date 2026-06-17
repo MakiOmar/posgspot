@@ -409,5 +409,26 @@
 	$(document).on('click', '.remove-follow-up', function(){
 		$(this).closest('tr').remove();
 	});
+
+	// When one assignee is selected, apply the same user to all filtered follow-up rows
+	var followUpAssigneeSyncing = false;
+	$(document).on('change', '#customer_invoice_table .follow-up-assignee-select', function() {
+		if (followUpAssigneeSyncing) {
+			return;
+		}
+
+		var selectedUser = $(this).val();
+		if (!selectedUser) {
+			return;
+		}
+
+		followUpAssigneeSyncing = true;
+		$('#customer_invoice_table .follow-up-assignee-select').not(this).each(function() {
+			if ($(this).val() !== selectedUser) {
+				$(this).val(selectedUser).trigger('change');
+			}
+		});
+		followUpAssigneeSyncing = false;
+	});
 </script>
 @endsection

@@ -14,7 +14,7 @@
 		</td>
 		<td>
 			<div class="form-group">
-                {!! Form::select('follow_ups[' . $customer->id . '][user_id][]', $users, $customer->created_by, ['class' => 'form-control select2', 'required', 'style' => 'width: 100%;']); !!}
+                {!! Form::select('follow_ups[' . $customer->id . '][user_id][]', $users, $customer->created_by, ['class' => 'form-control select2 follow-up-assignee-select', 'required', 'style' => 'width: 100%;']); !!}
             </div>
 		</td>
 		<td class="text-center">
