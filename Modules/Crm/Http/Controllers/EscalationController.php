@@ -205,6 +205,15 @@ class EscalationController extends Controller
                             ->orWhere('c.supplier_business_name', 'like', "%{$keyword}%");
                     });
                 })
+                ->filterColumn('source_name', function ($query, $keyword) {
+                    $query->where('src.name', 'like', "%{$keyword}%");
+                })
+                ->filterColumn('location_name', function ($query, $keyword) {
+                    $query->where('bl.name', 'like', "%{$keyword}%");
+                })
+                ->filterColumn('invoice_no', function ($query, $keyword) {
+                    $query->where('t.invoice_no', 'like', "%{$keyword}%");
+                })
                 ->make(true);
         }
 
