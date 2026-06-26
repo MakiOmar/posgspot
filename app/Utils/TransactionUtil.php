@@ -513,16 +513,35 @@ class TransactionUtil extends Util
         $combo_lines = [];
 
         //Calculate the percentage change in price.
+        //Skip any combo item that has no valid variation reference.
+        $valid_combo_items = [];
         $combo_total_price = 0;
-        foreach ($combo_items as $key => $value) {
-            $sell_price_inc_tax = Variation::findOrFail($value['variation_id'])->sell_price_inc_tax;
+        foreach ($combo_items as $value) {
+            if (empty($value['variation_id'])) {
+                continue;
+            }
 
-            $combo_items[$key]['unit_price_inc_tax'] = $sell_price_inc_tax;
-            $combo_total_price += $value['quantity'] * $sell_price_inc_tax;
+            $variation = Variation::find($value['variation_id']);
+            if (empty($variation)) {
+                continue;
+            }
+
+            $value['unit_price_inc_tax'] = $variation->sell_price_inc_tax;
+            if (empty($value['product_id'])) {
+                $value['product_id'] = $variation->product_id;
+            }
+
+            $combo_total_price += $value['quantity'] * $value['unit_price_inc_tax'];
+            $valid_combo_items[] = $value;
         }
+
+        if (empty($valid_combo_items)) {
+            return $combo_lines;
+        }
+
         $change_percent = $this->get_percent($combo_total_price, $parent_sell_line->unit_price_inc_tax * $parent_sell_line->quantity);
 
-        foreach ($combo_items as $value) {
+        foreach ($valid_combo_items as $value) {
             $price = $this->calc_percentage($value['unit_price_inc_tax'], $change_percent, $value['unit_price_inc_tax']);
 
             $combo_lines[] = new TransactionSellLine([
