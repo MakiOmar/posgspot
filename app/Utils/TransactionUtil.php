@@ -527,9 +527,9 @@ class TransactionUtil extends Util
             }
 
             $value['unit_price_inc_tax'] = $variation->sell_price_inc_tax;
-            if (empty($value['product_id'])) {
-                $value['product_id'] = $variation->product_id;
-            }
+            //Always derive product_id from the variation to avoid FK violations
+            //from incomplete/incorrect combo payloads.
+            $value['product_id'] = $variation->product_id;
 
             $combo_total_price += $value['quantity'] * $value['unit_price_inc_tax'];
             $valid_combo_items[] = $value;

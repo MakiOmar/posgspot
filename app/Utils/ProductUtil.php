@@ -460,7 +460,27 @@ class ProductUtil extends Util
     public function resolveComboDetailsForStockAdjustment($product, $uf_data = true)
     {
         if (! empty($product['combo']) && is_array($product['combo'])) {
-            return $product['combo'];
+            //Normalize combo lines: derive product_id from variation to avoid
+            //adjusting stock for an invalid/zero product_id.
+            $normalized = [];
+            foreach ($product['combo'] as $combo_line) {
+                if (empty($combo_line['variation_id'])) {
+                    continue;
+                }
+
+                $component_variation = Variation::find($combo_line['variation_id']);
+                if (empty($component_variation)) {
+                    continue;
+                }
+
+                $normalized[] = [
+                    'product_id' => $component_variation->product_id,
+                    'variation_id' => $combo_line['variation_id'],
+                    'quantity' => $combo_line['quantity'] ?? 0,
+                ];
+            }
+
+            return $normalized;
         }
 
         if (empty($product['product_type']) || $product['product_type'] != 'combo') {
