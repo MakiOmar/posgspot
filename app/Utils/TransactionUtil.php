@@ -619,15 +619,32 @@ class TransactionUtil extends Util
 
         //Adjust the sell line for combo items.
         if (isset($product['product_type']) && $product['product_type'] == 'combo' && ! empty($product['combo'])) {
-            //$this->editSellLineCombo($sell_line, $location_id, $sell_line->quantity, $new_qty);
+            $combo_lines_to_update = [];
+            $combo_lines_to_create = [];
 
-            //Assign combo product sell line to $edit_ids so that it will not get deleted
             foreach ($product['combo'] as $combo_line) {
-                $edit_ids[] = $combo_line['transaction_sell_lines_id'];
+                if (! empty($combo_line['transaction_sell_lines_id'])) {
+                    $edit_ids[] = $combo_line['transaction_sell_lines_id'];
+                    $combo_lines_to_update[] = $combo_line;
+                } else {
+                    $combo_lines_to_create[] = $combo_line;
+                }
             }
 
-            $adjust_stock = ($status_before != 'draft');
-            $this->updateEditedSellLineCombo($product['combo'], $location_id, $adjust_stock);
+            if (! empty($combo_lines_to_update)) {
+                $adjust_stock = ($status_before != 'draft');
+                $this->updateEditedSellLineCombo($combo_lines_to_update, $location_id, $adjust_stock);
+            }
+
+            // WooCommerce combo quotations may have a parent line but no child combo lines yet.
+            if (! empty($combo_lines_to_create)) {
+                $new_combo_lines = $this->__makeLinesForComboProduct($combo_lines_to_create, $sell_line);
+                foreach ($new_combo_lines as $new_combo_line) {
+                    $new_combo_line->transaction_id = $sell_line->transaction_id;
+                    $new_combo_line->save();
+                    $edit_ids[] = $new_combo_line->id;
+                }
+            }
         }
 
         $this->updateSalesOrderLine($sell_line->so_line_id, $sell_line->quantity, $old_qty);

@@ -1178,7 +1178,14 @@ class Util
         $change_percent = null;
 
         foreach ($lines as $key => $line) {
+            if (empty($line['transaction_sell_lines_id'])) {
+                continue;
+            }
+
             $prev_line = TransactionSellLine::find($line['transaction_sell_lines_id']);
+            if (empty($prev_line)) {
+                continue;
+            }
 
             $difference = $prev_line->quantity - $line['quantity'];
             if ($difference != 0) {
