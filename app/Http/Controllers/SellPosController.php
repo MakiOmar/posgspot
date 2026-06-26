@@ -555,11 +555,13 @@ class SellPosController extends Controller
 
                         if ($product['product_type'] == 'combo') {
                             //Decrease quantity of combo as well.
-                            $this->productUtil
-                                ->decreaseProductQuantityCombo(
-                                    $product['combo'],
+                            $combo_details = $this->productUtil->resolveComboDetailsForStockAdjustment($product);
+                            if (! empty($combo_details)) {
+                                $this->productUtil->decreaseProductQuantityCombo(
+                                    $combo_details,
                                     $input['location_id']
                                 );
+                            }
                         }
                     }
 

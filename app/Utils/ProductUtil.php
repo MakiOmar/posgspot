@@ -450,6 +450,112 @@ class ProductUtil extends Util
     }
 
     /**
+     * Resolve combo component lines for stock adjustment when the request
+     * payload omits the combo array (e.g. WooCommerce quotation finalize).
+     *
+     * @param  array  $product
+     * @param  bool  $uf_data
+     * @return array
+     */
+    public function resolveComboDetailsForStockAdjustment($product, $uf_data = true)
+    {
+        if (! empty($product['combo']) && is_array($product['combo'])) {
+            return $product['combo'];
+        }
+
+        if (empty($product['product_type']) || $product['product_type'] != 'combo') {
+            return [];
+        }
+
+        if (! empty($product['transaction_sell_lines_id'])) {
+            $sell_line_combos = TransactionSellLine::where('parent_sell_line_id', $product['transaction_sell_lines_id'])
+                ->where('children_type', 'combo')
+                ->get();
+
+            if ($sell_line_combos->isNotEmpty()) {
+                return $sell_line_combos->map(function ($line) {
+                    return [
+                        'product_id' => $line->product_id,
+                        'variation_id' => $line->variation_id,
+                        'quantity' => $line->quantity,
+                    ];
+                })->toArray();
+            }
+        }
+
+        if (empty($product['variation_id'])) {
+            return [];
+        }
+
+        $variation = Variation::find($product['variation_id']);
+        if (empty($variation) || empty($variation->combo_variations) || ! is_array($variation->combo_variations)) {
+            return [];
+        }
+
+        $parent_qty = $uf_data ? $this->num_uf($product['quantity'] ?? 0) : ($product['quantity'] ?? 0);
+        $combo_details = [];
+
+        foreach ($variation->combo_variations as $combo_item) {
+            if (empty($combo_item['variation_id'])) {
+                continue;
+            }
+
+            $component_variation = Variation::find($combo_item['variation_id']);
+            if (empty($component_variation)) {
+                continue;
+            }
+
+            $component_qty = $uf_data ? $this->num_uf($combo_item['quantity'] ?? 1) : ($combo_item['quantity'] ?? 1);
+
+            $combo_details[] = [
+                'product_id' => $component_variation->product_id,
+                'variation_id' => $combo_item['variation_id'],
+                'quantity' => $component_qty * $parent_qty,
+            ];
+        }
+
+        return $combo_details;
+    }
+
+    /**
+     * Build combo payload for sell-line creation from a combo variation.
+     *
+     * @param  \App\Variation  $variation
+     * @param  float|int  $line_quantity
+     * @return array
+     */
+    public function buildComboSellLinePayload($variation, $line_quantity)
+    {
+        if (empty($variation) || empty($variation->combo_variations) || ! is_array($variation->combo_variations)) {
+            return [];
+        }
+
+        $combo = [];
+        $line_qty = $this->num_uf($line_quantity);
+
+        foreach ($variation->combo_variations as $combo_item) {
+            if (empty($combo_item['variation_id'])) {
+                continue;
+            }
+
+            $component_variation = Variation::find($combo_item['variation_id']);
+            if (empty($component_variation)) {
+                continue;
+            }
+
+            $component_qty = $this->num_uf($combo_item['quantity'] ?? 1);
+
+            $combo[] = [
+                'product_id' => $component_variation->product_id,
+                'variation_id' => $combo_item['variation_id'],
+                'quantity' => $component_qty * $line_qty,
+            ];
+        }
+
+        return $combo;
+    }
+
+    /**
      * Get all details for a product from its variation id
      *
      * @param  int  $variation_id
@@ -832,12 +938,12 @@ class ProductUtil extends Util
 
                     //Adjust quantity for combo items.
                     if (isset($product['product_type']) && $product['product_type'] == 'combo') {
-                        //Giving quantity in minus will increase the qty
-                        foreach ($product['combo'] as $value) {
-                            $this->updateProductQuantity($input['location_id'], $value['product_id'], $value['variation_id'], $value['quantity'], 0, null, false);
+                        $combo_details = $this->resolveComboDetailsForStockAdjustment($product, $uf_data);
+                        if (! empty($combo_details)) {
+                            foreach ($combo_details as $value) {
+                                $this->updateProductQuantity($input['location_id'], $value['product_id'], $value['variation_id'], $value['quantity'], 0, null, false);
+                            }
                         }
-
-                        // $this->updateEditedSellLineCombo($product['combo'], $input['location_id']);
                     }
                 }
             }
@@ -854,9 +960,10 @@ class ProductUtil extends Util
 
                 //Adjust quantity for combo items.
                 if (isset($product['product_type']) && $product['product_type'] == 'combo') {
-                    $this->decreaseProductQuantityCombo($product['combo'], $input['location_id']);
-
-                    //$this->decreaseProductQuantityCombo($product['variation_id'], $input['location_id'], $uf_quantity);
+                    $combo_details = $this->resolveComboDetailsForStockAdjustment($product, $uf_data);
+                    if (! empty($combo_details)) {
+                        $this->decreaseProductQuantityCombo($combo_details, $input['location_id']);
+                    }
                 }
             }
         } elseif ($status_before == 'final' && $transaction->status == 'final') {
@@ -872,9 +979,10 @@ class ProductUtil extends Util
 
                     //Adjust quantity for combo items.
                     if (isset($product['product_type']) && $product['product_type'] == 'combo') {
-                        $this->decreaseProductQuantityCombo($product['combo'], $input['location_id']);
-
-                        //$this->decreaseProductQuantityCombo($product['variation_id'], $input['location_id'], $uf_quantity);
+                        $combo_details = $this->resolveComboDetailsForStockAdjustment($product, $uf_data);
+                        if (! empty($combo_details)) {
+                            $this->decreaseProductQuantityCombo($combo_details, $input['location_id']);
+                        }
                     }
                 }
             }

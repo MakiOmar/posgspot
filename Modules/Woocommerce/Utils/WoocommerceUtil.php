@@ -1597,6 +1597,16 @@ class WoocommerceUtil extends Util
                         $product['quantity']
                     );
                 }
+
+                if (! empty($product['product_type']) && $product['product_type'] == 'combo') {
+                    $combo_details = $this->productUtil->resolveComboDetailsForStockAdjustment($product, false);
+                    if (! empty($combo_details)) {
+                        $this->productUtil->decreaseProductQuantityCombo(
+                            $combo_details,
+                            $input['location_id']
+                        );
+                    }
+                }
             }
 
             //Update payment status
@@ -1768,9 +1778,9 @@ class WoocommerceUtil extends Util
             $unit_line_tax = $line_tax / $product_line->quantity;
             $unit_price_inc_tax = $unit_price + $unit_line_tax;
             if (! empty($product)) {
-                //Set sale line variation;If single product then first variation
+                //Set sale line variation;If single/combo product then first variation
                 //else search for woocommerce_variation_id in all the variations
-                if ($product->type == 'single') {
+                if (in_array($product->type, ['single', 'combo'])) {
                     $variation = $product->variations->first();
                 } else {
                     foreach ($product->variations as $v) {
@@ -1816,6 +1826,14 @@ class WoocommerceUtil extends Util
                     'tax_id' => $tax_id,
                     'line_item_id' => $product_line->id,
                 ];
+
+                if ($product->type == 'combo') {
+                    $product_data['product_type'] = 'combo';
+                    $product_data['combo'] = $this->productUtil->buildComboSellLinePayload(
+                        $variation,
+                        $product_line->quantity
+                    );
+                }
 
                 //append transaction_sell_lines_id if update
                 if (! empty($sell_lines)) {

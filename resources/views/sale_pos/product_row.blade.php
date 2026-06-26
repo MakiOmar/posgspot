@@ -294,9 +294,35 @@
 		<input type="hidden" class="hidden_base_unit_sell_price" value="{{$product->default_sell_price / $multiplier}}">
 		
 		{{-- Hidden fields for combo products --}}
-		@if($product->product_type == 'combo'&& !empty($product->combo_products))
+		@if($product->product_type == 'combo')
+			@php
+				$combo_products_for_row = !empty($product->combo_products) ? $product->combo_products : [];
 
-			@foreach($product->combo_products as $k => $combo_product)
+				if (empty($combo_products_for_row) && !empty($product->variation_id)) {
+					$combo_variation = \App\Variation::find($product->variation_id);
+					if (!empty($combo_variation) && !empty($combo_variation->combo_variations)) {
+						$parent_qty = !empty($product->quantity_ordered) ? $product->quantity_ordered : 1;
+						foreach ($combo_variation->combo_variations as $combo_item) {
+							if (empty($combo_item['variation_id'])) {
+								continue;
+							}
+							$component_variation = \App\Variation::find($combo_item['variation_id']);
+							if (empty($component_variation)) {
+								continue;
+							}
+							$combo_products_for_row[] = [
+								'product_id' => $component_variation->product_id,
+								'variation_id' => $combo_item['variation_id'],
+								'quantity' => ($combo_item['quantity'] ?? 1) * $parent_qty,
+								'qty_required' => $combo_item['quantity'] ?? 1,
+							];
+						}
+					}
+				}
+			@endphp
+
+			@if(!empty($combo_products_for_row))
+			@foreach($combo_products_for_row as $k => $combo_product)
 
 				@if(isset($action) && $action == 'edit')
 					@php
@@ -324,13 +350,14 @@
 					data-unit_quantity="{{$combo_product['qty_required']}}"
 					value="{{$qty_total}}">
 
-					@if(isset($action) && $action == 'edit')
+					@if(isset($action) && $action == 'edit' && !empty($combo_product['id']))
 						<input type="hidden" 
 							name="products[{{$row_count}}][combo][{{$k}}][transaction_sell_lines_id]"
 							value="{{$combo_product['id']}}">
 					@endif
 
 			@endforeach
+			@endif
 		@endif
 	</td>
 	@if(!empty($is_direct_sell))
