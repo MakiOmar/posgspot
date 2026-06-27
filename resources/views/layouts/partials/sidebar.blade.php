@@ -15,7 +15,7 @@
         @endphp
         @if(!empty($sidebar_logo_url))
             <!-- Business settings logo -->
-            <img src="{{ $sidebar_logo_url }}" alt="{{ Session::get('business.name') }}" class="tw-h-9 tw-w-9 tw-rounded-full tw-object-cover tw-bg-white tw-shrink-0">
+            <img src="{{ $sidebar_logo_url }}" alt="{{ Session::get('business.name') }}" class="tw-object-contain tw-shrink-0" style="height: 60px;">
         @endif
         <p class="tw-text-lg tw-font-medium tw-text-white side-bar-heading tw-text-center">
             {{ Session::get('business.name') }} <span class="tw-inline-block tw-w-3 tw-h-3 tw-bg-green-400 tw-rounded-full" title="Online"></span>
