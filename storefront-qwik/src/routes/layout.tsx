@@ -2,9 +2,9 @@ import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
-import { fetchSettings } from "~/lib/api";
+import { fetchCategories, fetchSettings } from "~/lib/api";
 import { CartProvider } from "~/lib/cart-context";
-import type { StoreSettings } from "~/lib/types";
+import type { Category, StoreSettings } from "~/lib/types";
 
 export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => {
   try {
@@ -26,6 +26,16 @@ export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => 
   }
 });
 
+/** Top-level categories that drive the header nav (empty on failure). */
+export const useNavCategories = routeLoader$(async (): Promise<Category[]> => {
+  try {
+    const { data } = await fetchCategories();
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+});
+
 /** Basic 6-digit hex guard so a bad setting can't inject arbitrary CSS. */
 function safeAccent(color: string | undefined): string {
   return color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#00d4aa";
@@ -33,6 +43,7 @@ function safeAccent(color: string | undefined): string {
 
 export default component$(() => {
   const settings = useSiteSettings();
+  const categories = useNavCategories();
   const accent = safeAccent(settings.value.theme?.accent_color);
 
   return (
@@ -41,7 +52,7 @@ export default component$(() => {
         class="site-shell"
         style={{ "--gs-accent": accent, "--gs-accent-hover": accent }}
       >
-        <SiteHeader settings={settings.value} />
+        <SiteHeader settings={settings.value} categories={categories.value} />
         <main class="site-main">
           <Slot />
         </main>

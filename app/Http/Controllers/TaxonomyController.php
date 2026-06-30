@@ -142,6 +142,13 @@ class TaxonomyController extends Controller
             $input['business_id'] = $request->session()->get('user.business_id');
             $input['created_by'] = $request->session()->get('user.id');
 
+            // Auto-generate a unique storefront slug from the name.
+            $input['slug'] = Category::generateSlug(
+                $input['name'] ?? '',
+                $input['business_id'],
+                $input['category_type'] ?? 'product'
+            );
+
             $category = Category::create($input);
             $output = ['success' => true,
                 'data' => $category,
@@ -230,6 +237,17 @@ class TaxonomyController extends Controller
                 $category->name = $input['name'];
                 $category->description = $input['description'];
                 $category->short_code = $request->input('short_code');
+
+                // Backfill a slug only when missing; keep existing slugs stable
+                // so previously shared storefront URLs don't break.
+                if (empty($category->slug)) {
+                    $category->slug = Category::generateSlug(
+                        $category->name,
+                        $business_id,
+                        $category->category_type ?? 'product',
+                        $category->id
+                    );
+                }
 
                 if (! empty($request->input('add_as_sub_cat')) && $request->input('add_as_sub_cat') == 1 && ! empty($request->input('parent_id'))) {
                     $category->parent_id = $request->input('parent_id');

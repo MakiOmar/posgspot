@@ -9,6 +9,12 @@ export interface CartState {
 export const totalCartItems = (cart: CartState) =>
   cart.items.reduce((sum: number, line: CartItem) => sum + line.quantity, 0);
 
+export const cartSubtotal = (cart: CartState) =>
+  cart.items.reduce(
+    (sum: number, line: CartItem) => sum + line.price * line.quantity,
+    0,
+  );
+
 export const addCartItem = $((cart: CartState, item: CartItem) => {
   const existing = cart.items.find((line) => line.variationId === item.variationId);
   if (existing) {

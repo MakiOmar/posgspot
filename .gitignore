@@ -6,6 +6,8 @@
 /vendor
 /.vscode
 /.idea
+/.cursor
+.phpunit.result.cache
 /.vagrant
 Homestead.json
 Homestead.yaml

@@ -5,6 +5,7 @@ namespace App;
 use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Category extends Model
 {
@@ -94,6 +95,36 @@ class Category extends Model
     public function sub_categories()
     {
         return $this->hasMany(\App\Category::class, 'parent_id');
+    }
+
+    /**
+     * Generate a URL-safe, unique slug for a category name.
+     *
+     * Uniqueness is scoped to the business and category type so storefront
+     * URLs (e.g. /category/accessories) resolve to a single product category.
+     * Clashes get WordPress-style numeric suffixes: base, base-2, base-3, …
+     *
+     * @param  string  $name  Source name to slugify.
+     * @param  int  $businessId  Owning business.
+     * @param  string  $categoryType  e.g. 'product'.
+     * @param  int|null  $excludeId  Current record id to ignore on edit.
+     */
+    public static function generateSlug(string $name, int $businessId, string $categoryType = 'product', ?int $excludeId = null): string
+    {
+        $base = Str::slug($name) ?: 'category';
+        $slug = $base;
+        $i = 1;
+
+        while (static::where('business_id', $businessId)
+            ->where('category_type', $categoryType)
+            ->where('slug', $slug)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->exists()) {
+            $slug = $base.'-'.$i;
+            $i++;
+        }
+
+        return $slug;
     }
 
     /**

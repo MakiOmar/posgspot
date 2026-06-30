@@ -28,6 +28,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/settings', [SettingsController::class, 'show']);
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/{slug}', [CategoryController::class, 'show']);
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
     Route::get('/products/{productId}/availability', [AvailabilityController::class, 'show']);

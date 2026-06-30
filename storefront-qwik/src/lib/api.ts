@@ -82,6 +82,10 @@ export function fetchCategories() {
   return storefrontFetch<Category[]>("/categories");
 }
 
+export function fetchCategory(slug: string) {
+  return storefrontFetch<Category>(`/categories/${encodeURIComponent(slug)}`);
+}
+
 export function fetchProducts(params: Record<string, string | number | boolean> = {}) {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {

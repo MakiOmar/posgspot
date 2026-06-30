@@ -34,11 +34,49 @@ class CatalogService
         return Category::catAndSubCategories($businessId);
     }
 
+    /**
+     * Resolve a single product category by its storefront slug.
+     *
+     * @return array{id:int,name:string,slug:?string,parent_id:int}|null
+     */
+    public function findCategoryBySlug(int $businessId, string $slug): ?array
+    {
+        if (! $this->hasSellingLocations($businessId)) {
+            return null;
+        }
+
+        $category = Category::where('business_id', $businessId)
+            ->where('category_type', 'product')
+            ->where('slug', $slug)
+            ->first();
+
+        if (empty($category)) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+            'parent_id' => (int) $category->parent_id,
+        ];
+    }
+
     public function listProducts(int $businessId, array $filters = [], int $perPage = 20): LengthAwarePaginator
     {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+        }
+
+        // Resolve a category slug (storefront URL) to its id once, up front.
+        if (empty($filters['category_id']) && ! empty($filters['category_slug'])) {
+            $category = $this->findCategoryBySlug($businessId, (string) $filters['category_slug']);
+            if (empty($category)) {
+                // Unknown slug: return an empty, well-formed page.
+                return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            }
+            $filters['category_id'] = $category['id'];
         }
 
         $query = $this->baseProductQuery($businessId, $locationIds);

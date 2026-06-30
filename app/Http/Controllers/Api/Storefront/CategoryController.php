@@ -15,4 +15,15 @@ class CategoryController extends StorefrontController
     {
         return $this->jsonSuccess($this->catalog->getCategories($this->businessId($request)));
     }
+
+    public function show(Request $request, string $slug)
+    {
+        $category = $this->catalog->findCategoryBySlug($this->businessId($request), $slug);
+
+        if (empty($category)) {
+            return $this->jsonError('Category not found.', 404);
+        }
+
+        return $this->jsonSuccess($category);
+    }
 }

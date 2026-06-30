@@ -15,6 +15,7 @@ class ProductController extends StorefrontController
     {
         $filters = [
             'category_id' => $request->query('category_id'),
+            'category_slug' => $request->query('category_slug'),
             'brand_id' => $request->query('brand_id'),
             'q' => $request->query('q'),
             'sort' => $request->query('sort', 'name'),
