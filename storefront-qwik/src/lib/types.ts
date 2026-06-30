@@ -161,3 +161,49 @@ export interface CartItem {
   quantity: number;
   imageUrl: string | null;
 }
+
+export interface AuthContact {
+  id: number;
+  name: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  mobile: string | null;
+  address_line_1: string | null;
+  address_line_2: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zip_code: string | null;
+}
+
+export interface AuthSession {
+  contact: AuthContact;
+  token: string;
+  token_type: string;
+}
+
+export interface AccountOrder {
+  id: number;
+  storefront_order_id: string;
+  invoice_no: string;
+  status: string;
+  payment_status: string;
+  final_total: number;
+  transaction_date: string;
+  shipping_status: string;
+}
+
+export interface AccountOrderLine {
+  product_id: number;
+  variation_id: number;
+  product_name: string | null;
+  variation_name: string | null;
+  quantity: number;
+  unit_price_inc_tax: number;
+  line_total: number;
+}
+
+export interface AccountOrderDetail extends AccountOrder {
+  lines: AccountOrderLine[];
+}

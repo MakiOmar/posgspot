@@ -3,6 +3,7 @@ import { routeLoader$ } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
 import { fetchCategories, fetchSettings } from "~/lib/api";
+import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import type { Category, StoreSettings } from "~/lib/types";
 
@@ -47,17 +48,19 @@ export default component$(() => {
   const accent = safeAccent(settings.value.theme?.accent_color);
 
   return (
-    <CartProvider>
-      <div
-        class="site-shell"
-        style={{ "--gs-accent": accent, "--gs-accent-hover": accent }}
-      >
-        <SiteHeader settings={settings.value} categories={categories.value} />
-        <main class="site-main">
-          <Slot />
-        </main>
-        <SiteFooter settings={settings.value} />
-      </div>
-    </CartProvider>
+    <AuthProvider>
+      <CartProvider>
+        <div
+          class="site-shell"
+          style={{ "--gs-accent": accent, "--gs-accent-hover": accent }}
+        >
+          <SiteHeader settings={settings.value} categories={categories.value} />
+          <main class="site-main">
+            <Slot />
+          </main>
+          <SiteFooter settings={settings.value} />
+        </div>
+      </CartProvider>
+    </AuthProvider>
   );
 });

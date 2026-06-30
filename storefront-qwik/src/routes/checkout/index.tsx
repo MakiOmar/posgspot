@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { checkout, fetchLocations, validateCart } from "~/lib/api";
+import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
@@ -20,6 +21,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const locations = useCheckoutLocations();
   const cart = useCart();
+  const auth = useAuth();
 
   const locationId = useSignal(locations.value[0]?.id || 0);
   const submitting = useSignal(false);
@@ -68,7 +70,8 @@ export default component$(() => {
         location_id: locationId.value,
         items: payload.items,
       });
-      const { data } = await checkout(payload);
+      // Pass the bearer token when signed in so the order links to the account.
+      const { data } = await checkout(payload, auth.token ?? undefined);
       order.value = data;
       clearCart(cart);
     } catch (err) {
@@ -123,37 +126,37 @@ export default component$(() => {
           <div class="two-col">
             <div>
               <label for="first_name">First name</label>
-              <input id="first_name" name="first_name" required />
+              <input id="first_name" name="first_name" required defaultValue={auth.contact?.first_name || ""} />
             </div>
             <div>
               <label for="last_name">Last name</label>
-              <input id="last_name" name="last_name" />
+              <input id="last_name" name="last_name" defaultValue={auth.contact?.last_name || ""} />
             </div>
           </div>
           <div class="two-col">
             <div>
               <label for="email">Email</label>
-              <input id="email" name="email" type="email" required />
+              <input id="email" name="email" type="email" required defaultValue={auth.contact?.email || ""} />
             </div>
             <div>
               <label for="mobile">Mobile</label>
-              <input id="mobile" name="mobile" required />
+              <input id="mobile" name="mobile" required defaultValue={auth.contact?.mobile || ""} />
             </div>
           </div>
 
           <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.125rem" }}>Shipping</h2>
           <div>
             <label for="address_line_1">Address</label>
-            <input id="address_line_1" name="address_line_1" required />
+            <input id="address_line_1" name="address_line_1" required defaultValue={auth.contact?.address_line_1 || ""} />
           </div>
           <div class="two-col">
             <div>
               <label for="city">City</label>
-              <input id="city" name="city" required defaultValue="Cairo" />
+              <input id="city" name="city" required defaultValue={auth.contact?.city || "Cairo"} />
             </div>
             <div>
               <label for="country">Country</label>
-              <input id="country" name="country" defaultValue="Egypt" />
+              <input id="country" name="country" defaultValue={auth.contact?.country || "Egypt"} />
             </div>
           </div>
 

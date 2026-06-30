@@ -2,8 +2,12 @@
  * Storefront API client for the Laravel POS backend.
  */
 import type {
+  AccountOrder,
+  AccountOrderDetail,
   ApiEnvelope,
   ApiErrorBody,
+  AuthContact,
+  AuthSession,
   AvailabilityLocation,
   CartValidation,
   Category,
@@ -155,6 +159,93 @@ export function checkout(payload: Record<string, unknown>, token?: string) {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
+  });
+}
+
+/** Authorization header helper for token-protected endpoints. */
+function authHeaders(token: string): Record<string, string> {
+  return { Authorization: `Bearer ${token}` };
+}
+
+export function registerCustomer(payload: {
+  first_name: string;
+  last_name?: string;
+  email: string;
+  mobile: string;
+  password: string;
+  password_confirmation: string;
+}) {
+  return storefrontFetch<AuthSession>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function loginCustomer(payload: { login: string; password: string }) {
+  return storefrontFetch<AuthSession>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function logoutCustomer(token: string) {
+  return storefrontFetch<{ message: string }>("/auth/logout", {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}
+
+export function forgotPassword(email: string) {
+  return storefrontFetch<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function fetchProfile(token: string) {
+  return storefrontFetch<AuthContact>("/account/profile", {
+    headers: authHeaders(token),
+  });
+}
+
+export function updateProfile(
+  token: string,
+  payload: { first_name?: string; last_name?: string; email?: string; mobile?: string },
+) {
+  return storefrontFetch<AuthContact>("/account/profile", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAddress(
+  token: string,
+  payload: {
+    address_line_1?: string;
+    address_line_2?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zip_code?: string;
+  },
+) {
+  return storefrontFetch<AuthContact>("/account/address", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchOrders(token: string) {
+  return storefrontFetch<AccountOrder[]>("/account/orders", {
+    headers: authHeaders(token),
+  });
+}
+
+export function fetchOrder(token: string, orderId: number) {
+  return storefrontFetch<AccountOrderDetail>(`/account/orders/${orderId}`, {
+    headers: authHeaders(token),
   });
 }
 

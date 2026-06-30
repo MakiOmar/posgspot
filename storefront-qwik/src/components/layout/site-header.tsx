@@ -1,6 +1,8 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { CartIcon, MenuIcon, PhoneIcon, SearchIcon, UserIcon } from "~/components/icons";
+import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
+import { useAuth } from "~/lib/auth-context";
 import { cartSubtotal, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
@@ -14,6 +16,8 @@ interface SiteHeaderProps {
 export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories }) => {
   const loc = useLocation();
   const cart = useCart();
+  const auth = useAuth();
+  const signedIn = isAuthenticated(auth);
 
   const itemCount = totalCartItems(cart);
   const subtotal = cartSubtotal(cart);
@@ -78,10 +82,16 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
           </form>
 
           <div class="header-actions">
-            {/* Placeholder account entry (auth pages not built yet). */}
-            <Link href="/account" class="action-link" aria-label="Sign in">
+            {/* Account entry: profile when signed in, otherwise sign in. */}
+            <Link
+              href={signedIn ? "/account" : "/login"}
+              class="action-link"
+              aria-label={signedIn ? "My account" : "Sign in"}
+            >
               <UserIcon size={22} />
-              <span class="action-text">Sign in</span>
+              <span class="action-text">
+                {signedIn ? accountDisplayName(auth) : "Sign in"}
+              </span>
             </Link>
 
             <Link href="/cart" class="action-link action-cart" aria-label="Cart">

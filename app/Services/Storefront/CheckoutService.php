@@ -232,10 +232,14 @@ class CheckoutService
             return null;
         }
 
+        $transaction->load(['sell_lines.product', 'sell_lines.variations']);
+
         $data = $this->formatOrderResponse($transaction);
         $data['lines'] = $transaction->sell_lines->map(fn ($line) => [
             'product_id' => $line->product_id,
             'variation_id' => $line->variation_id,
+            'product_name' => $line->product->name ?? null,
+            'variation_name' => $line->variations->name ?? null,
             'quantity' => (float) $line->quantity,
             'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
             'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,

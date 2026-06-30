@@ -720,3 +720,233 @@ img {
     display: none;
   }
 }
+
+/* ---- Account area & auth pages ---- */
+
+.account-shell {
+  display: grid;
+  gap: 2rem;
+  padding: 2rem 1rem;
+  grid-template-columns: 1fr;
+}
+
+.account-sidebar {
+  align-self: start;
+}
+
+.account-greeting {
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.account-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-nav a,
+.account-logout {
+  display: block;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--gs-radius);
+  color: var(--gs-muted);
+  font-size: 0.9375rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.account-nav a:hover,
+.account-logout:hover {
+  color: var(--gs-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.account-nav a.active {
+  color: var(--gs-text);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 600;
+}
+
+.account-logout {
+  margin-top: 0.5rem;
+  color: #ffb3c1;
+}
+
+.account-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+  margin-bottom: 2rem;
+}
+
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  color: var(--gs-text);
+}
+
+.account-card:hover {
+  border-color: var(--gs-accent);
+}
+
+.account-summary h2,
+.account-form h2 {
+  font-size: 1.125rem;
+  margin: 0 0 1rem;
+}
+
+.account-detail-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.account-detail-list dt {
+  font-size: 0.8125rem;
+  color: var(--gs-muted);
+}
+
+.account-detail-list dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.account-form .form-field label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--gs-muted);
+  margin-bottom: 0.25rem;
+}
+
+.account-form .form-field input {
+  width: 100%;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  color: var(--gs-text);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.account-form .form-field--full {
+  grid-column: 1 / -1;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.account-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.account-table th,
+.account-table td {
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--gs-border);
+}
+
+.account-table th {
+  color: var(--gs-muted);
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.8125rem;
+  text-transform: capitalize;
+}
+
+.link-accent {
+  color: var(--gs-accent);
+  font-weight: 600;
+}
+
+.link-accent:hover {
+  color: var(--gs-text);
+}
+
+.order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  color: var(--gs-muted);
+  font-size: 0.9375rem;
+}
+
+/* Auth (login / register / reset) pages */
+.auth-page {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  padding: 2rem;
+}
+
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  font-size: 0.9375rem;
+  color: var(--gs-muted);
+}
+
+@media (min-width: 768px) {
+  .account-shell {
+    grid-template-columns: 220px 1fr;
+  }
+
+  .account-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Stack account tables into cards on small screens. */
+@media (max-width: 600px) {
+  .account-table thead {
+    display: none;
+  }
+
+  .account-table tr {
+    display: block;
+    border-bottom: 1px solid var(--gs-border);
+    padding: 0.5rem 0;
+  }
+
+  .account-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.35rem 0.25rem;
+  }
+
+  .account-table td::before {
+    content: attr(data-label);
+    color: var(--gs-muted);
+    font-size: 0.8125rem;
+  }
+}

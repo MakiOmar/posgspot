@@ -1,0 +1,154 @@
+import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
+import { type DocumentHead } from "@builder.io/qwik-city";
+import { updateAddress, updateProfile } from "~/lib/api";
+import { useAuth } from "~/lib/auth-context";
+import type { AuthContact } from "~/lib/types";
+
+interface ProfileForm {
+  first_name: string;
+  last_name: string;
+  email: string;
+  mobile: string;
+  address_line_1: string;
+  address_line_2: string;
+  city: string;
+  state: string;
+  country: string;
+  zip_code: string;
+}
+
+function formFromContact(c: AuthContact | null): ProfileForm {
+  return {
+    first_name: c?.first_name || "",
+    last_name: c?.last_name || "",
+    email: c?.email || "",
+    mobile: c?.mobile || "",
+    address_line_1: c?.address_line_1 || "",
+    address_line_2: c?.address_line_2 || "",
+    city: c?.city || "",
+    state: c?.state || "",
+    country: c?.country || "",
+    zip_code: c?.zip_code || "",
+  };
+}
+
+export default component$(() => {
+  const auth = useAuth();
+  const form = useStore<ProfileForm>(formFromContact(null));
+  const saving = useSignal(false);
+  const message = useSignal<string | null>(null);
+  const error = useSignal<string | null>(null);
+
+  // Prefill from the cached contact once hydrated.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => auth.contact);
+    Object.assign(form, formFromContact(auth.contact));
+  });
+
+  const save$ = $(async () => {
+    if (!auth.token) {
+      return;
+    }
+    saving.value = true;
+    message.value = null;
+    error.value = null;
+    try {
+      // Profile and address are separate endpoints; update both then cache.
+      await updateProfile(auth.token, {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        mobile: form.mobile,
+      });
+      const { data } = await updateAddress(auth.token, {
+        address_line_1: form.address_line_1,
+        address_line_2: form.address_line_2,
+        city: form.city,
+        state: form.state,
+        country: form.country,
+        zip_code: form.zip_code,
+      });
+      auth.contact = data;
+      message.value = "Your details were saved.";
+    } catch {
+      error.value = "Could not save your details. Please check the fields and try again.";
+    } finally {
+      saving.value = false;
+    }
+  });
+
+  return (
+    <div>
+      <h1 class="page-title">Profile &amp; address</h1>
+
+      {message.value ? <p class="alert alert-success">{message.value}</p> : null}
+      {error.value ? <p class="alert alert-error">{error.value}</p> : null}
+
+      <form
+        preventdefault:submit
+        onSubmit$={save$}
+        class="account-form"
+      >
+        <h2>Personal details</h2>
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="first_name">First name</label>
+            <input id="first_name" type="text" value={form.first_name} onInput$={(_, el) => (form.first_name = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="last_name">Last name</label>
+            <input id="last_name" type="text" value={form.last_name} onInput$={(_, el) => (form.last_name = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="email">Email</label>
+            <input id="email" type="email" value={form.email} onInput$={(_, el) => (form.email = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="mobile">Mobile</label>
+            <input id="mobile" type="tel" value={form.mobile} onInput$={(_, el) => (form.mobile = el.value)} />
+          </div>
+        </div>
+
+        <h2 style={{ marginTop: "1.5rem" }}>Delivery address</h2>
+        <div class="form-grid">
+          <div class="form-field form-field--full">
+            <label for="address_line_1">Address line 1</label>
+            <input id="address_line_1" type="text" value={form.address_line_1} onInput$={(_, el) => (form.address_line_1 = el.value)} />
+          </div>
+          <div class="form-field form-field--full">
+            <label for="address_line_2">Address line 2</label>
+            <input id="address_line_2" type="text" value={form.address_line_2} onInput$={(_, el) => (form.address_line_2 = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="city">City</label>
+            <input id="city" type="text" value={form.city} onInput$={(_, el) => (form.city = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="state">State / Governorate</label>
+            <input id="state" type="text" value={form.state} onInput$={(_, el) => (form.state = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="country">Country</label>
+            <input id="country" type="text" value={form.country} onInput$={(_, el) => (form.country = el.value)} />
+          </div>
+          <div class="form-field">
+            <label for="zip_code">Postal code</label>
+            <input id="zip_code" type="text" value={form.zip_code} onInput$={(_, el) => (form.zip_code = el.value)} />
+          </div>
+        </div>
+
+        <div style={{ marginTop: "1.5rem" }}>
+          <button type="submit" class="btn btn-primary" disabled={saving.value}>
+            {saving.value ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+});
+
+export const head: DocumentHead = {
+  title: "Profile & address",
+  meta: [{ name: "robots", content: "noindex, nofollow" }],
+};
