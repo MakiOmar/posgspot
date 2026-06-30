@@ -10,6 +10,7 @@ use App\SellingPriceGroup;
 use App\Utils\ModuleUtil;
 use App\Utils\Util;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Permission;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -165,8 +166,15 @@ class BusinessLocationController extends Controller
                 return $this->moduleUtil->quotaExpiredResponse('locations', $business_id);
             }
 
+            $geoValidation = $this->validateGeoCoordinates($request);
+            if ($geoValidation !== null) {
+                return $geoValidation;
+            }
+
             $input = $request->only(['name', 'landmark', 'city', 'state', 'country', 'zip_code', 'invoice_scheme_id',
-                'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id']);
+                'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id', 'latitude', 'longitude']);
+
+            $input = $this->normalizeGeoCoordinates($input);
 
             $input['business_id'] = $business_id;
 
@@ -268,9 +276,16 @@ class BusinessLocationController extends Controller
         }
 
         try {
+            $geoValidation = $this->validateGeoCoordinates($request);
+            if ($geoValidation !== null) {
+                return $geoValidation;
+            }
+
             $input = $request->only(['name', 'landmark', 'city', 'state', 'country',
                 'zip_code', 'invoice_scheme_id',
-                'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id' ]);
+                'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id', 'latitude', 'longitude' ]);
+
+            $input = $this->normalizeGeoCoordinates($input);
 
             $business_id = $request->session()->get('user.business_id');
 
@@ -305,6 +320,47 @@ class BusinessLocationController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    /**
+     * Validate optional map coordinates used for the storefront availability
+     * map link. Returns a JSON error payload on failure, or null when valid.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validateGeoCoordinates(Request $request): ?array
+    {
+        $validator = Validator::make($request->all(), [
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        if ($validator->fails()) {
+            return [
+                'success' => false,
+                'msg' => $validator->errors()->first(),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Convert blank coordinate inputs to null so partial/empty values are not
+     * persisted as 0 (which would point the map at the Gulf of Guinea).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    private function normalizeGeoCoordinates(array $input): array
+    {
+        foreach (['latitude', 'longitude'] as $key) {
+            if (! array_key_exists($key, $input) || $input[$key] === '' || $input[$key] === null) {
+                $input[$key] = null;
+            }
+        }
+
+        return $input;
     }
 
     /**

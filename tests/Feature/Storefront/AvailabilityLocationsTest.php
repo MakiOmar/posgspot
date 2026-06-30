@@ -71,7 +71,7 @@ class AvailabilityLocationsTest extends TestCase
                 'data' => [
                     'in_stock_count',
                     'locations' => [
-                        ['location_id', 'name', 'in_stock', 'qty_available'],
+                        ['location_id', 'name', 'in_stock', 'qty_available', 'latitude', 'longitude', 'maps_url'],
                     ],
                 ],
             ]);

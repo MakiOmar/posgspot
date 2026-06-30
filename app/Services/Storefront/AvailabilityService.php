@@ -62,6 +62,8 @@ class AvailabilityService
                 'phone' => $loc->mobile,
                 'in_stock' => $inStock,
                 'qty_available' => (float) $qty,
+                'latitude' => $loc->latitude !== null ? (float) $loc->latitude : null,
+                'longitude' => $loc->longitude !== null ? (float) $loc->longitude : null,
                 'maps_url' => $this->settingsApi->mapsUrl($loc),
             ];
         }

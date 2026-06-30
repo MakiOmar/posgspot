@@ -56,6 +56,20 @@
                     </div>
                 </div>
                 <div class="clearfix"></div>
+                {{-- Map coordinates: optional, power the storefront availability map link. --}}
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        {!! Form::label('latitude', __( 'lang_v1.latitude' ) . ':') !!}
+                        {!! Form::text('latitude', null, ['class' => 'form-control', 'placeholder' => '30.0444', 'step' => 'any']); !!}
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        {!! Form::label('longitude', __( 'lang_v1.longitude' ) . ':') !!}
+                        {!! Form::text('longitude', null, ['class' => 'form-control', 'placeholder' => '31.2357', 'step' => 'any']); !!}
+                    </div>
+                </div>
+                <div class="clearfix"></div>
                 <div class="col-sm-6">
                     <div class="form-group">
                         {!! Form::label('mobile', __( 'business.mobile' ) . ':') !!}

@@ -315,6 +315,8 @@ return [
     'cn_amount_label' => 'Total Amount',
     'custom_field' => 'Custom Field :number',
     'website' => 'Website',
+    'latitude' => 'Latitude',
+    'longitude' => 'Longitude',
     'total_credit_amt' => 'Total Credit Amount',
     'unit_sell_price' => 'Unit Sell Price',
     'prefixes' => 'Prefixes',

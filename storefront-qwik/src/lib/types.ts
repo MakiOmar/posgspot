@@ -107,6 +107,8 @@ export interface AvailabilityLocation {
   phone: string | null;
   in_stock: boolean;
   qty_available: number;
+  latitude: number | null;
+  longitude: number | null;
   maps_url: string | null;
 }
 
