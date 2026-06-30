@@ -118,3 +118,22 @@ Route::get(
     [ContactController::class, 'getContactInfoByMobileApi']
 )->name('contacts.getInfo');
 */
+
+/*
+|--------------------------------------------------------------------------
+| Storefront API (public Qwik website)
+|--------------------------------------------------------------------------
+| Versioned, public endpoints consumed by the Qwik storefront (and the
+| future mobile app). Keep these mobile-ready: no browser cookie assumptions.
+*/
+Route::prefix('storefront/v1')->group(function () {
+    // Lightweight health-check used to verify connectivity and CORS.
+    Route::get('/ping', function () {
+        return response()->json([
+            'status' => 'ok',
+            'service' => 'storefront-api',
+            'version' => 'v1',
+            'time' => now()->toIso8601String(),
+        ]);
+    })->name('storefront.ping');
+});
