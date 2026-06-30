@@ -75,8 +75,9 @@
                 <div class="col-md-3">
                     {!! Form::label('product_sr_start_time', __('lang_v1.time_range') . ':') !!}
                     @php
-                        $startDay = Carbon::now()->startOfDay();
-                        $endDay   = $startDay->copy()->endOfDay();
+                        // Default time range: 11:59 AM to 11:59 PM (business day window).
+                        $startDay = Carbon::now()->setTime(11, 59, 0);
+                        $endDay   = Carbon::now()->endOfDay();
                     @endphp
                     <div class="form-group">
                         {!! Form::text('start_time', @format_time($startDay), ['style' => __('lang_v1.select_a_date_range'), 'class' => 'form-control width-50 f-left', 'id' => 'product_sr_start_time']); !!}

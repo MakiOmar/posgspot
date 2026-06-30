@@ -955,8 +955,6 @@ $(document).ready(function() {
                     d.category_id = $('select#psr_filter_category_id').val();
                     d.brand_id = $('select#psr_filter_brand_id').val();
                     d.customer_group_id = $('#psr_customer_group_id').val();
-                    // TEMP DEBUG: visit the report page with ?debug_psr=1 to log staged counts server-side.
-                    d.debug_psr = (window.location.search.indexOf('debug_psr=1') > -1) ? 1 : '';
                 },
             },
             columns: [
