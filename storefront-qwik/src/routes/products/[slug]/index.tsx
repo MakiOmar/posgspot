@@ -65,23 +65,6 @@ export default component$(() => {
     modalOpen.value = false;
   });
 
-  const addToCart$ = $(() => {
-    const variation = selectedVariation.value;
-    if (!variation.id) {
-      return;
-    }
-    addCartItem(cart, {
-      productId: product.value.id,
-      variationId: variation.id,
-      slug: product.value.slug,
-      name: product.value.name,
-      variationName: variation.name,
-      price: variation.price,
-      quantity: quantity.value,
-      imageUrl: product.value.images[0] || null,
-    });
-  });
-
   const p = product.value;
   const heroImage = p.images[0] || null;
   const currency = settings.value.currency;
@@ -197,7 +180,27 @@ export default component$(() => {
                 }}
               />
             </div>
-            <button type="button" class="btn btn-primary" onClick$={addToCart$} disabled={!variation.in_stock}>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onClick$={async () => {
+                const variation = selectedVariation.value;
+                if (!variation.id) {
+                  return;
+                }
+                await addCartItem(cart, {
+                  productId: product.value.id,
+                  variationId: variation.id,
+                  slug: product.value.slug,
+                  name: product.value.name,
+                  variationName: variation.name,
+                  price: variation.price,
+                  quantity: quantity.value,
+                  imageUrl: product.value.images[0] || null,
+                });
+              }}
+              disabled={!variation.in_stock}
+            >
               Add to cart
             </button>
             <button type="button" class="btn btn-secondary" onClick$={openAvailability$}>

@@ -1,4 +1,4 @@
-import { $, component$ } from "@builder.io/qwik";
+import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -31,23 +31,6 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
   const pdpUrl = productPath(product);
   const badge = saleBadgeLabel(product, settings);
   const hasOptions = product.has_options;
-
-  const addToCart$ = $(() => {
-    if (!product.variation_id || !product.in_stock) {
-      return;
-    }
-
-    addCartItem(cart, {
-      productId: product.id,
-      variationId: product.variation_id,
-      slug: product.slug,
-      name: product.name,
-      variationName: product.variation_name || "DUMMY",
-      price: product.price,
-      quantity: 1,
-      imageUrl: product.image_url,
-    });
-  });
 
   return (
     <article class="product-card">
@@ -104,7 +87,21 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
             type="button"
             class="btn btn-primary btn-block product-card__action"
             disabled={!product.in_stock || !product.variation_id}
-            onClick$={addToCart$}
+            onClick$={async () => {
+              if (!product.variation_id || !product.in_stock) {
+                return;
+              }
+              await addCartItem(cart, {
+                productId: product.id,
+                variationId: product.variation_id,
+                slug: product.slug,
+                name: product.name,
+                variationName: product.variation_name || "DUMMY",
+                price: product.price,
+                quantity: 1,
+                imageUrl: product.image_url,
+              });
+            }}
           >
             Add to cart
           </button>

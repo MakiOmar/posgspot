@@ -1,10 +1,11 @@
-import { component$, Slot } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
+import { component$, Slot, useVisibleTask$ } from "@builder.io/qwik";
+import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
 import { fetchCategories, fetchSettings } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
+import { applyThemeAccent, safeAccent, themeAccentCss } from "~/lib/theme";
 import type { Category, StoreSettings } from "~/lib/types";
 
 export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => {
@@ -38,23 +39,35 @@ export const useNavCategories = routeLoader$(async (): Promise<Category[]> => {
   }
 });
 
-/** Basic 6-digit hex guard so a bad setting can't inject arbitrary CSS. */
-function safeAccent(color: string | undefined): string {
-  return color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#00d4aa";
-}
+export const head: DocumentHead = ({ resolveValue }) => {
+  const settings = resolveValue(useSiteSettings);
+  const accent = safeAccent(settings.theme?.accent_color);
+
+  return {
+    styles: [
+      {
+        key: "storefront-theme-vars",
+        props: { id: "storefront-theme-vars" },
+        style: themeAccentCss(accent),
+      },
+    ],
+  };
+};
 
 export default component$(() => {
   const settings = useSiteSettings();
   const categories = useNavCategories();
-  const accent = safeAccent(settings.value.theme?.accent_color);
+
+  // Keep :root accent in sync on client navigations (inline layout styles are not enough).
+  useVisibleTask$(({ track }) => {
+    track(() => settings.value.theme?.accent_color);
+    applyThemeAccent(safeAccent(settings.value.theme?.accent_color));
+  });
 
   return (
     <AuthProvider>
       <CartProvider>
-        <div
-          class="site-shell"
-          style={{ "--gs-accent": accent, "--gs-accent-hover": accent }}
-        >
+        <div class="site-shell">
           <SiteHeader settings={settings.value} categories={categories.value} />
           <main class="site-main">
             <Slot />
