@@ -71,6 +71,25 @@
             </div>
 
             <hr>
+            <h4>Theme</h4>
+            {{-- Storefront accent color: drives the Qwik --gs-accent CSS variable --}}
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {!! Form::label('theme_accent_color', 'Accent color') !!}
+                        <div class="input-group">
+                            {!! Form::text('theme_accent_color', $settings['theme']['accent_color'] ?? '#00d4aa', ['class' => 'form-control', 'id' => 'theme_accent_color', 'placeholder' => '#00d4aa', 'maxlength' => 7]) !!}
+                            <span class="input-group-addon" style="padding:0;">
+                                {{-- Native color picker mirrors the text field --}}
+                                <input type="color" id="theme_accent_color_picker" value="{{ $settings['theme']['accent_color'] ?? '#00d4aa' }}" style="border:0;width:38px;height:34px;cursor:pointer;background:transparent;">
+                            </span>
+                        </div>
+                        <p class="help-block">Primary highlight color used across the public storefront (buttons, links, badges).</p>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
             <h4>Contact &amp; social</h4>
             <div class="row">
                 <div class="col-md-4">
@@ -170,6 +189,21 @@
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();
+
+        // Keep the accent color text field and native color picker in sync.
+        var accentText = $('#theme_accent_color');
+        var accentPicker = $('#theme_accent_color_picker');
+
+        accentPicker.on('input change', function () {
+            accentText.val($(this).val());
+        });
+
+        accentText.on('input change', function () {
+            var val = $(this).val();
+            if (/^#([0-9a-fA-F]{6})$/.test(val)) {
+                accentPicker.val(val);
+            }
+        });
     });
 </script>
 @endsection

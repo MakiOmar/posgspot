@@ -18,6 +18,7 @@ export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => 
       contact: { phone: null, email: null, whatsapp: null },
       social: {},
       announcement: { message: "", link: "", enabled: false },
+      theme: { accent_color: "#00d4aa" },
       cod_enabled: true,
       maintenance_mode: false,
       locales: ["en"],
@@ -25,12 +26,21 @@ export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => 
   }
 });
 
+/** Basic 6-digit hex guard so a bad setting can't inject arbitrary CSS. */
+function safeAccent(color: string | undefined): string {
+  return color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : "#00d4aa";
+}
+
 export default component$(() => {
   const settings = useSiteSettings();
+  const accent = safeAccent(settings.value.theme?.accent_color);
 
   return (
     <CartProvider>
-      <div class="site-shell">
+      <div
+        class="site-shell"
+        style={{ "--gs-accent": accent, "--gs-accent-hover": accent }}
+      >
         <SiteHeader settings={settings.value} />
         <main class="site-main">
           <Slot />

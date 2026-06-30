@@ -45,6 +45,9 @@ class StorefrontSettingService
                 'link' => '',
                 'enabled' => false,
             ],
+            'theme' => [
+                'accent_color' => '#00d4aa',
+            ],
             'maintenance_mode' => false,
         ];
     }

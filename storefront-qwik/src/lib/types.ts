@@ -31,6 +31,9 @@ export interface StoreSettings {
     link: string;
     enabled: boolean;
   };
+  theme: {
+    accent_color: string;
+  };
   cod_enabled: boolean;
   maintenance_mode: boolean;
   locales: string[];

@@ -34,6 +34,9 @@ class SettingsApiService
             'contact' => $settings['contact'] ?? [],
             'social' => $settings['social'] ?? [],
             'announcement' => $settings['announcement'] ?? [],
+            'theme' => [
+                'accent_color' => $settings['theme']['accent_color'] ?? '#00d4aa',
+            ],
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
             'locales' => ['en', 'ar'],

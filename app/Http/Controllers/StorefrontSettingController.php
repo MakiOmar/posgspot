@@ -60,6 +60,7 @@ class StorefrontSettingController extends Controller
             'social_instagram' => 'nullable|string|max:500',
             'social_tiktok' => 'nullable|string|max:500',
             'social_youtube' => 'nullable|string|max:500',
+            'theme_accent_color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{6})$/'],
         ]);
 
         $payload = [
@@ -91,6 +92,9 @@ class StorefrontSettingController extends Controller
                 'instagram' => $validated['social_instagram'] ?? '',
                 'tiktok' => $validated['social_tiktok'] ?? '',
                 'youtube' => $validated['social_youtube'] ?? '',
+            ],
+            'theme' => [
+                'accent_color' => $validated['theme_accent_color'] ?? '#00d4aa',
             ],
         ];
 

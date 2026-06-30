@@ -64,6 +64,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 - Select selling locations (catalog is empty when none selected)
 - COD, shipping, announcement, gateway keys, contact/social
+- Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 
 ## Notes
 
