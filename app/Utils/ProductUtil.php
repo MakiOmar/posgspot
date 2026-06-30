@@ -170,6 +170,7 @@ class ProductUtil extends Util
                         'profit_percent' => $this->num_uf($v['profit_percent']),
                         'default_sell_price' => $this->num_uf($v['default_sell_price']),
                         'sell_price_inc_tax' => $this->num_uf($v['sell_price_inc_tax']),
+                        'storefront_sale_price_inc_tax' => $this->parseStorefrontSalePrice($v['storefront_sale_price_inc_tax'] ?? null),
                     ];
                     $c++;
                     $images[] = 'variation_images_'.$key.'_'.$k;
@@ -217,6 +218,7 @@ class ProductUtil extends Util
                         'profit_percent' => $this->num_uf($v['profit_percent']),
                         'default_sell_price' => $this->num_uf($v['default_sell_price']),
                         'sell_price_inc_tax' => $this->num_uf($v['sell_price_inc_tax']),
+                        'storefront_sale_price_inc_tax' => $this->parseStorefrontSalePrice($v['storefront_sale_price_inc_tax'] ?? null),
                     ];
                     if (! empty($v['sub_sku'])) {
                         $data['sub_sku'] = $v['sub_sku'];
@@ -270,6 +272,7 @@ class ProductUtil extends Util
                         'profit_percent' => $this->num_uf($v['profit_percent']),
                         'default_sell_price' => $this->num_uf($v['default_sell_price']),
                         'sell_price_inc_tax' => $this->num_uf($v['sell_price_inc_tax']),
+                        'storefront_sale_price_inc_tax' => $this->parseStorefrontSalePrice($v['storefront_sale_price_inc_tax'] ?? null),
                     ];
                     $c++;
                     $media[] = 'variation_images_'.$key.'_'.$k;
@@ -2513,5 +2516,17 @@ class ProductUtil extends Util
         return $products;
     }
 
-  
+    /**
+     * Optional online sale price for the public storefront (inc tax).
+     */
+    public function parseStorefrontSalePrice($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $parsed = (float) $this->num_uf($value);
+
+        return $parsed > 0 ? $parsed : null;
+    }
 }

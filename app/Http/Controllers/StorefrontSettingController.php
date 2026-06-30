@@ -61,6 +61,8 @@ class StorefrontSettingController extends Controller
             'social_tiktok' => 'nullable|string|max:500',
             'social_youtube' => 'nullable|string|max:500',
             'theme_accent_color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{6})$/'],
+            'sale_badge_mode' => 'nullable|in:percent,text',
+            'sale_badge_text' => 'nullable|string|max:30',
         ]);
 
         $payload = [
@@ -95,6 +97,10 @@ class StorefrontSettingController extends Controller
             ],
             'theme' => [
                 'accent_color' => $validated['theme_accent_color'] ?? '#00d4aa',
+            ],
+            'sale_badge' => [
+                'mode' => $validated['sale_badge_mode'] ?? 'percent',
+                'text' => $validated['sale_badge_text'] ?? 'Sale',
             ],
         ];
 

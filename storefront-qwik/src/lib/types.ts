@@ -35,6 +35,10 @@ export interface StoreSettings {
   theme: {
     accent_color: string;
   };
+  sale_badge: {
+    mode: "percent" | "text";
+    text: string;
+  };
   cod_enabled: boolean;
   maintenance_mode: boolean;
   locales: string[];
@@ -67,7 +71,13 @@ export interface ProductSummary {
   sku: string;
   type: string;
   image_url: string | null;
+  variation_id: number | null;
+  variation_name: string | null;
+  has_options: boolean;
   price: number;
+  compare_at_price: number | null;
+  on_sale: boolean;
+  sale_percent: number;
   in_stock: boolean;
 }
 
@@ -76,6 +86,9 @@ export interface ProductVariation {
   name: string;
   sub_sku: string;
   price: number;
+  compare_at_price?: number | null;
+  on_sale?: boolean;
+  sale_percent?: number;
   in_stock: boolean;
   qty_available: number;
   images: string[];

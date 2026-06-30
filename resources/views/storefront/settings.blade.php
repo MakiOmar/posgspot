@@ -90,6 +90,27 @@
             </div>
 
             <hr>
+            <h4>Sale badge (product cards)</h4>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {!! Form::label('sale_badge_mode', 'Badge style') !!}
+                        {!! Form::select('sale_badge_mode', [
+                            'percent' => 'Discount percent (e.g. -20%)',
+                            'text' => 'Custom text',
+                        ], $settings['sale_badge']['mode'] ?? 'percent', ['class' => 'form-control']) !!}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {!! Form::label('sale_badge_text', 'Badge text (when style is Custom text)') !!}
+                        {!! Form::text('sale_badge_text', $settings['sale_badge']['text'] ?? 'Sale', ['class' => 'form-control', 'maxlength' => 30]) !!}
+                    </div>
+                </div>
+            </div>
+            <p class="help-block">Shown on product cards when an online sale price is set on the product in POS (lower than the regular selling price).</p>
+
+            <hr>
             <h4>Contact &amp; social</h4>
             <div class="row">
                 <div class="col-md-4">

@@ -16,7 +16,8 @@ use Illuminate\Support\Str;
 class CatalogService
 {
     public function __construct(
-        private StorefrontSettingService $storefrontSettings
+        private StorefrontSettingService $storefrontSettings,
+        private StorefrontPricing $storefrontPricing
     ) {
     }
 
@@ -223,9 +224,17 @@ class CatalogService
 
     private function formatProductSummary(Product $product, array $locationIds): array
     {
-        $variation = $product->variations()->whereNull('deleted_at')->first();
-        $price = $variation?->sell_price_inc_tax ?? 0;
+        $variations = $product->variations()->whereNull('deleted_at')->get();
+        $defaultVariation = $variations->first();
+        $hasOptions = $product->type === 'variable';
         $inStock = $this->isProductInStock($product, $locationIds);
+
+        $pricingRows = $variations->map(fn (Variation $v) => $this->storefrontPricing->resolve($v));
+        $minPrice = $pricingRows->min('price') ?? 0;
+        $onSaleRow = $pricingRows->first(fn (array $row) => $row['on_sale'])
+            ?? ($defaultVariation
+                ? $this->storefrontPricing->resolve($defaultVariation)
+                : ['compare_at_price' => null, 'sale_percent' => 0, 'on_sale' => false]);
 
         return [
             'id' => $product->id,
@@ -234,7 +243,15 @@ class CatalogService
             'sku' => $product->sku,
             'type' => $product->type,
             'image_url' => $product->image_url,
-            'price' => (float) $price,
+            'variation_id' => $defaultVariation?->id,
+            'variation_name' => $defaultVariation && $defaultVariation->name !== 'DUMMY'
+                ? $defaultVariation->name
+                : null,
+            'has_options' => $hasOptions,
+            'price' => (float) $minPrice,
+            'compare_at_price' => $onSaleRow['compare_at_price'],
+            'on_sale' => $pricingRows->contains(fn (array $row) => $row['on_sale']),
+            'sale_percent' => (int) $onSaleRow['sale_percent'],
             'in_stock' => $inStock,
         ];
     }
@@ -280,12 +297,16 @@ class CatalogService
         }
 
         $images = $variation->media->pluck('display_url')->filter()->values()->all();
+        $pricing = $this->storefrontPricing->resolve($variation);
 
         return [
             'id' => $variation->id,
             'name' => $variation->name,
             'sub_sku' => $variation->sub_sku,
-            'price' => (float) $variation->sell_price_inc_tax,
+            'price' => $pricing['price'],
+            'compare_at_price' => $pricing['compare_at_price'],
+            'on_sale' => $pricing['on_sale'],
+            'sale_percent' => $pricing['sale_percent'],
             'in_stock' => ! $product->enable_stock || $qty > 0,
             'qty_available' => (float) $qty,
             'images' => $images,

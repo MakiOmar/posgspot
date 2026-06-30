@@ -20,6 +20,7 @@
           <th>@lang('product.default_purchase_price')</th>
           <th>@lang('product.profit_percent') @show_tooltip(__('tooltip.profit_percent'))</th>
           <th>@lang('product.default_selling_price')</th>
+          <th>Online sale price <small>(inc tax, optional)</small></th>
           <th>@lang('lang_v1.product_image')</th>
         </tr>
         @foreach($product_deatails->variations as $variation )
@@ -54,6 +55,9 @@
                         {!! Form::text('single_dsp', @num_format($variation->default_sell_price), ['class' => 'form-control input-sm dsp input_number', 'placeholder' => __('product.exc_of_tax'), 'id' => 'single_dsp', 'required']); !!}
 
                         {!! Form::text('single_dsp_inc_tax', @num_format($variation->sell_price_inc_tax), ['class' => 'form-control input-sm hide input_number', 'placeholder' => __('product.inc_of_tax'), 'id' => 'single_dsp_inc_tax', 'required']); !!}
+                    </td>
+                    <td>
+                        {!! Form::text('single_storefront_sale_price_inc_tax', @num_format($variation->storefront_sale_price_inc_tax), ['class' => 'form-control input-sm input_number', 'placeholder' => 'Optional sale price', 'min' => '0']); !!}
                     </td>
                     <td>
                         @php 

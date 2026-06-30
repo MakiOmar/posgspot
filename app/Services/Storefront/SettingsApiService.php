@@ -37,6 +37,10 @@ class SettingsApiService
             'theme' => [
                 'accent_color' => $settings['theme']['accent_color'] ?? '#00d4aa',
             ],
+            'sale_badge' => [
+                'mode' => $settings['sale_badge']['mode'] ?? 'percent',
+                'text' => $settings['sale_badge']['text'] ?? 'Sale',
+            ],
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
             'locales' => ['en', 'ar'],

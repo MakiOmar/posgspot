@@ -14,7 +14,8 @@ class CartValidationService
 {
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
-        private ProductUtil $productUtil
+        private ProductUtil $productUtil,
+        private StorefrontPricing $storefrontPricing
     ) {
     }
 
@@ -52,7 +53,7 @@ class CartValidationService
                 throw ValidationException::withMessages(["items.$index.variation_id" => ['Product is not available.']]);
             }
 
-            $unitPrice = (float) $variation->sell_price_inc_tax;
+            $unitPrice = $this->storefrontPricing->effectiveUnitPrice($variation);
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
 

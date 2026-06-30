@@ -20,6 +20,7 @@ export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => 
       social: {},
       announcement: { message: "", link: "", enabled: false },
       theme: { accent_color: "#00d4aa" },
+      sale_badge: { mode: "percent", text: "Sale" },
       cod_enabled: true,
       maintenance_mode: false,
       locales: ["en"],

@@ -48,6 +48,10 @@ class StorefrontSettingService
             'theme' => [
                 'accent_color' => '#00d4aa',
             ],
+            'sale_badge' => [
+                'mode' => 'percent',
+                'text' => 'Sale',
+            ],
             'maintenance_mode' => false,
         ];
     }

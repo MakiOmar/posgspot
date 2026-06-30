@@ -811,6 +811,9 @@ class ProductController extends Controller
                 $variation->profit_percent = $this->productUtil->num_uf($single_data['profit_percent']);
                 $variation->default_sell_price = $this->productUtil->num_uf($single_data['single_dsp']);
                 $variation->sell_price_inc_tax = $this->productUtil->num_uf($single_data['single_dsp_inc_tax']);
+                $variation->storefront_sale_price_inc_tax = $this->productUtil->parseStorefrontSalePrice(
+                    $request->input('single_storefront_sale_price_inc_tax')
+                );
                 $variation->save();
 
                 Media::uploadMedia($product->business_id, $variation, $request, 'variation_images');
@@ -2130,6 +2133,9 @@ class ProductController extends Controller
                     $variation->profit_percent = $this->productUtil->num_uf($value['profit_percent']);
                     $variation->default_sell_price = $this->productUtil->num_uf($value['default_sell_price']);
                     $variation->sell_price_inc_tax = $this->productUtil->num_uf($value['sell_price_inc_tax']);
+                    $variation->storefront_sale_price_inc_tax = $this->productUtil->parseStorefrontSalePrice(
+                        $value['storefront_sale_price_inc_tax'] ?? null
+                    );
                     $variations_data[] = $variation;
 
                     //Update price groups

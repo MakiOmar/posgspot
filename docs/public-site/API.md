@@ -27,7 +27,7 @@ Errors:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge.mode`: `percent` or `text`, and `sale_badge.text`) |
 | GET | `/locations` | Selling locations (`sells_online = 1`); location email is `email_encoded` (base64), not raw |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |

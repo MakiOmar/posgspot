@@ -134,7 +134,18 @@ export default component$(() => {
           {p.category ? <p class="footer-muted">Category: {p.category.name}</p> : null}
 
           <div class="pdp-price">
-            {formatPrice(selectedVariation.value.price, currency)}
+            {selectedVariation.value.on_sale && selectedVariation.value.compare_at_price != null ? (
+              <>
+                <span class="product-card__price product-card__price--sale">
+                  {formatPrice(selectedVariation.value.price, currency)}
+                </span>
+                <span class="product-card__price-compare" style={{ marginLeft: "0.5rem" }}>
+                  {formatPrice(selectedVariation.value.compare_at_price, currency)}
+                </span>
+              </>
+            ) : (
+              formatPrice(selectedVariation.value.price, currency)
+            )}
           </div>
 
           {p.variations.length > 1 ? (
