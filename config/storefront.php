@@ -17,4 +17,10 @@ return [
 
     'rate_limit_per_minute' => (int) env('STOREFRONT_RATE_LIMIT', 120),
 
+    /*
+    | Public Qwik storefront origin — used in password-reset emails and similar links.
+    | Example: https://shop.example.com (no trailing slash).
+    */
+    'url' => rtrim((string) env('STOREFRONT_URL', env('APP_URL', 'http://localhost:5173')), '/'),
+
 ];

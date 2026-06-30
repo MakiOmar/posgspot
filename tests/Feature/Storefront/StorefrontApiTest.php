@@ -68,6 +68,48 @@ class StorefrontApiTest extends TestCase
         $login->assertOk()->assertJsonPath('success', true);
     }
 
+    public function test_customer_can_reset_password_with_token(): void
+    {
+        $email = 'reset_test_'.uniqid().'@example.com';
+        $mobile = '01'.random_int(100000000, 999999999);
+        $plainToken = 'reset-token-'.uniqid();
+
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Reset',
+            'last_name' => 'Test',
+            'email' => $email,
+            'mobile' => $mobile,
+            'password' => 'oldpassword123',
+            'password_confirmation' => 'oldpassword123',
+        ])->assertCreated();
+
+        \Illuminate\Support\Facades\DB::table('password_resets_contacts')->updateOrInsert(
+            ['email' => $email],
+            ['token' => \Illuminate\Support\Facades\Hash::make($plainToken), 'created_at' => now()]
+        );
+
+        $reset = $this->postJson('/api/storefront/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => $plainToken,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $reset->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.message', 'Password updated successfully.');
+
+        $this->postJson('/api/storefront/v1/auth/login', [
+            'login' => $email,
+            'password' => 'newpassword123',
+        ])->assertOk()->assertJsonPath('success', true);
+
+        $this->postJson('/api/storefront/v1/auth/login', [
+            'login' => $email,
+            'password' => 'oldpassword123',
+        ])->assertStatus(422);
+    }
+
     public function test_settings_contact_does_not_expose_raw_email(): void
     {
         $email = 'contact_'.uniqid().'@example.com';

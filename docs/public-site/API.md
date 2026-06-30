@@ -46,8 +46,8 @@ Errors:
 | POST | `/auth/register` | Register customer |
 | POST | `/auth/login` | Login |
 | POST | `/auth/logout` | Logout (auth required) |
-| POST | `/auth/forgot-password` | Request reset |
-| POST | `/auth/reset-password` | Reset password |
+| POST | `/auth/forgot-password` | Request reset (email contains link to `{STOREFRONT_URL}/reset-password?email=&token=`) |
+| POST | `/auth/reset-password` | Reset password (`email`, `token`, `password`, `password_confirmation`) |
 
 ## Account (auth required)
 
@@ -73,3 +73,4 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Independent of WooCommerce module
 - `storefront_order_id` on transactions for checkout idempotency
 - CORS: configure `CORS_ALLOWED_ORIGINS` in `.env`
+- Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)

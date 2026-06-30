@@ -202,6 +202,18 @@ export function forgotPassword(email: string) {
   });
 }
 
+export function resetPassword(payload: {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+}) {
+  return storefrontFetch<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function fetchProfile(token: string) {
   return storefrontFetch<AuthContact>("/account/profile", {
     headers: authHeaders(token),

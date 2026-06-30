@@ -21,7 +21,15 @@ class StorefrontPasswordReset extends Mailable implements ShouldQueue
 
     public function build()
     {
+        $resetUrl = config('storefront.url').'/reset-password?'
+            .http_build_query([
+                'email' => $this->contact->email,
+                'token' => $this->token,
+            ]);
+
         return $this->subject('Reset your password')
-            ->view('emails.storefront.password_reset');
+            ->view('emails.storefront.password_reset', [
+                'resetUrl' => $resetUrl,
+            ]);
     }
 }
