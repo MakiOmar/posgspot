@@ -7,6 +7,7 @@ import {
   useStore,
   useVisibleTask$,
 } from "@builder.io/qwik";
+import { ApiError, fetchProfile } from "~/lib/api";
 import {
   AUTH_STORAGE_KEY,
   type AuthState,
@@ -20,8 +21,12 @@ export const AuthProvider = component$(() => {
 
   useContextProvider(AuthContext, auth);
 
-  // Hydrate session from localStorage on the client only (tokens never touch SSR).
-  useVisibleTask$(() => {
+  // Hydrate session from localStorage on the client only (tokens never touch
+  // SSR), then validate it against the server so revoked/deleted customers are
+  // logged out instead of appearing signed in from stale local data.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    let token: string | null = null;
     try {
       const raw = localStorage.getItem(AUTH_STORAGE_KEY);
       if (raw) {
@@ -29,12 +34,31 @@ export const AuthProvider = component$(() => {
         if (parsed && typeof parsed.token === "string" && parsed.contact) {
           auth.token = parsed.token;
           auth.contact = parsed.contact;
+          token = parsed.token;
         }
       }
     } catch {
       // Corrupt storage: start signed out.
     } finally {
+      // Mark ready optimistically so the UI can render the cached identity
+      // while we confirm it in the background.
       auth.ready = true;
+    }
+
+    if (!token) {
+      return;
+    }
+
+    try {
+      // A deleted/disabled customer or revoked token returns 401/403.
+      const { data } = await fetchProfile(token);
+      auth.contact = data;
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 401 || e.status === 403)) {
+        auth.token = null;
+        auth.contact = null;
+      }
+      // Network/other errors: keep the optimistic session for offline tolerance.
     }
   });
 

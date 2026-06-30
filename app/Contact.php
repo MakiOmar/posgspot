@@ -41,6 +41,17 @@ class Contact extends Authenticatable
     ];
 
     /**
+     * Revoke storefront API (Sanctum) tokens when a customer is deleted so any
+     * active storefront session is immediately invalidated instead of lingering.
+     */
+    protected static function booted()
+    {
+        static::deleting(function (Contact $contact) {
+            $contact->tokens()->delete();
+        });
+    }
+
+    /**
      * Get the business that owns the user.
      */
     public function business()
