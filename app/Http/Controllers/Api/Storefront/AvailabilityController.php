@@ -11,10 +11,14 @@ class AvailabilityController extends StorefrontController
     {
     }
 
-    public function show(Request $request, int $productId)
+    public function show(Request $request, string $productId)
     {
+        if (! ctype_digit($productId)) {
+            return $this->jsonError('Product not found.', 404);
+        }
+
         $variationId = $request->query('variation_id') ? (int) $request->query('variation_id') : null;
-        $data = $this->availability->getAvailability($this->businessId($request), $productId, $variationId);
+        $data = $this->availability->getAvailability($this->businessId($request), (int) $productId, $variationId);
 
         if ($data === null) {
             return $this->jsonError('Product not found.', 404);

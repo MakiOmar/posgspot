@@ -43,7 +43,11 @@ class CheckoutController extends StorefrontController
 
         $email = $contact?->email ?? ($data['customer']['email'] ?? null);
         if ($email) {
-            Mail::to($email)->queue(new StorefrontOrderConfirmation($order));
+            try {
+                Mail::to($email)->queue(new StorefrontOrderConfirmation($order));
+            } catch (\Throwable $e) {
+                report($e);
+            }
         }
 
         return $this->jsonSuccess($order, [], 201);

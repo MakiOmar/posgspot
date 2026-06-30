@@ -98,7 +98,7 @@ class CatalogService
             ->active()
             ->where('not_for_selling', 0)
             ->where('type', '!=', 'modifier')
-            ->whereHas('product_locations', fn ($q) => $q->whereIn('location_id', $locationIds));
+            ->whereHas('product_locations', fn ($q) => $q->whereIn('product_locations.location_id', $locationIds));
 
         if (is_numeric($idOrSlug)) {
             $query->where('id', (int) $idOrSlug);
@@ -113,7 +113,7 @@ class CatalogService
             'media',
             'product_variations.variations' => fn ($q) => $q->whereNull('deleted_at'),
             'product_variations.variations.media',
-            'product_variations.variations.variation_location_details' => fn ($q) => $q->whereIn('location_id', $locationIds),
+            'product_variations.variations.variation_location_details' => fn ($q) => $q->whereIn('variation_location_details.location_id', $locationIds),
         ])->first();
 
         if (empty($product)) {
