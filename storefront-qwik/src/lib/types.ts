@@ -22,7 +22,8 @@ export interface StoreSettings {
   };
   contact: {
     phone: string | null;
-    email: string | null;
+    /** Base64-encoded business email — decode client-side only (not in SSR mailto/text). */
+    email_encoded: string | null;
     whatsapp: string | null;
   };
   social: Record<string, string | null>;

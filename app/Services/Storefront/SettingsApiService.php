@@ -31,7 +31,7 @@ class SettingsApiService
                 'precision' => (int) ($business->currency_precision ?? 2),
                 'symbol_placement' => $business->currency_symbol_placement ?? 'before',
             ],
-            'contact' => $settings['contact'] ?? [],
+            'contact' => $this->formatPublicContact($settings['contact'] ?? []),
             'social' => $settings['social'] ?? [],
             'announcement' => $settings['announcement'] ?? [],
             'theme' => [
@@ -57,6 +57,21 @@ class SettingsApiService
             ->map(fn ($loc) => $this->formatLocation($loc))
             ->values()
             ->all();
+    }
+
+    /**
+     * Public contact block: never expose a raw email (harvesting / mailto in SSR).
+     * The storefront decodes email_encoded client-side only.
+     */
+    public function formatPublicContact(array $contact): array
+    {
+        $email = trim((string) ($contact['email'] ?? ''));
+
+        return [
+            'phone' => $contact['phone'] ?? null,
+            'whatsapp' => $contact['whatsapp'] ?? null,
+            'email_encoded' => $email !== '' ? base64_encode($email) : null,
+        ];
     }
 
     public function formatLocation(BusinessLocation $loc): array

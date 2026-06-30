@@ -68,6 +68,27 @@ class StorefrontApiTest extends TestCase
         $login->assertOk()->assertJsonPath('success', true);
     }
 
+    public function test_settings_contact_does_not_expose_raw_email(): void
+    {
+        $email = 'contact_'.uniqid().'@example.com';
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'contact' => [
+                'phone' => '01000000000',
+                'email' => $email,
+                'whatsapp' => '',
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/settings');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonMissingPath('data.contact.email')
+            ->assertJsonPath('data.contact.email_encoded', base64_encode($email));
+    }
+
     public function test_availability_endpoint_structure(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

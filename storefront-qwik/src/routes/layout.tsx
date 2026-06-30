@@ -16,7 +16,7 @@ export const useSiteSettings = routeLoader$(async (): Promise<StoreSettings> => 
       business_name: "Games Spot",
       logo_url: null,
       currency: { code: "EGP", symbol: "£", precision: 2, symbol_placement: "before" },
-      contact: { phone: null, email: null, whatsapp: null },
+      contact: { phone: null, email_encoded: null, whatsapp: null },
       social: {},
       announcement: { message: "", link: "", enabled: false },
       theme: { accent_color: "#00d4aa" },

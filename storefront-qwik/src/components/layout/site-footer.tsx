@@ -3,11 +3,11 @@ import { Link } from "@builder.io/qwik-city";
 import {
   FacebookIcon,
   InstagramIcon,
-  MailIcon,
   PhoneIcon,
   TiktokIcon,
   YoutubeIcon,
 } from "~/components/icons";
+import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
 import type { StoreSettings } from "~/lib/types";
 
 interface SiteFooterProps {
@@ -31,11 +31,8 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
               <a href={`tel:${settings.contact.phone}`}>{settings.contact.phone}</a>
             </p>
           ) : null}
-          {settings.contact.email ? (
-            <p class="footer-muted footer-contact">
-              <MailIcon size={16} />
-              <a href={`mailto:${settings.contact.email}`}>{settings.contact.email}</a>
-            </p>
+          {settings.contact.email_encoded ? (
+            <ProtectedEmailLink emailEncoded={settings.contact.email_encoded} />
           ) : null}
         </div>
         <div>
