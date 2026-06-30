@@ -1,0 +1,158 @@
+/** Storefront API response envelope. */
+export interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+  meta: Record<string, unknown>;
+}
+
+export interface ApiErrorBody {
+  success: false;
+  message: string;
+  errors: Record<string, string[]>;
+}
+
+export interface StoreSettings {
+  business_name: string;
+  logo_url: string | null;
+  currency: {
+    code: string;
+    symbol: string;
+    precision: number;
+    symbol_placement: "before" | "after";
+  };
+  contact: {
+    phone: string | null;
+    email: string | null;
+    whatsapp: string | null;
+  };
+  social: Record<string, string | null>;
+  announcement: {
+    message: string;
+    link: string;
+    enabled: boolean;
+  };
+  cod_enabled: boolean;
+  maintenance_mode: boolean;
+  locales: string[];
+}
+
+export interface StoreLocation {
+  id: number;
+  name: string;
+  address: string;
+  phone: string | null;
+  email: string | null;
+  enable_pickup: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  maps_url: string | null;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  slug: string | null;
+  sub_categories?: Category[];
+}
+
+export interface ProductSummary {
+  id: number;
+  slug: string | null;
+  name: string;
+  sku: string;
+  type: string;
+  image_url: string | null;
+  price: number;
+  in_stock: boolean;
+}
+
+export interface ProductVariation {
+  id: number;
+  name: string;
+  sub_sku: string;
+  price: number;
+  in_stock: boolean;
+  qty_available: number;
+  images: string[];
+}
+
+export interface ProductDetail {
+  id: number;
+  slug: string | null;
+  name: string;
+  sku: string;
+  type: string;
+  description: string | null;
+  brand: { id: number; name: string } | null;
+  category: { id: number; name: string; slug: string | null } | null;
+  images: string[];
+  enable_stock: boolean;
+  variations: ProductVariation[];
+}
+
+export interface ProductsMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface AvailabilityLocation {
+  location_id: number;
+  name: string;
+  address: string;
+  phone: string | null;
+  in_stock: boolean;
+  qty_available: number;
+  maps_url: string | null;
+}
+
+export interface ProductAvailability {
+  product_id: number;
+  product_name: string;
+  variation_id: number;
+  variation_name: string;
+  in_stock_count: number;
+  cod_available: boolean;
+  locations: AvailabilityLocation[];
+}
+
+export interface CartLine {
+  variation_id: number;
+  product_id: number;
+  name: string;
+  variation_name: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  in_stock: boolean;
+}
+
+export interface CartValidation {
+  lines: CartLine[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+}
+
+export interface CheckoutOrder {
+  id: number;
+  storefront_order_id: string;
+  invoice_no: string;
+  status: string;
+  payment_status: string;
+  final_total: number;
+  transaction_date: string;
+  shipping_status: string;
+}
+
+export interface CartItem {
+  productId: number;
+  variationId: number;
+  slug: string | null;
+  name: string;
+  variationName: string;
+  price: number;
+  quantity: number;
+  imageUrl: string | null;
+}

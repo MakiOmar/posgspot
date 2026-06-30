@@ -1,0 +1,241 @@
+import { $, component$, useSignal } from "@builder.io/qwik";
+import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { checkout, fetchLocations, validateCart } from "~/lib/api";
+import { clearCart } from "~/lib/cart-actions";
+import { useCart } from "~/lib/cart-context";
+import { formatPrice } from "~/lib/format";
+import type { CheckoutOrder } from "~/lib/types";
+import { useSiteSettings } from "~/routes/layout";
+
+export const useCheckoutLocations = routeLoader$(async () => {
+  try {
+    const { data } = await fetchLocations();
+    return data;
+  } catch {
+    return [];
+  }
+});
+
+export default component$(() => {
+  const settings = useSiteSettings();
+  const locations = useCheckoutLocations();
+  const cart = useCart();
+
+  const locationId = useSignal(locations.value[0]?.id || 0);
+  const submitting = useSignal(false);
+  const error = useSignal<string | null>(null);
+  const order = useSignal<CheckoutOrder | null>(null);
+
+  const subtotal = cart.items.reduce(
+    (sum, line) => sum + line.price * line.quantity,
+    0,
+  );
+
+  const submitOrder$ = $(async (form: HTMLFormElement) => {
+    if (cart.items.length === 0 || !locationId.value) {
+      error.value = "Cart is empty or no store location selected.";
+      return;
+    }
+
+    submitting.value = true;
+    error.value = null;
+
+    const formData = new FormData(form);
+    const payload = {
+      idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      location_id: locationId.value,
+      payment_method: "cod",
+      items: cart.items.map((line) => ({
+        variation_id: line.variationId,
+        quantity: line.quantity,
+      })),
+      customer: {
+        first_name: String(formData.get("first_name") || ""),
+        last_name: String(formData.get("last_name") || ""),
+        email: String(formData.get("email") || ""),
+        mobile: String(formData.get("mobile") || ""),
+      },
+      shipping_address: {
+        address_line_1: String(formData.get("address_line_1") || ""),
+        city: String(formData.get("city") || ""),
+        country: String(formData.get("country") || "Egypt"),
+      },
+      order_note: String(formData.get("order_note") || ""),
+    };
+
+    try {
+      await validateCart({
+        location_id: locationId.value,
+        items: payload.items,
+      });
+      const { data } = await checkout(payload);
+      order.value = data;
+      clearCart(cart);
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Checkout failed.";
+    } finally {
+      submitting.value = false;
+    }
+  });
+
+  if (cart.items.length === 0 && !order.value) {
+    return (
+      <section>
+        <h1 class="page-title">Checkout</h1>
+        <div class="empty-state">
+          <p>Your cart is empty.</p>
+          <Link href="/products" class="btn btn-primary">
+            Continue shopping
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  if (order.value) {
+    return (
+      <section>
+        <h1 class="page-title">Order confirmed</h1>
+        <div class="alert alert-success">
+          Thank you! Order <strong>#{order.value.invoice_no}</strong> has been placed.
+          Payment: {order.value.payment_status}.
+        </div>
+        <Link href="/products" class="btn btn-primary">
+          Continue shopping
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      <h1 class="page-title">Checkout</h1>
+
+      {error.value ? <div class="alert alert-error">{error.value}</div> : null}
+
+      <div style={{ display: "grid", gap: "2rem" }}>
+        <form
+          preventdefault:submit
+          onSubmit$={(event) => submitOrder$(event.target as HTMLFormElement)}
+          class="form-grid"
+        >
+          <h2 style={{ margin: 0, fontSize: "1.125rem" }}>Contact</h2>
+          <div class="two-col">
+            <div>
+              <label for="first_name">First name</label>
+              <input id="first_name" name="first_name" required />
+            </div>
+            <div>
+              <label for="last_name">Last name</label>
+              <input id="last_name" name="last_name" />
+            </div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" required />
+            </div>
+            <div>
+              <label for="mobile">Mobile</label>
+              <input id="mobile" name="mobile" required />
+            </div>
+          </div>
+
+          <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.125rem" }}>Shipping</h2>
+          <div>
+            <label for="address_line_1">Address</label>
+            <input id="address_line_1" name="address_line_1" required />
+          </div>
+          <div class="two-col">
+            <div>
+              <label for="city">City</label>
+              <input id="city" name="city" required defaultValue="Cairo" />
+            </div>
+            <div>
+              <label for="country">Country</label>
+              <input id="country" name="country" defaultValue="Egypt" />
+            </div>
+          </div>
+
+          <div>
+            <label for="location_id">Fulfillment location</label>
+            <select
+              id="location_id"
+              name="location_id"
+              required
+              onChange$={(event) => {
+                locationId.value = Number((event.target as HTMLSelectElement).value);
+              }}
+            >
+              {locations.value.map((loc) => (
+                <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label for="order_note">Order note (optional)</label>
+            <textarea id="order_note" name="order_note" rows={3} />
+          </div>
+
+          {settings.value.cod_enabled ? (
+            <p class="footer-muted">Payment method: Cash on delivery (COD)</p>
+          ) : (
+            <p class="alert alert-error">COD is not available right now.</p>
+          )}
+
+          <button
+            type="submit"
+            class="btn btn-primary btn-block"
+            disabled={submitting.value || !settings.value.cod_enabled}
+          >
+            {submitting.value ? "Placing order…" : "Place order"}
+          </button>
+        </form>
+
+        <aside class="cart-summary">
+          <h2 style={{ margin: "0 0 1rem", fontSize: "1.125rem" }}>Order summary</h2>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {cart.items.map((line) => (
+              <li
+                key={line.variationId}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "0.5rem",
+                  fontSize: "0.875rem",
+                }}
+              >
+                <span>
+                  {line.name} × {line.quantity}
+                </span>
+                <span>{formatPrice(line.price * line.quantity, settings.value.currency)}</span>
+              </li>
+            ))}
+          </ul>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: "1rem",
+              fontWeight: 700,
+            }}
+          >
+            <span>Total</span>
+            <span>{formatPrice(subtotal, settings.value.currency)}</span>
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+});
+
+export const head: DocumentHead = ({ resolveValue }) => {
+  const settings = resolveValue(useSiteSettings);
+  return {
+    title: `Checkout — ${settings.business_name}`,
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
+};

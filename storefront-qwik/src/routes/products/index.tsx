@@ -1,0 +1,105 @@
+import { component$ } from "@builder.io/qwik";
+import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { ProductCard } from "~/components/catalog/product-card";
+import { fetchProductsPage } from "~/lib/api";
+import { useSiteSettings } from "~/routes/layout";
+
+export const useProductList = routeLoader$(async ({ query }) => {
+  const page = Math.max(1, Number(query.get("page") || 1));
+  const q = query.get("q") || "";
+  const categoryId = query.get("category_id") || "";
+  const inStockOnly = query.get("in_stock_only") === "1";
+
+  try {
+    return await fetchProductsPage({
+      page,
+      per_page: 20,
+      q,
+      category_id: categoryId,
+      in_stock_only: inStockOnly,
+      sort: "name",
+    });
+  } catch {
+    return {
+      data: [],
+      meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
+    };
+  }
+});
+
+export default component$(() => {
+  const settings = useSiteSettings();
+  const list = useProductList();
+  const loc = useLocation();
+  const { meta } = list.value;
+
+  const buildPageUrl = (page: number) => {
+    const params = new URLSearchParams(loc.url.searchParams);
+    params.set("page", String(page));
+    return `/products?${params.toString()}`;
+  };
+
+  return (
+    <section>
+      <h1 class="page-title">Shop</h1>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <Link href="/products?in_stock_only=1" class="btn btn-secondary">
+          In stock only
+        </Link>
+      </div>
+
+      {list.value.data.length === 0 ? (
+        <div class="empty-state">No products match your filters.</div>
+      ) : (
+        <>
+          <p class="footer-muted" style={{ marginBottom: "1rem" }}>
+            {meta.total} product{meta.total === 1 ? "" : "s"}
+          </p>
+          <div class="product-grid">
+            {list.value.data.map((product) => (
+              <ProductCard key={product.id} product={product} settings={settings.value} />
+            ))}
+          </div>
+
+          {meta.last_page > 1 ? (
+            <nav class="pagination" aria-label="Pagination">
+              {meta.current_page > 1 ? (
+                <Link href={buildPageUrl(meta.current_page - 1)}>← Prev</Link>
+              ) : null}
+              <span class="active">
+                Page {meta.current_page} of {meta.last_page}
+              </span>
+              {meta.current_page < meta.last_page ? (
+                <Link href={buildPageUrl(meta.current_page + 1)}>Next →</Link>
+              ) : null}
+            </nav>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+});
+
+export const head: DocumentHead = ({ resolveValue, url }) => {
+  const settings = resolveValue(useSiteSettings);
+  const q = url.searchParams.get("q");
+  const title = q
+    ? `Search: ${q} — ${settings.business_name}`
+    : `Shop — ${settings.business_name}`;
+  const description = q
+    ? `Search results for "${q}" at ${settings.business_name}.`
+    : `Browse gaming products at ${settings.business_name}.`;
+
+  return {
+    title,
+    meta: [
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+      ...(q ? [{ name: "robots", content: "noindex, follow" }] : []),
+    ],
+  };
+};

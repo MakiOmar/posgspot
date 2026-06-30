@@ -16,7 +16,7 @@ export default component$(() => {
     status.value = "loading";
     result.value = "";
     try {
-      const data = await pingApi();
+      const { data } = await pingApi();
       status.value = "success";
       result.value = JSON.stringify(data, null, 2);
     } catch (err) {
@@ -80,4 +80,5 @@ export default component$(() => {
 
 export const head: DocumentHead = {
   title: "API CORS Test",
+  meta: [{ name: "robots", content: "noindex, nofollow" }],
 };
