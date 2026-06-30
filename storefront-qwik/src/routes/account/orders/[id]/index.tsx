@@ -68,7 +68,31 @@ export default component$(() => {
             <span>
               <strong>Total:</strong> {formatPrice(order.final_total, settings.value.currency)}
             </span>
+            {order.fulfillment_location ? (
+              <span>
+                <strong>Fulfilled from:</strong> {order.fulfillment_location}
+              </span>
+            ) : null}
           </div>
+
+          {order.shipping_address ? (
+            <div class="account-summary" style={{ marginTop: "1.5rem" }}>
+              <h2>Ship to</h2>
+              <p class="footer-muted" style={{ margin: 0 }}>
+                {order.shipping_address.formatted ||
+                  [
+                    order.shipping_address.address_line_1,
+                    order.shipping_address.address_line_2,
+                    order.shipping_address.city,
+                    order.shipping_address.state,
+                    order.shipping_address.country,
+                    order.shipping_address.zip_code,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+              </p>
+            </div>
+          ) : null}
 
           <div class="table-wrap" style={{ marginTop: "1.5rem" }}>
             <table class="account-table">

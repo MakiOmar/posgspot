@@ -207,6 +207,52 @@ class CheckoutService
         ];
     }
 
+    /**
+     * Structured shipping address for account order detail (storefront + legacy POS keys).
+     */
+    public function shippingAddressPayload(Transaction $transaction): ?array
+    {
+        $addresses = ! empty($transaction->order_addresses)
+            ? json_decode($transaction->order_addresses, true)
+            : [];
+
+        $raw = is_array($addresses) ? ($addresses['shipping_address'] ?? []) : [];
+
+        if (empty($raw) && ! empty($transaction->shipping_address)) {
+            return [
+                'address_line_1' => null,
+                'address_line_2' => null,
+                'city' => null,
+                'state' => null,
+                'country' => null,
+                'zip_code' => null,
+                'formatted' => trim((string) $transaction->shipping_address),
+            ];
+        }
+
+        if (empty($raw)) {
+            return null;
+        }
+
+        $normalized = [
+            'address_line_1' => $raw['address_line_1'] ?? $raw['shipping_address_line_1'] ?? null,
+            'address_line_2' => $raw['address_line_2'] ?? $raw['shipping_address_line_2'] ?? null,
+            'city' => $raw['city'] ?? $raw['shipping_city'] ?? null,
+            'state' => $raw['state'] ?? $raw['shipping_state'] ?? null,
+            'country' => $raw['country'] ?? $raw['shipping_country'] ?? null,
+            'zip_code' => $raw['zip_code'] ?? $raw['shipping_zip_code'] ?? null,
+        ];
+
+        $formatted = $this->formatAddressString($normalized);
+        if ($formatted === '') {
+            return null;
+        }
+
+        $normalized['formatted'] = $formatted;
+
+        return $normalized;
+    }
+
     public function listOrdersForContact(int $businessId, int $contactId): array
     {
         return Transaction::where('business_id', $businessId)
@@ -221,7 +267,7 @@ class CheckoutService
 
     public function getOrderForContact(int $businessId, int $contactId, int $orderId): ?array
     {
-        $transaction = Transaction::with('sell_lines')
+        $transaction = Transaction::with(['sell_lines', 'location'])
             ->where('business_id', $businessId)
             ->where('contact_id', $contactId)
             ->where('id', $orderId)
@@ -235,6 +281,8 @@ class CheckoutService
         $transaction->load(['sell_lines.product', 'sell_lines.variations']);
 
         $data = $this->formatOrderResponse($transaction);
+        $data['shipping_address'] = $this->shippingAddressPayload($transaction);
+        $data['fulfillment_location'] = $transaction->location->name ?? null;
         $data['lines'] = $transaction->sell_lines->map(fn ($line) => [
             'product_id' => $line->product_id,
             'variation_id' => $line->variation_id,

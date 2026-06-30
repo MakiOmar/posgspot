@@ -57,7 +57,7 @@ Errors:
 | PUT | `/account/profile` | Update profile |
 | PUT | `/account/address` | Update address |
 | GET | `/account/orders` | Order history |
-| GET | `/account/orders/{id}` | Order detail |
+| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location) |
 
 ## Admin
 

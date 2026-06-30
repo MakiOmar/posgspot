@@ -206,6 +206,18 @@ export interface AccountOrderLine {
   line_total: number;
 }
 
+export interface OrderShippingAddress {
+  address_line_1: string | null;
+  address_line_2: string | null;
+  city: string | null;
+  state: string | null;
+  country: string | null;
+  zip_code: string | null;
+  formatted: string | null;
+}
+
 export interface AccountOrderDetail extends AccountOrder {
   lines: AccountOrderLine[];
+  shipping_address: OrderShippingAddress | null;
+  fulfillment_location: string | null;
 }
