@@ -2,6 +2,7 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { type DocumentHead } from "@builder.io/qwik-city";
 import { updateAddress, updateProfile } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { toastError, toastSuccess } from "~/lib/notify";
 import type { AuthContact } from "~/lib/types";
 
 interface ProfileForm {
@@ -36,8 +37,6 @@ export default component$(() => {
   const auth = useAuth();
   const form = useStore<ProfileForm>(formFromContact(null));
   const saving = useSignal(false);
-  const message = useSignal<string | null>(null);
-  const error = useSignal<string | null>(null);
 
   // Prefill from the cached contact once hydrated.
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -51,8 +50,6 @@ export default component$(() => {
       return;
     }
     saving.value = true;
-    message.value = null;
-    error.value = null;
     try {
       // Profile and address are separate endpoints; update both then cache.
       await updateProfile(auth.token, {
@@ -70,9 +67,9 @@ export default component$(() => {
         zip_code: form.zip_code,
       });
       auth.contact = data;
-      message.value = "Your details were saved.";
+      await toastSuccess("Your details were saved.");
     } catch {
-      error.value = "Could not save your details. Please check the fields and try again.";
+      await toastError("Could not save your details. Please check the fields and try again.");
     } finally {
       saving.value = false;
     }
@@ -81,9 +78,6 @@ export default component$(() => {
   return (
     <div>
       <h1 class="page-title">Profile &amp; address</h1>
-
-      {message.value ? <p class="alert alert-success">{message.value}</p> : null}
-      {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
       <form
         preventdefault:submit

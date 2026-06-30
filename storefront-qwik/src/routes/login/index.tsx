@@ -2,6 +2,7 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, loginCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { toastError } from "~/lib/notify";
 
 export default component$(() => {
   const auth = useAuth();
@@ -9,7 +10,6 @@ export default component$(() => {
   const loc = useLocation();
   const form = useStore({ login: "", password: "" });
   const submitting = useSignal(false);
-  const error = useSignal<string | null>(null);
 
   const nextUrl = loc.url.searchParams.get("next") || "/account";
 
@@ -25,17 +25,17 @@ export default component$(() => {
 
   const submit$ = $(async () => {
     submitting.value = true;
-    error.value = null;
     try {
       const { data } = await loginCustomer({ login: form.login, password: form.password });
       auth.token = data.token;
       auth.contact = data.contact;
       await nav(nextUrl);
     } catch (e) {
-      error.value =
+      await toastError(
         e instanceof ApiError && e.status === 422
           ? "Invalid email/mobile or password."
-          : "Could not sign in. Please try again.";
+          : "Could not sign in. Please try again.",
+      );
     } finally {
       submitting.value = false;
     }
@@ -45,7 +45,6 @@ export default component$(() => {
     <section class="auth-page container">
       <div class="auth-card">
         <h1 class="page-title">Sign in</h1>
-        {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">

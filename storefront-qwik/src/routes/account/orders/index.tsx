@@ -3,6 +3,7 @@ import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { fetchOrders } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
+import { toastError } from "~/lib/notify";
 import type { AccountOrder } from "~/lib/types";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -11,7 +12,6 @@ export default component$(() => {
   const settings = useSiteSettings();
   const state = useStore<{ orders: AccountOrder[] }>({ orders: [] });
   const loading = useSignal(true);
-  const error = useSignal<string | null>(null);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
@@ -20,12 +20,11 @@ export default component$(() => {
       return;
     }
     loading.value = true;
-    error.value = null;
     try {
       const { data } = await fetchOrders(auth.token);
       state.orders = data;
     } catch {
-      error.value = "Could not load your orders. Please try again.";
+      await toastError("Could not load your orders. Please try again.");
     } finally {
       loading.value = false;
     }
@@ -36,9 +35,8 @@ export default component$(() => {
       <h1 class="page-title">Orders</h1>
 
       {loading.value ? <p class="footer-muted">Loading orders…</p> : null}
-      {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
-      {!loading.value && !error.value && state.orders.length === 0 ? (
+      {!loading.value && state.orders.length === 0 ? (
         <div class="empty-state">
           You have no orders yet. <Link href="/products">Start shopping</Link>.
         </div>

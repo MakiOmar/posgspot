@@ -3,6 +3,7 @@ import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, fetchOrder } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
+import { toastError } from "~/lib/notify";
 import type { AccountOrderDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -12,7 +13,6 @@ export default component$(() => {
   const settings = useSiteSettings();
   const state = useStore<{ order: AccountOrderDetail | null }>({ order: null });
   const loading = useSignal(true);
-  const error = useSignal<string | null>(null);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
@@ -22,21 +22,21 @@ export default component$(() => {
     }
     const orderId = Number(loc.params.id);
     if (!Number.isFinite(orderId)) {
-      error.value = "Invalid order.";
+      await toastError("Invalid order.");
       loading.value = false;
       return;
     }
 
     loading.value = true;
-    error.value = null;
     try {
       const { data } = await fetchOrder(auth.token, orderId);
       state.order = data;
     } catch (e) {
-      error.value =
+      await toastError(
         e instanceof ApiError && e.status === 404
           ? "Order not found."
-          : "Could not load this order. Please try again.";
+          : "Could not load this order. Please try again.",
+      );
     } finally {
       loading.value = false;
     }
@@ -53,7 +53,6 @@ export default component$(() => {
       </p>
 
       {loading.value ? <p class="footer-muted">Loading order…</p> : null}
-      {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
       {order ? (
         <>

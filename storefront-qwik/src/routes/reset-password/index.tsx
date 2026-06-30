@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, resetPassword } from "~/lib/api";
+import { toastError } from "~/lib/notify";
 
 export default component$(() => {
   const loc = useLocation();
@@ -10,15 +11,12 @@ export default component$(() => {
   const form = useStore({ password: "", password_confirmation: "" });
   const submitting = useSignal(false);
   const succeeded = useSignal(false);
-  const error = useSignal<string | null>(null);
 
   const missingParams = !email || !token;
 
   const submit$ = $(async () => {
-    error.value = null;
-
     if (form.password !== form.password_confirmation) {
-      error.value = "Passwords do not match.";
+      await toastError("Passwords do not match.");
       return;
     }
 
@@ -33,10 +31,11 @@ export default component$(() => {
       succeeded.value = true;
       await nav("/login");
     } catch (e) {
-      error.value =
+      await toastError(
         e instanceof ApiError && e.status === 422
           ? e.message || "Invalid or expired reset link."
-          : "Could not reset your password. Please try again.";
+          : "Could not reset your password. Please try again.",
+      );
     } finally {
       submitting.value = false;
     }
@@ -88,8 +87,6 @@ export default component$(() => {
         <p class="footer-muted" style={{ marginBottom: "1rem" }}>
           Enter a new password for <strong>{email}</strong>.
         </p>
-
-        {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">

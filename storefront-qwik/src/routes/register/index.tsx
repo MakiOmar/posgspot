@@ -2,6 +2,7 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, registerCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { toastError } from "~/lib/notify";
 
 export default component$(() => {
   const auth = useAuth();
@@ -16,7 +17,6 @@ export default component$(() => {
   });
   const submitting = useSignal(false);
   const succeeded = useSignal(false);
-  const error = useSignal<string | null>(null);
 
   // Already signed in: go to account.
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -29,10 +29,8 @@ export default component$(() => {
   });
 
   const submit$ = $(async () => {
-    error.value = null;
-
     if (form.password !== form.password_confirmation) {
-      error.value = "Passwords do not match.";
+      await toastError("Passwords do not match.");
       return;
     }
 
@@ -54,9 +52,9 @@ export default component$(() => {
     } catch (e) {
       if (e instanceof ApiError && e.errors) {
         const first = Object.values(e.errors)[0]?.[0];
-        error.value = first || "Could not create your account.";
+        await toastError(first || "Could not create your account.");
       } else {
-        error.value = "Could not create your account. Please try again.";
+        await toastError("Could not create your account. Please try again.");
       }
     } finally {
       submitting.value = false;
@@ -87,7 +85,6 @@ export default component$(() => {
     <section class="auth-page container">
       <div class="auth-card">
         <h1 class="page-title">Create account</h1>
-        {error.value ? <p class="alert alert-error">{error.value}</p> : null}
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-grid">

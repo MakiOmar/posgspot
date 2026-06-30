@@ -63,6 +63,17 @@ export default defineConfig(({ command, mode }): UserConfig => {
         "Cache-Control": "public, max-age=600",
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/sweetalert2")) {
+              return "sweetalert2";
+            }
+          },
+        },
+      },
+    },
   };
 });
 

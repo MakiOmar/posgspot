@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
 import { logoutCustomer } from "~/lib/api";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
+import { confirmSignOut } from "~/lib/notify";
 
 export default component$(() => {
   const auth = useAuth();
@@ -23,6 +24,11 @@ export default component$(() => {
   });
 
   const logout$ = $(async () => {
+    const confirmed = await confirmSignOut();
+    if (!confirmed) {
+      return;
+    }
+
     loggingOut.value = true;
     const token = auth.token;
     // Clear local session first so the UI updates immediately.
