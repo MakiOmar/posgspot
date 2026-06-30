@@ -148,6 +148,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/test-email', [BusinessController::class, 'testEmailConfiguration']);
     Route::post('/test-sms', [BusinessController::class, 'testSmsConfiguration']);
     Route::get('/business/settings', [BusinessController::class, 'getBusinessSettings'])->name('business.getBusinessSettings');
+    Route::get('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'edit'])->name('storefront.settings.edit');
+    Route::post('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'update'])->name('storefront.settings.update');
     Route::post('/business/update', [BusinessController::class, 'postBusinessSettings'])->name('business.postBusinessSettings');
     Route::get('/user/profile', [UserController::class, 'getProfile'])->name('user.getProfile');
     Route::post('/user/update', [UserController::class, 'updateProfile'])->name('user.updateProfile');

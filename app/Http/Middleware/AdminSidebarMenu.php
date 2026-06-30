@@ -810,7 +810,8 @@ class AdminSidebarMenu
                 auth()->user()->can('invoice_settings.access') ||
                 auth()->user()->can('tax_rate.view') ||
                 auth()->user()->can('tax_rate.create') ||
-                auth()->user()->can('access_package_subscriptions')) {
+                auth()->user()->can('access_package_subscriptions') ||
+                auth()->user()->can('storefront.settings')) {
                 $menu->dropdown(
                     __('business.settings'),
                     function ($sub) use ($enabled_modules) {
@@ -824,6 +825,13 @@ class AdminSidebarMenu
                                 action([\App\Http\Controllers\BusinessLocationController::class, 'index']),
                                 __('business.business_locations'),
                                 ['icon' => '', 'active' => request()->segment(1) == 'business-location']
+                            );
+                        }
+                        if (auth()->user()->can('storefront.settings')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontSettingController::class, 'edit']),
+                                'Storefront Settings',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront']
                             );
                         }
                         if (auth()->user()->can('invoice_settings.access')) {
