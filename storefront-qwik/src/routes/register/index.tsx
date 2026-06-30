@@ -15,6 +15,7 @@ export default component$(() => {
     password_confirmation: "",
   });
   const submitting = useSignal(false);
+  const succeeded = useSignal(false);
   const error = useSignal<string | null>(null);
 
   // Already signed in: go to account.
@@ -45,6 +46,8 @@ export default component$(() => {
         password: form.password,
         password_confirmation: form.password_confirmation,
       });
+      // Swap the form for a success/redirecting message before navigating.
+      succeeded.value = true;
       auth.token = data.token;
       auth.contact = data.contact;
       await nav("/account");
@@ -59,6 +62,26 @@ export default component$(() => {
       submitting.value = false;
     }
   });
+
+  // After a successful registration, hide the form and show a confirmation
+  // while the client redirects to the account area.
+  if (succeeded.value) {
+    return (
+      <section class="auth-page container">
+        <div class="auth-card">
+          <h1 class="page-title">Account created</h1>
+          <p class="alert alert-success">
+            Welcome aboard! Your account is ready — redirecting you to your account…
+          </p>
+          <div class="auth-links">
+            <Link href="/account" class="link-accent">
+              Go to my account now
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section class="auth-page container">
