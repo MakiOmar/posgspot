@@ -28,7 +28,7 @@ Errors:
 |--------|------|-------------|
 | GET | `/ping` | Health check |
 | GET | `/settings` | Business + storefront public settings |
-| GET | `/locations` | Selling locations (`sells_online = 1`) |
+| GET | `/locations` | Selling locations (`sells_online = 1`); location email is `email_encoded` (base64), not raw |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
@@ -67,6 +67,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - COD, shipping, announcement, gateway keys, contact/social
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
+- Public `GET /locations` uses the same `email_encoded` pattern per location (no raw `email` field)
 
 ## Notes
 

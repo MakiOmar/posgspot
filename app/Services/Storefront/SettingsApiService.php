@@ -65,12 +65,10 @@ class SettingsApiService
      */
     public function formatPublicContact(array $contact): array
     {
-        $email = trim((string) ($contact['email'] ?? ''));
-
         return [
             'phone' => $contact['phone'] ?? null,
             'whatsapp' => $contact['whatsapp'] ?? null,
-            'email_encoded' => $email !== '' ? base64_encode($email) : null,
+            'email_encoded' => $this->encodePublicEmail($contact['email'] ?? null),
         ];
     }
 
@@ -81,12 +79,22 @@ class SettingsApiService
             'name' => $loc->name,
             'address' => $this->composeAddress($loc),
             'phone' => $loc->mobile,
-            'email' => $loc->email,
+            'email_encoded' => $this->encodePublicEmail($loc->email),
             'enable_pickup' => (bool) ($loc->enable_pickup ?? false),
             'latitude' => $loc->latitude,
             'longitude' => $loc->longitude,
             'maps_url' => $this->mapsUrl($loc),
         ];
+    }
+
+    /**
+     * Base64-encode an email for public API responses (decoded client-side only).
+     */
+    private function encodePublicEmail(?string $email): ?string
+    {
+        $email = trim((string) $email);
+
+        return $email !== '' ? base64_encode($email) : null;
     }
 
     public function composeAddress(BusinessLocation $loc): string

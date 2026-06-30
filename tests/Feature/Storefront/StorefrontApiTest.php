@@ -131,6 +131,37 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.contact.email_encoded', base64_encode($email));
     }
 
+    public function test_locations_do_not_expose_raw_email(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        $testEmail = 'loc_'.uniqid().'@example.com';
+        $location->email = $testEmail;
+        $location->is_active = 1;
+        $location->save();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/locations');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        $rows = $response->json('data');
+        $this->assertIsArray($rows);
+        $this->assertNotEmpty($rows);
+        $match = collect($rows)->first(fn ($row) => (int) ($row['id'] ?? 0) === (int) $location->id);
+        $this->assertNotNull($match, 'Expected location to appear in /locations response.');
+        $this->assertArrayNotHasKey('email', $match);
+        $this->assertSame(base64_encode($testEmail), $match['email_encoded']);
+    }
+
     public function test_availability_endpoint_structure(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();
