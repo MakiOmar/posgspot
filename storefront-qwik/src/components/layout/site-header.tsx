@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import { CartIcon, SearchIcon } from "~/components/icons";
 import { totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import type { StoreSettings } from "~/lib/types";
@@ -44,12 +45,14 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings }) => {
             aria-label="Search products"
             value={loc.url.searchParams.get("q") || ""}
           />
-          <button type="submit">Search</button>
+          <button type="submit" aria-label="Search">
+            <SearchIcon size={18} />
+          </button>
         </form>
 
         <div class="header-actions">
-          <Link href="/cart" class="icon-link">
-            Cart
+          <Link href="/cart" class="icon-link" aria-label="Cart">
+            <CartIcon size={20} />
             {totalCartItems(cart) > 0 ? (
               <span class="cart-badge">{totalCartItems(cart)}</span>
             ) : null}

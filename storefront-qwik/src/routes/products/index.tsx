@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
+import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
 import { fetchProductsPage } from "~/lib/api";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -65,13 +66,19 @@ export default component$(() => {
           {meta.last_page > 1 ? (
             <nav class="pagination" aria-label="Pagination">
               {meta.current_page > 1 ? (
-                <Link href={buildPageUrl(meta.current_page - 1)}>← Prev</Link>
+                <Link href={buildPageUrl(meta.current_page - 1)} class="footer-contact">
+                  <ChevronLeftIcon size={16} />
+                  Prev
+                </Link>
               ) : null}
               <span class="active">
                 Page {meta.current_page} of {meta.last_page}
               </span>
               {meta.current_page < meta.last_page ? (
-                <Link href={buildPageUrl(meta.current_page + 1)}>Next →</Link>
+                <Link href={buildPageUrl(meta.current_page + 1)} class="footer-contact">
+                  Next
+                  <ChevronRightIcon size={16} />
+                </Link>
               ) : null}
             </nav>
           ) : null}

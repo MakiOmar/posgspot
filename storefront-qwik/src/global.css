@@ -163,9 +163,10 @@ img {
 }
 
 .icon-link {
+  position: relative;
   color: var(--gs-muted);
   font-size: 0.875rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
@@ -174,18 +175,42 @@ img {
   color: var(--gs-text);
 }
 
+/* Inline icon + text helper (footer contact rows, buttons, links). */
+.footer-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.footer-social {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.footer-social a {
+  color: var(--gs-muted);
+  display: inline-flex;
+}
+
+.footer-social a:hover {
+  color: var(--gs-accent);
+}
+
 .cart-badge {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.6rem;
   background: var(--gs-accent);
   color: #041510;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  min-width: 1.25rem;
-  height: 1.25rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.35rem;
+  padding: 0 0.3rem;
 }
 
 .site-footer {
@@ -415,8 +440,13 @@ img {
   background: transparent;
   border: 0;
   color: var(--gs-muted);
-  font-size: 1.25rem;
   cursor: pointer;
+  display: inline-flex;
+  padding: 0.25rem;
+}
+
+.modal-close:hover {
+  color: var(--gs-text);
 }
 
 .availability-row {
@@ -432,8 +462,17 @@ img {
 }
 
 .availability-icon {
-  font-size: 1.125rem;
+  display: inline-flex;
   line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.availability-icon--in {
+  color: var(--gs-accent);
+}
+
+.availability-icon--out {
+  color: var(--gs-danger);
 }
 
 .cart-table {

@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { TrashIcon } from "~/components/icons";
 import { removeCartItem, setCartQuantity } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
@@ -71,9 +72,11 @@ export default component$(() => {
               <td>
                 <button
                   type="button"
-                  class="btn btn-secondary"
+                  class="btn btn-secondary footer-contact"
+                  aria-label="Remove item"
                   onClick$={() => removeCartItem(cart, line.variationId)}
                 >
+                  <TrashIcon size={16} />
                   Remove
                 </button>
               </td>

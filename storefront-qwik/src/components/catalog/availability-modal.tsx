@@ -1,4 +1,5 @@
 import { component$, type QRL } from "@builder.io/qwik";
+import { CheckIcon, CloseIcon, CrossIcon, MapPinIcon } from "~/components/icons";
 import type { ProductAvailability } from "~/lib/types";
 
 interface AvailabilityModalProps {
@@ -19,7 +20,7 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
       <div class="modal-backdrop" role="presentation">
         <div class="modal" role="dialog" aria-modal="true" aria-labelledby="availability-title">
           <button type="button" class="modal-close" aria-label="Close" onClick$={onClose$}>
-            ×
+            <CloseIcon size={20} />
           </button>
           <h2 id="availability-title">Store availability</h2>
 
@@ -39,8 +40,15 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
               <ul style={{ listStyle: "none", margin: "0", padding: "0" }}>
                 {availability.locations.map((location) => (
                   <li key={location.location_id} class="availability-row">
-                    <span class="availability-icon" aria-hidden="true">
-                      {location.in_stock ? "✓" : "✗"}
+                    <span
+                      class={`availability-icon ${location.in_stock ? "availability-icon--in" : "availability-icon--out"}`}
+                      aria-hidden="true"
+                    >
+                      {location.in_stock ? (
+                        <CheckIcon size={18} />
+                      ) : (
+                        <CrossIcon size={18} />
+                      )}
                     </span>
                     <div>
                       <strong>{location.name}</strong>
@@ -51,7 +59,13 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
                         <div class="footer-muted">Out of stock</div>
                       )}
                       {location.maps_url ? (
-                        <a href={location.maps_url} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={location.maps_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="footer-contact"
+                        >
+                          <MapPinIcon size={14} />
                           View on map
                         </a>
                       ) : null}

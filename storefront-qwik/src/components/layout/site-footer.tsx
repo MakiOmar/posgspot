@@ -1,5 +1,13 @@
 import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
+import {
+  FacebookIcon,
+  InstagramIcon,
+  MailIcon,
+  PhoneIcon,
+  TiktokIcon,
+  YoutubeIcon,
+} from "~/components/icons";
 import type { StoreSettings } from "~/lib/types";
 
 interface SiteFooterProps {
@@ -18,10 +26,16 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
             Your destination for gaming consoles, accessories, and repair services.
           </p>
           {settings.contact.phone ? (
-            <p class="footer-muted">Phone: {settings.contact.phone}</p>
+            <p class="footer-muted footer-contact">
+              <PhoneIcon size={16} />
+              <a href={`tel:${settings.contact.phone}`}>{settings.contact.phone}</a>
+            </p>
           ) : null}
           {settings.contact.email ? (
-            <p class="footer-muted">Email: {settings.contact.email}</p>
+            <p class="footer-muted footer-contact">
+              <MailIcon size={16} />
+              <a href={`mailto:${settings.contact.email}`}>{settings.contact.email}</a>
+            </p>
           ) : null}
         </div>
         <div>
@@ -37,22 +51,48 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
         </div>
         <div>
           <h3>Follow us</h3>
-          <ul>
+          <div class="footer-social">
             {settings.social.facebook && settings.social.facebook !== "#" ? (
-              <li>
-                <a href={settings.social.facebook} rel="noopener noreferrer" target="_blank">
-                  Facebook
-                </a>
-              </li>
+              <a
+                href={settings.social.facebook}
+                rel="noopener noreferrer"
+                target="_blank"
+                aria-label="Facebook"
+              >
+                <FacebookIcon size={22} />
+              </a>
             ) : null}
             {settings.social.instagram && settings.social.instagram !== "#" ? (
-              <li>
-                <a href={settings.social.instagram} rel="noopener noreferrer" target="_blank">
-                  Instagram
-                </a>
-              </li>
+              <a
+                href={settings.social.instagram}
+                rel="noopener noreferrer"
+                target="_blank"
+                aria-label="Instagram"
+              >
+                <InstagramIcon size={22} />
+              </a>
             ) : null}
-          </ul>
+            {settings.social.tiktok && settings.social.tiktok !== "#" ? (
+              <a
+                href={settings.social.tiktok}
+                rel="noopener noreferrer"
+                target="_blank"
+                aria-label="TikTok"
+              >
+                <TiktokIcon size={22} />
+              </a>
+            ) : null}
+            {settings.social.youtube && settings.social.youtube !== "#" ? (
+              <a
+                href={settings.social.youtube}
+                rel="noopener noreferrer"
+                target="_blank"
+                aria-label="YouTube"
+              >
+                <YoutubeIcon size={22} />
+              </a>
+            ) : null}
+          </div>
         </div>
       </div>
       <div class="container footer-bottom">
