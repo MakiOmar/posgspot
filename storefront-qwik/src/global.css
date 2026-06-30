@@ -460,21 +460,29 @@ img {
 }
 
 .stock-pill {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 0.15rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  padding: 0.22rem 0.55rem;
   border-radius: 999px;
-  margin-top: 0.35rem;
 }
 
 .stock-pill--in {
-  background: rgba(0, 212, 170, 0.15);
-  color: var(--gs-accent);
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
 }
 
 .stock-pill--out {
-  background: rgba(255, 92, 122, 0.15);
+  background: rgba(255, 92, 122, 0.12);
   color: var(--gs-danger);
+  border: 1px solid rgba(255, 92, 122, 0.35);
 }
 
 .btn {
