@@ -1,6 +1,6 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
+import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
-import { checkout, fetchLocations, validateCart } from "~/lib/api";
+import { ApiError, checkout, fetchLocations, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -27,8 +27,46 @@ export default component$(() => {
   const showLocationPicker = sellingLocations.length > 1;
   const locationId = useSignal(sellingLocations[0]?.id || 0);
   const submitting = useSignal(false);
+  const validatingStock = useSignal(false);
   const error = useSignal<string | null>(null);
+  const stockWarning = useSignal<string | null>(null);
   const order = useSignal<CheckoutOrder | null>(null);
+
+  const cartItemsKey = cart.items
+    .map((line) => `${line.variationId}:${line.quantity}`)
+    .join("|");
+
+  useVisibleTask$(async ({ track }) => {
+    track(() => locationId.value);
+    track(() => cartItemsKey);
+
+    if (cart.items.length === 0 || !locationId.value) {
+      stockWarning.value = null;
+      return;
+    }
+
+    validatingStock.value = true;
+    try {
+      await validateCart({
+        location_id: locationId.value,
+        items: cart.items.map((line) => ({
+          variation_id: line.variationId,
+          quantity: line.quantity,
+        })),
+      });
+      stockWarning.value = null;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const messages = Object.values(err.errors).flat();
+        stockWarning.value = messages.length ? messages.join(" ") : err.message;
+      } else {
+        stockWarning.value =
+          err instanceof Error ? err.message : "Some items are no longer available.";
+      }
+    } finally {
+      validatingStock.value = false;
+    }
+  });
 
   const subtotal = cart.items.reduce(
     (sum, line) => sum + line.price * line.quantity,
@@ -72,12 +110,16 @@ export default component$(() => {
         location_id: locationId.value,
         items: payload.items,
       });
-      // Pass the bearer token when signed in so the order links to the account.
       const { data } = await checkout(payload, auth.token ?? undefined);
       order.value = data;
       clearCart(cart);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Checkout failed.";
+      if (err instanceof ApiError) {
+        const messages = Object.values(err.errors).flat();
+        error.value = messages.length ? messages.join(" ") : err.message;
+      } else {
+        error.value = err instanceof Error ? err.message : "Checkout failed.";
+      }
     } finally {
       submitting.value = false;
     }
@@ -117,6 +159,12 @@ export default component$(() => {
       <h1 class="page-title">Checkout</h1>
 
       {error.value ? <div class="alert alert-error">{error.value}</div> : null}
+      {stockWarning.value && !error.value ? (
+        <div class="alert alert-error">{stockWarning.value}</div>
+      ) : null}
+      {validatingStock.value ? (
+        <p class="footer-muted">Checking stock availability…</p>
+      ) : null}
 
       <div style={{ display: "grid", gap: "2rem" }}>
         <form
@@ -171,6 +219,7 @@ export default component$(() => {
                 required
                 onChange$={(event) => {
                   locationId.value = Number((event.target as HTMLSelectElement).value);
+                  stockWarning.value = null;
                 }}
               >
                 {sellingLocations.map((loc) => (
@@ -196,7 +245,12 @@ export default component$(() => {
           <button
             type="submit"
             class="btn btn-primary btn-block"
-            disabled={submitting.value || !settings.value.cod_enabled}
+            disabled={
+              submitting.value ||
+              validatingStock.value ||
+              Boolean(stockWarning.value) ||
+              !settings.value.cod_enabled
+            }
           >
             {submitting.value ? "Placing order…" : "Place order"}
           </button>

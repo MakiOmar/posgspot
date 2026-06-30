@@ -35,7 +35,7 @@ Errors:
 | GET | `/products/{idOrSlug}` | Product detail |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
-| POST | `/cart/validate` | Revalidate cart lines |
+| POST | `/cart/validate` | Revalidate cart lines (price + stock). When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations |
 | POST | `/checkout` | Create order (idempotent) |
 | POST | `/payments/{provider}/webhook` | Payment gateway callback |
 

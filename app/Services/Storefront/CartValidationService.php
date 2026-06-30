@@ -56,9 +56,13 @@ class CartValidationService
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
 
-            $inStock = $this->checkStock($product, $variation, $qty, $locationIds);
+            $stockLocationIds = $locationId ? [$locationId] : $locationIds;
+            $inStock = $this->checkStock($product, $variation, $qty, $stockLocationIds);
             if (! $inStock) {
-                throw ValidationException::withMessages(["items.$index.quantity" => ['Insufficient stock.']]);
+                $message = $locationId
+                    ? 'Insufficient stock at the selected store.'
+                    : 'Insufficient stock.';
+                throw ValidationException::withMessages(["items.$index.quantity" => [$message]]);
             }
 
             $line = [

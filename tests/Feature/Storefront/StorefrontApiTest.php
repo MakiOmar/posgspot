@@ -7,6 +7,7 @@ use App\Product;
 use App\Services\Storefront\StorefrontSettingService;
 use App\StorefrontSetting;
 use App\Variation;
+use App\VariationLocationDetails;
 use Tests\TestCase;
 
 /**
@@ -200,5 +201,64 @@ class StorefrontApiTest extends TestCase
                     'locations',
                 ],
             ]);
+    }
+
+    public function test_cart_validate_checks_stock_at_fulfillment_location(): void
+    {
+        $locations = BusinessLocation::where('business_id', $this->businessId)
+            ->where('is_active', 1)
+            ->limit(2)
+            ->get();
+
+        if ($locations->count() < 2) {
+            $this->markTestSkipped('Need at least two active business locations.');
+        }
+
+        [$locationA, $locationB] = $locations->all();
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->where('enable_stock', 1)
+            ->first();
+
+        if (empty($product)) {
+            $this->markTestSkipped('No stocked sellable product in database.');
+        }
+
+        $variation = Variation::where('product_id', $product->id)->whereNull('deleted_at')->first();
+        if (empty($variation)) {
+            $this->markTestSkipped('No variation for product.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$locationA->id, $locationB->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        VariationLocationDetails::updateOrCreate(
+            ['variation_id' => $variation->id, 'location_id' => $locationA->id],
+            ['product_id' => $product->id, 'product_variation_id' => $variation->product_variation_id, 'qty_available' => 10]
+        );
+        VariationLocationDetails::updateOrCreate(
+            ['variation_id' => $variation->id, 'location_id' => $locationB->id],
+            ['product_id' => $product->id, 'product_variation_id' => $variation->product_variation_id, 'qty_available' => 1]
+        );
+
+        $payload = [
+            'location_id' => $locationB->id,
+            'items' => [
+                ['variation_id' => $variation->id, 'quantity' => 5],
+            ],
+        ];
+
+        $this->postJson('/api/storefront/v1/cart/validate', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+
+        $this->postJson('/api/storefront/v1/cart/validate', [
+            'location_id' => $locationA->id,
+            'items' => $payload['items'],
+        ])->assertOk()->assertJsonPath('success', true);
     }
 }
