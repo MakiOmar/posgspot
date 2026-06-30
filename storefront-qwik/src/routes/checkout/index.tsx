@@ -23,7 +23,9 @@ export default component$(() => {
   const cart = useCart();
   const auth = useAuth();
 
-  const locationId = useSignal(locations.value[0]?.id || 0);
+  const sellingLocations = locations.value;
+  const showLocationPicker = sellingLocations.length > 1;
+  const locationId = useSignal(sellingLocations[0]?.id || 0);
   const submitting = useSignal(false);
   const error = useSignal<string | null>(null);
   const order = useSignal<CheckoutOrder | null>(null);
@@ -160,23 +162,25 @@ export default component$(() => {
             </div>
           </div>
 
-          <div>
-            <label for="location_id">Fulfillment location</label>
-            <select
-              id="location_id"
-              name="location_id"
-              required
-              onChange$={(event) => {
-                locationId.value = Number((event.target as HTMLSelectElement).value);
-              }}
-            >
-              {locations.value.map((loc) => (
-                <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {showLocationPicker ? (
+            <div>
+              <label for="location_id">Fulfillment location</label>
+              <select
+                id="location_id"
+                name="location_id"
+                required
+                onChange$={(event) => {
+                  locationId.value = Number((event.target as HTMLSelectElement).value);
+                }}
+              >
+                {sellingLocations.map((loc) => (
+                  <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <div>
             <label for="order_note">Order note (optional)</label>

@@ -2,6 +2,7 @@ import { $, component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { AvailabilityModal } from "~/components/catalog/availability-modal";
 import { JsonLd } from "~/components/seo/json-ld";
+import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { fetchAvailability, fetchProduct } from "~/lib/api";
@@ -84,6 +85,11 @@ export default component$(() => {
   const p = product.value;
   const heroImage = p.images[0] || null;
   const currency = settings.value.currency;
+  const variation = selectedVariation.value;
+  const stockMax =
+    p.enable_stock && variation.in_stock && variation.qty_available > 0
+      ? Math.floor(variation.qty_available)
+      : undefined;
 
   return (
     <>
@@ -135,13 +141,13 @@ export default component$(() => {
             <label>
               <span class="footer-muted">Variation</span>
               <select
-                class="qty-input"
-                style={{ width: "100%", marginTop: "0.35rem" }}
+                class="pdp-select"
                 onChange$={(event) => {
                   const id = Number((event.target as HTMLSelectElement).value);
                   const found = p.variations.find((v) => v.id === id);
                   if (found) {
                     selectedVariation.value = found;
+                    quantity.value = 1;
                   }
                 }}
               >
@@ -168,22 +174,19 @@ export default component$(() => {
           ) : null}
 
           <div class="pdp-actions">
-            <label>
+            <div class="pdp-qty-field">
               <span class="footer-muted">Qty</span>
-              <input
-                class="qty-input"
-                type="number"
-                min={1}
+              <QuantityStepper
                 value={quantity.value}
-                onInput$={(event) => {
-                  quantity.value = Math.max(
-                    1,
-                    Number((event.target as HTMLInputElement).value) || 1,
-                  );
+                max={stockMax}
+                disabled={!variation.in_stock}
+                label={`Quantity for ${p.name}`}
+                onChange$={(next) => {
+                  quantity.value = next;
                 }}
               />
-            </label>
-            <button type="button" class="btn btn-primary" onClick$={addToCart$}>
+            </div>
+            <button type="button" class="btn btn-primary" onClick$={addToCart$} disabled={!variation.in_stock}>
               Add to cart
             </button>
             <button type="button" class="btn btn-secondary" onClick$={openAvailability$}>

@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { TrashIcon } from "~/components/icons";
+import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { removeCartItem, setCartQuantity } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
@@ -54,18 +55,10 @@ export default component$(() => {
               </td>
               <td>{formatPrice(line.price, settings.value.currency)}</td>
               <td>
-                <input
-                  class="qty-input"
-                  type="number"
-                  min={1}
+                <QuantityStepper
                   value={line.quantity}
-                  onInput$={(event) => {
-                    setCartQuantity(
-                      cart,
-                      line.variationId,
-                      Number((event.target as HTMLInputElement).value) || 1,
-                    );
-                  }}
+                  label={`Quantity for ${line.name}`}
+                  onChange$={(next) => setCartQuantity(cart, line.variationId, next)}
                 />
               </td>
               <td>{formatPrice(line.price * line.quantity, settings.value.currency)}</td>
