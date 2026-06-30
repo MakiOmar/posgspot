@@ -21,17 +21,6 @@ class AvailabilityService
 
     public function getAvailability(int $businessId, int $productId, ?int $variationId = null): ?array
     {
-        $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
-        if (empty($locationIds)) {
-            return [
-                'product_id' => $productId,
-                'variation_id' => $variationId,
-                'in_stock_count' => 0,
-                'cod_available' => (bool) ($this->storefrontSettings->get($businessId)['cod_enabled'] ?? false),
-                'locations' => [],
-            ];
-        }
-
         $product = Product::where('business_id', $businessId)
             ->active()
             ->where('not_for_selling', 0)
@@ -47,8 +36,11 @@ class AvailabilityService
         }
 
         $settings = $this->storefrontSettings->get($businessId);
+
+        // Availability reflects physical stock across ALL active business
+        // locations (warehouses/branches), not just the public selling ones,
+        // so customers can see every branch — including out-of-stock ones.
         $locations = BusinessLocation::where('business_id', $businessId)
-            ->whereIn('id', $locationIds)
             ->where('is_active', 1)
             ->orderBy('name')
             ->get();

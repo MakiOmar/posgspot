@@ -30,9 +30,10 @@ Errors:
 | GET | `/settings` | Business + storefront public settings |
 | GET | `/locations` | Selling locations (`sells_online = 1`) |
 | GET | `/categories` | Category tree |
-| GET | `/products` | Product listing (empty if no selling locations) |
+| GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
+| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
 | GET | `/products/{idOrSlug}` | Product detail |
-| GET | `/products/{id}/availability?variation_id=` | Per-store stock modal |
+| GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations |
 | GET | `/search?q=&limit=` | Search autocomplete |
 | POST | `/cart/validate` | Revalidate cart lines |
 | POST | `/checkout` | Create order (idempotent) |
