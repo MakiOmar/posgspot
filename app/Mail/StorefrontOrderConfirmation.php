@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Services\Storefront\StorefrontMailService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
@@ -20,7 +21,11 @@ class StorefrontOrderConfirmation extends Mailable implements ShouldQueue
 
     public function build()
     {
-        return $this->subject('Order confirmation #'.($this->order['invoice_no'] ?? ''))
+        $businessId = (int) config('storefront.business_id', 1);
+        $from = app(StorefrontMailService::class)->applyForBusiness($businessId);
+
+        return $this->from($from['address'], $from['name'])
+            ->subject('Order confirmation #'.($this->order['invoice_no'] ?? ''))
             ->view('emails.storefront.order_confirmation');
     }
 }

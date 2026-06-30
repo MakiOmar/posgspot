@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use App\Mail\StorefrontPasswordReset;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends StorefrontController
 {
@@ -67,7 +68,16 @@ class AuthController extends StorefrontController
                 ['email' => $contact->email],
                 ['token' => Hash::make($token), 'created_at' => now()]
             );
-            Mail::to($contact->email)->queue(new StorefrontPasswordReset($contact, $token));
+            try {
+                Mail::to($contact->email)->queue(new StorefrontPasswordReset($contact, $token));
+            } catch (\Throwable $e) {
+                // Never fail the public response (no account enumeration); log for operators.
+                Log::warning('Storefront password reset email failed.', [
+                    'contact_id' => $contact->id,
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
+            }
         }
 
         return $this->jsonSuccess(['message' => 'If the email exists, a reset link has been sent.']);
