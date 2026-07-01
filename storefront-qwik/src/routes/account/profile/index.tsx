@@ -3,6 +3,8 @@ import { type DocumentHead } from "@builder.io/qwik-city";
 import { updateAddress, updateProfile } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { toastError, toastSuccess } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 import type { AuthContact } from "~/lib/types";
 
 interface ProfileForm {
@@ -37,6 +39,7 @@ export default component$(() => {
   const auth = useAuth();
   const form = useStore<ProfileForm>(formFromContact(null));
   const saving = useSignal(false);
+  const pending = usePendingState();
 
   // Prefill from the cached contact once hydrated.
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -46,33 +49,33 @@ export default component$(() => {
   });
 
   const save$ = $(async () => {
-    if (!auth.token) {
+    const token = auth.token;
+    if (!token) {
       return;
     }
-    saving.value = true;
-    try {
-      // Profile and address are separate endpoints; update both then cache.
-      await updateProfile(auth.token, {
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        mobile: form.mobile,
-      });
-      const { data } = await updateAddress(auth.token, {
-        address_line_1: form.address_line_1,
-        address_line_2: form.address_line_2,
-        city: form.city,
-        state: form.state,
-        country: form.country,
-        zip_code: form.zip_code,
-      });
-      auth.contact = data;
-      await toastSuccess("Your details were saved.");
-    } catch {
-      await toastError("Could not save your details. Please check the fields and try again.");
-    } finally {
-      saving.value = false;
-    }
+
+    await withPendingFeedback(pending, saving, async () => {
+      try {
+        await updateProfile(token, {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          mobile: form.mobile,
+        });
+        const { data } = await updateAddress(token, {
+          address_line_1: form.address_line_1,
+          address_line_2: form.address_line_2,
+          city: form.city,
+          state: form.state,
+          country: form.country,
+          zip_code: form.zip_code,
+        });
+        auth.contact = data;
+        await toastSuccess("Your details were saved.");
+      } catch {
+        await toastError("Could not save your details. Please check the fields and try again.");
+      }
+    });
   });
 
   return (

@@ -4,11 +4,14 @@ import { logoutCustomer } from "~/lib/api";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
 import { confirmSignOut } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 export default component$(() => {
   const auth = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
+  const pending = usePendingState();
   const loggingOut = useSignal(false);
 
   // Client-side guard: tokens live in localStorage, resolved after hydration.
@@ -29,19 +32,19 @@ export default component$(() => {
       return;
     }
 
-    loggingOut.value = true;
-    const token = auth.token;
-    // Clear local session first so the UI updates immediately.
-    auth.token = null;
-    auth.contact = null;
-    if (token) {
-      try {
-        await logoutCustomer(token);
-      } catch {
-        // Best effort: token may already be invalid server-side.
+    await withPendingFeedback(pending, loggingOut, async () => {
+      const token = auth.token;
+      auth.token = null;
+      auth.contact = null;
+      if (token) {
+        try {
+          await logoutCustomer(token);
+        } catch {
+          // Best effort: token may already be invalid server-side.
+        }
       }
-    }
-    await nav("/login");
+      await nav("/login");
+    });
   });
 
   const navItems = [

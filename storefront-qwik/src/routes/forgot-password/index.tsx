@@ -2,22 +2,23 @@ import { $, component$, useSignal } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { forgotPassword } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 export default component$(() => {
   const email = useSignal("");
   const submitting = useSignal(false);
+  const pending = usePendingState();
 
   const submit$ = $(async () => {
-    submitting.value = true;
-    try {
-      const { data } = await forgotPassword(email.value);
-      // Backend always returns a generic message (no account enumeration).
-      await toastSuccess(data.message || "If the email exists, a reset link has been sent.");
-    } catch {
-      await toastError("Could not process the request. Please try again.");
-    } finally {
-      submitting.value = false;
-    }
+    await withPendingFeedback(pending, submitting, async () => {
+      try {
+        const { data } = await forgotPassword(email.value);
+        await toastSuccess(data.message || "If the email exists, a reset link has been sent.");
+      } catch {
+        await toastError("Could not process the request. Please try again.");
+      }
+    });
   });
 
   return (

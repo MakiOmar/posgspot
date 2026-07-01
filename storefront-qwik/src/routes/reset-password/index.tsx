@@ -2,10 +2,13 @@ import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, resetPassword } from "~/lib/api";
 import { toastError } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 export default component$(() => {
   const loc = useLocation();
   const nav = useNavigate();
+  const pending = usePendingState();
   const email = loc.url.searchParams.get("email") || "";
   const token = loc.url.searchParams.get("token") || "";
   const form = useStore({ password: "", password_confirmation: "" });
@@ -20,25 +23,24 @@ export default component$(() => {
       return;
     }
 
-    submitting.value = true;
-    try {
-      await resetPassword({
-        email,
-        token,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-      });
-      succeeded.value = true;
-      await nav("/login");
-    } catch (e) {
-      await toastError(
-        e instanceof ApiError && e.status === 422
-          ? e.message || "Invalid or expired reset link."
-          : "Could not reset your password. Please try again.",
-      );
-    } finally {
-      submitting.value = false;
-    }
+    await withPendingFeedback(pending, submitting, async () => {
+      try {
+        await resetPassword({
+          email,
+          token,
+          password: form.password,
+          password_confirmation: form.password_confirmation,
+        });
+        succeeded.value = true;
+        await nav("/login");
+      } catch (e) {
+        await toastError(
+          e instanceof ApiError && e.status === 422
+            ? e.message || "Invalid or expired reset link."
+            : "Could not reset your password. Please try again.",
+        );
+      }
+    });
   });
 
   if (missingParams) {

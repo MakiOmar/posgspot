@@ -3,10 +3,13 @@ import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, registerCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { toastError } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 export default component$(() => {
   const auth = useAuth();
   const nav = useNavigate();
+  const pending = usePendingState();
   const form = useStore({
     first_name: "",
     last_name: "",
@@ -34,31 +37,29 @@ export default component$(() => {
       return;
     }
 
-    submitting.value = true;
-    try {
-      const { data } = await registerCustomer({
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        mobile: form.mobile,
-        password: form.password,
-        password_confirmation: form.password_confirmation,
-      });
-      // Swap the form for a success/redirecting message before navigating.
-      succeeded.value = true;
-      auth.token = data.token;
-      auth.contact = data.contact;
-      await nav("/account");
-    } catch (e) {
-      if (e instanceof ApiError && e.errors) {
-        const first = Object.values(e.errors)[0]?.[0];
-        await toastError(first || "Could not create your account.");
-      } else {
-        await toastError("Could not create your account. Please try again.");
+    await withPendingFeedback(pending, submitting, async () => {
+      try {
+        const { data } = await registerCustomer({
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email,
+          mobile: form.mobile,
+          password: form.password,
+          password_confirmation: form.password_confirmation,
+        });
+        succeeded.value = true;
+        auth.token = data.token;
+        auth.contact = data.contact;
+        await nav("/account");
+      } catch (e) {
+        if (e instanceof ApiError && e.errors) {
+          const first = Object.values(e.errors)[0]?.[0];
+          await toastError(first || "Could not create your account.");
+        } else {
+          await toastError("Could not create your account. Please try again.");
+        }
       }
-    } finally {
-      submitting.value = false;
-    }
+    });
   });
 
   // After a successful registration, hide the form and show a confirmation

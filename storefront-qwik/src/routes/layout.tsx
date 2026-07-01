@@ -2,6 +2,8 @@ import { component$, Slot, useVisibleTask$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
+import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
+import { PendingProvider } from "~/lib/pending-context";
 import { fetchCategories, fetchSettings } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
@@ -65,16 +67,19 @@ export default component$(() => {
   });
 
   return (
-    <AuthProvider>
-      <CartProvider>
-        <div class="site-shell">
-          <SiteHeader settings={settings.value} categories={categories.value} />
-          <main class="site-main">
-            <Slot />
-          </main>
-          <SiteFooter settings={settings.value} />
-        </div>
-      </CartProvider>
-    </AuthProvider>
+    <PendingProvider>
+      <GlobalPendingIndicator />
+      <AuthProvider>
+        <CartProvider>
+          <div class="site-shell">
+            <SiteHeader settings={settings.value} categories={categories.value} />
+            <main class="site-main">
+              <Slot />
+            </main>
+            <SiteFooter settings={settings.value} />
+          </div>
+        </CartProvider>
+      </AuthProvider>
+    </PendingProvider>
   );
 });

@@ -1,9 +1,11 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice, productPath } from "~/lib/format";
+import { usePendingState } from "~/lib/pending-context";
 import type { ProductSummary, StoreSettings } from "~/lib/types";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 interface ProductCardProps {
   product: ProductSummary;
@@ -28,6 +30,8 @@ function saleBadgeLabel(product: ProductSummary, settings: StoreSettings): strin
 
 export const ProductCard = component$<ProductCardProps>(({ product, settings }) => {
   const cart = useCart();
+  const pending = usePendingState();
+  const adding = useSignal(false);
   const pdpUrl = productPath(product);
   const badge = saleBadgeLabel(product, settings);
   const hasOptions = product.has_options;
@@ -86,24 +90,27 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
           <button
             type="button"
             class="btn btn-primary btn-block product-card__action"
-            disabled={!product.in_stock || !product.variation_id}
+            disabled={!product.in_stock || !product.variation_id || adding.value}
             onClick$={async () => {
-              if (!product.variation_id || !product.in_stock) {
+              const variationId = product.variation_id;
+              if (!variationId || !product.in_stock) {
                 return;
               }
-              await addCartItem(cart, {
-                productId: product.id,
-                variationId: product.variation_id,
-                slug: product.slug,
-                name: product.name,
-                variationName: product.variation_name || "DUMMY",
-                price: product.price,
-                quantity: 1,
-                imageUrl: product.image_url,
+              await withPendingFeedback(pending, adding, async () => {
+                await addCartItem(cart, {
+                  productId: product.id,
+                  variationId,
+                  slug: product.slug,
+                  name: product.name,
+                  variationName: product.variation_name || "DUMMY",
+                  price: product.price,
+                  quantity: 1,
+                  imageUrl: product.image_url,
+                });
               });
             }}
           >
-            Add to cart
+            {adding.value ? "Adding…" : "Add to cart"}
           </button>
         )}
       </div>

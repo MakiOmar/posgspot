@@ -5,7 +5,9 @@ import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
+import { usePendingState } from "~/lib/pending-context";
 import type { CheckoutOrder } from "~/lib/types";
+import { withPendingFeedback } from "~/lib/with-pending";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useCheckoutLocations = routeLoader$(async () => {
@@ -22,6 +24,7 @@ export default component$(() => {
   const locations = useCheckoutLocations();
   const cart = useCart();
   const auth = useAuth();
+  const pending = usePendingState();
 
   const sellingLocations = locations.value;
   const showLocationPicker = sellingLocations.length > 1;
@@ -79,50 +82,49 @@ export default component$(() => {
       return;
     }
 
-    submitting.value = true;
-    error.value = null;
+    await withPendingFeedback(pending, submitting, async () => {
+      error.value = null;
 
-    const formData = new FormData(form);
-    const payload = {
-      idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      location_id: locationId.value,
-      payment_method: "cod",
-      items: cart.items.map((line) => ({
-        variation_id: line.variationId,
-        quantity: line.quantity,
-      })),
-      customer: {
-        first_name: String(formData.get("first_name") || ""),
-        last_name: String(formData.get("last_name") || ""),
-        email: String(formData.get("email") || ""),
-        mobile: String(formData.get("mobile") || ""),
-      },
-      shipping_address: {
-        address_line_1: String(formData.get("address_line_1") || ""),
-        city: String(formData.get("city") || ""),
-        country: String(formData.get("country") || "Egypt"),
-      },
-      order_note: String(formData.get("order_note") || ""),
-    };
-
-    try {
-      await validateCart({
+      const formData = new FormData(form);
+      const payload = {
+        idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         location_id: locationId.value,
-        items: payload.items,
-      });
-      const { data } = await checkout(payload, auth.token ?? undefined);
-      order.value = data;
-      clearCart(cart);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        const messages = Object.values(err.errors).flat();
-        error.value = messages.length ? messages.join(" ") : err.message;
-      } else {
-        error.value = err instanceof Error ? err.message : "Checkout failed.";
+        payment_method: "cod",
+        items: cart.items.map((line) => ({
+          variation_id: line.variationId,
+          quantity: line.quantity,
+        })),
+        customer: {
+          first_name: String(formData.get("first_name") || ""),
+          last_name: String(formData.get("last_name") || ""),
+          email: String(formData.get("email") || ""),
+          mobile: String(formData.get("mobile") || ""),
+        },
+        shipping_address: {
+          address_line_1: String(formData.get("address_line_1") || ""),
+          city: String(formData.get("city") || ""),
+          country: String(formData.get("country") || "Egypt"),
+        },
+        order_note: String(formData.get("order_note") || ""),
+      };
+
+      try {
+        await validateCart({
+          location_id: locationId.value,
+          items: payload.items,
+        });
+        const { data } = await checkout(payload, auth.token ?? undefined);
+        order.value = data;
+        clearCart(cart);
+      } catch (err) {
+        if (err instanceof ApiError) {
+          const messages = Object.values(err.errors).flat();
+          error.value = messages.length ? messages.join(" ") : err.message;
+        } else {
+          error.value = err instanceof Error ? err.message : "Checkout failed.";
+        }
       }
-    } finally {
-      submitting.value = false;
-    }
+    });
   });
 
   if (cart.items.length === 0 && !order.value) {

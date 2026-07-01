@@ -7,7 +7,9 @@ import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { fetchAvailability, fetchProduct } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
+import { usePendingState } from "~/lib/pending-context";
 import type { ProductAvailability, ProductVariation } from "~/lib/types";
+import { withPendingFeedback } from "~/lib/with-pending";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useProductDetail = routeLoader$(async ({ params, status }) => {
@@ -23,6 +25,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const product = useProductDetail();
   const cart = useCart();
+  const pending = usePendingState();
 
   const selectedVariation = useSignal<ProductVariation>(
     product.value.variations[0] || {
@@ -36,6 +39,7 @@ export default component$(() => {
     },
   );
   const quantity = useSignal(1);
+  const adding = useSignal(false);
 
   const modalOpen = useSignal(false);
   const modalLoading = useSignal(false);
@@ -188,20 +192,22 @@ export default component$(() => {
                 if (!variation.id) {
                   return;
                 }
-                await addCartItem(cart, {
-                  productId: product.value.id,
-                  variationId: variation.id,
-                  slug: product.value.slug,
-                  name: product.value.name,
-                  variationName: variation.name,
-                  price: variation.price,
-                  quantity: quantity.value,
-                  imageUrl: product.value.images[0] || null,
+                await withPendingFeedback(pending, adding, async () => {
+                  await addCartItem(cart, {
+                    productId: product.value.id,
+                    variationId: variation.id,
+                    slug: product.value.slug,
+                    name: product.value.name,
+                    variationName: variation.name,
+                    price: variation.price,
+                    quantity: quantity.value,
+                    imageUrl: product.value.images[0] || null,
+                  });
                 });
               }}
-              disabled={!variation.in_stock}
+              disabled={!variation.in_stock || adding.value}
             >
-              Add to cart
+              {adding.value ? "Adding…" : "Add to cart"}
             </button>
             <button type="button" class="btn btn-secondary" onClick$={openAvailability$}>
               Check store availability

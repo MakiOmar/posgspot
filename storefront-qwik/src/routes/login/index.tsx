@@ -3,11 +3,14 @@ import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/q
 import { ApiError, loginCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { toastError } from "~/lib/notify";
+import { usePendingState } from "~/lib/pending-context";
+import { withPendingFeedback } from "~/lib/with-pending";
 
 export default component$(() => {
   const auth = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
+  const pending = usePendingState();
   const form = useStore({ login: "", password: "" });
   const submitting = useSignal(false);
 
@@ -24,21 +27,20 @@ export default component$(() => {
   });
 
   const submit$ = $(async () => {
-    submitting.value = true;
-    try {
-      const { data } = await loginCustomer({ login: form.login, password: form.password });
-      auth.token = data.token;
-      auth.contact = data.contact;
-      await nav(nextUrl);
-    } catch (e) {
-      await toastError(
-        e instanceof ApiError && e.status === 422
-          ? "Invalid email/mobile or password."
-          : "Could not sign in. Please try again.",
-      );
-    } finally {
-      submitting.value = false;
-    }
+    await withPendingFeedback(pending, submitting, async () => {
+      try {
+        const { data } = await loginCustomer({ login: form.login, password: form.password });
+        auth.token = data.token;
+        auth.contact = data.contact;
+        await nav(nextUrl);
+      } catch (e) {
+        await toastError(
+          e instanceof ApiError && e.status === 422
+            ? "Invalid email/mobile or password."
+            : "Could not sign in. Please try again.",
+        );
+      }
+    });
   });
 
   return (

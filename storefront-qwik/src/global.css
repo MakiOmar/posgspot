@@ -1089,3 +1089,77 @@ img {
     font-size: 0.8125rem;
   }
 }
+
+/* Global navigation / async-action pending feedback */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.global-pending-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 200;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.global-pending-bar--active {
+  opacity: 1;
+}
+
+.global-pending-bar__track {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--gs-accent),
+    var(--gs-accent-hover),
+    transparent
+  );
+  animation: global-pending-slide 1s ease-in-out infinite;
+}
+
+@keyframes global-pending-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.global-pending-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  background: rgba(13, 15, 20, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  cursor: wait;
+}
+
+.global-pending-overlay--visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+body.is-globally-pending {
+  cursor: wait;
+}
