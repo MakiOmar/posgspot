@@ -27,7 +27,7 @@ Errors:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge.mode`: `percent` or `text`, and `sale_badge.text`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`) |
 | GET | `/locations` | Selling locations (`sells_online = 1`); location email is `email_encoded` (base64), not raw |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
@@ -57,7 +57,8 @@ Errors:
 | PUT | `/account/profile` | Update profile |
 | PUT | `/account/address` | Update address |
 | GET | `/account/orders` | Order history |
-| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location) |
+| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. |
+| GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 
 ## Admin
 

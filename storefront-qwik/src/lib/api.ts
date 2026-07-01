@@ -261,6 +261,12 @@ export function fetchOrder(token: string, orderId: number) {
   });
 }
 
+export function fetchOrderInvoiceUrl(token: string, orderId: number) {
+  return storefrontFetch<{ invoice_print_url: string }>(`/account/orders/${orderId}/invoice`, {
+    headers: authHeaders(token),
+  });
+}
+
 /** Health-check (connectivity / CORS). */
 export function pingApi() {
   return storefrontFetch<{

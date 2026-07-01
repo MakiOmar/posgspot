@@ -3,6 +3,7 @@ import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/
 import { ProductCard } from "~/components/catalog/product-card";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
 import { fetchProductsPage } from "~/lib/api";
+import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useProductList = routeLoader$(async ({ query }) => {
@@ -98,15 +99,18 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
     ? `Search results for "${q}" at ${settings.business_name}.`
     : `Browse gaming products at ${settings.business_name}.`;
 
-  return {
-    title,
-    meta: [
-      { name: "description", content: description },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      ...(q ? [{ name: "robots", content: "noindex, follow" }] : []),
-    ],
-  };
+  return withStorefrontThemeHead(
+    {
+      title,
+      meta: [
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary" },
+        ...(q ? [{ name: "robots", content: "noindex, follow" }] : []),
+      ],
+    },
+    settings,
+  );
 };

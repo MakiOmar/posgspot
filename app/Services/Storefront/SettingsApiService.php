@@ -41,6 +41,9 @@ class SettingsApiService
                 'mode' => $settings['sale_badge']['mode'] ?? 'percent',
                 'text' => $settings['sale_badge']['text'] ?? 'Sale',
             ],
+            'catalog' => [
+                'show_availability_on_cards' => (bool) ($settings['catalog']['show_availability_on_cards'] ?? true),
+            ],
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
             'locales' => ['en', 'ar'],

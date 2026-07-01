@@ -63,6 +63,7 @@ class StorefrontSettingController extends Controller
             'theme_accent_color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{6})$/'],
             'sale_badge_mode' => 'nullable|in:percent,text',
             'sale_badge_text' => 'nullable|string|max:30',
+            'catalog_show_availability_on_cards' => 'nullable|boolean',
         ]);
 
         $payload = [
@@ -101,6 +102,9 @@ class StorefrontSettingController extends Controller
             'sale_badge' => [
                 'mode' => $validated['sale_badge_mode'] ?? 'percent',
                 'text' => $validated['sale_badge_text'] ?? 'Sale',
+            ],
+            'catalog' => [
+                'show_availability_on_cards' => $request->boolean('catalog_show_availability_on_cards'),
             ],
         ];
 

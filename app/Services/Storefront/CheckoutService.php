@@ -255,10 +255,7 @@ class CheckoutService
 
     public function listOrdersForContact(int $businessId, int $contactId): array
     {
-        return Transaction::where('business_id', $businessId)
-            ->where('contact_id', $contactId)
-            ->where('type', 'sell')
-            ->where('source', 'storefront')
+        return $this->contactOrdersQuery($businessId, $contactId)
             ->orderByDesc('transaction_date')
             ->get()
             ->map(fn ($t) => $this->formatOrderResponse($t))
@@ -267,11 +264,9 @@ class CheckoutService
 
     public function getOrderForContact(int $businessId, int $contactId, int $orderId): ?array
     {
-        $transaction = Transaction::with(['sell_lines', 'location'])
-            ->where('business_id', $businessId)
-            ->where('contact_id', $contactId)
+        $transaction = $this->contactOrdersQuery($businessId, $contactId)
+            ->with(['sell_lines', 'location'])
             ->where('id', $orderId)
-            ->where('source', 'storefront')
             ->first();
 
         if (empty($transaction)) {
@@ -292,7 +287,46 @@ class CheckoutService
             'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
             'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,
         ])->values()->all();
+        $data['invoice_print_url'] = $this->invoicePrintUrl($businessId, $transaction);
 
         return $data;
+    }
+
+    public function invoicePrintUrlForContact(int $businessId, int $contactId, int $orderId): ?string
+    {
+        $transaction = $this->contactOrdersQuery($businessId, $contactId)
+            ->where('id', $orderId)
+            ->first();
+
+        if (empty($transaction)) {
+            return null;
+        }
+
+        return $this->invoicePrintUrl($businessId, $transaction);
+    }
+
+    /**
+     * Final sell transactions for this contact (storefront checkout and POS sales).
+     */
+    private function contactOrdersQuery(int $businessId, int $contactId)
+    {
+        return Transaction::where('business_id', $businessId)
+            ->where('contact_id', $contactId)
+            ->where('type', 'sell')
+            ->where('status', 'final');
+    }
+
+    /**
+     * Same receipt page as POS invoice print ({@see SellPosController::showInvoice}).
+     */
+    private function invoicePrintUrl(int $businessId, Transaction $transaction): ?string
+    {
+        if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
+            return null;
+        }
+
+        $url = $this->transactionUtil->getInvoiceUrl($transaction->id, $businessId);
+
+        return $url.'?print_on_load=true';
     }
 }

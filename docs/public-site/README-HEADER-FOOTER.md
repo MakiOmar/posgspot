@@ -72,6 +72,25 @@ Vertical order on a standard page:
 
 ---
 
+## Header — layout variants
+
+The Qwik storefront supports two header layouts, selected at **build time** via env:
+
+| Env | Values | Default |
+|-----|--------|---------|
+| `PUBLIC_HEADER_STYLE` | `one` \| `two` (aliases: `1`) | `two` |
+
+Set in `storefront-qwik/.env.ssr` (dev) or `.env.production` (build). See `storefront-qwik/.env.example`.
+
+| Style | Layout |
+|-------|--------|
+| **`two`** (default) | **Row 1:** logo, search, phone, account, cart. **Row 2:** Home, Shop, Categories (opens side drawer). |
+| **`one`** | Single row: logo, Home, Shop, Categories button, search, phone, account, cart. Categories open in the same side drawer. |
+
+Phone lives in the main row (no separate top contact bar). The announcement strip remains optional and admin-controlled.
+
+---
+
 ## Header — structure
 
 ### Desktop (≥ 1024px)

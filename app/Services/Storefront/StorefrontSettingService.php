@@ -52,6 +52,9 @@ class StorefrontSettingService
                 'mode' => 'percent',
                 'text' => 'Sale',
             ],
+            'catalog' => [
+                'show_availability_on_cards' => true,
+            ],
             'maintenance_mode' => false,
         ];
     }

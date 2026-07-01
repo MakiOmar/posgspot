@@ -56,5 +56,6 @@ Route::prefix('storefront/v1')->group(function () {
         Route::put('/address', [AccountController::class, 'updateAddress']);
         Route::get('/orders', [AccountController::class, 'orders']);
         Route::get('/orders/{orderId}', [AccountController::class, 'orderDetail']);
+        Route::get('/orders/{orderId}/invoice', [AccountController::class, 'orderInvoice']);
     });
 });

@@ -1,11 +1,15 @@
 import { component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
-import { ApiError, fetchOrder } from "~/lib/api";
+import { ApiError, fetchOrder, fetchOrderInvoiceUrl } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
 import { toastError } from "~/lib/notify";
 import type { AccountOrderDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/layout";
+
+function isPaidOrder(paymentStatus: string | undefined): boolean {
+  return (paymentStatus ?? "").trim().toLowerCase() === "paid";
+}
 
 export default component$(() => {
   const auth = useAuth();
@@ -13,6 +17,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const state = useStore<{ order: AccountOrderDetail | null }>({ order: null });
   const loading = useSignal(true);
+  const printUrl = useSignal<string | null>(null);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
@@ -28,9 +33,23 @@ export default component$(() => {
     }
 
     loading.value = true;
+    printUrl.value = null;
     try {
       const { data } = await fetchOrder(auth.token, orderId);
       state.order = data;
+
+      if (isPaidOrder(data.payment_status)) {
+        if (data.invoice_print_url) {
+          printUrl.value = data.invoice_print_url;
+        } else {
+          try {
+            const { data: invoice } = await fetchOrderInvoiceUrl(auth.token, orderId);
+            printUrl.value = invoice.invoice_print_url;
+          } catch {
+            // Invoice endpoint unavailable or order not eligible.
+          }
+        }
+      }
     } catch (e) {
       await toastError(
         e instanceof ApiError && e.status === 404
@@ -56,7 +75,29 @@ export default component$(() => {
 
       {order ? (
         <>
-          <h1 class="page-title">Order {order.invoice_no || order.storefront_order_id}</h1>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "1rem",
+              justifyContent: "space-between",
+            }}
+          >
+            <h1 class="page-title" style={{ margin: 0 }}>
+              Order {order.invoice_no || order.storefront_order_id}
+            </h1>
+            {printUrl.value ? (
+              <a
+                href={printUrl.value}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-secondary"
+              >
+                Print invoice
+              </a>
+            ) : null}
+          </div>
           <div class="order-meta">
             <span>
               <strong>Status:</strong> {order.shipping_status || order.status}

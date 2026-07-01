@@ -132,6 +132,27 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.contact.email_encoded', base64_encode($email));
     }
 
+    public function test_settings_exposes_catalog_availability_on_cards_flag(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'catalog' => ['show_availability_on_cards' => true],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.catalog.show_availability_on_cards', true);
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'catalog' => ['show_availability_on_cards' => false],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.catalog.show_availability_on_cards', false);
+    }
+
     public function test_locations_do_not_expose_raw_email(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

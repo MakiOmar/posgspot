@@ -61,6 +61,23 @@ class AccountController extends StorefrontController
         return $this->jsonSuccess($order);
     }
 
+    public function orderInvoice(Request $request, int $orderId)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $url = $this->checkoutService->invoicePrintUrlForContact(
+            $this->businessId($request),
+            $contact->id,
+            $orderId
+        );
+
+        if (empty($url)) {
+            return $this->jsonError('Invoice is not available for this order.', 404);
+        }
+
+        return $this->jsonSuccess(['invoice_print_url' => $url]);
+    }
+
     public function updateAddress(Request $request)
     {
         $data = $request->validate([

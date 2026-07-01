@@ -1,14 +1,14 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
-import { AvailabilityModal } from "~/components/catalog/availability-modal";
+import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { JsonLd } from "~/components/seo/json-ld";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
-import { fetchAvailability, fetchProduct } from "~/lib/api";
+import { fetchProduct } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { usePendingState } from "~/lib/pending-context";
-import type { ProductAvailability, ProductVariation } from "~/lib/types";
+import type { ProductVariation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -40,34 +40,6 @@ export default component$(() => {
   );
   const quantity = useSignal(1);
   const adding = useSignal(false);
-
-  const modalOpen = useSignal(false);
-  const modalLoading = useSignal(false);
-  const modalError = useSignal<string | null>(null);
-  const availability = useSignal<ProductAvailability | null>(null);
-
-  const openAvailability$ = $(async () => {
-    modalOpen.value = true;
-    modalLoading.value = true;
-    modalError.value = null;
-    availability.value = null;
-
-    try {
-      const { data } = await fetchAvailability(
-        product.value.id,
-        selectedVariation.value.id,
-      );
-      availability.value = data;
-    } catch {
-      modalError.value = "Could not load store availability.";
-    } finally {
-      modalLoading.value = false;
-    }
-  });
-
-  const closeModal$ = $(() => {
-    modalOpen.value = false;
-  });
 
   const p = product.value;
   const heroImage = p.images[0] || null;
@@ -186,10 +158,10 @@ export default component$(() => {
             </div>
             <button
               type="button"
-              class="btn btn-primary"
+              class={`btn btn-primary${!variation.in_stock ? " btn--disabled" : ""}`}
               onClick$={async () => {
                 const variation = selectedVariation.value;
-                if (!variation.id) {
+                if (!variation.id || !variation.in_stock) {
                   return;
                 }
                 await withPendingFeedback(pending, adding, async () => {
@@ -206,29 +178,19 @@ export default component$(() => {
                 });
               }}
               disabled={!variation.in_stock || adding.value}
+              aria-disabled={!variation.in_stock || adding.value}
             >
               {adding.value ? "Adding…" : "Add to cart"}
             </button>
-            <button type="button" class="btn btn-secondary" onClick$={openAvailability$}>
-              Check store availability
-            </button>
+            {variation.id ? (
+              <AvailabilityCheckButton
+                productId={p.id}
+                variationId={variation.id}
+              />
+            ) : null}
           </div>
         </div>
       </article>
-
-      {modalOpen.value ? (
-        <div class="modal-backdrop" role="presentation" onClick$={closeModal$}>
-          <div onClick$={(event) => event.stopPropagation()}>
-            <AvailabilityModal
-              open={modalOpen.value}
-              loading={modalLoading.value}
-              error={modalError.value}
-              availability={availability.value}
-              onClose$={closeModal$}
-            />
-          </div>
-        </div>
-      ) : null}
     </>
   );
 });

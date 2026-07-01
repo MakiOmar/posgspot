@@ -39,6 +39,10 @@ export interface StoreSettings {
     mode: "percent" | "text";
     text: string;
   };
+  catalog: {
+    /** Out-of-stock listing cards show "Check store availability" when true */
+    show_availability_on_cards: boolean;
+  };
   cod_enabled: boolean;
   maintenance_mode: boolean;
   locales: string[];
@@ -233,4 +237,6 @@ export interface AccountOrderDetail extends AccountOrder {
   lines: AccountOrderLine[];
   shipping_address: OrderShippingAddress | null;
   fulfillment_location: string | null;
+  /** POS invoice page with auto-print; only when payment_status is paid */
+  invoice_print_url: string | null;
 }

@@ -3,6 +3,7 @@ import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
 import { JsonLd } from "~/components/seo/json-ld";
 import { fetchProductsPage } from "~/lib/api";
+import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useHomeProducts = routeLoader$(async () => {
@@ -63,14 +64,17 @@ export const head: DocumentHead = ({ resolveValue }) => {
   const title = `${settings.business_name} — Gaming Store`;
   const description = `Shop consoles, accessories, and services at ${settings.business_name}.`;
 
-  return {
-    title,
-    meta: [
-      { name: "description", content: description },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  };
+  return withStorefrontThemeHead(
+    {
+      title,
+      meta: [
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    },
+    settings,
+  );
 };

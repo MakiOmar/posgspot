@@ -111,6 +111,16 @@
             <p class="help-block">Shown on product cards when an online sale price is set on the product in POS (lower than the regular selling price).</p>
 
             <hr>
+            <h4>Product listing cards</h4>
+            <div class="checkbox">
+                <label>
+                    {!! Form::checkbox('catalog_show_availability_on_cards', 1, $settings['catalog']['show_availability_on_cards'] ?? true) !!}
+                    Show &ldquo;Check store availability&rdquo; on out-of-stock product cards
+                </label>
+            </div>
+            <p class="help-block">When enabled, out-of-stock items on the shop listing show a button to open the per-store stock modal (same as the product page).</p>
+
+            <hr>
             <h4>Contact &amp; social</h4>
             <div class="row">
                 <div class="col-md-4">

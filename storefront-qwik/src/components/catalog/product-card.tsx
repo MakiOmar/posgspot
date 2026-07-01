@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
+import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice, productPath } from "~/lib/format";
@@ -35,6 +36,11 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
   const pdpUrl = productPath(product);
   const badge = saleBadgeLabel(product, settings);
   const hasOptions = product.has_options;
+  const outOfStock = !product.in_stock;
+  const showCardAvailability =
+    outOfStock &&
+    (settings.catalog?.show_availability_on_cards ?? true) &&
+    product.variation_id != null;
 
   return (
     <article class="product-card">
@@ -82,37 +88,49 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
           {product.in_stock ? "In stock" : "Out of stock"}
         </span>
 
-        {hasOptions ? (
-          <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
-            View options
-          </Link>
-        ) : (
-          <button
-            type="button"
-            class="btn btn-primary btn-block product-card__action"
-            disabled={!product.in_stock || !product.variation_id || adding.value}
-            onClick$={async () => {
-              const variationId = product.variation_id;
-              if (!variationId || !product.in_stock) {
-                return;
-              }
-              await withPendingFeedback(pending, adding, async () => {
-                await addCartItem(cart, {
-                  productId: product.id,
-                  variationId,
-                  slug: product.slug,
-                  name: product.name,
-                  variationName: product.variation_name || "DUMMY",
-                  price: product.price,
-                  quantity: 1,
-                  imageUrl: product.image_url,
+        <div class="product-card__actions">
+          {hasOptions ? (
+            <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
+              View options
+            </Link>
+          ) : (
+            <button
+              type="button"
+              class={`btn btn-primary btn-block product-card__action${outOfStock ? " btn--disabled" : ""}`}
+              disabled={outOfStock || !product.variation_id || adding.value}
+              aria-disabled={outOfStock || !product.variation_id || adding.value}
+              onClick$={async () => {
+                const variationId = product.variation_id;
+                if (!variationId || outOfStock) {
+                  return;
+                }
+                await withPendingFeedback(pending, adding, async () => {
+                  await addCartItem(cart, {
+                    productId: product.id,
+                    variationId,
+                    slug: product.slug,
+                    name: product.name,
+                    variationName: product.variation_name || "DUMMY",
+                    price: product.price,
+                    quantity: 1,
+                    imageUrl: product.image_url,
+                  });
                 });
-              });
-            }}
-          >
-            {adding.value ? "Adding…" : "Add to cart"}
-          </button>
-        )}
+              }}
+            >
+              {adding.value ? "Adding…" : "Add to cart"}
+            </button>
+          )}
+
+          {showCardAvailability ? (
+            <AvailabilityCheckButton
+              productId={product.id}
+              variationId={product.variation_id!}
+              block
+              class="product-card__action"
+            />
+          ) : null}
+        </div>
       </div>
     </article>
   );
