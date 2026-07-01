@@ -5,13 +5,15 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Contact;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
+use App\Services\Storefront\RewardPointsService;
 use Illuminate\Http\Request;
 
 class AccountController extends StorefrontController
 {
     public function __construct(
         private CustomerAuthService $authService,
-        private CheckoutService $checkoutService
+        private CheckoutService $checkoutService,
+        private RewardPointsService $rewardPointsService
     ) {
     }
 
@@ -95,5 +97,31 @@ class AccountController extends StorefrontController
         $contact->save();
 
         return $this->jsonSuccess($this->authService->formatContact($contact));
+    }
+
+    public function rewardPoints(Request $request)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        return $this->jsonSuccess($this->rewardPointsService->balancePayload($this->businessId($request), $contact));
+    }
+
+    public function validateRewardRedeem(Request $request)
+    {
+        $data = $request->validate([
+            'requested_points' => 'required|integer|min:0',
+            'order_total' => 'required|numeric|min:0',
+        ]);
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        return $this->jsonSuccess($this->rewardPointsService->validateRedemption(
+            $this->businessId($request),
+            $contact,
+            (int) $data['requested_points'],
+            (float) $data['order_total']
+        ));
     }
 }

@@ -16,6 +16,8 @@ import type {
   ProductDetail,
   ProductSummary,
   ProductsMeta,
+  RewardPointsBalance,
+  RewardPointsValidation,
   StoreLocation,
   StoreSettings,
 } from "./types";
@@ -267,6 +269,23 @@ export function fetchOrderInvoiceUrl(token: string, orderId: number) {
   });
 }
 
+export function fetchRewardPoints(token: string) {
+  return storefrontFetch<RewardPointsBalance>("/account/reward-points", {
+    headers: authHeaders(token),
+  });
+}
+
+export function validateRewardPoints(
+  token: string,
+  payload: { requested_points: number; order_total: number },
+) {
+  return storefrontFetch<RewardPointsValidation>("/account/reward-points/validate", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
 /** Health-check (connectivity / CORS). */
 export function pingApi() {
   return storefrontFetch<{
@@ -275,6 +294,20 @@ export function pingApi() {
     version: string;
     time: string;
   }>("/ping");
+}
+
+export interface ContactFormPayload {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+}
+
+export function submitContactForm(payload: ContactFormPayload) {
+  return storefrontFetch<{ message: string }>("/contact", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export type { AvailabilityLocation, ProductAvailability, ProductDetail, ProductSummary, StoreSettings };

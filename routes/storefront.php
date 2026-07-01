@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Storefront\AvailabilityController;
 use App\Http\Controllers\Api\Storefront\CartController;
 use App\Http\Controllers\Api\Storefront\CategoryController;
 use App\Http\Controllers\Api\Storefront\CheckoutController;
+use App\Http\Controllers\Api\Storefront\ContactController;
 use App\Http\Controllers\Api\Storefront\LocationController;
 use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
@@ -34,6 +35,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/products/{productId}/availability', [AvailabilityController::class, 'show']);
     Route::get('/search', [SearchController::class, 'index']);
 
+    Route::post('/contact', [ContactController::class, 'store']);
+
     Route::post('/cart/validate', [CartController::class, 'validateCart']);
     Route::post('/checkout', [CheckoutController::class, 'store']);
 
@@ -57,5 +60,7 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/orders', [AccountController::class, 'orders']);
         Route::get('/orders/{orderId}', [AccountController::class, 'orderDetail']);
         Route::get('/orders/{orderId}/invoice', [AccountController::class, 'orderInvoice']);
+        Route::get('/reward-points', [AccountController::class, 'rewardPoints']);
+        Route::post('/reward-points/validate', [AccountController::class, 'validateRewardRedeem']);
     });
 });

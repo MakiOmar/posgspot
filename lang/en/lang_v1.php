@@ -317,6 +317,8 @@ return [
     'website' => 'Website',
     'latitude' => 'Latitude',
     'longitude' => 'Longitude',
+    'storefront_display_address' => 'Storefront display address',
+    'storefront_display_address_help' => 'Optional. Shown on the public contact page. If empty, landmark, city, state, country, and zip are combined.',
     'total_credit_amt' => 'Total Credit Amount',
     'unit_sell_price' => 'Unit Sell Price',
     'prefixes' => 'Prefixes',

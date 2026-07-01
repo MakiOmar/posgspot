@@ -58,7 +58,7 @@ class AvailabilityService
             $locationRows[] = [
                 'location_id' => $loc->id,
                 'name' => $loc->name,
-                'address' => $this->settingsApi->composeAddress($loc),
+                'address' => $this->settingsApi->resolveDisplayAddress($loc),
                 'phone' => $loc->mobile,
                 'in_stock' => $inStock,
                 'qty_available' => (float) $qty,

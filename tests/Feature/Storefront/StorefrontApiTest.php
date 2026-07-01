@@ -282,4 +282,45 @@ class StorefrontApiTest extends TestCase
             'items' => $payload['items'],
         ])->assertOk()->assertJsonPath('success', true);
     }
+
+    public function test_contact_form_accepts_valid_payload(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+
+        $response = $this->postJson('/api/storefront/v1/contact', [
+            'name' => 'Test User',
+            'email' => 'visitor@example.com',
+            'phone' => '01001234567',
+            'message' => 'Hello from the storefront contact form.',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => ['message']]);
+
+        \Illuminate\Support\Facades\Mail::assertQueued(\App\Mail\StorefrontContactMessage::class);
+    }
+
+    public function test_locations_use_storefront_address_override(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (! $location) {
+            $this->markTestSkipped('No business location seeded for business 1.');
+        }
+
+        $location->storefront_address = 'Mega Mall, 2nd Floor, New Cairo';
+        $location->save();
+
+        StorefrontSetting::updateOrCreate(
+            ['business_id' => $this->businessId],
+            ['value' => ['selling_location_ids' => [$location->id]]]
+        );
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/locations');
+
+        $response->assertOk();
+        $addresses = collect($response->json('data'))->pluck('address');
+        $this->assertTrue($addresses->contains('Mega Mall, 2nd Floor, New Cairo'));
+    }
 }

@@ -8,11 +8,13 @@ import {
   UserIcon,
 } from "~/components/icons";
 import { CategoriesDrawer } from "~/components/layout/categories-drawer";
+import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
 import { cartSubtotal, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { HEADER_STYLE } from "~/lib/config";
+import { MAIN_NAV_LINKS } from "~/lib/header-nav";
 import { formatPrice } from "~/lib/format";
 import { usePendingState } from "~/lib/pending-context";
 import type { Category, StoreSettings } from "~/lib/types";
@@ -77,12 +79,6 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
             {isStyleOne ? (
               <nav class="header-nav" aria-label="Main">
-                <Link href="/" class="header-nav-link">
-                  Home
-                </Link>
-                <Link href="/products" class="header-nav-link">
-                  Shop
-                </Link>
                 <button
                   type="button"
                   class="header-nav-categories"
@@ -93,6 +89,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                   <MenuIcon size={18} />
                   <span>Categories</span>
                 </button>
+                <HeaderNavItems links={MAIN_NAV_LINKS} linkClass="header-nav-link" />
               </nav>
             ) : null}
 
@@ -167,12 +164,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 <MenuIcon size={18} />
                 <span>Categories</span>
               </button>
-              <Link href="/" class="header-subnav-link">
-                Home
-              </Link>
-              <Link href="/products" class="header-subnav-link">
-                Shop
-              </Link>
+              <HeaderNavItems links={MAIN_NAV_LINKS} linkClass="header-subnav-link" />
             </div>
           </nav>
         ) : null}

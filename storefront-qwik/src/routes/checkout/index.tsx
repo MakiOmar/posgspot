@@ -1,12 +1,13 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
-import { ApiError, checkout, fetchLocations, validateCart } from "~/lib/api";
+import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
+import { ApiError, checkout, fetchLocations, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { usePendingState } from "~/lib/pending-context";
-import type { CheckoutOrder } from "~/lib/types";
+import type { CheckoutOrder, RewardPointsBalance } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -34,29 +35,43 @@ export default component$(() => {
   const error = useSignal<string | null>(null);
   const stockWarning = useSignal<string | null>(null);
   const order = useSignal<CheckoutOrder | null>(null);
+  const rewardBalance = useSignal<RewardPointsBalance | null>(null);
+  const pointsToRedeem = useSignal(0);
+  const redeemAmount = useSignal(0);
+  const redeemValid = useSignal(true);
+  const validatedSubtotal = useSignal(0);
+  const validatedShipping = useSignal(0);
+  const validatedTotal = useSignal(0);
 
   const cartItemsKey = cart.items
     .map((line) => `${line.variationId}:${line.quantity}`)
     .join("|");
 
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => locationId.value);
     track(() => cartItemsKey);
 
     if (cart.items.length === 0 || !locationId.value) {
       stockWarning.value = null;
+      validatedSubtotal.value = 0;
+      validatedShipping.value = 0;
+      validatedTotal.value = 0;
       return;
     }
 
     validatingStock.value = true;
     try {
-      await validateCart({
+      const { data } = await validateCart({
         location_id: locationId.value,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
         })),
       });
+      validatedSubtotal.value = data.subtotal;
+      validatedShipping.value = data.shipping;
+      validatedTotal.value = data.total;
       stockWarning.value = null;
     } catch (err) {
       if (err instanceof ApiError) {
@@ -71,10 +86,38 @@ export default component$(() => {
     }
   });
 
-  const subtotal = cart.items.reduce(
-    (sum, line) => sum + line.price * line.quantity,
-    0,
-  );
+  const subtotal = validatedTotal.value > 0
+    ? validatedSubtotal.value
+    : cart.items.reduce((sum, line) => sum + line.price * line.quantity, 0);
+
+  const checkoutTotal = validatedTotal.value > 0 ? validatedTotal.value : subtotal;
+  const orderTotal = Math.max(0, checkoutTotal - redeemAmount.value);
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async ({ track }) => {
+    track(() => auth.token);
+    track(() => settings.value.reward_points.enabled);
+
+    if (!auth.token || !settings.value.reward_points.enabled) {
+      rewardBalance.value = null;
+      pointsToRedeem.value = 0;
+      redeemAmount.value = 0;
+      redeemValid.value = true;
+      return;
+    }
+
+    try {
+      const { data } = await fetchRewardPoints(auth.token);
+      rewardBalance.value = data;
+    } catch {
+      rewardBalance.value = null;
+    }
+  });
+
+  const onRewardPointsChange$ = $((points: number, amount: number, isValid: boolean) => {
+    pointsToRedeem.value = points;
+    redeemAmount.value = amount;
+    redeemValid.value = isValid || points === 0;
+  });
 
   const submitOrder$ = $(async (form: HTMLFormElement) => {
     if (cart.items.length === 0 || !locationId.value) {
@@ -82,18 +125,24 @@ export default component$(() => {
       return;
     }
 
+    if (pointsToRedeem.value > 0 && !redeemValid.value) {
+      error.value = "Please fix reward points before placing your order.";
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       error.value = null;
 
       const formData = new FormData(form);
-      const payload = {
+      const items = cart.items.map((line) => ({
+        variation_id: line.variationId,
+        quantity: line.quantity,
+      }));
+      const payload: Record<string, unknown> = {
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         location_id: locationId.value,
         payment_method: "cod",
-        items: cart.items.map((line) => ({
-          variation_id: line.variationId,
-          quantity: line.quantity,
-        })),
+        items,
         customer: {
           first_name: String(formData.get("first_name") || ""),
           last_name: String(formData.get("last_name") || ""),
@@ -108,10 +157,14 @@ export default component$(() => {
         order_note: String(formData.get("order_note") || ""),
       };
 
+      if (pointsToRedeem.value > 0) {
+        payload.reward_points = pointsToRedeem.value;
+      }
+
       try {
         await validateCart({
           location_id: locationId.value,
-          items: payload.items,
+          items,
         });
         const { data } = await checkout(payload, auth.token ?? undefined);
         order.value = data;
@@ -244,6 +297,34 @@ export default component$(() => {
             <p class="alert alert-error">COD is not available right now.</p>
           )}
 
+          {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 ? (
+            <RewardPointsRedeem
+              token={auth.token}
+              balance={rewardBalance.value}
+              orderTotal={checkoutTotal}
+              currency={settings.value.currency}
+              pointsToRedeem={pointsToRedeem.value}
+              onPointsChange$={onRewardPointsChange$}
+            />
+          ) : auth.token && rewardBalance.value?.enabled ? (
+            <div class="reward-points-redeem reward-points-redeem--inactive">
+              <h3 class="reward-points-redeem__title">
+                {rewardBalance.value.name || "Reward Points"}
+              </h3>
+              <p class="footer-muted">
+                {(rewardBalance.value.available ?? 0) < (rewardBalance.value.min_redeem_points ?? 1)
+                  ? (rewardBalance.value.available ?? 0) <= 0
+                    ? "You have no reward points available to redeem on this order."
+                    : `You need at least ${rewardBalance.value.min_redeem_points ?? 1} points to redeem (you have ${rewardBalance.value.available}).`
+                  : "Reward points cannot be applied to this order right now."}
+              </p>
+            </div>
+          ) : !auth.token && settings.value.reward_points.enabled ? (
+            <p class="footer-muted">
+              <Link href="/login?next=/checkout">Sign in</Link> to redeem reward points at checkout.
+            </p>
+          ) : null}
+
           <button
             type="submit"
             class="btn btn-primary btn-block"
@@ -251,7 +332,8 @@ export default component$(() => {
               submitting.value ||
               validatingStock.value ||
               Boolean(stockWarning.value) ||
-              !settings.value.cod_enabled
+              !settings.value.cod_enabled ||
+              (pointsToRedeem.value > 0 && !redeemValid.value)
             }
           >
             {submitting.value ? "Placing order…" : "Place order"}
@@ -278,6 +360,33 @@ export default component$(() => {
               </li>
             ))}
           </ul>
+          {validatedShipping.value > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "0.5rem",
+                fontSize: "0.875rem",
+              }}
+            >
+              <span>Shipping</span>
+              <span>{formatPrice(validatedShipping.value, settings.value.currency)}</span>
+            </div>
+          ) : null}
+          {redeemAmount.value > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "0.75rem",
+                fontSize: "0.875rem",
+                color: "var(--gs-accent)",
+              }}
+            >
+              <span>Reward points</span>
+              <span>-{formatPrice(redeemAmount.value, settings.value.currency)}</span>
+            </div>
+          ) : null}
           <div
             style={{
               display: "flex",
@@ -287,7 +396,7 @@ export default component$(() => {
             }}
           >
             <span>Total</span>
-            <span>{formatPrice(subtotal, settings.value.currency)}</span>
+            <span>{formatPrice(orderTotal, settings.value.currency)}</span>
           </div>
         </aside>
       </div>

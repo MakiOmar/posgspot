@@ -45,6 +45,10 @@ export interface StoreSettings {
   };
   cod_enabled: boolean;
   maintenance_mode: boolean;
+  reward_points: {
+    enabled: boolean;
+    name: string;
+  };
   locales: string[];
 }
 
@@ -239,4 +243,32 @@ export interface AccountOrderDetail extends AccountOrder {
   fulfillment_location: string | null;
   /** POS invoice page with auto-print; only when payment_status is paid */
   invoice_print_url: string | null;
+}
+
+export interface RewardPointsBalance {
+  enabled: boolean;
+  name: string;
+  available?: number;
+  used?: number;
+  expired?: number;
+  value?: number;
+  max_redeem_points?: number;
+  amount_per_point?: number;
+  min_redeem_points?: number;
+  max_redeem_points_limit?: number;
+  min_order_total_for_redeem?: number;
+}
+
+export interface RewardPointsValidation {
+  is_valid: boolean;
+  message: string | null;
+  requested_points: number;
+  redeem_amount: number;
+  available_points: number;
+  max_points: number;
+  amount_per_point: number;
+  min_redeem_points: number;
+  max_redeem_points_limit: number;
+  min_order_total_for_redeem: number;
+  order_total: number;
 }

@@ -28,13 +28,14 @@ Errors:
 |--------|------|-------------|
 | GET | `/ping` | Health check |
 | GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`) |
-| GET | `/locations` | Selling locations (`sells_online = 1`); location email is `email_encoded` (base64), not raw |
+| GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
 | GET | `/products/{idOrSlug}` | Product detail |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
+| POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings) |
 | POST | `/cart/validate` | Revalidate cart lines (price + stock). When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations |
 | POST | `/checkout` | Create order (idempotent) |
 | POST | `/payments/{provider}/webhook` | Payment gateway callback |

@@ -46,6 +46,10 @@ class SettingsApiService
             ],
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
+            'reward_points' => [
+                'enabled' => (int) ($business->enable_rp ?? 0) === 1,
+                'name' => $business->rp_name ?? 'Reward Points',
+            ],
             'locales' => ['en', 'ar'],
         ];
     }
@@ -84,7 +88,7 @@ class SettingsApiService
         return [
             'id' => $loc->id,
             'name' => $loc->name,
-            'address' => $this->composeAddress($loc),
+            'address' => $this->resolveDisplayAddress($loc),
             'phone' => $loc->mobile,
             'email_encoded' => $this->encodePublicEmail($loc->email),
             'enable_pickup' => (bool) ($loc->enable_pickup ?? false),
@@ -92,6 +96,19 @@ class SettingsApiService
             'longitude' => $loc->longitude,
             'maps_url' => $this->mapsUrl($loc),
         ];
+    }
+
+    /**
+     * Public storefront address: optional override, else composed landmark/city fields.
+     */
+    public function resolveDisplayAddress(BusinessLocation $loc): string
+    {
+        $override = trim((string) ($loc->storefront_address ?? ''));
+        if ($override !== '') {
+            return $override;
+        }
+
+        return $this->composeAddress($loc);
     }
 
     /**
@@ -123,7 +140,7 @@ class SettingsApiService
             return 'https://www.google.com/maps?q='.$loc->latitude.','.$loc->longitude;
         }
 
-        $address = $this->composeAddress($loc);
+        $address = $this->resolveDisplayAddress($loc);
         if ($address === '') {
             return null;
         }

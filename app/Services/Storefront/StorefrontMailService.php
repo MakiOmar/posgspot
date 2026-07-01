@@ -88,6 +88,22 @@ class StorefrontMailService
         return ['address' => $address, 'name' => $name];
     }
 
+    /**
+     * Inbox for public contact form submissions (SMTP username from business email settings).
+     */
+    public function contactRecipient(int $businessId): string
+    {
+        $business = Business::find($businessId);
+        $emailSettings = $this->emailSettingsForBusiness($business);
+        $username = trim((string) ($emailSettings['mail_username'] ?? ''));
+
+        if ($username !== '' && filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            return $username;
+        }
+
+        return $this->resolveFrom($businessId, $emailSettings, $business)['address'];
+    }
+
     private function emailSettingsForBusiness(?Business $business): array
     {
         if (empty($business) || empty($business->email_settings)) {

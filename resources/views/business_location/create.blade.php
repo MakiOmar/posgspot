@@ -30,6 +30,14 @@
                     </div>
                 </div>
                 <div class="clearfix"></div>
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        {!! Form::label('storefront_address', __( 'lang_v1.storefront_display_address' ) . ':') !!}
+                        {!! Form::textarea('storefront_address', null, ['class' => 'form-control', 'rows' => 2, 'placeholder' => __( 'lang_v1.storefront_display_address_help' ) ]); !!}
+                        <p class="help-block">@lang('lang_v1.storefront_display_address_help')</p>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
                 <div class="col-sm-6">
                     <div class="form-group">
                         {!! Form::label('city', __( 'business.city' ) . ':*') !!}

@@ -33,6 +33,7 @@ class CheckoutController extends StorefrontController
             'billing_address' => 'nullable|array',
             'shipping_method' => 'nullable|string|max:191',
             'order_note' => 'nullable|string|max:1000',
+            'reward_points' => 'nullable|integer|min:0',
         ]);
 
         $data['storefront_order_id'] = $data['idempotency_key'];

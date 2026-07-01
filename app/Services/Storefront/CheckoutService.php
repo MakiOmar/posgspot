@@ -20,7 +20,8 @@ class CheckoutService
         private CartValidationService $cartValidation,
         private ContactUtil $contactUtil,
         private TransactionUtil $transactionUtil,
-        private ProductUtil $productUtil
+        private ProductUtil $productUtil,
+        private RewardPointsService $rewardPointsService
     ) {
     }
 
@@ -56,12 +57,48 @@ class CheckoutService
 
         $contact = $authContact ?? $this->resolveGuestContact($businessId, $payload['customer'] ?? []);
 
+        $requestedRewardPoints = (int) ($payload['reward_points'] ?? 0);
+        $rpRedeemed = 0;
+        $rpRedeemedAmount = 0.0;
+        $orderTotalBeforeRedeem = (float) $validated['total'];
+
+        if ($requestedRewardPoints > 0) {
+            if (empty($authContact)) {
+                throw ValidationException::withMessages(['reward_points' => ['Sign in to redeem reward points.']]);
+            }
+
+            $redemption = $this->rewardPointsService->resolveCheckoutRedemption(
+                $businessId,
+                $authContact,
+                $requestedRewardPoints,
+                $orderTotalBeforeRedeem
+            );
+            $rpRedeemed = $redemption['points'];
+            $rpRedeemedAmount = $redemption['amount'];
+        }
+
         DB::beginTransaction();
 
         try {
+            if ($rpRedeemed > 0) {
+                $contact = Contact::where('business_id', $businessId)
+                    ->where('id', $contact->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $redemption = $this->rewardPointsService->resolveCheckoutRedemption(
+                    $businessId,
+                    $contact,
+                    $requestedRewardPoints,
+                    $orderTotalBeforeRedeem
+                );
+                $rpRedeemed = $redemption['points'];
+                $rpRedeemedAmount = $redemption['amount'];
+            }
+
             $shipping = (float) $validated['shipping'];
             $subtotal = (float) $validated['subtotal'];
-            $finalTotal = (float) $validated['total'];
+            $finalTotal = max(0, round($orderTotalBeforeRedeem - $rpRedeemedAmount, 4));
 
             $invoiceTotal = [
                 'total_before_tax' => $subtotal,
@@ -92,6 +129,8 @@ class CheckoutService
                 'shipping_status' => 'ordered',
                 'order_addresses' => $orderAddresses,
                 'is_created_from_api' => 1,
+                'rp_redeemed' => $rpRedeemed,
+                'rp_redeemed_amount' => $rpRedeemedAmount,
             ];
 
             if ($paymentMethod === 'cod') {
@@ -135,6 +174,15 @@ class CheckoutService
 
             $transaction->payment_status = $paymentMethod === 'cod' ? 'due' : 'due';
             $transaction->save();
+
+            if ($rpRedeemed > 0 && $this->rewardPointsService->isEnabled($businessId)) {
+                $this->transactionUtil->updateCustomerRewardPoints(
+                    $contact->id,
+                    $transaction->rp_earned,
+                    0,
+                    $rpRedeemed
+                );
+            }
 
             DB::commit();
 

@@ -41,6 +41,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
     outOfStock &&
     (settings.catalog?.show_availability_on_cards ?? true) &&
     product.variation_id != null;
+  const showActions = showCardAvailability || !outOfStock;
 
   return (
     <article class="product-card">
@@ -88,49 +89,49 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
           {product.in_stock ? "In stock" : "Out of stock"}
         </span>
 
-        <div class="product-card__actions">
-          {hasOptions ? (
-            <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
-              View options
-            </Link>
-          ) : (
-            <button
-              type="button"
-              class={`btn btn-primary btn-block product-card__action${outOfStock ? " btn--disabled" : ""}`}
-              disabled={outOfStock || !product.variation_id || adding.value}
-              aria-disabled={outOfStock || !product.variation_id || adding.value}
-              onClick$={async () => {
-                const variationId = product.variation_id;
-                if (!variationId || outOfStock) {
-                  return;
-                }
-                await withPendingFeedback(pending, adding, async () => {
-                  await addCartItem(cart, {
-                    productId: product.id,
-                    variationId,
-                    slug: product.slug,
-                    name: product.name,
-                    variationName: product.variation_name || "DUMMY",
-                    price: product.price,
-                    quantity: 1,
-                    imageUrl: product.image_url,
+        {showActions ? (
+          <div class="product-card__actions">
+            {showCardAvailability ? (
+              <AvailabilityCheckButton
+                productId={product.id}
+                variationId={product.variation_id!}
+                block
+                class="product-card__action"
+              />
+            ) : hasOptions ? (
+              <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
+                View options
+              </Link>
+            ) : (
+              <button
+                type="button"
+                class="btn btn-primary btn-block product-card__action"
+                disabled={!product.variation_id || adding.value}
+                aria-disabled={!product.variation_id || adding.value}
+                onClick$={async () => {
+                  const variationId = product.variation_id;
+                  if (!variationId) {
+                    return;
+                  }
+                  await withPendingFeedback(pending, adding, async () => {
+                    await addCartItem(cart, {
+                      productId: product.id,
+                      variationId,
+                      slug: product.slug,
+                      name: product.name,
+                      variationName: product.variation_name || "DUMMY",
+                      price: product.price,
+                      quantity: 1,
+                      imageUrl: product.image_url,
+                    });
                   });
-                });
-              }}
-            >
-              {adding.value ? "Adding…" : "Add to cart"}
-            </button>
-          )}
-
-          {showCardAvailability ? (
-            <AvailabilityCheckButton
-              productId={product.id}
-              variationId={product.variation_id!}
-              block
-              class="product-card__action"
-            />
-          ) : null}
-        </div>
+                }}
+              >
+                {adding.value ? "Adding…" : "Add to cart"}
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
     </article>
   );

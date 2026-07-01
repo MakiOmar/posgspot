@@ -11,6 +11,11 @@ export function formatPrice(
     : `${fixed}${currency.symbol}`;
 }
 
+/** Format integers with locale grouping (e.g. 19,089). */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat().format(value);
+}
+
 /** Product URL slug segment (prefers slug, falls back to id). */
 export function productPath(product: { id: number; slug: string | null }): string {
   return `/products/${product.slug || product.id}`;
