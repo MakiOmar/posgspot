@@ -47,6 +47,20 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
           </ul>
         </div>
         <div>
+          <h3>Policies</h3>
+          <ul>
+            <li>
+              <Link href="/terms-and-conditions">Terms &amp; Conditions</Link>
+            </li>
+            <li>
+              <Link href="/privacy-policy">Privacy Policy</Link>
+            </li>
+            <li>
+              <Link href="/return-policy">Return &amp; Exchange</Link>
+            </li>
+          </ul>
+        </div>
+        <div>
           <h3>Follow us</h3>
           <div class="footer-social">
             {settings.social.facebook && settings.social.facebook !== "#" ? (

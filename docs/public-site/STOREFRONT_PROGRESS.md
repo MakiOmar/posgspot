@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-06-30 |
+| **Last updated** | 2026-07-01 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; launch polish, i18n, and card payments **open** |
+| **Overall** | Core shop loop **done**; Sprint 1 launch hygiene **done**; i18n and card payments **open** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -22,8 +22,8 @@
 | Header / footer spec | 🟡 Core wired; wishlist, mini-cart, policies missing |
 | i18n / RTL (AR + EN) | ⬜ |
 | Online card payments (checkout UI) | ⬜ Webhook exists; UI COD-only |
-| SEO launch pack (sitemap, legal, breadcrumbs) | 🟡 Per-route meta partial; sitemap/legal missing |
-| Automated tests | 🟡 API feature tests; no E2E checkout test |
+| SEO launch pack (sitemap, legal, breadcrumbs) | 🟡 Legal pages + robots/sitemap done; PDP breadcrumbs open |
+| Automated tests | 🟡 API feature tests incl. checkout E2E; no Qwik tests |
 
 ---
 
@@ -64,8 +64,9 @@
 | `/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
 | `/contact` | ✅ | Form + branches + map |
 | `/about`, `/faq` | ✅ | Static content + FAQ JSON-LD |
+| `/terms-and-conditions`, `/privacy-policy`, `/return-policy` | ✅ | Legal copy from gamesspoteg.com |
 | `/add-customer` | ✅ | Standalone in-store signup (no site shell) |
-| Wishlist, legal pages, `/search` page | ⬜ | |
+| Wishlist, dedicated `/search` page | ⬜ | |
 
 ---
 
@@ -104,7 +105,7 @@
 | Language switcher AR/EN | ⬜ | API exposes `locales`; no UI |
 | Wishlist | ⬜ | |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` |
-| Footer policies, newsletter, payment icons | ⬜ | |
+| Footer policies, newsletter, payment icons | 🟡 Policies linked; newsletter/payment icons open | |
 
 ---
 
@@ -130,7 +131,7 @@
 | `noindex` on cart, checkout, account, auth | ✅ | |
 | Canonical / hreflang | ⬜ | |
 | Breadcrumbs (UI + schema) | 🟡 | Contact, FAQ only |
-| `robots.txt` / `sitemap.xml` | ⬜ | |
+| `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes `robots.txt`, `sitemap.xml` (products + categories from API) |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
 
 ---
@@ -148,18 +149,18 @@
 | Add-customer + geo + phone | ✅ |
 | Reward points | ✅ |
 | Invoice print URL (unit) | ✅ |
-| Checkout E2E feature test | ⬜ |
+| Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` |
 | Frontend (Qwik) tests | ⬜ |
 
 ---
 
 ## Recommended next (priority order)
 
-1. **Launch hygiene** — commit/deploy staging; legal pages + footer links; `robots.txt` + `sitemap.xml`.
-2. **PLP + search UI** — sort/filter controls (API ready); header search autocomplete via `GET /search`.
-3. **Arabic / English + RTL** — language switcher + translations (Egypt market).
-4. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
-5. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery.
+1. **PLP + search UI** — sort/filter controls (API ready); header search autocomplete via `GET /search`.
+2. **Arabic / English + RTL** — language switcher + translations (Egypt market).
+3. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
+4. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery.
+5. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
 
 ---
 
@@ -167,6 +168,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-01 | Sprint 1 launch hygiene: legal pages (terms, privacy, return), footer policy links, dynamic robots.txt + sitemap.xml, checkout E2E tests. |
 | 2026-06-30 | Progress tracker created; reflects Phase 1 MVP state through reward points, contact, add-customer, invoice print, OOS card actions, 4-col grid, theme SPA fix. |
 
 ---
