@@ -176,6 +176,7 @@ export function registerCustomer(payload: {
   mobile: string;
   password: string;
   password_confirmation: string;
+  dial_code?: string;
 }) {
   return storefrontFetch<AuthSession>("/auth/register", {
     method: "POST",
@@ -305,6 +306,54 @@ export interface ContactFormPayload {
 
 export function submitContactForm(payload: ContactFormPayload) {
   return storefrontFetch<{ message: string }>("/contact", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchPhoneCountries() {
+  return storefrontFetch<import("./phone-validation").PhoneCountry[]>("/phone-countries");
+}
+
+export function fetchGeoCountries() {
+  return storefrontFetch<import("./phone-validation").GeoCountry[]>("/geo/countries");
+}
+
+export function fetchGeoStates(countryCode: string) {
+  return storefrontFetch<import("./phone-validation").GeoState[]>(
+    `/geo/states/${encodeURIComponent(countryCode)}`,
+  );
+}
+
+export type AddCustomerPayload = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  birth_date: string;
+  country: string;
+  state: string;
+  mobile: string;
+  dial_code?: string;
+};
+
+export type AddCustomerResult = {
+  contact: {
+    id: number;
+    name: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+    mobile: string;
+    country: string | null;
+    state: string | null;
+    dob: string | null;
+  };
+  message: string;
+  created: boolean;
+};
+
+export function addCustomer(payload: AddCustomerPayload) {
+  return storefrontFetch<AddCustomerResult>("/customers/add", {
     method: "POST",
     body: JSON.stringify(payload),
   });

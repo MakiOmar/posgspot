@@ -7,7 +7,10 @@ use App\Http\Controllers\Api\Storefront\CartController;
 use App\Http\Controllers\Api\Storefront\CategoryController;
 use App\Http\Controllers\Api\Storefront\CheckoutController;
 use App\Http\Controllers\Api\Storefront\ContactController;
+use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
+use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\LocationController;
+use App\Http\Controllers\Api\Storefront\PhoneCountryController;
 use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
 use App\Http\Controllers\Api\Storefront\ProductController;
@@ -27,6 +30,10 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/ping', PingController::class)->name('storefront.ping');
 
     Route::get('/settings', [SettingsController::class, 'show']);
+    Route::get('/phone-countries', [PhoneCountryController::class, 'index']);
+    Route::get('/geo/countries', [GeoController::class, 'countries']);
+    Route::get('/geo/states/{countryCode}', [GeoController::class, 'states']);
+    Route::post('/customers/add', [CustomerRegistrationController::class, 'store']);
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);

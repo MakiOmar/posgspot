@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Storefront;
 
 use App\Contact;
 use App\Services\Storefront\CustomerAuthService;
+use App\Services\Storefront\PhoneValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -14,8 +15,10 @@ use Illuminate\Support\Facades\Log;
 
 class AuthController extends StorefrontController
 {
-    public function __construct(private CustomerAuthService $authService)
-    {
+    public function __construct(
+        private CustomerAuthService $authService,
+        private PhoneValidationService $phoneValidation
+    ) {
     }
 
     public function register(Request $request)
@@ -26,11 +29,30 @@ class AuthController extends StorefrontController
             'email' => 'required|email|max:191',
             'mobile' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
+            'dial_code' => 'nullable|string|max:6',
         ]);
+
+        $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['mobile']);
+        $phoneCheck = $this->phoneValidation->validate($data['mobile'], $dialCode);
+        if (! $phoneCheck['valid']) {
+            return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
+        }
 
         $result = $this->authService->register($this->businessId($request), $data);
 
         return $this->jsonSuccess($result, [], 201);
+    }
+
+    private function inferDialCode(string $mobile): string
+    {
+        foreach ($this->phoneValidation->getCountriesData() as $country) {
+            $dial = $country['dial_code'] ?? '';
+            if ($dial !== '' && str_starts_with($mobile, $dial)) {
+                return $dial;
+            }
+        }
+
+        return '+20';
     }
 
     public function login(Request $request)

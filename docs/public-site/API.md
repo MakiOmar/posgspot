@@ -1,5 +1,7 @@
 # Storefront API v1
 
+**Progress tracker:** [`STOREFRONT_PROGRESS.md`](./STOREFRONT_PROGRESS.md)
+
 Base URL: `/api/storefront/v1`
 
 All responses use the envelope:

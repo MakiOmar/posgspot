@@ -1,5 +1,7 @@
 # Public Customer Storefront — Feature Requirements
 
+> **Implementation status (living doc):** [`STOREFRONT_PROGRESS.md`](./STOREFRONT_PROGRESS.md) — what is built vs still open. Agents and developers should keep it updated as work ships.
+
 This document defines the features a **public-facing e-commerce website** should provide so customers get a **professional online shopping experience**, while staying integrated with the **Games Spot POS** back office (Ultimate POS).
 
 The storefront is the customer layer; the POS remains the **single source of truth** for products, inventory, pricing, orders, customers, payments, and fulfillment.

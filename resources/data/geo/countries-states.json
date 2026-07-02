@@ -1,0 +1,69 @@
+{
+  "states": {
+    "EG": {
+      "ALX": "Alexandria",
+      "ASN": "Aswan",
+      "AST": "Asyut",
+      "BH": "Red Sea",
+      "BNS": "Beni Suef",
+      "C": "Cairo",
+      "DK": "Dakahlia",
+      "DT": "Damietta",
+      "FYM": "Faiyum",
+      "GH": "Gharbia",
+      "GZ": "Giza",
+      "IS": "Ismailia",
+      "JS": "South Sinai",
+      "KB": "Qalyubia",
+      "KFS": "Kafr el-Sheikh",
+      "KN": "Qena",
+      "LX": "Luxor",
+      "MN": "Minya",
+      "MNF": "Monufia",
+      "MT": "Matrouh",
+      "PTS": "Port Said",
+      "SHG": "Sohag",
+      "SHR": "Sharqia",
+      "SIN": "North Sinai",
+      "SUZ": "Suez",
+      "WAD": "New Valley"
+    },
+    "SA": {
+      "01": "Riyadh",
+      "02": "Makkah",
+      "03": "Madinah",
+      "04": "Eastern Province",
+      "05": "Qassim",
+      "06": "Ha'il",
+      "07": "Tabuk",
+      "08": "Northern Borders",
+      "09": "Jizan",
+      "10": "Najran",
+      "11": "Bahah",
+      "12": "Jawf",
+      "14": "Asir"
+    },
+    "AE": {
+      "AZ": "Abu Dhabi",
+      "AJ": "Ajman",
+      "DU": "Dubai",
+      "FU": "Fujairah",
+      "RK": "Ras al-Khaimah",
+      "SH": "Sharjah",
+      "UQ": "Umm al-Quwain"
+    },
+    "US": {
+      "CA": "California",
+      "TX": "Texas",
+      "NY": "New York",
+      "FL": "Florida",
+      "IL": "Illinois"
+    },
+    "GB": {
+      "ENG": "England",
+      "SCT": "Scotland",
+      "WLS": "Wales",
+      "NIR": "Northern Ireland"
+    }
+  }
+}

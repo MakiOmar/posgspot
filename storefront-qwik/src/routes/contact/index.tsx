@@ -1,9 +1,11 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { MapPinIcon, PhoneIcon } from "~/components/icons";
+import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
-import { ApiError, fetchLocations, submitContactForm } from "~/lib/api";
+import { ApiError, fetchLocations, fetchPhoneCountries, submitContactForm } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
+import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { StoreLocation } from "~/lib/types";
@@ -16,6 +18,15 @@ export const useContactLocations = routeLoader$(async () => {
     return data;
   } catch {
     return [] as StoreLocation[];
+  }
+});
+
+export const useContactPhoneCountries = routeLoader$(async () => {
+  try {
+    const { data } = await fetchPhoneCountries();
+    return data;
+  } catch {
+    return [];
   }
 });
 
@@ -33,11 +44,14 @@ function mapEmbedUrl(locations: StoreLocation[]): string {
 export default component$(() => {
   const settings = useSiteSettings();
   const locations = useContactLocations();
+  const phoneCountries = useContactPhoneCountries();
   const pending = usePendingState();
   const submitting = useSignal(false);
   const form = useStore({
     name: "",
     email: "",
+    dialCode: "+20",
+    nationalNumber: "",
     phone: "",
     message: "",
   });
@@ -47,16 +61,24 @@ export default component$(() => {
   const emailEncoded = settings.value.contact?.email_encoded || "";
 
   const submit$ = $(async () => {
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    if (!phoneCheck.valid) {
+      await toastError(phoneCheck.message);
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await submitContactForm({
           name: form.name.trim(),
           email: form.email.trim(),
-          phone: form.phone.trim(),
+          phone: phoneCheck.fullPhone,
           message: form.message.trim(),
         });
         form.name = "";
         form.email = "";
+        form.dialCode = "+20";
+        form.nationalNumber = "";
         form.phone = "";
         form.message = "";
         await toastSuccess(data.message);
@@ -148,53 +170,70 @@ export default component$(() => {
         </h2>
 
         <form class="contact-form" preventdefault:submit onSubmit$={submit$}>
-          <div class="form-field">
-            <label for="contact-name">Name *</label>
+          <div class="form-field form-field--left">
+            <label for="contact-name">
+              Name <span class="form-required" aria-hidden="true">*</span>
+            </label>
             <input
               id="contact-name"
               type="text"
               name="name"
               required
+              placeholder="Your full name"
               value={form.name}
               onInput$={(_, el) => (form.name = el.value)}
             />
           </div>
-          <div class="form-field">
-            <label for="contact-email">Email *</label>
+          <div class="form-field form-field--right">
+            <label for="contact-email">
+              Email <span class="form-required" aria-hidden="true">*</span>
+            </label>
             <input
               id="contact-email"
               type="email"
               name="email"
               required
+              placeholder="you@example.com"
               value={form.email}
               onInput$={(_, el) => (form.email = el.value)}
             />
           </div>
-          <div class="form-field">
-            <label for="contact-phone">Phone *</label>
-            <input
+          <div class="form-field form-field--left">
+            <label for="contact-phone">
+              Phone <span class="form-required" aria-hidden="true">*</span>
+            </label>
+            <PhoneInputWithDialCode
               id="contact-phone"
-              type="tel"
-              name="phone"
+              countries={phoneCountries.value}
+              dialCode={form.dialCode}
+              nationalNumber={form.nationalNumber}
               required
-              value={form.phone}
-              onInput$={(_, el) => (form.phone = el.value)}
+              onChange$={(value) => {
+                form.dialCode = value.dialCode;
+                form.nationalNumber = value.nationalNumber;
+                form.phone = value.fullPhone;
+              }}
             />
           </div>
-          <div class="form-field form-field--full">
-            <label for="contact-message">Your message *</label>
+          <div class="form-field form-field--right contact-form-message">
+            <label for="contact-message">
+              Your message <span class="form-required" aria-hidden="true">*</span>
+            </label>
             <textarea
               id="contact-message"
               name="message"
               rows={5}
               required
+              placeholder="How can we help?"
               value={form.message}
               onInput$={(_, el) => (form.message = el.value)}
             />
           </div>
-          <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-            {submitting.value ? "Sending…" : "Send message"}
-          </button>
+          <div class="form-actions form-actions--left">
+            <button type="submit" class="btn btn-primary" disabled={submitting.value}>
+              {submitting.value ? "Sending…" : "Send message"}
+            </button>
+          </div>
         </form>
       </section>
     </article>

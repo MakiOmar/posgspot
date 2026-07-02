@@ -1,19 +1,33 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
-import { ApiError, registerCustomer } from "~/lib/api";
+import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { ApiError, fetchPhoneCountries, registerCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { toastError } from "~/lib/notify";
+import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
+
+export const useRegisterPhoneCountries = routeLoader$(async () => {
+  try {
+    const { data } = await fetchPhoneCountries();
+    return data;
+  } catch {
+    return [];
+  }
+});
 
 export default component$(() => {
   const auth = useAuth();
   const nav = useNavigate();
   const pending = usePendingState();
+  const phoneCountries = useRegisterPhoneCountries();
   const form = useStore({
     first_name: "",
     last_name: "",
     email: "",
+    dialCode: "+20",
+    nationalNumber: "",
     mobile: "",
     password: "",
     password_confirmation: "",
@@ -37,15 +51,22 @@ export default component$(() => {
       return;
     }
 
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    if (!phoneCheck.valid) {
+      await toastError(phoneCheck.message);
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await registerCustomer({
           first_name: form.first_name,
           last_name: form.last_name,
           email: form.email,
-          mobile: form.mobile,
+          mobile: phoneCheck.fullPhone,
           password: form.password,
           password_confirmation: form.password_confirmation,
+          dial_code: form.dialCode,
         });
         succeeded.value = true;
         auth.token = data.token;
@@ -62,8 +83,6 @@ export default component$(() => {
     });
   });
 
-  // After a successful registration, hide the form and show a confirmation
-  // while the client redirects to the account area.
   if (succeeded.value) {
     return (
       <section class="auth-page container">
@@ -102,8 +121,19 @@ export default component$(() => {
               <input id="email" type="email" autoComplete="email" value={form.email} onInput$={(_, el) => (form.email = el.value)} required />
             </div>
             <div class="form-field">
-              <label for="mobile">Mobile</label>
-              <input id="mobile" type="tel" autoComplete="tel" value={form.mobile} onInput$={(_, el) => (form.mobile = el.value)} required />
+              <label for="register-mobile">Mobile</label>
+              <PhoneInputWithDialCode
+                id="register-mobile"
+                countries={phoneCountries.value}
+                dialCode={form.dialCode}
+                nationalNumber={form.nationalNumber}
+                required
+                onChange$={(value) => {
+                  form.dialCode = value.dialCode;
+                  form.nationalNumber = value.nationalNumber;
+                  form.mobile = value.fullPhone;
+                }}
+              />
             </div>
             <div class="form-field">
               <label for="password">Password</label>

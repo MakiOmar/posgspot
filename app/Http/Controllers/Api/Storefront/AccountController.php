@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Contact;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
+use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\RewardPointsService;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,8 @@ class AccountController extends StorefrontController
     public function __construct(
         private CustomerAuthService $authService,
         private CheckoutService $checkoutService,
-        private RewardPointsService $rewardPointsService
+        private RewardPointsService $rewardPointsService,
+        private PhoneValidationService $phoneValidation
     ) {
     }
 
@@ -29,7 +31,16 @@ class AccountController extends StorefrontController
             'last_name' => 'nullable|string|max:191',
             'email' => 'nullable|email|max:191',
             'mobile' => 'nullable|string|max:20',
+            'dial_code' => 'nullable|string|max:6',
         ]);
+
+        if (! empty($data['mobile'])) {
+            $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['mobile']);
+            $phoneCheck = $this->phoneValidation->validate($data['mobile'], $dialCode);
+            if (! $phoneCheck['valid']) {
+                return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
+            }
+        }
 
         /** @var Contact $contact */
         $contact = $request->user();
@@ -123,5 +134,17 @@ class AccountController extends StorefrontController
             (int) $data['requested_points'],
             (float) $data['order_total']
         ));
+    }
+
+    private function inferDialCode(string $mobile): string
+    {
+        foreach ($this->phoneValidation->getCountriesData() as $country) {
+            $dial = $country['dial_code'] ?? '';
+            if ($dial !== '' && str_starts_with($mobile, $dial)) {
+                return $dial;
+            }
+        }
+
+        return '+20';
     }
 }

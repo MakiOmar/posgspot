@@ -1,5 +1,5 @@
 import { component$, Slot } from "@builder.io/qwik";
-import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
 import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
@@ -60,24 +60,33 @@ const SiteShellFooter = component$(() => {
 export default component$(() => {
   const settings = useSiteSettings();
   const categories = useNavCategories();
+  const loc = useLocation();
+  const isLandingPage = loc.url.pathname === "/add-customer" || loc.url.pathname.endsWith("/add-customer");
 
-  return (
-    <PendingProvider>
-      <GlobalPendingIndicator />
-      <SiteShellProvider settings={settings.value} categories={categories.value}>
-        <AuthProvider>
-          <CartProvider>
+  const shell = (
+    <SiteShellProvider settings={settings.value} categories={categories.value}>
+      <AuthProvider>
+        <CartProvider>
+          {isLandingPage ? (
+            <Slot />
+          ) : (
             <div class="site-shell">
               <SiteShellHeader />
               <main class="site-main">
-                {/* Qwik City route outlet must live in the layout default export tree. */}
                 <Slot />
               </main>
               <SiteShellFooter />
             </div>
-          </CartProvider>
-        </AuthProvider>
-      </SiteShellProvider>
+          )}
+        </CartProvider>
+      </AuthProvider>
+    </SiteShellProvider>
+  );
+
+  return (
+    <PendingProvider>
+      <GlobalPendingIndicator />
+      {shell}
     </PendingProvider>
   );
 });

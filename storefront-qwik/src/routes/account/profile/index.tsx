@@ -1,8 +1,10 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { type DocumentHead } from "@builder.io/qwik-city";
-import { updateAddress, updateProfile } from "~/lib/api";
+import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { fetchPhoneCountries, updateAddress, updateProfile } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { toastError, toastSuccess } from "~/lib/notify";
+import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
 import type { AuthContact } from "~/lib/types";
@@ -11,6 +13,8 @@ interface ProfileForm {
   first_name: string;
   last_name: string;
   email: string;
+  dialCode: string;
+  nationalNumber: string;
   mobile: string;
   address_line_1: string;
   address_line_2: string;
@@ -20,11 +24,13 @@ interface ProfileForm {
   zip_code: string;
 }
 
-function formFromContact(c: AuthContact | null): ProfileForm {
+function formFromContact(c: AuthContact | null, dialCode: string, nationalNumber: string): ProfileForm {
   return {
     first_name: c?.first_name || "",
     last_name: c?.last_name || "",
     email: c?.email || "",
+    dialCode,
+    nationalNumber,
     mobile: c?.mobile || "",
     address_line_1: c?.address_line_1 || "",
     address_line_2: c?.address_line_2 || "",
@@ -35,22 +41,41 @@ function formFromContact(c: AuthContact | null): ProfileForm {
   };
 }
 
+export const useProfilePhoneCountries = routeLoader$(async () => {
+  try {
+    const { data } = await fetchPhoneCountries();
+    return data;
+  } catch {
+    return [];
+  }
+});
+
 export default component$(() => {
   const auth = useAuth();
-  const form = useStore<ProfileForm>(formFromContact(null));
+  const phoneCountries = useProfilePhoneCountries();
+  const form = useStore<ProfileForm>(formFromContact(null, "+20", ""));
   const saving = useSignal(false);
   const pending = usePendingState();
+  const phoneReady = useSignal(false);
 
   // Prefill from the cached contact once hydrated.
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => auth.contact);
-    Object.assign(form, formFromContact(auth.contact));
+    const parsed = parseFullPhone(auth.contact?.mobile || "", phoneCountries.value);
+    Object.assign(form, formFromContact(auth.contact, parsed.dialCode, parsed.nationalNumber));
+    phoneReady.value = true;
   });
 
   const save$ = $(async () => {
     const token = auth.token;
     if (!token) {
+      return;
+    }
+
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    if (!phoneCheck.valid) {
+      await toastError(phoneCheck.message);
       return;
     }
 
@@ -60,7 +85,7 @@ export default component$(() => {
           first_name: form.first_name,
           last_name: form.last_name,
           email: form.email,
-          mobile: form.mobile,
+          mobile: phoneCheck.fullPhone,
         });
         const { data } = await updateAddress(token, {
           address_line_1: form.address_line_1,
@@ -102,8 +127,20 @@ export default component$(() => {
             <input id="email" type="email" value={form.email} onInput$={(_, el) => (form.email = el.value)} />
           </div>
           <div class="form-field">
-            <label for="mobile">Mobile</label>
-            <input id="mobile" type="tel" value={form.mobile} onInput$={(_, el) => (form.mobile = el.value)} />
+            <label for="profile-mobile">Mobile</label>
+            {phoneReady.value ? (
+              <PhoneInputWithDialCode
+                id="profile-mobile"
+                countries={phoneCountries.value}
+                dialCode={form.dialCode}
+                nationalNumber={form.nationalNumber}
+                onChange$={(value) => {
+                  form.dialCode = value.dialCode;
+                  form.nationalNumber = value.nationalNumber;
+                  form.mobile = value.fullPhone;
+                }}
+              />
+            ) : null}
           </div>
         </div>
 

@@ -13,20 +13,22 @@ use Illuminate\Validation\ValidationException;
 class CustomerAuthService
 {
     public function __construct(
-        private ContactUtil $contactUtil
+        private ContactUtil $contactUtil,
+        private ContactDuplicateService $duplicates
     ) {
     }
 
     public function register(int $businessId, array $data): array
     {
-        $email = $data['email'] ?? null;
+        $email = isset($data['email']) ? trim((string) $data['email']) : null;
         $mobile = $data['mobile'] ?? $data['phone'] ?? null;
+        $dialCode = $data['dial_code'] ?? null;
 
-        if ($email && Contact::where('business_id', $businessId)->where('email', $email)->exists()) {
+        if ($email && $this->duplicates->findCustomerByEmail($businessId, $email)) {
             throw ValidationException::withMessages(['email' => ['Email already registered.']]);
         }
 
-        if ($mobile && Contact::where('business_id', $businessId)->where('mobile', $mobile)->exists()) {
+        if ($mobile && $this->duplicates->findCustomerByMobile($businessId, (string) $mobile, $dialCode)) {
             throw ValidationException::withMessages(['mobile' => ['Mobile already registered.']]);
         }
 

@@ -46,7 +46,7 @@ class StorefrontApiTest extends TestCase
     public function test_customer_can_register_and_login(): void
     {
         $email = 'storefront_test_'.uniqid().'@example.com';
-        $mobile = '01'.random_int(100000000, 999999999);
+        $mobile = '+2010'.random_int(10000000, 99999999);
 
         $register = $this->postJson('/api/storefront/v1/auth/register', [
             'first_name' => 'Test',

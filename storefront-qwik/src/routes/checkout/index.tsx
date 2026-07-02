@@ -1,7 +1,8 @@
-import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
-import { ApiError, checkout, fetchLocations, fetchRewardPoints, validateCart } from "~/lib/api";
+import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -9,6 +10,7 @@ import { formatPrice } from "~/lib/format";
 import { usePendingState } from "~/lib/pending-context";
 import type { CheckoutOrder, RewardPointsBalance } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useCheckoutLocations = routeLoader$(async () => {
@@ -20,12 +22,29 @@ export const useCheckoutLocations = routeLoader$(async () => {
   }
 });
 
+export const useCheckoutPhoneCountries = routeLoader$(async () => {
+  try {
+    const { data } = await fetchPhoneCountries();
+    return data;
+  } catch {
+    return [];
+  }
+});
+
 export default component$(() => {
   const settings = useSiteSettings();
   const locations = useCheckoutLocations();
+  const phoneCountries = useCheckoutPhoneCountries();
   const cart = useCart();
   const auth = useAuth();
   const pending = usePendingState();
+
+  const checkoutPhone = useStore({
+    dialCode: "+20",
+    nationalNumber: "",
+    mobile: "",
+  });
+  const phoneReady = useSignal(false);
 
   const sellingLocations = locations.value;
   const showLocationPicker = sellingLocations.length > 1;
@@ -46,6 +65,16 @@ export default component$(() => {
   const cartItemsKey = cart.items
     .map((line) => `${line.variationId}:${line.quantity}`)
     .join("|");
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => auth.contact?.mobile);
+    const parsed = parseFullPhone(auth.contact?.mobile || "", phoneCountries.value);
+    checkoutPhone.dialCode = parsed.dialCode;
+    checkoutPhone.nationalNumber = parsed.nationalNumber;
+    checkoutPhone.mobile = auth.contact?.mobile || parsed.dialCode + parsed.nationalNumber;
+    phoneReady.value = true;
+  });
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
@@ -125,6 +154,16 @@ export default component$(() => {
       return;
     }
 
+    const phoneCheck = validatePhone(
+      checkoutPhone.dialCode,
+      checkoutPhone.nationalNumber,
+      phoneCountries.value,
+    );
+    if (!phoneCheck.valid) {
+      error.value = phoneCheck.message;
+      return;
+    }
+
     if (pointsToRedeem.value > 0 && !redeemValid.value) {
       error.value = "Please fix reward points before placing your order.";
       return;
@@ -147,7 +186,7 @@ export default component$(() => {
           first_name: String(formData.get("first_name") || ""),
           last_name: String(formData.get("last_name") || ""),
           email: String(formData.get("email") || ""),
-          mobile: String(formData.get("mobile") || ""),
+          mobile: phoneCheck.fullPhone,
         },
         shipping_address: {
           address_line_1: String(formData.get("address_line_1") || ""),
@@ -244,8 +283,21 @@ export default component$(() => {
               <input id="email" name="email" type="email" required defaultValue={auth.contact?.email || ""} />
             </div>
             <div>
-              <label for="mobile">Mobile</label>
-              <input id="mobile" name="mobile" required defaultValue={auth.contact?.mobile || ""} />
+              <label for="checkout-mobile">Mobile</label>
+              {phoneReady.value ? (
+                <PhoneInputWithDialCode
+                  id="checkout-mobile"
+                  countries={phoneCountries.value}
+                  dialCode={checkoutPhone.dialCode}
+                  nationalNumber={checkoutPhone.nationalNumber}
+                  required
+                  onChange$={(value) => {
+                    checkoutPhone.dialCode = value.dialCode;
+                    checkoutPhone.nationalNumber = value.nationalNumber;
+                    checkoutPhone.mobile = value.fullPhone;
+                  }}
+                />
+              ) : null}
             </div>
           </div>
 
