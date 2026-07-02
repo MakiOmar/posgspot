@@ -50,7 +50,8 @@ class StorefrontSettingController extends Controller
             'contact_phone' => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:191',
             'contact_whatsapp' => 'nullable|string|max:50',
-            'announcement_message' => 'nullable|string|max:500',
+            'announcement_message_en' => 'nullable|string|max:500',
+            'announcement_message_ar' => 'nullable|string|max:500',
             'announcement_link' => 'nullable|string|max:500',
             'announcement_enabled' => 'nullable|boolean',
             'gateway_provider' => 'nullable|string|max:50',
@@ -62,7 +63,10 @@ class StorefrontSettingController extends Controller
             'social_youtube' => 'nullable|string|max:500',
             'theme_accent_color' => ['nullable', 'string', 'regex:/^#([0-9a-fA-F]{6})$/'],
             'sale_badge_mode' => 'nullable|in:percent,text',
-            'sale_badge_text' => 'nullable|string|max:30',
+            'sale_badge_text_en' => 'nullable|string|max:30',
+            'sale_badge_text_ar' => 'nullable|string|max:30',
+            'reward_points_name_en' => 'nullable|string|max:100',
+            'reward_points_name_ar' => 'nullable|string|max:100',
             'catalog_show_availability_on_cards' => 'nullable|boolean',
         ]);
 
@@ -81,7 +85,10 @@ class StorefrontSettingController extends Controller
                 'whatsapp' => $validated['contact_whatsapp'] ?? '',
             ],
             'announcement' => [
-                'message' => $validated['announcement_message'] ?? '',
+                'message' => [
+                    'en' => $validated['announcement_message_en'] ?? '',
+                    'ar' => $validated['announcement_message_ar'] ?? '',
+                ],
                 'link' => $validated['announcement_link'] ?? '',
                 'enabled' => $request->boolean('announcement_enabled'),
             ],
@@ -101,7 +108,16 @@ class StorefrontSettingController extends Controller
             ],
             'sale_badge' => [
                 'mode' => $validated['sale_badge_mode'] ?? 'percent',
-                'text' => $validated['sale_badge_text'] ?? 'Sale',
+                'text' => [
+                    'en' => $validated['sale_badge_text_en'] ?? 'Sale',
+                    'ar' => $validated['sale_badge_text_ar'] ?? '',
+                ],
+            ],
+            'reward_points' => [
+                'name' => [
+                    'en' => $validated['reward_points_name_en'] ?? 'Reward Points',
+                    'ar' => $validated['reward_points_name_ar'] ?? '',
+                ],
             ],
             'catalog' => [
                 'show_availability_on_cards' => $request->boolean('catalog_show_availability_on_cards'),

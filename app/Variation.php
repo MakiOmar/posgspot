@@ -74,4 +74,9 @@ class Variation extends Model
 
         return $name;
     }
+
+    public function storefrontTranslations()
+    {
+        return $this->hasMany(VariationTranslation::class);
+    }
 }

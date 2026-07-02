@@ -24,6 +24,28 @@ Errors:
 }
 ```
 
+## Content locale
+
+Send the active storefront language on catalog and settings requests:
+
+| Header | Values | Default |
+|--------|--------|---------|
+| `X-Content-Locale` | `en`, `ar` | `en` |
+
+The API resolves this via `ResolveStorefrontContentLocale` middleware. Catalog list/search endpoints return **only** products/categories with content for the requested locale (no fallback to English on `ar`). Product detail returns **404** when Arabic is requested but no `ar` translation row exists.
+
+The Qwik storefront sets this header from the URL prefix (`/en/…`, `/ar/…`) on every `storefrontFetch` call.
+
+### Localized settings fields
+
+`GET /settings` resolves these strings for the requested locale:
+
+- `announcement.message`
+- `sale_badge.text`
+- `reward_points.name`
+
+Stored in admin as `{ "en": "…", "ar": "…" }` on **Storefront Settings** (`/storefront/settings`). Legacy single-string values are treated as `en` on read.
+
 ## Public endpoints
 
 | Method | Path | Description |

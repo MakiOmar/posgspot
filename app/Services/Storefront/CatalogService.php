@@ -3,11 +3,13 @@
 namespace App\Services\Storefront;
 
 use App\Category;
+use App\CategoryTranslation;
 use App\Product;
+use App\ProductTranslation;
+use App\Support\StorefrontLocale;
 use App\Variation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 /**
@@ -17,7 +19,8 @@ class CatalogService
 {
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
-        private StorefrontPricing $storefrontPricing
+        private StorefrontPricing $storefrontPricing,
+        private StorefrontContentPresenter $presenter
     ) {
     }
 
@@ -26,24 +29,50 @@ class CatalogService
         return ! empty($this->storefrontSettings->getSellingLocationIds($businessId));
     }
 
-    public function getCategories(int $businessId): array
+    public function getCategories(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
     {
         if (! $this->hasSellingLocations($businessId)) {
             return [];
         }
 
-        return Category::catAndSubCategories($businessId);
+        $tree = Category::catAndSubCategories($businessId);
+        if (StorefrontLocale::isDefault($locale)) {
+            return $tree;
+        }
+
+        $translatedIds = CategoryTranslation::query()
+            ->where('locale', $locale)
+            ->whereIn('category_id', $this->categoryIdsFromTree($tree))
+            ->pluck('category_id')
+            ->flip();
+
+        return $this->filterCategoryTree($tree, $translatedIds, $locale);
     }
 
     /**
-     * Resolve a single product category by its storefront slug.
-     *
      * @return array{id:int,name:string,slug:?string,parent_id:int}|null
      */
-    public function findCategoryBySlug(int $businessId, string $slug): ?array
+    public function findCategoryBySlug(int $businessId, string $slug, string $locale = StorefrontLocale::DEFAULT): ?array
     {
         if (! $this->hasSellingLocations($businessId)) {
             return null;
+        }
+
+        if (! StorefrontLocale::isDefault($locale)) {
+            $translation = CategoryTranslation::query()
+                ->where('locale', $locale)
+                ->where('slug', $slug)
+                ->whereHas('category', function ($q) use ($businessId) {
+                    $q->where('business_id', $businessId)->where('category_type', 'product');
+                })
+                ->with('category')
+                ->first();
+
+            if (empty($translation?->category)) {
+                return null;
+            }
+
+            return $this->presenter->categoryFields($translation->category, $locale);
         }
 
         $category = Category::where('business_id', $businessId)
@@ -55,32 +84,30 @@ class CatalogService
             return null;
         }
 
-        return [
-            'id' => (int) $category->id,
-            'name' => $category->name,
-            'slug' => $category->slug,
-            'parent_id' => (int) $category->parent_id,
-        ];
+        return $this->presenter->categoryFields($category, $locale);
     }
 
-    public function listProducts(int $businessId, array $filters = [], int $perPage = 20): LengthAwarePaginator
-    {
+    public function listProducts(
+        int $businessId,
+        array $filters = [],
+        int $perPage = 20,
+        string $locale = StorefrontLocale::DEFAULT
+    ): LengthAwarePaginator {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
 
-        // Resolve a category slug (storefront URL) to its id once, up front.
         if (empty($filters['category_id']) && ! empty($filters['category_slug'])) {
-            $category = $this->findCategoryBySlug($businessId, (string) $filters['category_slug']);
+            $category = $this->findCategoryBySlug($businessId, (string) $filters['category_slug'], $locale);
             if (empty($category)) {
-                // Unknown slug: return an empty, well-formed page.
                 return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
             }
             $filters['category_id'] = $category['id'];
         }
 
         $query = $this->baseProductQuery($businessId, $locationIds);
+        $this->applyLocaleProductFilter($query, $locale);
 
         if (! empty($filters['category_id'])) {
             $query->where(function (Builder $q) use ($filters) {
@@ -95,10 +122,15 @@ class CatalogService
 
         if (! empty($filters['q'])) {
             $term = '%'.$filters['q'].'%';
-            $query->where(function (Builder $q) use ($term) {
+            $query->where(function (Builder $q) use ($term, $locale) {
                 $q->where('products.name', 'like', $term)
                     ->orWhere('products.sku', 'like', $term)
                     ->orWhere('variations.sub_sku', 'like', $term);
+                if (! StorefrontLocale::isDefault($locale)) {
+                    $q->orWhereHas('storefrontTranslations', function (Builder $tq) use ($term, $locale) {
+                        $tq->where('locale', $locale)->where('name', 'like', $term);
+                    });
+                }
             });
         }
 
@@ -117,52 +149,44 @@ class CatalogService
             default => $query->orderBy('products.name', 'asc'),
         };
 
-        $query->select('products.*')
-            ->groupBy('products.id');
+        $query->select('products.*')->groupBy('products.id');
+        $query->with([
+            'storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'brand.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+        ]);
 
         $paginator = $query->paginate($perPage);
-        $paginator->getCollection()->transform(fn (Product $p) => $this->formatProductSummary($p, $locationIds));
+        $paginator->getCollection()->transform(
+            fn (Product $p) => $this->formatProductSummary($p, $locationIds, $locale)
+        );
 
         return $paginator;
     }
 
-    public function findProduct(int $businessId, string $idOrSlug, array $locationIds = null): ?array
-    {
+    public function findProduct(
+        int $businessId,
+        string $idOrSlug,
+        ?array $locationIds = null,
+        string $locale = StorefrontLocale::DEFAULT
+    ): ?array {
         $locationIds = $locationIds ?? $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
             return null;
         }
 
-        $query = Product::where('business_id', $businessId)
-            ->active()
-            ->where('not_for_selling', 0)
-            ->where('type', '!=', 'modifier')
-            ->whereHas('product_locations', fn ($q) => $q->whereIn('product_locations.location_id', $locationIds));
-
-        if (is_numeric($idOrSlug)) {
-            $query->where('id', (int) $idOrSlug);
-        } else {
-            $query->where('slug', $idOrSlug);
-        }
-
-        $product = $query->with([
-            'brand',
-            'category',
-            'sub_category',
-            'media',
-            'product_variations.variations' => fn ($q) => $q->whereNull('deleted_at'),
-            'product_variations.variations.media',
-            'product_variations.variations.variation_location_details' => fn ($q) => $q->whereIn('variation_location_details.location_id', $locationIds),
-        ])->first();
-
+        $product = $this->resolveProduct($businessId, $idOrSlug, $locationIds, $locale);
         if (empty($product)) {
             return null;
         }
 
-        return $this->formatProductDetail($product, $locationIds);
+        if (! StorefrontLocale::isDefault($locale) && empty($this->presenter->productTranslation($product, $locale))) {
+            return null;
+        }
+
+        return $this->formatProductDetail($product, $locationIds, $locale);
     }
 
-    public function search(int $businessId, string $q, int $limit = 8): array
+    public function search(int $businessId, string $q, int $limit = 8, string $locale = StorefrontLocale::DEFAULT): array
     {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds) || trim($q) === '') {
@@ -170,18 +194,26 @@ class CatalogService
         }
 
         $query = $this->baseProductQuery($businessId, $locationIds);
+        $this->applyLocaleProductFilter($query, $locale);
+
         $term = '%'.$q.'%';
-        $query->where(function (Builder $qb) use ($term) {
+        $query->where(function (Builder $qb) use ($term, $locale) {
             $qb->where('products.name', 'like', $term)
                 ->orWhere('products.sku', 'like', $term)
                 ->orWhere('variations.sub_sku', 'like', $term);
+            if (! StorefrontLocale::isDefault($locale)) {
+                $qb->orWhereHas('storefrontTranslations', function (Builder $tq) use ($term, $locale) {
+                    $tq->where('locale', $locale)->where('name', 'like', $term);
+                });
+            }
         });
 
         return $query->select('products.*')
             ->groupBy('products.id')
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
             ->limit($limit)
             ->get()
-            ->map(fn (Product $p) => $this->formatProductSummary($p, $locationIds))
+            ->map(fn (Product $p) => $this->formatProductSummary($p, $locationIds, $locale))
             ->values()
             ->all();
     }
@@ -203,6 +235,57 @@ class CatalogService
         return $slug;
     }
 
+    private function resolveProduct(int $businessId, string $idOrSlug, array $locationIds, string $locale): ?Product
+    {
+        $baseQuery = Product::where('business_id', $businessId)
+            ->active()
+            ->where('not_for_selling', 0)
+            ->where('type', '!=', 'modifier')
+            ->whereHas('product_locations', fn ($q) => $q->whereIn('product_locations.location_id', $locationIds));
+
+        if (is_numeric($idOrSlug)) {
+            $product = (clone $baseQuery)->where('id', (int) $idOrSlug)->first();
+        } elseif (! StorefrontLocale::isDefault($locale)) {
+            $translation = ProductTranslation::where('locale', $locale)
+                ->where('slug', $idOrSlug)
+                ->whereHas('product', function ($q) use ($businessId) {
+                    $q->where('business_id', $businessId)->active()->where('not_for_selling', 0);
+                })
+                ->first();
+
+            $product = $translation
+                ? (clone $baseQuery)->where('id', $translation->product_id)->first()
+                : null;
+        } else {
+            $product = (clone $baseQuery)->where('slug', $idOrSlug)->first();
+        }
+
+        if (empty($product)) {
+            return null;
+        }
+
+        $product->load([
+            'brand.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'category.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'sub_category.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'media',
+            'storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'product_variations.variations' => fn ($q) => $q->whereNull('deleted_at'),
+            'product_variations.variations.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'product_variations.variations.media',
+            'product_variations.variations.variation_location_details' => fn ($q) => $q->whereIn('variation_location_details.location_id', $locationIds),
+        ]);
+
+        return $product;
+    }
+
+    private function applyLocaleProductFilter(Builder $query, string $locale): void
+    {
+        if (! StorefrontLocale::isDefault($locale)) {
+            $query->whereHas('storefrontTranslations', fn (Builder $q) => $q->where('locale', $locale));
+        }
+    }
+
     private function baseProductQuery(int $businessId, array $locationIds): Builder
     {
         return Product::query()
@@ -222,8 +305,10 @@ class CatalogService
             });
     }
 
-    private function formatProductSummary(Product $product, array $locationIds): array
+    private function formatProductSummary(Product $product, array $locationIds, string $locale): array
     {
+        $product = $this->presenter->applyProduct($product, $locale);
+
         $variations = $product->variations()->whereNull('deleted_at')->get();
         $defaultVariation = $variations->first();
         $hasOptions = $product->type === 'variable';
@@ -236,6 +321,11 @@ class CatalogService
                 ? $this->storefrontPricing->resolve($defaultVariation)
                 : ['compare_at_price' => null, 'sale_percent' => 0, 'on_sale' => false]);
 
+        $variationName = null;
+        if ($defaultVariation && $defaultVariation->name !== 'DUMMY') {
+            $variationName = $this->presenter->variationName($defaultVariation, $locale);
+        }
+
         return [
             'id' => $product->id,
             'slug' => $product->slug,
@@ -244,9 +334,7 @@ class CatalogService
             'type' => $product->type,
             'image_url' => $product->image_url,
             'variation_id' => $defaultVariation?->id,
-            'variation_name' => $defaultVariation && $defaultVariation->name !== 'DUMMY'
-                ? $defaultVariation->name
-                : null,
+            'variation_name' => $variationName,
             'has_options' => $hasOptions,
             'price' => (float) $minPrice,
             'compare_at_price' => $onSaleRow['compare_at_price'],
@@ -256,12 +344,14 @@ class CatalogService
         ];
     }
 
-    private function formatProductDetail(Product $product, array $locationIds): array
+    private function formatProductDetail(Product $product, array $locationIds, string $locale): array
     {
+        $product = $this->presenter->applyProduct($product, $locale);
+
         $variations = [];
         foreach ($product->product_variations as $pv) {
             foreach ($pv->variations as $variation) {
-                $variations[] = $this->formatVariation($variation, $product, $locationIds);
+                $variations[] = $this->formatVariation($variation, $product, $locationIds, $locale);
             }
         }
 
@@ -272,6 +362,19 @@ class CatalogService
             ->values()
             ->all();
 
+        $category = $product->category;
+        $categoryPayload = null;
+        if ($category) {
+            $fields = $this->presenter->categoryFields($category, $locale);
+            if (! empty($fields)) {
+                $categoryPayload = [
+                    'id' => $fields['id'],
+                    'name' => $fields['name'],
+                    'slug' => $fields['slug'],
+                ];
+            }
+        }
+
         return [
             'id' => $product->id,
             'slug' => $product->slug,
@@ -279,15 +382,18 @@ class CatalogService
             'sku' => $product->sku,
             'type' => $product->type,
             'description' => $product->product_description,
-            'brand' => $product->brand ? ['id' => $product->brand->id, 'name' => $product->brand->name] : null,
-            'category' => $product->category ? ['id' => $product->category->id, 'name' => $product->category->name, 'slug' => $product->category->slug] : null,
+            'brand' => $product->brand ? [
+                'id' => $product->brand->id,
+                'name' => $this->presenter->brandName($product->brand, $locale),
+            ] : null,
+            'category' => $categoryPayload,
             'images' => $images,
             'enable_stock' => (bool) $product->enable_stock,
             'variations' => $variations,
         ];
     }
 
-    private function formatVariation(Variation $variation, Product $product, array $locationIds): array
+    private function formatVariation(Variation $variation, Product $product, array $locationIds, string $locale): array
     {
         $qty = 0;
         if ($product->enable_stock) {
@@ -301,7 +407,7 @@ class CatalogService
 
         return [
             'id' => $variation->id,
-            'name' => $variation->name,
+            'name' => $this->presenter->variationName($variation, $locale),
             'sub_sku' => $variation->sub_sku,
             'price' => $pricing['price'],
             'compare_at_price' => $pricing['compare_at_price'],
@@ -323,5 +429,65 @@ class CatalogService
             ->whereNull('deleted_at')
             ->whereHas('variation_location_details', fn ($q) => $q->whereIn('location_id', $locationIds)->where('qty_available', '>', 0))
             ->exists();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $tree
+     * @return list<int>
+     */
+    private function categoryIdsFromTree(array $tree): array
+    {
+        $ids = [];
+        foreach ($tree as $row) {
+            $ids[] = (int) $row['id'];
+            foreach ($row['sub_categories'] ?? [] as $sub) {
+                $ids[] = (int) $sub['id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $tree
+     * @param  \Illuminate\Support\Collection<int, int>  $translatedIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterCategoryTree(array $tree, $translatedIds, string $locale): array
+    {
+        $out = [];
+        foreach ($tree as $parent) {
+            if (! $translatedIds->has((int) $parent['id'])) {
+                continue;
+            }
+
+            $parentTrans = CategoryTranslation::where('category_id', $parent['id'])->where('locale', $locale)->first();
+            if ($parentTrans) {
+                $parent['name'] = $parentTrans->name;
+                if (! empty($parentTrans->slug)) {
+                    $parent['slug'] = $parentTrans->slug;
+                }
+            }
+
+            $subs = [];
+            foreach ($parent['sub_categories'] ?? [] as $sub) {
+                if (! $translatedIds->has((int) $sub['id'])) {
+                    continue;
+                }
+                $subTrans = CategoryTranslation::where('category_id', $sub['id'])->where('locale', $locale)->first();
+                if ($subTrans) {
+                    $sub['name'] = $subTrans->name;
+                    if (! empty($subTrans->slug)) {
+                        $sub['slug'] = $subTrans->slug;
+                    }
+                }
+                $subs[] = $sub;
+            }
+
+            $parent['sub_categories'] = $subs;
+            $out[] = $parent;
+        }
+
+        return $out;
     }
 }

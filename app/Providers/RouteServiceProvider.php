@@ -34,7 +34,7 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/api.php'));
 
             Route::prefix('api')
-                ->middleware(['api', 'storefront.business', 'throttle:storefront'])
+                ->middleware(['api', 'storefront.business', 'storefront.content.locale', 'throttle:storefront'])
                 ->group(base_path('routes/storefront.php'));
 
             Route::middleware('web')

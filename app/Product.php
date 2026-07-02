@@ -222,4 +222,9 @@ class Product extends Model
     {
         return $this->hasMany(\App\ProductRack::class);
     }
+
+    public function storefrontTranslations()
+    {
+        return $this->hasMany(ProductTranslation::class);
+    }
 }

@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "trackRepairs": "Track my repairs",
+    "trackConsole": "Track my console",
+    "contact": "Contact us",
+    "faq": "FAQs",
+    "about": "About us",
+    "categories": "Categories"
+  },
+  "header": {
+    "searchPlaceholder": "Search for games, consoles, accessories…",
+    "searchLabel": "Search products",
+    "signIn": "Sign in",
+    "myAccount": "My account",
+    "cart": "Cart"
+  },
+  "footer": {
+    "shop": "Shop",
+    "company": "Company",
+    "policies": "Policies",
+    "allProducts": "All products",
+    "contact": "Contact",
+    "terms": "Terms & conditions",
+    "privacy": "Privacy policy",
+    "returns": "Return policy",
+    "copyright": "© {year} {businessName}. All rights reserved.",
+    "tagline": "Your destination for gaming consoles, accessories, and repair services.",
+    "followUs": "Follow us"
+  },
+  "catalog": {
+    "sortBy": "Sort by",
+    "sortName": "Name (A–Z)",
+    "sortPriceAsc": "Price: low to high",
+    "sortPriceDesc": "Price: high to low",
+    "sortNewest": "Newest",
+    "inStockOnly": "In stock only",
+    "inStockActive": "In stock only ✓",
+    "clearFilters": "Clear filters",
+    "showingResults": "Showing results for",
+    "noProducts": "No products match your filters.",
+    "productCount": "{count} product(s)",
+    "addToCart": "Add to cart",
+    "addingToCart": "Adding…",
+    "viewOptions": "View options",
+    "sale": "Sale",
+    "outOfStock": "Out of stock",
+    "inStock": "In stock",
+    "checkAvailability": "Check availability"
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "continueShopping": "Continue shopping",
+    "subtotal": "Subtotal",
+    "checkout": "Checkout"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "placeOrder": "Place order",
+    "cod": "Cash on delivery"
+  },
+  "auth": {
+    "login": "Sign in",
+    "register": "Create account",
+    "logout": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "logoutConfirm": "You will need to sign in again to access your account."
+  },
+  "account": {
+    "dashboard": "My account",
+    "orders": "Orders",
+    "profile": "Profile"
+  },
+  "common": {
+    "loading": "Loading…",
+    "searching": "Searching…",
+    "noResults": "No products found.",
+    "viewAllResults": "View all results for “{query}”",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "prev": "Prev",
+    "next": "Next",
+    "pageOf": "Page {current} of {last}"
+  },
+  "home": {
+    "welcome": "Welcome to {businessName}",
+    "tagline": "Consoles, accessories, and gaming services — shop online or check store availability.",
+    "featured": "Featured products"
+  },
+  "seo": {
+    "shopTitle": "Shop — {businessName}",
+    "shopDescription": "Browse gaming products at {businessName}.",
+    "searchTitle": "Search: {query} — {businessName}",
+    "searchDescription": "Search results for \"{query}\" at {businessName}."
+  }
+}

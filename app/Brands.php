@@ -46,4 +46,9 @@ class Brands extends Model
 
         return $brands;
     }
+
+    public function storefrontTranslations()
+    {
+        return $this->hasMany(BrandTranslation::class, 'brand_id');
+    }
 }

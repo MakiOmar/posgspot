@@ -72,7 +72,7 @@ class StorefrontApiTest extends TestCase
     public function test_customer_can_reset_password_with_token(): void
     {
         $email = 'reset_test_'.uniqid().'@example.com';
-        $mobile = '01'.random_int(100000000, 999999999);
+        $mobile = '+2010'.random_int(10000000, 99999999);
         $plainToken = 'reset-token-'.uniqid();
 
         $this->postJson('/api/storefront/v1/auth/register', [
@@ -290,7 +290,7 @@ class StorefrontApiTest extends TestCase
         $response = $this->postJson('/api/storefront/v1/contact', [
             'name' => 'Test User',
             'email' => 'visitor@example.com',
-            'phone' => '01001234567',
+            'phone' => '+201012345678',
             'message' => 'Hello from the storefront contact form.',
         ]);
 
@@ -366,5 +366,73 @@ class StorefrontApiTest extends TestCase
 
         $ids = collect($response->json('data'))->pluck('id');
         $this->assertTrue($ids->contains($product->id), 'Expected matching product in search results.');
+    }
+
+    public function test_product_returns_arabic_name_with_locale_header(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->first();
+
+        if (empty($product)) {
+            $this->markTestSkipped('No sellable product in database.');
+        }
+
+        $arName = 'منتج اختبار '.uniqid();
+
+        \App\ProductTranslation::updateOrCreate(
+            ['product_id' => $product->id, 'locale' => 'ar'],
+            ['name' => $arName, 'slug' => 'ar-'.$product->id]
+        );
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson(
+            '/api/storefront/v1/products/'.$product->id,
+            ['X-Content-Locale' => 'ar']
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', $arName);
+    }
+
+    public function test_ar_product_list_excludes_untranslated_products(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->first();
+
+        if (empty($product)) {
+            $this->markTestSkipped('No sellable product in database.');
+        }
+
+        \App\ProductTranslation::where('product_id', $product->id)->where('locale', 'ar')->delete();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/products', ['X-Content-Locale' => 'ar']);
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id');
+        $this->assertFalse($ids->contains($product->id), 'Untranslated product should not appear in AR list.');
     }
 }

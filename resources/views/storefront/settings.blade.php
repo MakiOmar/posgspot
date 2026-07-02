@@ -103,8 +103,14 @@
                 </div>
                 <div class="col-md-4">
                     <div class="form-group">
-                        {!! Form::label('sale_badge_text', 'Badge text (when style is Custom text)') !!}
-                        {!! Form::text('sale_badge_text', $settings['sale_badge']['text'] ?? 'Sale', ['class' => 'form-control', 'maxlength' => 30]) !!}
+                        {!! Form::label('sale_badge_text_en', 'Badge text EN (when style is Custom text)') !!}
+                        {!! Form::text('sale_badge_text_en', is_array($settings['sale_badge']['text'] ?? null) ? ($settings['sale_badge']['text']['en'] ?? 'Sale') : ($settings['sale_badge']['text'] ?? 'Sale'), ['class' => 'form-control', 'maxlength' => 30]) !!}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        {!! Form::label('sale_badge_text_ar', 'Badge text AR') !!}
+                        {!! Form::text('sale_badge_text_ar', is_array($settings['sale_badge']['text'] ?? null) ? ($settings['sale_badge']['text']['ar'] ?? '') : '', ['class' => 'form-control', 'maxlength' => 30]) !!}
                     </div>
                 </div>
             </div>
@@ -177,12 +183,35 @@
                 </label>
             </div>
             <div class="form-group">
-                {!! Form::label('announcement_message', 'Message') !!}
-                {!! Form::text('announcement_message', $settings['announcement']['message'] ?? '', ['class' => 'form-control']) !!}
+                {!! Form::label('announcement_message_en', 'Message (English)') !!}
+                @php $annMsg = $settings['announcement']['message'] ?? ''; @endphp
+                {!! Form::text('announcement_message_en', is_array($annMsg) ? ($annMsg['en'] ?? '') : $annMsg, ['class' => 'form-control']) !!}
+            </div>
+            <div class="form-group">
+                {!! Form::label('announcement_message_ar', 'Message (Arabic)') !!}
+                {!! Form::text('announcement_message_ar', is_array($annMsg) ? ($annMsg['ar'] ?? '') : '', ['class' => 'form-control', 'dir' => 'rtl']) !!}
             </div>
             <div class="form-group">
                 {!! Form::label('announcement_link', 'Link (optional)') !!}
                 {!! Form::text('announcement_link', $settings['announcement']['link'] ?? '', ['class' => 'form-control']) !!}
+            </div>
+
+            <hr>
+            <h4>Reward points (storefront label)</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {!! Form::label('reward_points_name_en', 'Name (English)') !!}
+                        @php $rpName = $settings['reward_points']['name'] ?? ['en' => 'Reward Points', 'ar' => '']; @endphp
+                        {!! Form::text('reward_points_name_en', is_array($rpName) ? ($rpName['en'] ?? '') : $rpName, ['class' => 'form-control']) !!}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {!! Form::label('reward_points_name_ar', 'Name (Arabic)') !!}
+                        {!! Form::text('reward_points_name_ar', is_array($rpName) ? ($rpName['ar'] ?? '') : '', ['class' => 'form-control', 'dir' => 'rtl']) !!}
+                    </div>
+                </div>
             </div>
 
             <hr>

@@ -8,6 +8,8 @@ import {
   YoutubeIcon,
 } from "~/components/icons";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import type { StoreSettings } from "~/lib/types";
 
 interface SiteFooterProps {
@@ -16,19 +18,20 @@ interface SiteFooterProps {
 
 export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
   const year = new Date().getFullYear();
+  const { locale } = useI18n();
 
   return (
     <footer class="site-footer">
       <div class="container footer-grid">
         <div>
           <h3>{settings.business_name}</h3>
-          <p class="footer-muted">
-            Your destination for gaming consoles, accessories, and repair services.
-          </p>
+          <p class="footer-muted">{tStatic(locale, "footer.tagline")}</p>
           {settings.contact.phone ? (
             <p class="footer-muted footer-contact">
               <PhoneIcon size={16} />
-              <a href={`tel:${settings.contact.phone}`}>{settings.contact.phone}</a>
+              <a href={`tel:${settings.contact.phone}`} dir="ltr">
+                {settings.contact.phone}
+              </a>
             </p>
           ) : null}
           {settings.contact.email_encoded ? (
@@ -36,32 +39,32 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
           ) : null}
         </div>
         <div>
-          <h3>Shop</h3>
+          <h3>{tStatic(locale, "footer.shop")}</h3>
           <ul>
             <li>
-              <Link href="/products">All products</Link>
+              <Link href={localePath(locale, "/products")}>{tStatic(locale, "footer.allProducts")}</Link>
             </li>
             <li>
-              <Link href="/cart">Cart</Link>
+              <Link href={localePath(locale, "/cart")}>{tStatic(locale, "header.cart")}</Link>
             </li>
           </ul>
         </div>
         <div>
-          <h3>Policies</h3>
+          <h3>{tStatic(locale, "footer.policies")}</h3>
           <ul>
             <li>
-              <Link href="/terms-and-conditions">Terms &amp; Conditions</Link>
+              <Link href={localePath(locale, "/terms-and-conditions")}>{tStatic(locale, "footer.terms")}</Link>
             </li>
             <li>
-              <Link href="/privacy-policy">Privacy Policy</Link>
+              <Link href={localePath(locale, "/privacy-policy")}>{tStatic(locale, "footer.privacy")}</Link>
             </li>
             <li>
-              <Link href="/return-policy">Return &amp; Exchange</Link>
+              <Link href={localePath(locale, "/return-policy")}>{tStatic(locale, "footer.returns")}</Link>
             </li>
           </ul>
         </div>
         <div>
-          <h3>Follow us</h3>
+          <h3>{tStatic(locale, "footer.followUs")}</h3>
           <div class="footer-social">
             {settings.social.facebook && settings.social.facebook !== "#" ? (
               <a
@@ -107,7 +110,7 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
         </div>
       </div>
       <div class="container footer-bottom">
-        © {year} {settings.business_name}. All rights reserved.
+        {tStatic(locale, "footer.copyright", { year, businessName: settings.business_name })}
       </div>
     </footer>
   );

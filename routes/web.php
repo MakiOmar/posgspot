@@ -150,6 +150,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/business/settings', [BusinessController::class, 'getBusinessSettings'])->name('business.getBusinessSettings');
     Route::get('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'edit'])->name('storefront.settings.edit');
     Route::post('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'update'])->name('storefront.settings.update');
+    Route::get('/storefront/translations/products', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsIndex'])->name('storefront.translations.products');
+    Route::get('/storefront/translations/products/{id}/edit', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsEdit'])->name('storefront.translations.products.edit');
+    Route::post('/storefront/translations/products/{id}', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsUpdate'])->name('storefront.translations.products.update');
+    Route::get('/storefront/translations/categories', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'categoriesIndex'])->name('storefront.translations.categories');
+    Route::get('/storefront/translations/categories/{id}/edit', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'categoriesEdit'])->name('storefront.translations.categories.edit');
+    Route::post('/storefront/translations/categories/{id}', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'categoriesUpdate'])->name('storefront.translations.categories.update');
+    Route::get('/storefront/translations/brands', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'brandsIndex'])->name('storefront.translations.brands');
+    Route::get('/storefront/translations/brands/{id}/edit', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'brandsEdit'])->name('storefront.translations.brands.edit');
+    Route::post('/storefront/translations/brands/{id}', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'brandsUpdate'])->name('storefront.translations.brands.update');
     Route::post('/business/update', [BusinessController::class, 'postBusinessSettings'])->name('business.postBusinessSettings');
     Route::get('/user/profile', [UserController::class, 'getProfile'])->name('user.getProfile');
     Route::post('/user/update', [UserController::class, 'updateProfile'])->name('user.updateProfile');

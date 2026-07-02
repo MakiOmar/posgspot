@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
 import { SearchIcon } from "~/components/icons";
 import { searchProducts } from "~/lib/api";
 import { productPath, formatPrice } from "~/lib/format";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import { usePendingState } from "~/lib/pending-context";
 import type { ProductSummary, StoreSettings } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
@@ -15,6 +17,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
   const loc = useLocation();
   const nav = useNavigate();
   const pending = usePendingState();
+  const { locale } = useI18n();
   const searching = useSignal(false);
   const query = useSignal(loc.url.searchParams.get("q") || "");
   const results = useSignal<ProductSummary[]>([]);
@@ -47,7 +50,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
     loading.value = true;
     const timer = setTimeout(async () => {
       try {
-        const { data } = await searchProducts(term, 8);
+        const { data } = await searchProducts(term, 8, locale);
         results.value = data;
         open.value = true;
         activeIndex.value = data.length > 0 ? 0 : -1;
@@ -62,7 +65,8 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
   });
 
   const submitSearch$ = $(async (term: string) => {
-    const href = term ? `/products?q=${encodeURIComponent(term)}` : "/products";
+    const base = localePath(locale, "/products");
+    const href = term ? `${base}?q=${encodeURIComponent(term)}` : base;
     open.value = false;
     await withPendingFeedback(pending, searching, async () => {
       await nav(href);
@@ -90,8 +94,8 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
         <input
           type="search"
           name="q"
-          placeholder="Search for games, consoles, accessories…"
-          aria-label="Search products"
+          placeholder={tStatic(locale, "header.searchPlaceholder")}
+          aria-label={tStatic(locale, "header.searchLabel")}
           aria-expanded={open.value}
           aria-controls="header-search-suggestions"
           aria-autocomplete="list"
@@ -131,7 +135,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               const item = results.value[activeIndex.value];
               if (item) {
                 open.value = false;
-                await nav(productPath(item));
+                await nav(productPath(item, locale));
               }
             }
           }}
@@ -150,18 +154,18 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           onMouseDown$={(event) => event.preventDefault()}
         >
           {loading.value ? (
-            <p class="header-search-suggestions__status">Searching…</p>
+            <p class="header-search-suggestions__status">{tStatic(locale, "common.searching")}</p>
           ) : null}
 
           {!loading.value && results.value.length === 0 ? (
-            <p class="header-search-suggestions__status">No products found.</p>
+            <p class="header-search-suggestions__status">{tStatic(locale, "common.noResults")}</p>
           ) : null}
 
           {!loading.value
             ? results.value.map((product, index) => (
                 <Link
                   key={product.id}
-                  href={productPath(product)}
+                  href={productPath(product, locale)}
                   class={`header-search-suggestion${index === activeIndex.value ? " is-active" : ""}`}
                   role="option"
                   aria-selected={index === activeIndex.value}
@@ -182,7 +186,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
                   <span class="header-search-suggestion__body">
                     <span class="header-search-suggestion__name">{product.name}</span>
                     <span class="header-search-suggestion__price">
-                      {formatPrice(product.price, settings.currency)}
+                      {formatPrice(product.price, settings.currency, locale)}
                     </span>
                   </span>
                 </Link>
@@ -195,7 +199,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               class="header-search-suggestions__all"
               onClick$={() => submitSearch$(query.value.trim())}
             >
-              View all results for “{query.value.trim()}”
+              {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
             </button>
           ) : null}
         </div>

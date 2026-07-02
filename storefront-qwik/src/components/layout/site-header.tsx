@@ -8,14 +8,17 @@ import {
 } from "~/components/icons";
 import { CategoriesDrawer } from "~/components/layout/categories-drawer";
 import { HeaderSearch } from "~/components/layout/header-search";
+import { LanguageSwitcher } from "~/components/layout/language-switcher";
 import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
 import { cartSubtotal, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { HEADER_STYLE } from "~/lib/config";
-import { MAIN_NAV_LINKS } from "~/lib/header-nav";
 import { formatPrice } from "~/lib/format";
+import { buildMainNavLinks } from "~/lib/header-nav";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import type { Category, StoreSettings } from "~/lib/types";
 
 interface SiteHeaderProps {
@@ -24,11 +27,13 @@ interface SiteHeaderProps {
 }
 
 export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories }) => {
+  const { locale } = useI18n();
   const categoriesOpen = useSignal(false);
   const cart = useCart();
   const auth = useAuth();
   const signedIn = isAuthenticated(auth);
   const isStyleOne = HEADER_STYLE === "one";
+  const navLinks = buildMainNavLinks(locale);
 
   const itemCount = totalCartItems(cart);
   const subtotal = cartSubtotal(cart);
@@ -58,7 +63,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
         <div class="header-main">
           <div class="container header-main-inner">
-            <Link href="/" class="brand" aria-label={settings.business_name}>
+            <Link href={localePath(locale, "/")} class="brand" aria-label={settings.business_name}>
               {settings.logo_url ? (
                 <img
                   src={settings.logo_url}
@@ -81,40 +86,42 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                   onClick$={toggleCategories$}
                 >
                   <MenuIcon size={18} />
-                  <span>Categories</span>
+                  <span>{tStatic(locale, "nav.categories")}</span>
                 </button>
-                <HeaderNavItems links={MAIN_NAV_LINKS} linkClass="header-nav-link" />
+                <HeaderNavItems links={navLinks} linkClass="header-nav-link" />
               </nav>
             ) : null}
 
             <HeaderSearch settings={settings} />
 
             <div class="header-actions">
+              <LanguageSwitcher settings={settings} />
+
               {phone ? (
-                <a class="header-phone" href={`tel:${phoneHref}`}>
+                <a class="header-phone" href={`tel:${phoneHref}`} dir="ltr">
                   <PhoneIcon size={18} />
                   <span class="header-phone-text">{phone}</span>
                 </a>
               ) : null}
 
               <Link
-                href={signedIn ? "/account" : "/login"}
+                href={localePath(locale, signedIn ? "/account" : "/login")}
                 class="action-link"
-                aria-label={signedIn ? "My account" : "Sign in"}
+                aria-label={signedIn ? tStatic(locale, "header.myAccount") : tStatic(locale, "header.signIn")}
               >
                 <UserIcon size={22} />
                 <span class="action-text">
-                  {signedIn ? accountDisplayName(auth) : "Sign in"}
+                  {signedIn ? accountDisplayName(auth) : tStatic(locale, "header.signIn")}
                 </span>
               </Link>
 
-              <Link href="/cart" class="action-link action-cart" aria-label="Cart">
+              <Link href={localePath(locale, "/cart")} class="action-link action-cart" aria-label={tStatic(locale, "header.cart")}>
                 <span class="action-cart-icon">
                   <CartIcon size={22} />
                   {itemCount > 0 ? <span class="cart-badge">{itemCount}</span> : null}
                 </span>
                 <span class="action-text">
-                  {formatPrice(subtotal, settings.currency)}
+                  {formatPrice(subtotal, settings.currency, locale)}
                 </span>
               </Link>
             </div>
@@ -132,9 +139,9 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 onClick$={toggleCategories$}
               >
                 <MenuIcon size={18} />
-                <span>Categories</span>
+                <span>{tStatic(locale, "nav.categories")}</span>
               </button>
-              <HeaderNavItems links={MAIN_NAV_LINKS} linkClass="header-subnav-link" />
+              <HeaderNavItems links={navLinks} linkClass="header-subnav-link" />
             </div>
           </nav>
         ) : null}

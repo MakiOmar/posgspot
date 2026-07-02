@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Services\Storefront\CatalogService;
+use App\Support\StorefrontLocale;
 use Illuminate\Http\Request;
 
 class ProductController extends StorefrontController
@@ -23,7 +24,8 @@ class ProductController extends StorefrontController
         ];
 
         $perPage = min(50, max(1, (int) $request->query('per_page', 20)));
-        $paginator = $this->catalog->listProducts($this->businessId($request), $filters, $perPage);
+        $locale = StorefrontLocale::fromRequest($request);
+        $paginator = $this->catalog->listProducts($this->businessId($request), $filters, $perPage, $locale);
 
         return $this->jsonSuccess($paginator->items(), [
             'current_page' => $paginator->currentPage(),
@@ -35,7 +37,8 @@ class ProductController extends StorefrontController
 
     public function show(Request $request, string $idOrSlug)
     {
-        $product = $this->catalog->findProduct($this->businessId($request), $idOrSlug);
+        $locale = StorefrontLocale::fromRequest($request);
+        $product = $this->catalog->findProduct($this->businessId($request), $idOrSlug, null, $locale);
 
         if (empty($product)) {
             return $this->jsonError('Product not found.', 404);

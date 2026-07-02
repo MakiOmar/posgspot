@@ -137,4 +137,9 @@ class Category extends Model
     {
         return $query->where('parent_id', 0);
     }
+
+    public function storefrontTranslations()
+    {
+        return $this->hasMany(CategoryTranslation::class);
+    }
 }

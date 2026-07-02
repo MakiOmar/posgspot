@@ -1,9 +1,9 @@
 import { component$, type QRL } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
-import type { HeaderNavLink } from "~/lib/header-nav";
+import type { ResolvedNavLink } from "~/lib/header-nav";
 
 interface HeaderNavItemsProps {
-  links: HeaderNavLink[];
+  links: ResolvedNavLink[];
   linkClass: string;
 }
 

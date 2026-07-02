@@ -1,11 +1,12 @@
 import { $, component$ } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
 import {
+  getProductSortOptions,
   hasActiveProductFilters,
-  PRODUCT_SORT_OPTIONS,
   productListUrl,
   type ProductListFilters,
 } from "~/lib/catalog-filters";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 
 interface ProductListToolbarProps {
   basePath: string;
@@ -15,6 +16,8 @@ interface ProductListToolbarProps {
 export const ProductListToolbar = component$<ProductListToolbarProps>(({ basePath, filters }) => {
   const loc = useLocation();
   const nav = useNavigate();
+  const { locale } = useI18n();
+  const sortOptions = getProductSortOptions(locale);
 
   const inStockHref = productListUrl(basePath, loc.url.searchParams, {
     in_stock_only: filters.inStockOnly ? null : "1",
@@ -38,14 +41,14 @@ export const ProductListToolbar = component$<ProductListToolbarProps>(({ basePat
     <div class="product-list-toolbar">
       <div class="product-list-toolbar__filters">
         <label class="product-list-toolbar__field">
-          <span class="footer-muted">Sort by</span>
+          <span class="footer-muted">{tStatic(locale, "catalog.sortBy")}</span>
           <select
             class="product-list-toolbar__select"
-            aria-label="Sort products"
+            aria-label={tStatic(locale, "catalog.sortBy")}
             value={filters.sort}
             onChange$={onSortChange$}
           >
-            {PRODUCT_SORT_OPTIONS.map((option) => (
+            {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
@@ -58,19 +61,19 @@ export const ProductListToolbar = component$<ProductListToolbarProps>(({ basePat
           class={`btn btn-secondary product-list-toolbar__stock${filters.inStockOnly ? " is-active" : ""}`}
           aria-pressed={filters.inStockOnly}
         >
-          {filters.inStockOnly ? "In stock only ✓" : "In stock only"}
+          {filters.inStockOnly ? tStatic(locale, "catalog.inStockActive") : tStatic(locale, "catalog.inStockOnly")}
         </Link>
 
         {hasActiveProductFilters(filters) ? (
           <Link href={clearHref} class="link-accent product-list-toolbar__clear">
-            Clear filters
+            {tStatic(locale, "catalog.clearFilters")}
           </Link>
         ) : null}
       </div>
 
       {filters.q ? (
         <p class="footer-muted product-list-toolbar__search">
-          Showing results for <strong>{filters.q}</strong>
+          {tStatic(locale, "catalog.showingResults")} <strong>{filters.q}</strong>
         </p>
       ) : null}
     </div>

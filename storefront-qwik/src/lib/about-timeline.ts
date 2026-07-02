@@ -1,5 +1,8 @@
 /** About page timeline entries — images live in `storefront-qwik/public/`. */
 
+import type { StoreLocaleCode } from "./i18n/config";
+import { ABOUT_TIMELINE_AR } from "./about-timeline-ar";
+
 export interface AboutTimelineEntry {
   year: string;
   title: string;
@@ -42,3 +45,7 @@ export const ABOUT_TIMELINE: AboutTimelineEntry[] = [
     text: "Our founders mapped out the first store concept—a neighborhood shop built around community, trade-ins, and trusted console repairs.",
   },
 ];
+
+export function getAboutTimeline(locale: StoreLocaleCode): AboutTimelineEntry[] {
+  return locale === "ar" ? ABOUT_TIMELINE_AR : ABOUT_TIMELINE;
+}

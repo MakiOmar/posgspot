@@ -1,5 +1,8 @@
 import { component$ } from "@builder.io/qwik";
+import { Link } from "@builder.io/qwik-city";
 import type { LegalDocument } from "~/lib/legal-content";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 
 interface LegalDocumentViewProps {
   doc: LegalDocument;
@@ -7,10 +10,12 @@ interface LegalDocumentViewProps {
 
 /** Renders a policy / terms page with breadcrumb and sections. */
 export const LegalDocumentView = component$<LegalDocumentViewProps>(({ doc }) => {
+  const { locale } = useI18n();
+
   return (
     <article class="content-page legal-page">
       <nav class="content-breadcrumb" aria-label="Breadcrumb">
-        <a href="/">Home</a>
+        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
         <span aria-hidden="true">›</span>
         <span>{doc.breadcrumbLabel}</span>
       </nav>

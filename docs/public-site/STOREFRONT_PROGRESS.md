@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-01 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; i18n and card payments **open** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; card payments **open** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -20,7 +20,7 @@
 | Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/wishlist/server cart N/A |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD works |
 | Header / footer spec | 🟡 Core wired; wishlist, mini-cart, policies missing |
-| i18n / RTL (AR + EN) | ⬜ |
+| i18n / RTL (AR + EN) | ✅ |
 | Online card payments (checkout UI) | ⬜ Webhook exists; UI COD-only |
 | SEO launch pack (sitemap, legal, breadcrumbs) | 🟡 Legal pages + robots/sitemap done; PDP breadcrumbs open |
 | Automated tests | 🟡 API feature tests incl. checkout E2E; no Qwik tests |
@@ -47,6 +47,10 @@
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
 | Order confirmation email | ✅ | `StorefrontMailService` |
 | CORS / `STOREFRONT_URL` | ✅ | Documented in `API.md` |
+| Catalog translations (`product_translations`, etc.) | ✅ | Overlay via `StorefrontContentPresenter`; strict AR list filter |
+| `X-Content-Locale` middleware | ✅ | `ResolveStorefrontContentLocale` on API group |
+| Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
+| Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
 
 ---
 
@@ -54,18 +58,20 @@
 
 | Route | Status | Notes |
 |-------|--------|-------|
-| `/` Homepage | 🟡 | Product grid; no hero / featured categories yet |
-| `/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; toolbar wired to API |
-| `/category/[slug]` | ✅ | Category PLP + pagination + sort / in-stock filters |
-| `/products/[slug]` PDP | 🟡 | Variations, qty stepper, add-to-cart, availability modal; **single hero image** |
-| `/cart` | ✅ | Qty stepper, remove, subtotal |
-| `/checkout` | 🟡 | Guest + auth, stock validation, shipping, **COD only**, reward redeem |
-| `/login`, `/register`, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage` |
-| `/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
-| `/contact` | ✅ | Form + branches + map |
-| `/about`, `/faq` | ✅ | Static content + FAQ JSON-LD |
-| `/terms-and-conditions`, `/privacy-policy`, `/return-policy` | ✅ | Legal copy from gamesspoteg.com |
-| `/add-customer` | ✅ | Standalone in-store signup (no site shell) |
+| `/` → `/en/` or `/ar/` | ✅ | `Accept-Language` redirect |
+| `/[lang]/` Homepage | ✅ | Locale-aware PLP teaser + i18n |
+| `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
+| `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
+| `/[lang]/products/[slug]` PDP | 🟡 | Variations, qty stepper, add-to-cart, availability modal; **single hero image** |
+| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, i18n |
+| `/[lang]/checkout` | 🟡 | Guest + auth, stock validation, shipping, **COD only**, reward redeem |
+| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage` |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
+| `/[lang]/contact` | ✅ | Form + branches + map |
+| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
+| `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
+| `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
+| `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs |
 | Wishlist, dedicated `/search` page | ⬜ | |
 
 ---

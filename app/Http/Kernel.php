@@ -72,5 +72,6 @@ class Kernel extends HttpKernel
         'superadmin' => \App\Http\Middleware\Superadmin::class,
         'CheckUserLogin' => \App\Http\Middleware\CheckUserLogin::class,
         'storefront.business' => \App\Http\Middleware\ResolveStorefrontBusiness::class,
+        'storefront.content.locale' => \App\Http\Middleware\ResolveStorefrontContentLocale::class,
     ];
 }

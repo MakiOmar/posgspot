@@ -1,5 +1,8 @@
 /** Paths that must not be indexed (account, checkout, auth, utilities). */
-export const ROBOTS_DISALLOW_PREFIXES = [
+import { STORE_LOCALES } from "~/lib/i18n/config";
+import { localePath } from "~/lib/i18n/paths";
+
+const ROBOTS_DISALLOW_SUFFIXES = [
   "/cart",
   "/checkout",
   "/login",
@@ -11,10 +14,20 @@ export const ROBOTS_DISALLOW_PREFIXES = [
   "/api-test",
 ] as const;
 
+export function robotsDisallowPaths(): string[] {
+  const paths: string[] = [];
+  for (const loc of STORE_LOCALES) {
+    for (const suffix of ROBOTS_DISALLOW_SUFFIXES) {
+      paths.push(localePath(loc.code, suffix));
+    }
+  }
+  return paths;
+}
+
 export function buildRobotsTxt(origin: string): string {
   const lines = [
     "User-agent: *",
-    ...ROBOTS_DISALLOW_PREFIXES.map((path) => `Disallow: ${path}`),
+    ...robotsDisallowPaths().map((path) => `Disallow: ${path}`),
     "",
     `Sitemap: ${origin.replace(/\/$/, "")}/sitemap.xml`,
   ];
@@ -22,7 +35,7 @@ export function buildRobotsTxt(origin: string): string {
   return `${lines.join("\n")}\n`;
 }
 
-const STATIC_SITEMAP_PATHS = [
+const STATIC_SITEMAP_SUFFIXES = [
   "/",
   "/products",
   "/contact",
@@ -32,6 +45,16 @@ const STATIC_SITEMAP_PATHS = [
   "/privacy-policy",
   "/return-policy",
 ] as const;
+
+export function staticSitemapPaths(): string[] {
+  const paths: string[] = [];
+  for (const loc of STORE_LOCALES) {
+    for (const suffix of STATIC_SITEMAP_SUFFIXES) {
+      paths.push(localePath(loc.code, suffix));
+    }
+  }
+  return paths;
+}
 
 export function buildSitemapXml(origin: string, paths: string[]): string {
   const base = origin.replace(/\/$/, "");
@@ -48,8 +71,4 @@ export function buildSitemapXml(origin: string, paths: string[]): string {
 ${urls}
 </urlset>
 `;
-}
-
-export function staticSitemapPaths(): string[] {
-  return [...STATIC_SITEMAP_PATHS];
 }

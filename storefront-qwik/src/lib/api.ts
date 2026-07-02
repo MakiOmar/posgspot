@@ -41,14 +41,30 @@ export class ApiError extends Error {
 
 type FetchResult<T> = { data: T; meta: Record<string, unknown> };
 
+let activeContentLocale = "en";
+
+/** Set the locale sent as X-Content-Locale on storefront API requests. */
+export function setActiveContentLocale(locale: string): void {
+  if (locale === "en" || locale === "ar") {
+    activeContentLocale = locale;
+  }
+}
+
+export function getActiveContentLocale(): string {
+  return activeContentLocale;
+}
+
 /** Perform a JSON request against the Storefront API envelope. */
 export async function storefrontFetch<T>(
   path: string,
   options: RequestInit = {},
+  locale?: string,
 ): Promise<FetchResult<T>> {
   const url = `${API_BASE}${PREFIX}${path}`;
+  const contentLocale = locale ?? activeContentLocale;
   const headers: Record<string, string> = {
     Accept: "application/json",
+    "X-Content-Locale": contentLocale,
     ...(options.headers as Record<string, string> | undefined),
   };
 
@@ -76,35 +92,25 @@ export async function storefrontFetch<T>(
   return { data: json.data, meta: json.meta || {} };
 }
 
-export function fetchSettings() {
-  return storefrontFetch<StoreSettings>("/settings");
+export function fetchSettings(locale?: string) {
+  return storefrontFetch<StoreSettings>("/settings", {}, locale);
 }
 
-export function fetchLocations() {
-  return storefrontFetch<StoreLocation[]>("/locations");
+export function fetchLocations(locale?: string) {
+  return storefrontFetch<StoreLocation[]>("/locations", {}, locale);
 }
 
-export function fetchCategories() {
-  return storefrontFetch<Category[]>("/categories");
+export function fetchCategories(locale?: string) {
+  return storefrontFetch<Category[]>("/categories", {}, locale);
 }
 
-export function fetchCategory(slug: string) {
-  return storefrontFetch<Category>(`/categories/${encodeURIComponent(slug)}`);
+export function fetchCategory(slug: string, locale?: string) {
+  return storefrontFetch<Category>(`/categories/${encodeURIComponent(slug)}`, {}, locale);
 }
 
-export function fetchProducts(params: Record<string, string | number | boolean> = {}) {
-  const qs = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== "" && value !== undefined) {
-      qs.set(key, String(value));
-    }
-  }
-  const query = qs.toString();
-  return storefrontFetch<ProductSummary[]>(`/products${query ? `?${query}` : ""}`);
-}
-
-export async function fetchProductsPage(
+export function fetchProducts(
   params: Record<string, string | number | boolean> = {},
+  locale?: string,
 ) {
   const qs = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -112,10 +118,28 @@ export async function fetchProductsPage(
       qs.set(key, String(value));
     }
   }
+  const query = qs.toString();
+  return storefrontFetch<ProductSummary[]>(`/products${query ? `?${query}` : ""}`, {}, locale);
+}
+
+export async function fetchProductsPage(
+  params: Record<string, string | number | boolean> = {},
+  locale?: string,
+) {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== "" && value !== undefined) {
+      qs.set(key, String(value));
+    }
+  }
+  const contentLocale = locale ?? activeContentLocale;
   const url = `${API_BASE}${PREFIX}/products?${qs.toString()}`;
   const response = await fetch(url, {
     credentials: "include",
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      "X-Content-Locale": contentLocale,
+    },
   });
   const json = (await response.json()) as ApiEnvelope<ProductSummary[]>;
   if (!response.ok || !json.success) {
@@ -127,18 +151,20 @@ export async function fetchProductsPage(
   };
 }
 
-export function fetchProduct(idOrSlug: string) {
-  return storefrontFetch<ProductDetail>(`/products/${encodeURIComponent(idOrSlug)}`);
+export function fetchProduct(idOrSlug: string, locale?: string) {
+  return storefrontFetch<ProductDetail>(`/products/${encodeURIComponent(idOrSlug)}`, {}, locale);
 }
 
-export function fetchAvailability(productId: number, variationId?: number) {
+export function fetchAvailability(productId: number, variationId?: number, locale?: string) {
   const qs = variationId ? `?variation_id=${variationId}` : "";
-  return storefrontFetch<ProductAvailability>(`/products/${productId}/availability${qs}`);
+  return storefrontFetch<ProductAvailability>(`/products/${productId}/availability${qs}`, {}, locale);
 }
 
-export function searchProducts(q: string, limit = 8) {
+export function searchProducts(q: string, limit = 8, locale?: string) {
   return storefrontFetch<ProductSummary[]>(
     `/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    {},
+    locale,
   );
 }
 

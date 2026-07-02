@@ -1,5 +1,19 @@
 /** Product listing sort values supported by GET /products. */
+import type { StoreLocaleCode } from "./i18n/config";
+import { tStatic } from "./i18n/context";
+
 export type ProductSort = "name" | "price_asc" | "price_desc" | "newest";
+
+export function getProductSortOptions(
+  locale: StoreLocaleCode,
+): { value: ProductSort; label: string }[] {
+  return [
+    { value: "name", label: tStatic(locale, "catalog.sortName") },
+    { value: "price_asc", label: tStatic(locale, "catalog.sortPriceAsc") },
+    { value: "price_desc", label: tStatic(locale, "catalog.sortPriceDesc") },
+    { value: "newest", label: tStatic(locale, "catalog.sortNewest") },
+  ];
+}
 
 export const PRODUCT_SORT_OPTIONS: { value: ProductSort; label: string }[] = [
   { value: "name", label: "Name (A–Z)" },

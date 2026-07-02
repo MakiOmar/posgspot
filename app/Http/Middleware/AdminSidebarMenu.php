@@ -831,7 +831,12 @@ class AdminSidebarMenu
                             $sub->url(
                                 action([\App\Http\Controllers\StorefrontSettingController::class, 'edit']),
                                 'Storefront Settings',
-                                ['icon' => '', 'active' => request()->segment(1) == 'storefront']
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'settings']
+                            );
+                            $sub->url(
+                                action([\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsIndex']),
+                                'Storefront Translations',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'translations']
                             );
                         }
                         if (auth()->user()->can('invoice_settings.access')) {

@@ -54,8 +54,10 @@ export async function confirmAction(options: {
   confirmText?: string;
   cancelText?: string;
   icon?: "warning" | "question";
+  dir?: "ltr" | "rtl";
 }): Promise<boolean> {
   const Swal = await getSwal();
+  const rtl = options.dir === "rtl";
   const result = await Swal.fire({
     title: options.title,
     text: options.text,
@@ -64,18 +66,23 @@ export async function confirmAction(options: {
     confirmButtonText: options.confirmText ?? "Confirm",
     cancelButtonText: options.cancelText ?? "Cancel",
     confirmButtonColor: "#00d4aa",
-    reverseButtons: true,
+    reverseButtons: !rtl,
     focusCancel: true,
   });
   return result.isConfirmed === true;
 }
 
-export async function confirmSignOut(): Promise<boolean> {
+export async function confirmSignOut(
+  t?: (key: string) => string,
+  dir: "ltr" | "rtl" = "ltr",
+): Promise<boolean> {
+  const tr = t ?? ((k: string) => k);
   return confirmAction({
-    title: "Sign out?",
-    text: "You will need to sign in again to access your account.",
-    confirmText: "Sign out",
-    cancelText: "Stay signed in",
+    title: tr("auth.logout") + "?",
+    text: tr("auth.logoutConfirm") || "You will need to sign in again to access your account.",
+    confirmText: tr("auth.logout"),
+    cancelText: tr("common.cancel"),
     icon: "warning",
+    dir,
   });
 }

@@ -3,6 +3,13 @@
  * Update here when policies change on the canonical site.
  */
 
+import type { StoreLocaleCode } from "./i18n/config";
+import {
+  PRIVACY_POLICY_AR,
+  RETURN_POLICY_AR,
+  TERMS_AND_CONDITIONS_AR,
+} from "./legal-content-ar";
+
 export interface LegalSection {
   title: string;
   paragraphs?: string[];
@@ -228,3 +235,15 @@ export const PRIVACY_POLICY: LegalDocument = {
     },
   ],
 };
+
+export function getReturnPolicy(locale: StoreLocaleCode): LegalDocument {
+  return locale === "ar" ? RETURN_POLICY_AR : RETURN_POLICY;
+}
+
+export function getTermsAndConditions(locale: StoreLocaleCode): LegalDocument {
+  return locale === "ar" ? TERMS_AND_CONDITIONS_AR : TERMS_AND_CONDITIONS;
+}
+
+export function getPrivacyPolicy(locale: StoreLocaleCode): LegalDocument {
+  return locale === "ar" ? PRIVACY_POLICY_AR : PRIVACY_POLICY;
+}

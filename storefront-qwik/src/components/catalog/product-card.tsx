@@ -4,6 +4,7 @@ import { AvailabilityCheckButton } from "~/components/catalog/availability-check
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice, productPath } from "~/lib/format";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { usePendingState } from "~/lib/pending-context";
 import type { ProductSummary, StoreSettings } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
@@ -33,7 +34,8 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
   const cart = useCart();
   const pending = usePendingState();
   const adding = useSignal(false);
-  const pdpUrl = productPath(product);
+  const { locale } = useI18n();
+  const pdpUrl = productPath(product, locale);
   const badge = saleBadgeLabel(product, settings);
   const hasOptions = product.has_options;
   const outOfStock = !product.in_stock;
@@ -70,15 +72,15 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
           {product.on_sale && product.compare_at_price != null ? (
             <>
               <span class="product-card__price product-card__price--sale">
-                {formatPrice(product.price, settings.currency)}
+                {formatPrice(product.price, settings.currency, locale)}
               </span>
               <span class="product-card__price-compare">
-                {formatPrice(product.compare_at_price, settings.currency)}
+                {formatPrice(product.compare_at_price, settings.currency, locale)}
               </span>
             </>
           ) : (
             <span class="product-card__price">
-              {formatPrice(product.price, settings.currency)}
+              {formatPrice(product.price, settings.currency, locale)}
             </span>
           )}
         </div>
@@ -86,7 +88,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
         <span
           class={`stock-pill ${product.in_stock ? "stock-pill--in" : "stock-pill--out"}`}
         >
-          {product.in_stock ? "In stock" : "Out of stock"}
+          {product.in_stock ? tStatic(locale, "catalog.inStock") : tStatic(locale, "catalog.outOfStock")}
         </span>
 
         {showActions ? (
@@ -100,7 +102,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
               />
             ) : hasOptions ? (
               <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
-                View options
+                {tStatic(locale, "catalog.viewOptions")}
               </Link>
             ) : (
               <button
@@ -127,7 +129,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
                   });
                 }}
               >
-                {adding.value ? "Adding…" : "Add to cart"}
+                {adding.value ? tStatic(locale, "catalog.addingToCart") : tStatic(locale, "catalog.addToCart")}
               </button>
             )}
           </div>

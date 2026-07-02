@@ -41,7 +41,10 @@ class StorefrontSettingService
                 'youtube' => '',
             ],
             'announcement' => [
-                'message' => '',
+                'message' => [
+                    'en' => '',
+                    'ar' => '',
+                ],
                 'link' => '',
                 'enabled' => false,
             ],
@@ -50,12 +53,21 @@ class StorefrontSettingService
             ],
             'sale_badge' => [
                 'mode' => 'percent',
-                'text' => 'Sale',
+                'text' => [
+                    'en' => 'Sale',
+                    'ar' => 'تخفيض',
+                ],
             ],
             'catalog' => [
                 'show_availability_on_cards' => true,
             ],
             'maintenance_mode' => false,
+            'reward_points' => [
+                'name' => [
+                    'en' => 'Reward Points',
+                    'ar' => 'نقاط المكافآت',
+                ],
+            ],
         ];
     }
 
@@ -68,8 +80,37 @@ class StorefrontSettingService
                 return $this->defaults();
             }
 
-            return array_replace_recursive($this->defaults(), $row->value);
+            return $this->normalizeLocalized(array_replace_recursive($this->defaults(), $row->value));
         });
+    }
+
+    /**
+     * Migrate legacy single-string fields to locale maps.
+     */
+    private function normalizeLocalized(array $settings): array
+    {
+        if (isset($settings['announcement']['message']) && is_string($settings['announcement']['message'])) {
+            $settings['announcement']['message'] = [
+                'en' => $settings['announcement']['message'],
+                'ar' => '',
+            ];
+        }
+
+        if (isset($settings['sale_badge']['text']) && is_string($settings['sale_badge']['text'])) {
+            $settings['sale_badge']['text'] = [
+                'en' => $settings['sale_badge']['text'],
+                'ar' => '',
+            ];
+        }
+
+        if (isset($settings['reward_points']['name']) && is_string($settings['reward_points']['name'])) {
+            $settings['reward_points']['name'] = [
+                'en' => $settings['reward_points']['name'],
+                'ar' => '',
+            ];
+        }
+
+        return $settings;
     }
 
     public function save(int $businessId, array $settings): StorefrontSetting

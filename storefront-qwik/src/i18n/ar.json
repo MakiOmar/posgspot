@@ -1,0 +1,101 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "shop": "المتجر",
+    "trackRepairs": "تتبع الصيانة",
+    "trackConsole": "تتبع الجهاز",
+    "contact": "اتصل بنا",
+    "faq": "الأسئلة الشائعة",
+    "about": "من نحن",
+    "categories": "الأقسام"
+  },
+  "header": {
+    "searchPlaceholder": "ابحث عن ألعاب، أجهزة، إكسسوارات…",
+    "searchLabel": "بحث المنتجات",
+    "signIn": "تسجيل الدخول",
+    "myAccount": "حسابي",
+    "cart": "السلة"
+  },
+  "footer": {
+    "shop": "المتجر",
+    "company": "الشركة",
+    "policies": "السياسات",
+    "allProducts": "كل المنتجات",
+    "contact": "اتصل بنا",
+    "terms": "الشروط والأحكام",
+    "privacy": "سياسة الخصوصية",
+    "returns": "سياسة الاستبدال",
+    "copyright": "© {year} {businessName}. جميع الحقوق محفوظة.",
+    "tagline": "وجهتك لأجهزة الألعاب والإكسسوارات وخدمات الصيانة.",
+    "followUs": "تابعنا"
+  },
+  "catalog": {
+    "sortBy": "ترتيب حسب",
+    "sortName": "الاسم (أ–ي)",
+    "sortPriceAsc": "السعر: من الأقل للأعلى",
+    "sortPriceDesc": "السعر: من الأعلى للأقل",
+    "sortNewest": "الأحدث",
+    "inStockOnly": "متوفر فقط",
+    "inStockActive": "متوفر فقط ✓",
+    "clearFilters": "مسح الفلاتر",
+    "showingResults": "نتائج البحث عن",
+    "noProducts": "لا توجد منتجات تطابق الفلاتر.",
+    "productCount": "{count} منتج",
+    "addToCart": "أضف إلى السلة",
+    "addingToCart": "جاري الإضافة…",
+    "viewOptions": "عرض الخيارات",
+    "sale": "تخفيض",
+    "outOfStock": "غير متوفر",
+    "inStock": "متوفر",
+    "checkAvailability": "تحقق من التوفر"
+  },
+  "cart": {
+    "title": "سلة التسوق",
+    "empty": "سلتك فارغة.",
+    "continueShopping": "متابعة التسوق",
+    "subtotal": "المجموع الفرعي",
+    "checkout": "إتمام الشراء"
+  },
+  "checkout": {
+    "title": "إتمام الشراء",
+    "placeOrder": "تأكيد الطلب",
+    "cod": "الدفع عند الاستلام"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "logoutConfirm": "ستحتاج لتسجيل الدخول مجددًا للوصول إلى حسابك."
+  },
+  "account": {
+    "dashboard": "حسابي",
+    "orders": "الطلبات",
+    "profile": "الملف الشخصي"
+  },
+  "common": {
+    "loading": "جاري التحميل…",
+    "searching": "جاري البحث…",
+    "noResults": "لم يُعثر على منتجات.",
+    "viewAllResults": "عرض كل النتائج لـ «{query}»",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "prev": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {current} من {last}"
+  },
+  "home": {
+    "welcome": "مرحبًا بكم في {businessName}",
+    "tagline": "أجهزة ألعاب وإكسسوارات وخدمات — تسوق أونلاين أو تحقق من التوفر في الفروع.",
+    "featured": "منتجات مميزة"
+  },
+  "seo": {
+    "shopTitle": "المتجر — {businessName}",
+    "shopDescription": "تصفح منتجات الألعاب في {businessName}.",
+    "searchTitle": "بحث: {query} — {businessName}",
+    "searchDescription": "نتائج البحث عن \"{query}\" في {businessName}."
+  }
+}

@@ -2,8 +2,8 @@
 
 namespace App\Services\Storefront;
 
-use App\Business;
 use App\BusinessLocation;
+use App\Support\StorefrontLocale;
 use App\Utils\BusinessUtil;
 
 /**
@@ -13,14 +13,25 @@ class SettingsApiService
 {
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
-        private BusinessUtil $businessUtil
+        private BusinessUtil $businessUtil,
+        private StorefrontContentPresenter $presenter
     ) {
     }
 
-    public function getPublicSettings(int $businessId): array
+    public function getPublicSettings(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
     {
         $business = $this->businessUtil->getDetails($businessId);
         $settings = $this->storefrontSettings->get($businessId);
+
+        $announcement = $settings['announcement'] ?? [];
+        $saleBadge = $settings['sale_badge'] ?? [];
+        $rewardName = $settings['reward_points']['name'] ?? null;
+        if (empty($rewardName) || is_string($rewardName)) {
+            $rewardName = [
+                'en' => is_string($rewardName) ? $rewardName : ($business->rp_name ?? 'Reward Points'),
+                'ar' => '',
+            ];
+        }
 
         return [
             'business_name' => $business->name ?? '',
@@ -33,13 +44,17 @@ class SettingsApiService
             ],
             'contact' => $this->formatPublicContact($settings['contact'] ?? []),
             'social' => $settings['social'] ?? [],
-            'announcement' => $settings['announcement'] ?? [],
+            'announcement' => [
+                'message' => $this->presenter->localizedSetting($announcement['message'] ?? '', $locale),
+                'link' => $announcement['link'] ?? '',
+                'enabled' => (bool) ($announcement['enabled'] ?? false),
+            ],
             'theme' => [
                 'accent_color' => $settings['theme']['accent_color'] ?? '#00d4aa',
             ],
             'sale_badge' => [
-                'mode' => $settings['sale_badge']['mode'] ?? 'percent',
-                'text' => $settings['sale_badge']['text'] ?? 'Sale',
+                'mode' => $saleBadge['mode'] ?? 'percent',
+                'text' => $this->presenter->localizedSetting($saleBadge['text'] ?? 'Sale', $locale, 'Sale'),
             ],
             'catalog' => [
                 'show_availability_on_cards' => (bool) ($settings['catalog']['show_availability_on_cards'] ?? true),
@@ -48,7 +63,7 @@ class SettingsApiService
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
             'reward_points' => [
                 'enabled' => (int) ($business->enable_rp ?? 0) === 1,
-                'name' => $business->rp_name ?? 'Reward Points',
+                'name' => $this->presenter->localizedSetting($rewardName, $locale, $business->rp_name ?? 'Reward Points'),
             ],
             'locales' => ['en', 'ar'],
         ];

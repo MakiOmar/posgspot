@@ -1,5 +1,8 @@
 /** Static FAQ content for the public storefront. */
 
+import type { StoreLocaleCode } from "./i18n/config";
+import { FAQ_ENTRIES_AR } from "./faq-content-ar";
+
 export interface FaqEntry {
   question: string;
   answer: string;
@@ -57,3 +60,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
       "Call our hotline, use the contact form on the Contact us page, or visit any Games Spot branch listed on the map. Our team is happy to help with orders, repairs, and product questions.",
   },
 ];
+
+export function getFaqEntries(locale: StoreLocaleCode): FaqEntry[] {
+  return locale === "ar" ? FAQ_ENTRIES_AR : FAQ_ENTRIES;
+}
