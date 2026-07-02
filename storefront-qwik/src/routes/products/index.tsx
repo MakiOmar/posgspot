@@ -1,25 +1,24 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
+import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
 import { fetchProductsPage } from "~/lib/api";
+import { parseProductListFilters } from "~/lib/catalog-filters";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/layout";
 
 export const useProductList = routeLoader$(async ({ query }) => {
-  const page = Math.max(1, Number(query.get("page") || 1));
-  const q = query.get("q") || "";
-  const categoryId = query.get("category_id") || "";
-  const inStockOnly = query.get("in_stock_only") === "1";
+  const filters = parseProductListFilters(query);
 
   try {
     return await fetchProductsPage({
-      page,
+      page: filters.page,
       per_page: 20,
-      q,
-      category_id: categoryId,
-      in_stock_only: inStockOnly,
-      sort: "name",
+      q: filters.q,
+      category_id: filters.categoryId,
+      in_stock_only: filters.inStockOnly,
+      sort: filters.sort,
     });
   } catch {
     return {
@@ -33,6 +32,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const list = useProductList();
   const loc = useLocation();
+  const filters = parseProductListFilters(loc.url.searchParams);
   const { meta } = list.value;
 
   const buildPageUrl = (page: number) => {
@@ -45,11 +45,7 @@ export default component$(() => {
     <section>
       <h1 class="page-title">Shop</h1>
 
-      <div style={{ marginBottom: "1.5rem" }}>
-        <Link href="/products?in_stock_only=1" class="btn btn-secondary">
-          In stock only
-        </Link>
-      </div>
+      <ProductListToolbar basePath="/products" filters={filters} />
 
       {list.value.data.length === 0 ? (
         <div class="empty-state">No products match your filters.</div>

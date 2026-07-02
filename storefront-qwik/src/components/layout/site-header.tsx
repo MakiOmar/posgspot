@@ -1,13 +1,13 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
+import { Link } from "@builder.io/qwik-city";
 import {
   CartIcon,
   MenuIcon,
   PhoneIcon,
-  SearchIcon,
   UserIcon,
 } from "~/components/icons";
 import { CategoriesDrawer } from "~/components/layout/categories-drawer";
+import { HeaderSearch } from "~/components/layout/header-search";
 import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
@@ -16,9 +16,7 @@ import { useCart } from "~/lib/cart-context";
 import { HEADER_STYLE } from "~/lib/config";
 import { MAIN_NAV_LINKS } from "~/lib/header-nav";
 import { formatPrice } from "~/lib/format";
-import { usePendingState } from "~/lib/pending-context";
 import type { Category, StoreSettings } from "~/lib/types";
-import { withPendingFeedback } from "~/lib/with-pending";
 
 interface SiteHeaderProps {
   settings: StoreSettings;
@@ -26,10 +24,6 @@ interface SiteHeaderProps {
 }
 
 export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories }) => {
-  const loc = useLocation();
-  const nav = useNavigate();
-  const pending = usePendingState();
-  const searching = useSignal(false);
   const categoriesOpen = useSignal(false);
   const cart = useCart();
   const auth = useAuth();
@@ -93,31 +87,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
               </nav>
             ) : null}
 
-            <form
-              class="header-search"
-              role="search"
-              preventdefault:submit
-              onSubmit$={async (_, formEl) => {
-                const form = formEl as HTMLFormElement;
-                const q = new FormData(form).get("q");
-                const query = typeof q === "string" ? q.trim() : "";
-                const href = query ? `/products?q=${encodeURIComponent(query)}` : "/products";
-                await withPendingFeedback(pending, searching, async () => {
-                  await nav(href);
-                });
-              }}
-            >
-              <input
-                type="search"
-                name="q"
-                placeholder="Search for games, consoles, accessories…"
-                aria-label="Search products"
-                value={loc.url.searchParams.get("q") || ""}
-              />
-              <button type="submit" aria-label="Search" disabled={searching.value}>
-                <SearchIcon size={18} />
-              </button>
-            </form>
+            <HeaderSearch settings={settings} />
 
             <div class="header-actions">
               {phone ? (

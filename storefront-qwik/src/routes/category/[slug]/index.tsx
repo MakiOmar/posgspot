@@ -1,8 +1,10 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
+import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
 import { fetchCategory, fetchProductsPage } from "~/lib/api";
+import { parseProductListFilters } from "~/lib/catalog-filters";
 import type { Category } from "~/lib/types";
 import { useSiteSettings } from "~/routes/layout";
 
@@ -15,17 +17,18 @@ interface CategoryPageData {
 export const useCategoryPage = routeLoader$(
   async ({ params, query, status }): Promise<CategoryPageData> => {
     const slug = params.slug;
-    const page = Math.max(1, Number(query.get("page") || 1));
+    const filters = parseProductListFilters(query);
 
     try {
       // Resolve the category (for title + 404) and its products in parallel.
       const [categoryRes, products] = await Promise.all([
         fetchCategory(slug),
         fetchProductsPage({
-          page,
+          page: filters.page,
           per_page: 20,
           category_slug: slug,
-          sort: "name",
+          in_stock_only: filters.inStockOnly,
+          sort: filters.sort,
         }),
       ]);
 
@@ -46,6 +49,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const pageData = useCategoryPage();
   const loc = useLocation();
+  const filters = parseProductListFilters(loc.url.searchParams);
   const { category, data, meta } = pageData.value;
 
   const buildPageUrl = (page: number) => {
@@ -70,6 +74,8 @@ export default component$(() => {
     <section>
       {/* Category heading driven by the resolved POS category name. */}
       <h1 class="page-title">{category.name}</h1>
+
+      <ProductListToolbar basePath={loc.url.pathname} filters={filters} />
 
       {data.length === 0 ? (
         <div class="empty-state">No products in this category yet.</div>

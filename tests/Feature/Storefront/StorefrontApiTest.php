@@ -323,4 +323,48 @@ class StorefrontApiTest extends TestCase
         $addresses = collect($response->json('data'))->pluck('address');
         $this->assertTrue($addresses->contains('Mega Mall, 2nd Floor, New Cairo'));
     }
+
+    public function test_search_returns_empty_for_blank_query(): void
+    {
+        $this->getJson('/api/storefront/v1/search?q=')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data', []);
+    }
+
+    public function test_search_returns_product_summaries_when_configured(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->first();
+
+        if (empty($product)) {
+            $this->markTestSkipped('No sellable product in database.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $needle = mb_substr($product->name, 0, 4);
+        if (mb_strlen($needle) < 2) {
+            $this->markTestSkipped('Product name too short for search test.');
+        }
+
+        $response = $this->getJson('/api/storefront/v1/search?q='.urlencode($needle).'&limit=5');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure(['data' => [['id', 'name', 'slug', 'price']]]);
+
+        $ids = collect($response->json('data'))->pluck('id');
+        $this->assertTrue($ids->contains($product->id), 'Expected matching product in search results.');
+    }
 }

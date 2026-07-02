@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-01 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1 launch hygiene **done**; i18n and card payments **open** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; i18n and card payments **open** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -55,8 +55,8 @@
 | Route | Status | Notes |
 |-------|--------|-------|
 | `/` Homepage | 🟡 | Product grid; no hero / featured categories yet |
-| `/products` Shop PLP | 🟡 | Pagination, `?q=`, in-stock link; **no sort/filter UI** |
-| `/category/[slug]` | ✅ | Category PLP + pagination |
+| `/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; toolbar wired to API |
+| `/category/[slug]` | ✅ | Category PLP + pagination + sort / in-stock filters |
 | `/products/[slug]` PDP | 🟡 | Variations, qty stepper, add-to-cart, availability modal; **single hero image** |
 | `/cart` | ✅ | Qty stepper, remove, subtotal |
 | `/checkout` | 🟡 | Guest + auth, stock validation, shipping, **COD only**, reward redeem |
@@ -97,7 +97,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Logo, announcement bar | ✅ | `site-header.tsx` |
-| Search → `/products?q=` | 🟡 | No autocomplete (`GET /search` unused in UI) |
+| Search → `/products?q=` + autocomplete | ✅ | `header-search.tsx` → `GET /search` |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Main nav (shop, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal | ✅ | |
@@ -141,6 +141,7 @@
 | Suite | Status |
 |-------|--------|
 | Ping, catalog, auth, password reset | ✅ |
+| Product search autocomplete API | ✅ | `GET /search` |
 | Settings / locations email obfuscation | ✅ |
 | Availability structure + all locations | ✅ |
 | Cart validate at fulfillment location | ✅ |
@@ -156,11 +157,10 @@
 
 ## Recommended next (priority order)
 
-1. **PLP + search UI** — sort/filter controls (API ready); header search autocomplete via `GET /search`.
-2. **Arabic / English + RTL** — language switcher + translations (Egypt market).
-3. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
-4. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery.
-5. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
+1. **Arabic / English + RTL** — language switcher + translations (Egypt market).
+2. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
+3. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery.
+4. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
 
 ---
 
@@ -168,6 +168,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-01 | Sprint 2: PLP sort/in-stock toolbar (`product-list-toolbar`), header search autocomplete (`GET /search`), search API tests. |
 | 2026-07-01 | Sprint 1 launch hygiene: legal pages (terms, privacy, return), footer policy links, dynamic robots.txt + sitemap.xml, checkout E2E tests. |
 | 2026-06-30 | Progress tracker created; reflects Phase 1 MVP state through reward points, contact, add-customer, invoice print, OOS card actions, 4-col grid, theme SPA fix. |
 
