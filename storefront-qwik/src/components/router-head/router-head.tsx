@@ -1,5 +1,6 @@
 import { component$, useVisibleTask$ } from "@builder.io/qwik";
 import { useDocumentHead, useLocation } from "@builder.io/qwik-city";
+import { setActiveContentLocale } from "~/lib/api";
 import {
   arabicFontStylesheetHref,
   needsArabicFont,
@@ -23,6 +24,7 @@ export const RouterHead = component$(() => {
     track(() => loc.url.pathname);
     const active = localeFromPathname(loc.url.pathname);
     const activeDef = localeDefinition(active);
+    setActiveContentLocale(active);
     document.documentElement.lang = active;
     document.documentElement.dir = activeDef.dir;
   });

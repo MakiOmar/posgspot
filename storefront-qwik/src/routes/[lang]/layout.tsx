@@ -13,7 +13,7 @@ import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
-import { stripLocalePrefix } from "~/lib/i18n/paths";
+import { localeFromPathname, stripLocalePrefix } from "~/lib/i18n/paths";
 import { PendingProvider } from "~/lib/pending-context";
 import { SiteShellProvider, useSiteShell } from "~/lib/site-shell-context";
 import { themeHeadStyleFromSettings } from "~/lib/theme";
@@ -75,16 +75,21 @@ const SiteShellFooter = component$(() => {
 });
 
 export default component$(() => {
-  const lang = useLangParam();
+  useLangParam();
   const settings = useSiteSettings();
   const categories = useNavCategories();
   const loc = useLocation();
+  const activeLocale = localeFromPathname(loc.url.pathname);
   const bare = stripLocalePrefix(loc.url.pathname);
   const isLandingPage = bare === "/add-customer";
 
   const shell = (
-    <I18nProvider locale={lang.value}>
-      <SiteShellProvider settings={settings.value} categories={categories.value}>
+    <I18nProvider locale={activeLocale} key={activeLocale}>
+      <SiteShellProvider
+        key={activeLocale}
+        settings={settings.value}
+        categories={categories.value}
+      >
         <AuthProvider>
           <CartProvider>
             {isLandingPage ? (
