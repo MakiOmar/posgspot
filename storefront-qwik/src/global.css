@@ -1872,6 +1872,57 @@ img {
   color: var(--gs-accent);
 }
 
+.checkout-payment-methods {
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  padding: 1rem 1.25rem;
+  margin: 0;
+}
+
+.checkout-payment-methods legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+
+.checkout-payment-methods__option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.65rem;
+  cursor: pointer;
+}
+
+.payment-page {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.payment-page__status,
+.payment-page__actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.payment-reference {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.payment-reference__code {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gs-accent);
+  margin: 0.5rem 0 0;
+}
+
+.card-surface {
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+}
+
 /* Auth (login / register / reset) pages */
 .auth-page {
   display: flex;

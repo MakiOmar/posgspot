@@ -13,6 +13,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   catalog: { show_availability_on_cards: true },
   cod_enabled: true,
   maintenance_mode: false,
+  online_payments: { enabled: false, provider: null, label: null },
   reward_points: { enabled: false, name: "Reward Points" },
   locales: ["en"],
 };

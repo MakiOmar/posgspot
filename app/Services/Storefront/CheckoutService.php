@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Contact;
 use App\Transaction;
+use App\Services\Storefront\Payment\PaymentGatewayManager;
 use App\Utils\ContactUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
@@ -21,7 +22,8 @@ class CheckoutService
         private ContactUtil $contactUtil,
         private TransactionUtil $transactionUtil,
         private ProductUtil $productUtil,
-        private RewardPointsService $rewardPointsService
+        private RewardPointsService $rewardPointsService,
+        private PaymentGatewayManager $paymentGateways,
     ) {
     }
 
@@ -37,7 +39,7 @@ class CheckoutService
             ->first();
 
         if ($existing) {
-            return $this->formatOrderResponse($existing);
+            return $this->appendPaymentSession($businessId, $existing, $payload);
         }
 
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
@@ -49,10 +51,14 @@ class CheckoutService
 
         $validated = $this->cartValidation->validate($businessId, $payload['items'] ?? [], $locationId);
         $settings = $this->storefrontSettings->get($businessId);
-        $paymentMethod = $payload['payment_method'] ?? 'cod';
+        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
 
         if ($paymentMethod === 'cod' && empty($settings['cod_enabled'])) {
             throw ValidationException::withMessages(['payment_method' => ['Cash on delivery is not available.']]);
+        }
+
+        if ($paymentMethod === 'fawry') {
+            $this->assertFawryEnabled($settings);
         }
 
         $contact = $authContact ?? $this->resolveGuestContact($businessId, $payload['customer'] ?? []);
@@ -186,7 +192,9 @@ class CheckoutService
 
             DB::commit();
 
-            return $this->formatOrderResponse($transaction->fresh(['sell_lines']));
+            $transaction = $transaction->fresh(['sell_lines', 'contact']);
+
+            return $this->appendPaymentSession($businessId, $transaction, $payload);
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
@@ -376,5 +384,63 @@ class CheckoutService
         $url = $this->transactionUtil->getInvoiceUrl($transaction->id, $businessId);
 
         return $url.'?print_on_load=true';
+    }
+
+    private function normalizePaymentMethod(string $method): string
+    {
+        $method = strtolower(trim($method));
+
+        if (in_array($method, ['card', 'fawry', 'online'], true)) {
+            return 'fawry';
+        }
+
+        return 'cod';
+    }
+
+    private function assertFawryEnabled(array $settings): void
+    {
+        $gateway = $settings['gateway'] ?? [];
+        if (empty($gateway['enabled']) || ($gateway['provider'] ?? '') !== 'fawry') {
+            throw ValidationException::withMessages(['payment_method' => ['Online payments are not available.']]);
+        }
+
+        $merchantCode = trim((string) ($gateway['fawry']['merchant_code'] ?? ''));
+        if ($merchantCode === '') {
+            throw ValidationException::withMessages(['payment_method' => ['Fawry is not configured.']]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function appendPaymentSession(int $businessId, Transaction $transaction, array $payload): array
+    {
+        $response = $this->formatOrderResponse($transaction);
+        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
+
+        if ($paymentMethod !== 'fawry') {
+            return $response;
+        }
+
+        if (strtolower(trim((string) $transaction->payment_status)) === 'paid') {
+            return $response;
+        }
+
+        $config = $this->paymentGateways->gatewayConfig($businessId);
+        $driver = $this->paymentGateways->driver('fawry');
+        $locale = in_array($payload['locale'] ?? 'en', ['en', 'ar'], true) ? $payload['locale'] : 'en';
+        $returnUrl = $this->buildPaymentReturnUrl($locale, (string) $transaction->storefront_order_id);
+        $response['payment'] = $driver->buildChargeSession($transaction, $config, $returnUrl, $locale);
+
+        return $response;
+    }
+
+    private function buildPaymentReturnUrl(string $locale, string $storefrontOrderId): string
+    {
+        $base = rtrim((string) config('storefront.url'), '/');
+        $lang = $locale === 'ar' ? 'ar' : 'en';
+
+        return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
     }
 }

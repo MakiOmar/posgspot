@@ -57,6 +57,9 @@ class StorefrontSettingController extends Controller
             'gateway_provider' => 'nullable|string|max:50',
             'gateway_api_key' => 'nullable|string|max:500',
             'gateway_enabled' => 'nullable|boolean',
+            'fawry_merchant_code' => 'nullable|string|max:191',
+            'fawry_security_key' => 'nullable|string|max:500',
+            'fawry_staging' => 'nullable|boolean',
             'social_facebook' => 'nullable|string|max:500',
             'social_instagram' => 'nullable|string|max:500',
             'social_tiktok' => 'nullable|string|max:500',
@@ -96,6 +99,11 @@ class StorefrontSettingController extends Controller
                 'provider' => $validated['gateway_provider'] ?? null,
                 'api_key' => $validated['gateway_api_key'] ?? null,
                 'enabled' => $request->boolean('gateway_enabled'),
+                'fawry' => [
+                    'merchant_code' => $validated['fawry_merchant_code'] ?? '',
+                    'security_key' => $validated['fawry_security_key'] ?? null,
+                    'staging' => $request->boolean('fawry_staging'),
+                ],
             ],
             'social' => [
                 'facebook' => $validated['social_facebook'] ?? '',

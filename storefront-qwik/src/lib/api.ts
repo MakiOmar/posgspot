@@ -12,6 +12,8 @@ import type {
   CartValidation,
   Category,
   CheckoutOrder,
+  FawryPaymentSession,
+  PaymentReturnResult,
   ProductAvailability,
   ProductDetail,
   ProductSummary,
@@ -186,6 +188,23 @@ export function checkout(payload: Record<string, unknown>, token?: string) {
   return storefrontFetch<CheckoutOrder>("/checkout", {
     method: "POST",
     headers,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchPaymentSession(provider: string, storefrontOrderId: string, locale: string) {
+  return storefrontFetch<FawryPaymentSession | { already_paid: boolean; order: CheckoutOrder }>(
+    `/payments/${provider}/session`,
+    {
+      method: "POST",
+      body: JSON.stringify({ storefront_order_id: storefrontOrderId, locale }),
+    },
+  );
+}
+
+export function confirmPaymentReturn(provider: string, payload: Record<string, unknown>) {
+  return storefrontFetch<PaymentReturnResult>(`/payments/${provider}/return`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

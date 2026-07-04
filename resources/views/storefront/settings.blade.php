@@ -225,12 +225,44 @@
                 <div class="col-md-4">
                     <div class="form-group">
                         {!! Form::label('gateway_provider', 'Provider') !!}
-                        {!! Form::select('gateway_provider', ['' => '—', 'myfatoorah' => 'MyFatoorah', 'paymob' => 'Paymob'], $settings['gateway']['provider'] ?? '', ['class' => 'form-control']) !!}
+                        {!! Form::select('gateway_provider', ['' => '—', 'fawry' => 'FawryPay', 'myfatoorah' => 'MyFatoorah', 'paymob' => 'Paymob'], $settings['gateway']['provider'] ?? '', ['class' => 'form-control', 'id' => 'gateway_provider']) !!}
                     </div>
                 </div>
+            </div>
+            <div id="gateway_fawry_fields">
+                @php
+                    $fawry = $settings['gateway']['fawry'] ?? [];
+                    $webhookUrl = url('/api/storefront/v1/payments/fawry/webhook');
+                @endphp
+                <div class="alert alert-info">
+                    Fawry callback URL (register in Fawry dashboard): <strong>{{ $webhookUrl }}</strong>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('fawry_merchant_code', 'Merchant code') !!}
+                            {!! Form::text('fawry_merchant_code', $fawry['merchant_code'] ?? '', ['class' => 'form-control']) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('fawry_security_key', 'Security key (leave blank to keep current)') !!}
+                            {!! Form::password('fawry_security_key', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox" style="margin-top: 28px;">
+                            <label>
+                                {!! Form::checkbox('fawry_staging', 1, $fawry['staging'] ?? false) !!} Use staging environment
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="gateway_legacy_fields" class="row">
                 <div class="col-md-8">
                     <div class="form-group">
-                        {!! Form::label('gateway_api_key', 'API key (leave blank to keep current)') !!}
+                        {!! Form::label('gateway_api_key', 'Legacy API key (other providers; leave blank to keep current)') !!}
                         {!! Form::password('gateway_api_key', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
                     </div>
                 </div>
@@ -264,6 +296,15 @@
                 accentPicker.val(val);
             }
         });
+
+        function toggleGatewayFields() {
+            var provider = $('#gateway_provider').val();
+            $('#gateway_fawry_fields').toggle(provider === 'fawry');
+            $('#gateway_legacy_fields').toggle(provider !== 'fawry' && provider !== '');
+        }
+
+        $('#gateway_provider').on('change', toggleGatewayFields);
+        toggleGatewayFields();
     });
 </script>
 @endsection

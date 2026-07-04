@@ -24,6 +24,11 @@ class StorefrontSettingService
                 'provider' => null,
                 'api_key' => null,
                 'enabled' => false,
+                'fawry' => [
+                    'merchant_code' => '',
+                    'security_key' => null,
+                    'staging' => false,
+                ],
             ],
             'shipping' => [
                 'flat_rate' => 0,
@@ -124,6 +129,13 @@ class StorefrontSettingService
             $merged['gateway']['api_key'] = $existing['gateway']['api_key'] ?? null;
         }
 
+        if (! empty($settings['gateway']['fawry']['security_key'])) {
+            $merged['gateway']['fawry']['security_key'] = Crypt::encryptString($settings['gateway']['fawry']['security_key']);
+        } else {
+            $existing = $existing ?? $this->getRaw($businessId);
+            $merged['gateway']['fawry']['security_key'] = $existing['gateway']['fawry']['security_key'] ?? null;
+        }
+
         $row = StorefrontSetting::updateOrCreate(
             ['business_id' => $businessId],
             ['value' => $merged]
@@ -147,6 +159,20 @@ class StorefrontSettingService
         $key = $settings['gateway']['api_key'] ?? null;
         if (empty($key)) {
             return null;
+        }
+
+        try {
+            return Crypt::decryptString($key);
+        } catch (\Throwable) {
+            return $key;
+        }
+    }
+
+    public function decryptFawrySecurityKey(array $settings): ?string
+    {
+        $key = $settings['gateway']['fawry']['security_key'] ?? null;
+        if (empty($key)) {
+            return $this->decryptGatewayApiKey($settings);
         }
 
         try {

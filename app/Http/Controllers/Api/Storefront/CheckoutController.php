@@ -23,7 +23,7 @@ class CheckoutController extends StorefrontController
             'items.*.variation_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'location_id' => 'required|integer',
-            'payment_method' => 'required|in:cod,card',
+            'payment_method' => 'required|in:cod,card,fawry,online',
             'customer' => 'nullable|array',
             'customer.first_name' => 'nullable|string|max:191',
             'customer.last_name' => 'nullable|string|max:191',
@@ -37,13 +37,14 @@ class CheckoutController extends StorefrontController
         ]);
 
         $data['storefront_order_id'] = $data['idempotency_key'];
+        $data['locale'] = $request->header('X-Content-Locale', 'en');
         /** @var Contact|null $contact */
         $contact = Auth::guard('sanctum')->user();
 
         $order = $this->checkoutService->checkout($this->businessId($request), $data, $contact);
 
         $email = $contact?->email ?? ($data['customer']['email'] ?? null);
-        if ($email) {
+        if ($email && ($data['payment_method'] ?? 'cod') === 'cod') {
             try {
                 Mail::to($email)->queue(new StorefrontOrderConfirmation($order));
             } catch (\Throwable $e) {

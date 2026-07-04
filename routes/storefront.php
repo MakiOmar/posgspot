@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\LocationController;
 use App\Http\Controllers\Api\Storefront\PhoneCountryController;
+use App\Http\Controllers\Api\Storefront\PaymentReturnController;
 use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
 use App\Http\Controllers\Api\Storefront\ProductController;
@@ -48,6 +49,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'store']);
 
     Route::post('/payments/{provider}/webhook', [PaymentWebhookController::class, 'handle']);
+    Route::post('/payments/{provider}/return', [PaymentReturnController::class, 'confirm']);
+    Route::post('/payments/{provider}/session', [PaymentReturnController::class, 'session']);
 
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);

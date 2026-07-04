@@ -1,11 +1,12 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import { storeFawryPaymentSession } from "~/lib/fawry-pay";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -36,6 +37,7 @@ export const useCheckoutPhoneCountries = routeLoader$(async () => {
 export default component$(() => {
   const settings = useSiteSettings();
   const { locale } = useI18n();
+  const nav = useNavigate();
   const locations = useCheckoutLocations();
   const phoneCountries = useCheckoutPhoneCountries();
   const cart = useCart();
@@ -64,6 +66,13 @@ export default component$(() => {
   const validatedSubtotal = useSignal(0);
   const validatedShipping = useSignal(0);
   const validatedTotal = useSignal(0);
+  const paymentMethod = useSignal<"cod" | "fawry">(
+    settings.value.cod_enabled ? "cod" : settings.value.online_payments.enabled ? "fawry" : "cod",
+  );
+
+  const onlinePaymentsEnabled =
+    settings.value.online_payments.enabled && settings.value.online_payments.provider === "fawry";
+  const canCheckout = settings.value.cod_enabled || onlinePaymentsEnabled;
 
   const cartItemsKey = cart.items
     .map((line) => `${line.variationId}:${line.quantity}`)
@@ -176,6 +185,8 @@ export default component$(() => {
       error.value = null;
 
       const formData = new FormData(form);
+      const selectedPayment = String(formData.get("payment_method") || paymentMethod.value);
+      const resolvedPayment = selectedPayment === "fawry" && onlinePaymentsEnabled ? "fawry" : "cod";
       const items = cart.items.map((line) => ({
         variation_id: line.variationId,
         quantity: line.quantity,
@@ -183,7 +194,7 @@ export default component$(() => {
       const payload: Record<string, unknown> = {
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         location_id: locationId.value,
-        payment_method: "cod",
+        payment_method: resolvedPayment,
         items,
         customer: {
           first_name: String(formData.get("first_name") || ""),
@@ -209,8 +220,17 @@ export default component$(() => {
           items,
         });
         const { data } = await checkout(payload, auth.token ?? undefined);
-        order.value = data;
         clearCart(cart);
+
+        if (resolvedPayment === "fawry" && data.payment) {
+          storeFawryPaymentSession(data.payment);
+          await nav(
+            localePath(locale, `/checkout/payment/?order=${encodeURIComponent(data.storefront_order_id)}`),
+          );
+          return;
+        }
+
+        order.value = data;
       } catch (err) {
         if (err instanceof ApiError) {
           const messages = Object.values(err.errors).flat();
@@ -348,10 +368,44 @@ export default component$(() => {
             <textarea id="order_note" name="order_note" rows={3} />
           </div>
 
-          {settings.value.cod_enabled ? (
-            <p class="footer-muted">{tStatic(locale, "checkout.paymentMethodCod")}</p>
+          {settings.value.cod_enabled || onlinePaymentsEnabled ? (
+            <fieldset class="checkout-payment-methods">
+              <legend>{tStatic(locale, "checkout.paymentMethod")}</legend>
+              {settings.value.cod_enabled ? (
+                <label class="checkout-payment-methods__option">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="cod"
+                    checked={paymentMethod.value === "cod"}
+                    onChange$={() => {
+                      paymentMethod.value = "cod";
+                    }}
+                  />
+                  <span>{tStatic(locale, "checkout.paymentMethodCod")}</span>
+                </label>
+              ) : null}
+              {onlinePaymentsEnabled ? (
+                <label class="checkout-payment-methods__option">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="fawry"
+                    checked={paymentMethod.value === "fawry"}
+                    onChange$={() => {
+                      paymentMethod.value = "fawry";
+                    }}
+                  />
+                  <span>
+                    {tStatic(locale, "checkout.paymentMethodOnline", {
+                      provider: settings.value.online_payments.label || "FawryPay",
+                    })}
+                  </span>
+                </label>
+              ) : null}
+            </fieldset>
           ) : (
-            <p class="alert alert-error">{tStatic(locale, "checkout.codUnavailable")}</p>
+            <p class="alert alert-error">{tStatic(locale, "checkout.noPaymentMethods")}</p>
           )}
 
           {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 ? (
@@ -392,11 +446,15 @@ export default component$(() => {
               submitting.value ||
               validatingStock.value ||
               Boolean(stockWarning.value) ||
-              !settings.value.cod_enabled ||
+              !canCheckout ||
               (pointsToRedeem.value > 0 && !redeemValid.value)
             }
           >
-            {submitting.value ? tStatic(locale, "checkout.placingOrder") : tStatic(locale, "checkout.placeOrder")}
+            {submitting.value
+              ? tStatic(locale, "checkout.placingOrder")
+              : paymentMethod.value === "fawry"
+                ? tStatic(locale, "checkout.continueToPayment")
+                : tStatic(locale, "checkout.placeOrder")}
           </button>
         </form>
 

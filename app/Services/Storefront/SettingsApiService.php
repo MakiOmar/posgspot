@@ -61,6 +61,7 @@ class SettingsApiService
             ],
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
+            'online_payments' => $this->onlinePaymentsPayload($settings),
             'reward_points' => [
                 'enabled' => (int) ($business->enable_rp ?? 0) === 1,
                 'name' => $this->presenter->localizedSetting($rewardName, $locale, $business->rp_name ?? 'Reward Points'),
@@ -161,5 +162,18 @@ class SettingsApiService
         }
 
         return 'https://www.google.com/maps/search/?api=1&query='.urlencode($address);
+    }
+
+    private function onlinePaymentsPayload(array $settings): array
+    {
+        $gateway = $settings['gateway'] ?? [];
+        $provider = $gateway['provider'] ?? null;
+        $enabled = ! empty($gateway['enabled']) && ! empty($provider);
+
+        return [
+            'enabled' => $enabled,
+            'provider' => $enabled ? (string) $provider : null,
+            'label' => $enabled ? (string) (config("storefront-payments.labels.{$provider}") ?? ucfirst((string) $provider)) : null,
+        ];
     }
 }

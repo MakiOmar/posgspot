@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-04 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; **maintenance gate done**; card payments **deferred** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -18,10 +18,10 @@
 | Area | Status |
 |------|--------|
 | Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/wishlist/server cart N/A |
-| Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD works |
+| Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
 | Header / footer spec | 🟡 Core wired; wishlist, mini-cart, policies missing |
 | i18n / RTL (AR + EN) | ✅ |
-| Online card payments (checkout UI) | ⬜ Webhook exists; UI COD-only |
+| Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
 | Automated tests | 🟡 API feature tests incl. checkout E2E; no Qwik tests |
 
@@ -37,7 +37,7 @@
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth |
-| Payment webhook route | 🟡 | `PaymentWebhookController`; no checkout card flow |
+| Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
@@ -64,7 +64,9 @@
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, i18n |
-| `/[lang]/checkout` | 🟡 | Guest + auth, stock validation, shipping, **COD only**, reward redeem |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, reward redeem |
+| `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
+| `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage` |
 | `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map |
@@ -122,7 +124,7 @@
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
 | Selling locations, COD, shipping, maintenance | ✅ | |
-| Gateway provider + API key (stored) | 🟡 | Not wired to Qwik checkout |
+| Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
@@ -158,6 +160,7 @@
 | Reward points | ✅ |
 | Invoice print URL (unit) | ✅ |
 | Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` |
+| Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
 | Frontend (Qwik) tests | ⬜ |
 
 ---
@@ -166,7 +169,7 @@
 
 1. **Guest cart merge on login** — merge `localStorage` cart after auth.
 2. **Mini-cart dropdown** — header polish (badge exists; links to `/cart` only).
-3. **Online payments** — checkout gateway UI + webhook marks paid (deferred).
+3. **Additional payment gateways** — Paymob / MyFatoorah via `PaymentGatewayManager`.
 
 ---
 
@@ -174,6 +177,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |
 | 2026-07-04 | Wire remaining UI chrome (checkout, auth, account, contact, cart, PDP, add-customer, about) through `en.json`/`ar.json`; about page locale content module. |

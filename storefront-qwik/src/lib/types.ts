@@ -45,6 +45,11 @@ export interface StoreSettings {
   };
   cod_enabled: boolean;
   maintenance_mode: boolean;
+  online_payments: {
+    enabled: boolean;
+    provider: string | null;
+    label: string | null;
+  };
   reward_points: {
     enabled: boolean;
     name: string;
@@ -172,6 +177,49 @@ export interface CheckoutOrder {
   final_total: number;
   transaction_date: string;
   shipping_status: string;
+  payment?: FawryPaymentSession;
+}
+
+export interface FawryChargeItem {
+  itemId: string | number;
+  description: string;
+  quantity: number;
+  price: string;
+}
+
+export interface FawryPaymentSession {
+  provider: string;
+  sdk_url: string;
+  return_url: string;
+  locale: string;
+  charge: {
+    merchantCode: string;
+    merchantRefNum: string;
+    customerProfileId: string;
+    customerMobile: string;
+    customerEmail: string;
+    customerName: string;
+    chargeItems: FawryChargeItem[];
+    paymentExpiry: string;
+    returnUrl: string;
+    signature: string;
+  };
+  customer: {
+    customerName: string;
+    customerMobile: string;
+    customerEmail: string;
+    customerId: string;
+  };
+}
+
+export interface PaymentReturnResult {
+  payment_status: string;
+  message: string | null;
+  order: CheckoutOrder;
+  reference_number: string | null;
+  fawry_ref_number: string | null;
+  payment_method: string | null;
+  expiration_time: string | null;
 }
 
 export interface CartItem {
