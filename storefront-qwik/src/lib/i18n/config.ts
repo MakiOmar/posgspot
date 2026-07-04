@@ -4,15 +4,20 @@ export type StoreLocaleCode = "en" | "ar";
 
 export interface StoreLocaleDefinition {
   code: StoreLocaleCode;
+  /** Short code shown in the switcher trigger (EN, AR). */
   label: string;
+  /** Full language name for the dropdown option. */
+  name: string;
+  /** Flag emoji for the switcher. */
+  flag: string;
   dir: "ltr" | "rtl";
   default?: boolean;
   intl: string;
 }
 
 export const STORE_LOCALES: StoreLocaleDefinition[] = [
-  { code: "en", label: "EN", dir: "ltr", default: true, intl: "en-EG" },
-  { code: "ar", label: "AR", dir: "rtl", intl: "ar-EG" },
+  { code: "en", label: "EN", name: "English", flag: "🇬🇧", dir: "ltr", default: true, intl: "en-EG" },
+  { code: "ar", label: "AR", name: "العربية", flag: "🇪🇬", dir: "rtl", intl: "ar-EG" },
 ];
 
 export function isSupportedLocale(value: string | undefined | null): value is StoreLocaleCode {
