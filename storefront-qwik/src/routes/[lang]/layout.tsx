@@ -8,7 +8,7 @@ import {
   FALLBACK_STORE_SETTINGS,
   type NavCategoriesLoad,
 } from "~/lib/default-site";
-import { fetchCategories, fetchSettings, setActiveContentLocale } from "~/lib/api";
+import { API_BASE, fetchCategories, fetchSettings, setActiveContentLocale } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { I18nProvider } from "~/lib/i18n/context";
@@ -37,7 +37,7 @@ export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSet
       return data;
     });
   } catch (err) {
-    console.error("[storefront] settings loader failed", err);
+    console.error(`[storefront] settings loader failed (API_BASE=${API_BASE})`, err);
     return FALLBACK_STORE_SETTINGS;
   }
 });
@@ -50,7 +50,7 @@ export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCate
       return { ok: true, items: Array.isArray(data) ? data : [] };
     });
   } catch (err) {
-    console.error("[storefront] categories loader failed", err);
+    console.error(`[storefront] categories loader failed (API_BASE=${API_BASE})`, err);
     return EMPTY_NAV_CATEGORIES;
   }
 });
