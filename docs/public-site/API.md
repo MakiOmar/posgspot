@@ -101,3 +101,4 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - `storefront_order_id` on transactions for checkout idempotency
 - CORS: configure `CORS_ALLOWED_ORIGINS` in `.env`
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
+- Rate limit (`throttle:storefront`, per IP): reads (GET/HEAD) use `STOREFRONT_RATE_LIMIT_READ` (default **600**/min); writes use `STOREFRONT_RATE_LIMIT` (default **120**/min). The Qwik SSR process also caches settings/categories for ~30s so layout loaders do not hit Laravel on every navigation.

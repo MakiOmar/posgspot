@@ -16,6 +16,7 @@ import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib
 import { localeFromPathname, stripLocalePrefix } from "~/lib/i18n/paths";
 import { PendingProvider } from "~/lib/pending-context";
 import { SiteShellProvider, useSiteShell } from "~/lib/site-shell-context";
+import { cachedCategories, cachedSettings } from "~/lib/ssr-shell-cache";
 import { themeHeadStyleFromSettings } from "~/lib/theme";
 import type { StoreSettings } from "~/lib/types";
 
@@ -31,8 +32,10 @@ export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSet
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   setActiveContentLocale(locale);
   try {
-    const { data } = await fetchSettings(locale);
-    return data;
+    return await cachedSettings(locale, async () => {
+      const { data } = await fetchSettings(locale);
+      return data;
+    });
   } catch (err) {
     console.error("[storefront] settings loader failed", err);
     return FALLBACK_STORE_SETTINGS;
@@ -42,8 +45,10 @@ export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSet
 export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCategoriesLoad> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    const { data } = await fetchCategories(locale);
-    return { ok: true, items: Array.isArray(data) ? data : [] };
+    return await cachedCategories(locale, async () => {
+      const { data } = await fetchCategories(locale);
+      return { ok: true, items: Array.isArray(data) ? data : [] };
+    });
   } catch (err) {
     console.error("[storefront] categories loader failed", err);
     return EMPTY_NAV_CATEGORIES;

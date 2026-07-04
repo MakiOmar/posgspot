@@ -33,8 +33,16 @@ class RouteServiceProvider extends ServiceProvider
                 ->middleware('api')
                 ->group(base_path('routes/api.php'));
 
+            // Intentionally omit the `api` group (which includes throttle:api at 60/min).
+            // Qwik SSR issues many GETs from one IP; storefront uses its own limiter only.
             Route::prefix('api')
-                ->middleware(['api', 'storefront.business', 'storefront.content.locale', 'throttle:storefront'])
+                ->middleware([
+                    \App\Http\Middleware\FixAuthorizationHeader::class,
+                    \Illuminate\Routing\Middleware\SubstituteBindings::class,
+                    'storefront.business',
+                    'storefront.content.locale',
+                    'throttle:storefront',
+                ])
                 ->group(base_path('routes/storefront.php'));
 
             Route::middleware('web')
@@ -54,9 +62,13 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('storefront', function (Request $request) {
-            $perMinute = (int) config('storefront.rate_limit_per_minute', 120);
+            // Safe methods: shell loaders (settings/categories) + catalog reads from SSR.
+            // Mutations (auth, checkout, contact) stay on the stricter write budget.
+            $perMinute = $request->isMethodSafe()
+                ? (int) config('storefront.rate_limit_read_per_minute', 600)
+                : (int) config('storefront.rate_limit_per_minute', 120);
 
-            return Limit::perMinute($perMinute)->by($request->ip());
+            return Limit::perMinute(max(1, $perMinute))->by($request->ip());
         });
     }
 }
