@@ -41,6 +41,14 @@ body {
   color: var(--gs-text);
 }
 
+/* Native form controls default to system UI fonts; inherit locale stack from html. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
 a {
   color: var(--gs-accent);
   text-decoration: none;
@@ -900,6 +908,7 @@ img {
   border: 0;
   border-radius: var(--gs-radius);
   padding: 0.65rem 1.1rem;
+  font-family: inherit;
   font-size: 0.9375rem;
   font-weight: 600;
   cursor: pointer;
