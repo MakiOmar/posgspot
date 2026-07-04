@@ -1,4 +1,5 @@
 import { $, component$, useSignal, type QRL } from "@builder.io/qwik";
+import { useI18n } from "~/lib/i18n/context";
 import {
   buildFullPhone,
   phoneHint,
@@ -25,6 +26,7 @@ type Props = {
 };
 
 export const PhoneInputWithDialCode = component$<Props>((props) => {
+  const { locale } = useI18n();
   const touched = useSignal(false);
   const error = useSignal("");
 
@@ -35,7 +37,7 @@ export const PhoneInputWithDialCode = component$<Props>((props) => {
   });
 
   const validateNow$ = $(() => {
-    const result = validatePhone(props.dialCode, props.nationalNumber, props.countries);
+    const result = validatePhone(props.dialCode, props.nationalNumber, props.countries, locale);
     error.value = result.valid ? "" : result.message;
     return result.valid;
   });
@@ -82,7 +84,7 @@ export const PhoneInputWithDialCode = component$<Props>((props) => {
           />
         </div>
       </div>
-      <p class="phone-input-group__hint">{phoneHint(props.dialCode)}</p>
+      <p class="phone-input-group__hint">{phoneHint(props.dialCode, locale)}</p>
       {error.value ? <p class="phone-input-group__error" role="alert">{error.value}</p> : null}
     </div>
   );

@@ -163,10 +163,9 @@
 
 ## Recommended next (priority order)
 
-1. **Arabic / English + RTL** — language switcher + translations (Egypt market).
-2. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
-3. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery.
-4. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
+1. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
+2. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery; canonical/hreflang.
+3. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
 
 ---
 
@@ -174,6 +173,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-04 | Wire remaining UI chrome (checkout, auth, account, contact, cart, PDP, add-customer, about) through `en.json`/`ar.json`; about page locale content module. |
 | 2026-07-04 | Fix SPA pagination (trailing-slash URLs); stop 429s on shell loaders (drop double throttle, higher GET budget, 30s SSR cache for settings/categories). |
 | 2026-07-01 | Sprint 2: PLP sort/in-stock toolbar (`product-list-toolbar`), header search autocomplete (`GET /search`), search API tests. |
 | 2026-07-01 | Sprint 1 launch hygiene: legal pages (terms, privacy, return), footer policy links, dynamic robots.txt + sitemap.xml, checkout E2E tests. |

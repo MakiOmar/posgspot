@@ -1,5 +1,6 @@
 import { component$, useSignal, useVisibleTask$, type QRL } from "@builder.io/qwik";
 import { CheckIcon, CloseIcon, CrossIcon, MapPinIcon } from "~/components/icons";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { ProductAvailability } from "~/lib/types";
 
 interface AvailabilityModalProps {
@@ -13,6 +14,7 @@ interface AvailabilityModalProps {
 export const AvailabilityModal = component$<AvailabilityModalProps>(
   ({ open, loading, error, availability, onClose$ }) => {
     const portalHost = useSignal<HTMLDivElement>();
+    const { locale } = useI18n();
 
     // Render the overlay on document.body so card overflow/transform cannot clip it.
     // eslint-disable-next-line qwik/no-use-visible-task
@@ -33,12 +35,17 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
         {open ? (
           <div class="modal-backdrop" role="presentation">
             <div class="modal" role="dialog" aria-modal="true" aria-labelledby="availability-title">
-              <button type="button" class="modal-close" aria-label="Close" onClick$={onClose$}>
+              <button
+                type="button"
+                class="modal-close"
+                aria-label={tStatic(locale, "a11y.close")}
+                onClick$={onClose$}
+              >
                 <CloseIcon size={20} />
               </button>
-              <h2 id="availability-title">Store availability</h2>
+              <h2 id="availability-title">{tStatic(locale, "availability.title")}</h2>
 
-              {loading ? <p>Loading availability…</p> : null}
+              {loading ? <p>{tStatic(locale, "availability.loading")}</p> : null}
               {error ? <p class="alert alert-error">{error}</p> : null}
 
               {availability ? (
@@ -47,9 +54,11 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
                     {availability.product_name} — {availability.variation_name}
                   </p>
                   <p class="footer-muted">
-                    Available at {availability.in_stock_count} of {availability.locations.length}{" "}
-                    stores
-                    {availability.cod_available ? " · COD available" : ""}
+                    {tStatic(locale, "availability.availableAt", {
+                      inStock: availability.in_stock_count,
+                      total: availability.locations.length,
+                    })}
+                    {availability.cod_available ? tStatic(locale, "availability.codAvailable") : ""}
                   </p>
                   <ul style={{ listStyle: "none", margin: "0", padding: "0" }}>
                     {availability.locations.map((location) => (
@@ -68,9 +77,13 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
                           <strong>{location.name}</strong>
                           <div class="footer-muted">{location.address}</div>
                           {location.in_stock ? (
-                            <div class="footer-muted">Qty: {location.qty_available}</div>
+                            <div class="footer-muted">
+                              {tStatic(locale, "availability.qtyAvailable", {
+                                qty: location.qty_available,
+                              })}
+                            </div>
                           ) : (
-                            <div class="footer-muted">Out of stock</div>
+                            <div class="footer-muted">{tStatic(locale, "catalog.outOfStock")}</div>
                           )}
                           {location.maps_url ? (
                             <a
@@ -80,7 +93,7 @@ export const AvailabilityModal = component$<AvailabilityModalProps>(
                               class="footer-contact"
                             >
                               <MapPinIcon size={14} />
-                              View on map
+                              {tStatic(locale, "availability.viewOnMap")}
                             </a>
                           ) : null}
                         </div>

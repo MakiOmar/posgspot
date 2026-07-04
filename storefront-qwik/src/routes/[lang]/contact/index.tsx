@@ -12,7 +12,7 @@ import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { StoreLocation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useContactLocations = routeLoader$(async () => {
   try {
@@ -64,7 +64,7 @@ export default component$(() => {
   const emailEncoded = settings.value.contact?.email_encoded || "";
 
   const submit$ = $(async () => {
-    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value, locale);
     if (!phoneCheck.valid) {
       await toastError(phoneCheck.message);
       return;
@@ -88,8 +88,8 @@ export default component$(() => {
       } catch (e) {
         const message =
           e instanceof ApiError
-            ? e.message || "Could not send your message. Please try again."
-            : "Could not send your message. Please try again.";
+            ? e.message || tStatic(locale, "contact.sendFailed")
+            : tStatic(locale, "contact.sendFailed");
         await toastError(message);
       }
     });
@@ -97,17 +97,17 @@ export default component$(() => {
 
   return (
     <article class="content-page contact-page">
-      <nav class="content-breadcrumb" aria-label="Breadcrumb">
+      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
         <a href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</a>
         <span aria-hidden="true">›</span>
-        <span>Contact</span>
+        <span>{tStatic(locale, "contact.title")}</span>
       </nav>
 
-      <h1 class="content-title">Contact</h1>
+      <h1 class="content-title">{tStatic(locale, "contact.title")}</h1>
 
       <div class="contact-map-wrap">
         <iframe
-          title="Games Spot store locations map"
+          title={tStatic(locale, "contact.mapTitle")}
           class="contact-map"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
@@ -118,14 +118,14 @@ export default component$(() => {
       <div class="contact-cards">
         {emailEncoded ? (
           <div class="contact-card">
-            <p class="contact-card-label">Email address</p>
+            <p class="contact-card-label">{tStatic(locale, "contact.emailAddress")}</p>
             <ProtectedEmailLink emailEncoded={emailEncoded} />
           </div>
         ) : null}
 
         {phone ? (
           <div class="contact-card">
-            <p class="contact-card-label">Hotline</p>
+            <p class="contact-card-label">{tStatic(locale, "contact.hotline")}</p>
             <p class="contact-card-value footer-contact">
               <PhoneIcon size={18} />
               <a href={`tel:${phoneHref}`}>{phone}</a>
@@ -134,7 +134,7 @@ export default component$(() => {
         ) : null}
 
         <div class="contact-card contact-card--wide">
-          <p class="contact-card-label">Our branches</p>
+          <p class="contact-card-label">{tStatic(locale, "contact.ourBranches")}</p>
           {locations.value.length > 0 ? (
             <ul class="contact-branches">
               {locations.value.map((loc) => (
@@ -162,48 +162,48 @@ export default component$(() => {
               ))}
             </ul>
           ) : (
-            <p class="footer-muted">Branch addresses will appear here once locations are configured.</p>
+            <p class="footer-muted">{tStatic(locale, "contact.noBranches")}</p>
           )}
         </div>
       </div>
 
       <section class="contact-form-section">
         <h2 class="content-section-title">
-          <span class="text-accent">Leave us</span> a message
+          <span class="text-accent">{tStatic(locale, "contact.leaveUs")}</span> {tStatic(locale, "contact.aMessage")}
         </h2>
 
         <form class="contact-form" preventdefault:submit onSubmit$={submit$}>
           <div class="form-field form-field--left">
             <label for="contact-name">
-              Name <span class="form-required" aria-hidden="true">*</span>
+              {tStatic(locale, "forms.name")} <span class="form-required" aria-hidden="true">*</span>
             </label>
             <input
               id="contact-name"
               type="text"
               name="name"
               required
-              placeholder="Your full name"
+              placeholder={tStatic(locale, "contact.namePlaceholder")}
               value={form.name}
               onInput$={(_, el) => (form.name = el.value)}
             />
           </div>
           <div class="form-field form-field--right">
             <label for="contact-email">
-              Email <span class="form-required" aria-hidden="true">*</span>
+              {tStatic(locale, "forms.email")} <span class="form-required" aria-hidden="true">*</span>
             </label>
             <input
               id="contact-email"
               type="email"
               name="email"
               required
-              placeholder="you@example.com"
+              placeholder={tStatic(locale, "contact.emailPlaceholder")}
               value={form.email}
               onInput$={(_, el) => (form.email = el.value)}
             />
           </div>
           <div class="form-field form-field--left">
             <label for="contact-phone">
-              Phone <span class="form-required" aria-hidden="true">*</span>
+              {tStatic(locale, "forms.phone")} <span class="form-required" aria-hidden="true">*</span>
             </label>
             <PhoneInputWithDialCode
               id="contact-phone"
@@ -220,21 +220,21 @@ export default component$(() => {
           </div>
           <div class="form-field form-field--right contact-form-message">
             <label for="contact-message">
-              Your message <span class="form-required" aria-hidden="true">*</span>
+              {tStatic(locale, "forms.yourMessage")} <span class="form-required" aria-hidden="true">*</span>
             </label>
             <textarea
               id="contact-message"
               name="message"
               rows={5}
               required
-              placeholder="How can we help?"
+              placeholder={tStatic(locale, "contact.messagePlaceholder")}
               value={form.message}
               onInput$={(_, el) => (form.message = el.value)}
             />
           </div>
           <div class="form-actions form-actions--left">
             <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-              {submitting.value ? "Sending…" : "Send message"}
+              {submitting.value ? tStatic(locale, "contact.sending") : tStatic(locale, "contact.sendMessage")}
             </button>
           </div>
         </form>
@@ -245,8 +245,9 @@ export default component$(() => {
 
 export const head: DocumentHead = ({ resolveValue }) => {
   const settings = resolveValue(useSiteSettings);
-  const title = `Contact — ${settings.business_name}`;
-  const description = `Contact ${settings.business_name}—call, email, or visit our branches across Egypt.`;
+  const lang = resolveValue(useLangParam);
+  const title = tStatic(lang, "contact.seoTitle", { businessName: settings.business_name });
+  const description = tStatic(lang, "contact.seoDescription", { businessName: settings.business_name });
 
   return withStorefrontThemeHead(
     {

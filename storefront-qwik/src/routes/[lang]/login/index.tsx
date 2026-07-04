@@ -2,11 +2,12 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, loginCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
-import { useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const auth = useAuth();
@@ -41,8 +42,8 @@ export default component$(() => {
       } catch (e) {
         await toastError(
           e instanceof ApiError && e.status === 422
-            ? "Invalid email/mobile or password."
-            : "Could not sign in. Please try again.",
+            ? tStatic(locale, "auth.invalidCredentials")
+            : tStatic(locale, "auth.loginFailed"),
         );
       }
     });
@@ -51,11 +52,11 @@ export default component$(() => {
   return (
     <section class="auth-page container">
       <div class="auth-card">
-        <h1 class="page-title">Sign in</h1>
+        <h1 class="page-title">{tStatic(locale, "auth.login")}</h1>
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">
-            <label for="login">Email or mobile</label>
+            <label for="login">{tStatic(locale, "forms.emailOrMobile")}</label>
             <input
               id="login"
               type="text"
@@ -66,7 +67,7 @@ export default component$(() => {
             />
           </div>
           <div class="form-field form-field--full">
-            <label for="password">Password</label>
+            <label for="password">{tStatic(locale, "forms.password")}</label>
             <input
               id="password"
               type="password"
@@ -77,16 +78,19 @@ export default component$(() => {
             />
           </div>
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-            {submitting.value ? "Signing in…" : "Sign in"}
+            {submitting.value ? tStatic(locale, "auth.signingIn") : tStatic(locale, "auth.login")}
           </button>
         </form>
 
         <div class="auth-links">
           <Link href={localePath(locale, "/forgot-password")} class="link-accent">
-            Forgot password?
+            {tStatic(locale, "auth.forgotPassword")}
           </Link>
           <span>
-            New here? <Link href={localePath(locale, "/register")} class="link-accent">Create an account</Link>
+            {tStatic(locale, "auth.newHere")}{" "}
+            <Link href={localePath(locale, "/register")} class="link-accent">
+              {tStatic(locale, "auth.createAnAccount")}
+            </Link>
           </span>
         </div>
       </div>
@@ -94,7 +98,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Sign in",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "auth.login"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

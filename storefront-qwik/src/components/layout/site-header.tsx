@@ -77,7 +77,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
             </Link>
 
             {isStyleOne ? (
-              <nav class="header-nav" aria-label="Main">
+              <nav class="header-nav" aria-label={tStatic(locale, "header.mainNav")}>
                 <button
                   type="button"
                   class="header-nav-categories"
@@ -129,7 +129,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
         </div>
 
         {!isStyleOne ? (
-          <nav class="header-subnav" aria-label="Site navigation">
+          <nav class="header-subnav" aria-label={tStatic(locale, "header.siteNav")}>
             <div class="container header-subnav-inner">
               <button
                 type="button"

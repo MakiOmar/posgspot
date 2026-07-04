@@ -39,7 +39,7 @@ export default component$(() => {
 
   return (
     <article class="content-page">
-      <nav class="content-breadcrumb" aria-label="Breadcrumb">
+      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
         <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
         <span aria-hidden="true">›</span>
         <span>{tStatic(locale, "nav.faq")}</span>

@@ -3,11 +3,11 @@ import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, fetchOrder, fetchOrderInvoiceUrl } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
-import { useI18n } from "~/lib/i18n/context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import type { AccountOrderDetail } from "~/lib/types";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 function isPaidOrder(paymentStatus: string | undefined): boolean {
   return (paymentStatus ?? "").trim().toLowerCase() === "paid";
@@ -30,7 +30,7 @@ export default component$(() => {
     }
     const orderId = Number(loc.params.id);
     if (!Number.isFinite(orderId)) {
-      await toastError("Invalid order.");
+      await toastError(tStatic(locale, "account.invalidOrder"));
       loading.value = false;
       return;
     }
@@ -56,8 +56,8 @@ export default component$(() => {
     } catch (e) {
       await toastError(
         e instanceof ApiError && e.status === 404
-          ? "Order not found."
-          : "Could not load this order. Please try again.",
+          ? tStatic(locale, "account.orderNotFound")
+          : tStatic(locale, "account.loadOrderFailed"),
       );
     } finally {
       loading.value = false;
@@ -70,11 +70,11 @@ export default component$(() => {
     <div>
       <p style={{ marginBottom: "1rem" }}>
         <Link href={localePath(locale, "/account/orders")} class="link-accent">
-          ← Back to orders
+          {tStatic(locale, "account.backToOrders")}
         </Link>
       </p>
 
-      {loading.value ? <p class="footer-muted">Loading order…</p> : null}
+      {loading.value ? <p class="footer-muted">{tStatic(locale, "account.loadingOrder")}</p> : null}
 
       {order ? (
         <>
@@ -88,7 +88,9 @@ export default component$(() => {
             }}
           >
             <h1 class="page-title" style={{ margin: 0 }}>
-              Order {order.invoice_no || order.storefront_order_id}
+              {tStatic(locale, "account.orderHeading", {
+                id: order.invoice_no || order.storefront_order_id,
+              })}
             </h1>
             {printUrl.value ? (
               <a
@@ -97,30 +99,33 @@ export default component$(() => {
                 rel="noopener noreferrer"
                 class="btn btn-secondary"
               >
-                Print invoice
+                {tStatic(locale, "account.printInvoice")}
               </a>
             ) : null}
           </div>
           <div class="order-meta">
             <span>
-              <strong>Status:</strong> {order.shipping_status || order.status}
+              <strong>{tStatic(locale, "account.statusLabel")}</strong>{" "}
+              {order.shipping_status || order.status}
             </span>
             <span>
-              <strong>Payment:</strong> {order.payment_status}
+              <strong>{tStatic(locale, "account.paymentLabel")}</strong> {order.payment_status}
             </span>
             <span>
-              <strong>Total:</strong> {formatPrice(order.final_total, settings.value.currency)}
+              <strong>{tStatic(locale, "account.totalLabel")}</strong>{" "}
+              {formatPrice(order.final_total, settings.value.currency, locale)}
             </span>
             {order.fulfillment_location ? (
               <span>
-                <strong>Fulfilled from:</strong> {order.fulfillment_location}
+                <strong>{tStatic(locale, "account.fulfilledFrom")}</strong>{" "}
+                {order.fulfillment_location}
               </span>
             ) : null}
           </div>
 
           {order.shipping_address ? (
             <div class="account-summary" style={{ marginTop: "1.5rem" }}>
-              <h2>Ship to</h2>
+              <h2>{tStatic(locale, "account.shipTo")}</h2>
               <p class="footer-muted" style={{ margin: 0 }}>
                 {order.shipping_address.formatted ||
                   [
@@ -141,25 +146,26 @@ export default component$(() => {
             <table class="account-table">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Unit price</th>
-                  <th>Line total</th>
+                  <th>{tStatic(locale, "account.item")}</th>
+                  <th>{tStatic(locale, "account.qty")}</th>
+                  <th>{tStatic(locale, "account.unitPrice")}</th>
+                  <th>{tStatic(locale, "account.lineTotal")}</th>
                 </tr>
               </thead>
               <tbody>
                 {order.lines.map((line, idx) => (
                   <tr key={idx}>
-                    <td data-label="Item">
-                      {line.product_name || `Product #${line.product_id}`}
+                    <td data-label={tStatic(locale, "account.item")}>
+                      {line.product_name ||
+                        tStatic(locale, "account.productFallback", { id: line.product_id })}
                       {line.variation_name ? ` — ${line.variation_name}` : ""}
                     </td>
-                    <td data-label="Qty">{line.quantity}</td>
-                    <td data-label="Unit price">
-                      {formatPrice(line.unit_price_inc_tax, settings.value.currency)}
+                    <td data-label={tStatic(locale, "account.qty")}>{line.quantity}</td>
+                    <td data-label={tStatic(locale, "account.unitPrice")}>
+                      {formatPrice(line.unit_price_inc_tax, settings.value.currency, locale)}
                     </td>
-                    <td data-label="Line total">
-                      {formatPrice(line.line_total, settings.value.currency)}
+                    <td data-label={tStatic(locale, "account.lineTotal")}>
+                      {formatPrice(line.line_total, settings.value.currency, locale)}
                     </td>
                   </tr>
                 ))}
@@ -172,7 +178,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Order details",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "account.orderDetailsTitle"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

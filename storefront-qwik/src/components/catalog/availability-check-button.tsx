@@ -1,6 +1,7 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { AvailabilityModal } from "~/components/catalog/availability-modal";
 import { fetchAvailability } from "~/lib/api";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { ProductAvailability } from "~/lib/types";
 
 interface AvailabilityCheckButtonProps {
@@ -13,6 +14,7 @@ interface AvailabilityCheckButtonProps {
 /** Opens the per-location stock modal (same as PDP). */
 export const AvailabilityCheckButton = component$<AvailabilityCheckButtonProps>(
   ({ productId, variationId, class: className, block }) => {
+    const { locale } = useI18n();
     const modalOpen = useSignal(false);
     const modalLoading = useSignal(false);
     const modalError = useSignal<string | null>(null);
@@ -28,7 +30,7 @@ export const AvailabilityCheckButton = component$<AvailabilityCheckButtonProps>(
         const { data } = await fetchAvailability(productId, variationId);
         availability.value = data;
       } catch {
-        modalError.value = "Could not load store availability.";
+        modalError.value = tStatic(locale, "availability.loadError");
       } finally {
         modalLoading.value = false;
       }
@@ -50,7 +52,7 @@ export const AvailabilityCheckButton = component$<AvailabilityCheckButtonProps>(
     return (
       <>
         <button type="button" class={classes} onClick$={openAvailability$}>
-          Check store availability
+          {tStatic(locale, "catalog.checkStoreAvailability")}
         </button>
         <AvailabilityModal
           open={modalOpen.value}

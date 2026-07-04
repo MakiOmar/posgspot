@@ -14,7 +14,7 @@ export const LegalDocumentView = component$<LegalDocumentViewProps>(({ doc }) =>
 
   return (
     <article class="content-page legal-page">
-      <nav class="content-breadcrumb" aria-label="Breadcrumb">
+      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
         <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
         <span aria-hidden="true">›</span>
         <span>{doc.breadcrumbLabel}</span>
@@ -23,7 +23,9 @@ export const LegalDocumentView = component$<LegalDocumentViewProps>(({ doc }) =>
       <h1 class="content-title">{doc.title}</h1>
 
       {doc.lastUpdated ? (
-        <p class="legal-meta footer-muted">Last updated: {doc.lastUpdated}</p>
+        <p class="legal-meta footer-muted">
+          {tStatic(locale, "common.lastUpdated", { date: doc.lastUpdated })}
+        </p>
       ) : null}
 
       {doc.intro ? <p class="content-prose legal-intro">{doc.intro}</p> : null}

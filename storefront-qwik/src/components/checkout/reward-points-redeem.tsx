@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useVisibleTask$, type QRL } from "@builder.io/qwik";
 import { validateRewardPoints } from "~/lib/api";
 import { formatNumber, formatPrice } from "~/lib/format";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { RewardPointsBalance, StoreSettings } from "~/lib/types";
 
 interface RewardPointsRedeemProps {
@@ -14,6 +15,7 @@ interface RewardPointsRedeemProps {
 
 /** Checkout: redeem reward points against the order total. */
 export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) => {
+  const { locale } = useI18n();
   const inputPoints = useSignal(props.pointsToRedeem > 0 ? String(props.pointsToRedeem) : "");
   const validating = useSignal(false);
   const error = useSignal<string | null>(null);
@@ -34,7 +36,7 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
       }
       await props.onPointsChange$(data.requested_points, data.redeem_amount, data.is_valid);
     } catch {
-      error.value = "Could not validate reward points. Please try again.";
+      error.value = tStatic(locale, "rewards.validateError");
       redeemAmount.value = 0;
       await props.onPointsChange$(0, 0, false);
     } finally {
@@ -70,24 +72,23 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
     return null;
   }
 
-  const title = props.balance.name || "Reward Points";
+  const title = props.balance.name || tStatic(locale, "rewards.defaultName");
 
   return (
     <div class="reward-points-redeem">
       <h3 class="reward-points-redeem__title">{title}</h3>
       <p class="footer-muted reward-points-redeem__hint">
-        You have <strong>{formatNumber(props.balance.available ?? 0)}</strong> points available
-        {maxPoints > 0 ? (
-          <>
-            {" "}
-            (up to <strong>{formatNumber(maxPoints)}</strong> redeemable on this order)
-          </>
-        ) : null}
+        {tStatic(locale, "rewards.hint", {
+          available: formatNumber(props.balance.available ?? 0, locale),
+        })}
+        {maxPoints > 0
+          ? tStatic(locale, "rewards.hintMax", { max: formatNumber(maxPoints, locale) })
+          : null}
         .
       </p>
       <div class="reward-points-redeem__row">
         <label class="sr-only" for="reward_points">
-          Points to redeem
+          {tStatic(locale, "rewards.pointsToRedeem")}
         </label>
         <input
           id="reward_points"
@@ -100,21 +101,22 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
           disabled={validating.value}
         />
         <button type="button" class="btn btn-secondary" onClick$={useMax$} disabled={validating.value}>
-          Use max
+          {tStatic(locale, "rewards.useMax")}
         </button>
         {inputPoints.value ? (
           <button type="button" class="btn btn-secondary" onClick$={clear$} disabled={validating.value}>
-            Clear
+            {tStatic(locale, "rewards.clear")}
           </button>
         ) : null}
       </div>
       {validating.value ? (
-        <p class="footer-muted">Checking points…</p>
+        <p class="footer-muted">{tStatic(locale, "rewards.checking")}</p>
       ) : null}
       {error.value ? <p class="alert alert-error">{error.value}</p> : null}
       {redeemAmount.value > 0 && !error.value ? (
         <p class="reward-points-redeem__savings">
-          Discount: <strong>{formatPrice(redeemAmount.value, props.currency)}</strong>
+          {tStatic(locale, "rewards.discount")}{" "}
+          <strong>{formatPrice(redeemAmount.value, props.currency, locale)}</strong>
         </p>
       ) : null}
     </div>

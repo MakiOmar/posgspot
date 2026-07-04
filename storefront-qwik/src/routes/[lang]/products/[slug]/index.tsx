@@ -8,10 +8,11 @@ import { useCart } from "~/lib/cart-context";
 import { fetchProduct } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { usePendingState } from "~/lib/pending-context";
 import type { ProductVariation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useProductDetail = routeLoader$(async ({ params, status }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -28,6 +29,7 @@ export default component$(() => {
   const product = useProductDetail();
   const cart = useCart();
   const pending = usePendingState();
+  const { locale } = useI18n();
 
   const selectedVariation = useSignal<ProductVariation>(
     product.value.variations[0] || {
@@ -91,8 +93,8 @@ export default component$(() => {
 
         <div class="pdp-info">
           <h1>{p.name}</h1>
-          {p.brand ? <p class="footer-muted">Brand: {p.brand.name}</p> : null}
-          {p.category ? <p class="footer-muted">Category: {p.category.name}</p> : null}
+          {p.brand ? <p class="footer-muted">{tStatic(locale, "catalog.brand")}: {p.brand.name}</p> : null}
+          {p.category ? <p class="footer-muted">{tStatic(locale, "catalog.category")}: {p.category.name}</p> : null}
 
           <div class="pdp-price">
             {selectedVariation.value.on_sale && selectedVariation.value.compare_at_price != null ? (
@@ -111,7 +113,7 @@ export default component$(() => {
 
           {p.variations.length > 1 ? (
             <label>
-              <span class="footer-muted">Variation</span>
+              <span class="footer-muted">{tStatic(locale, "catalog.variation")}</span>
               <select
                 class="pdp-select"
                 onChange$={(event) => {
@@ -135,7 +137,7 @@ export default component$(() => {
           <span
             class={`stock-pill ${selectedVariation.value.in_stock ? "stock-pill--in" : "stock-pill--out"}`}
           >
-            {selectedVariation.value.in_stock ? "In stock" : "Out of stock"}
+            {selectedVariation.value.in_stock ? tStatic(locale, "catalog.inStock") : tStatic(locale, "catalog.outOfStock")}
           </span>
 
           {p.description ? (
@@ -147,12 +149,12 @@ export default component$(() => {
 
           <div class="pdp-actions">
             <div class="pdp-qty-field">
-              <span class="footer-muted">Qty</span>
+              <span class="footer-muted">{tStatic(locale, "catalog.qty")}</span>
               <QuantityStepper
                 value={quantity.value}
                 max={stockMax}
                 disabled={!variation.in_stock}
-                label={`Quantity for ${p.name}`}
+                label={tStatic(locale, "a11y.quantityFor", { name: p.name })}
                 onChange$={(next) => {
                   quantity.value = next;
                 }}
@@ -182,7 +184,7 @@ export default component$(() => {
               disabled={!variation.in_stock || adding.value}
               aria-disabled={!variation.in_stock || adding.value}
             >
-              {adding.value ? "Adding…" : "Add to cart"}
+              {adding.value ? tStatic(locale, "catalog.addingToCart") : tStatic(locale, "catalog.addToCart")}
             </button>
             {variation.id ? (
               <AvailabilityCheckButton
@@ -200,10 +202,11 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, url }) => {
   const settings = resolveValue(useSiteSettings);
   const product = resolveValue(useProductDetail);
+  const lang = resolveValue(useLangParam);
   const title = `${product.name} — ${settings.business_name}`;
   const description =
     product.description?.replace(/<[^>]+>/g, "").slice(0, 160) ||
-    `Buy ${product.name} at ${settings.business_name}.`;
+    tStatic(lang, "seo.productDescription", { name: product.name, businessName: settings.business_name });
   const image = product.images[0] || undefined;
   const canonical = `${url.origin}/products/${product.slug || product.id}`;
 

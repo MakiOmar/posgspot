@@ -78,7 +78,7 @@ export default component$(() => {
     <section class="account-shell container">
       <aside class="account-sidebar">
         <p class="account-greeting">Hi, {accountDisplayName(auth)}</p>
-        <nav class="account-nav" aria-label="Account">
+        <nav class="account-nav" aria-label={tStatic(locale, "a11y.account")}>
           {navItems.map((item) => {
             const active =
               item.path === "/account"

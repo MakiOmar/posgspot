@@ -3,11 +3,11 @@ import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { fetchOrders } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
-import { useI18n } from "~/lib/i18n/context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import type { AccountOrder } from "~/lib/types";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const auth = useAuth();
@@ -27,7 +27,7 @@ export default component$(() => {
       const { data } = await fetchOrders(auth.token);
       state.orders = data;
     } catch {
-      await toastError("Could not load your orders. Please try again.");
+      await toastError(tStatic(locale, "account.loadOrdersFailed"));
     } finally {
       loading.value = false;
     }
@@ -35,13 +35,14 @@ export default component$(() => {
 
   return (
     <div>
-      <h1 class="page-title">Orders</h1>
+      <h1 class="page-title">{tStatic(locale, "account.orders")}</h1>
 
-      {loading.value ? <p class="footer-muted">Loading orders…</p> : null}
+      {loading.value ? <p class="footer-muted">{tStatic(locale, "account.loadingOrders")}</p> : null}
 
       {!loading.value && state.orders.length === 0 ? (
         <div class="empty-state">
-          You have no orders yet. <Link href={localePath(locale, "/products")}>Start shopping</Link>.
+          {tStatic(locale, "account.noOrders")}{" "}
+          <Link href={localePath(locale, "/products")}>{tStatic(locale, "account.startShopping")}</Link>.
         </div>
       ) : null}
 
@@ -50,27 +51,33 @@ export default component$(() => {
           <table class="account-table">
             <thead>
               <tr>
-                <th>Order</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Payment</th>
-                <th>Total</th>
+                <th>{tStatic(locale, "account.order")}</th>
+                <th>{tStatic(locale, "account.date")}</th>
+                <th>{tStatic(locale, "account.status")}</th>
+                <th>{tStatic(locale, "account.payment")}</th>
+                <th>{tStatic(locale, "account.total")}</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {state.orders.map((order) => (
                 <tr key={order.id}>
-                  <td data-label="Order">{order.invoice_no || order.storefront_order_id}</td>
-                  <td data-label="Date">{formatDate(order.transaction_date)}</td>
-                  <td data-label="Status">
+                  <td data-label={tStatic(locale, "account.order")}>
+                    {order.invoice_no || order.storefront_order_id}
+                  </td>
+                  <td data-label={tStatic(locale, "account.date")}>
+                    {formatDate(order.transaction_date, locale)}
+                  </td>
+                  <td data-label={tStatic(locale, "account.status")}>
                     <span class="status-pill">{order.shipping_status || order.status}</span>
                   </td>
-                  <td data-label="Payment">{order.payment_status}</td>
-                  <td data-label="Total">{formatPrice(order.final_total, settings.value.currency)}</td>
+                  <td data-label={tStatic(locale, "account.payment")}>{order.payment_status}</td>
+                  <td data-label={tStatic(locale, "account.total")}>
+                    {formatPrice(order.final_total, settings.value.currency, locale)}
+                  </td>
                   <td>
-                    <Link href={`/account/orders/${order.id}`} class="link-accent">
-                      View
+                    <Link href={localePath(locale, `/account/orders/${order.id}`)} class="link-accent">
+                      {tStatic(locale, "account.view")}
                     </Link>
                   </td>
                 </tr>
@@ -83,12 +90,15 @@ export default component$(() => {
   );
 });
 
-function formatDate(value: string): string {
+function formatDate(value: string, locale: string): string {
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-EG");
 }
 
-export const head: DocumentHead = {
-  title: "My orders",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "account.myOrdersTitle"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

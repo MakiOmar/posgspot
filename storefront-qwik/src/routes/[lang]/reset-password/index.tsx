@@ -1,11 +1,12 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, resetPassword } from "~/lib/api";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
-import { useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const loc = useLocation();
@@ -23,7 +24,7 @@ export default component$(() => {
 
   const submit$ = $(async () => {
     if (form.password !== form.password_confirmation) {
-      await toastError("Passwords do not match.");
+      await toastError(tStatic(locale, "auth.passwordsMismatch"));
       return;
     }
 
@@ -40,8 +41,8 @@ export default component$(() => {
       } catch (e) {
         await toastError(
           e instanceof ApiError && e.status === 422
-            ? e.message || "Invalid or expired reset link."
-            : "Could not reset your password. Please try again.",
+            ? e.message || tStatic(locale, "auth.invalidOrExpiredLink")
+            : tStatic(locale, "auth.resetFailed"),
         );
       }
     });
@@ -51,16 +52,14 @@ export default component$(() => {
     return (
       <section class="auth-page container">
         <div class="auth-card">
-          <h1 class="page-title">Invalid reset link</h1>
-          <p class="alert alert-error">
-            This password reset link is incomplete or invalid. Request a new link below.
-          </p>
+          <h1 class="page-title">{tStatic(locale, "auth.invalidResetLink")}</h1>
+          <p class="alert alert-error">{tStatic(locale, "auth.invalidResetLinkBody")}</p>
           <div class="auth-links">
             <Link href={localePath(locale, "/forgot-password")} class="link-accent">
-              Request a new reset link
+              {tStatic(locale, "auth.requestNewResetLink")}
             </Link>
             <Link href={loginPath} class="link-accent">
-              Back to sign in
+              {tStatic(locale, "auth.backToSignIn")}
             </Link>
           </div>
         </div>
@@ -72,13 +71,11 @@ export default component$(() => {
     return (
       <section class="auth-page container">
         <div class="auth-card">
-          <h1 class="page-title">Password updated</h1>
-          <p class="alert alert-success">
-            Your password has been changed — redirecting you to sign in…
-          </p>
+          <h1 class="page-title">{tStatic(locale, "auth.passwordUpdated")}</h1>
+          <p class="alert alert-success">{tStatic(locale, "auth.passwordUpdatedBody")}</p>
           <div class="auth-links">
             <Link href={loginPath} class="link-accent">
-              Sign in now
+              {tStatic(locale, "auth.signInNow")}
             </Link>
           </div>
         </div>
@@ -89,14 +86,14 @@ export default component$(() => {
   return (
     <section class="auth-page container">
       <div class="auth-card">
-        <h1 class="page-title">Choose a new password</h1>
+        <h1 class="page-title">{tStatic(locale, "auth.chooseNewPassword")}</h1>
         <p class="footer-muted" style={{ marginBottom: "1rem" }}>
-          Enter a new password for <strong>{email}</strong>.
+          {tStatic(locale, "auth.enterNewPasswordFor")} <strong>{email}</strong>.
         </p>
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">
-            <label for="password">New password</label>
+            <label for="password">{tStatic(locale, "forms.newPassword")}</label>
             <input
               id="password"
               type="password"
@@ -108,7 +105,7 @@ export default component$(() => {
             />
           </div>
           <div class="form-field form-field--full">
-            <label for="password_confirmation">Confirm new password</label>
+            <label for="password_confirmation">{tStatic(locale, "forms.confirmNewPassword")}</label>
             <input
               id="password_confirmation"
               type="password"
@@ -120,13 +117,13 @@ export default component$(() => {
             />
           </div>
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-            {submitting.value ? "Updating…" : "Update password"}
+            {submitting.value ? tStatic(locale, "auth.updating") : tStatic(locale, "auth.updatePassword")}
           </button>
         </form>
 
         <div class="auth-links">
           <Link href={loginPath} class="link-accent">
-            Back to sign in
+            {tStatic(locale, "auth.backToSignIn")}
           </Link>
         </div>
       </div>
@@ -134,7 +131,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Reset password",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "auth.resetPassword"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

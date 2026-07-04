@@ -140,7 +140,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
             }
           }}
         />
-        <button type="submit" aria-label="Search" disabled={searching.value}>
+        <button type="submit" aria-label={tStatic(locale, "header.search")} disabled={searching.value}>
           <SearchIcon size={18} />
         </button>
       </form>
@@ -150,7 +150,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           id="header-search-suggestions"
           class="header-search-suggestions"
           role="listbox"
-          aria-label="Search suggestions"
+          aria-label={tStatic(locale, "header.searchSuggestions")}
           onMouseDown$={(event) => event.preventDefault()}
         >
           {loading.value ? (

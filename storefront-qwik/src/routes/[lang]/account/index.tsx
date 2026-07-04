@@ -4,9 +4,9 @@ import { CustomerQrCode } from "~/components/account/customer-qr-code";
 import { RewardPointsSummary } from "~/components/account/reward-points-summary";
 import { fetchRewardPoints } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { useI18n } from "~/lib/i18n/context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 import type { RewardPointsBalance } from "~/lib/types";
 
 export default component$(() => {
@@ -36,9 +36,9 @@ export default component$(() => {
 
   return (
     <div>
-      <h1 class="page-title">My account</h1>
+      <h1 class="page-title">{tStatic(locale, "account.dashboard")}</h1>
       <p class="footer-muted" style={{ marginBottom: "1.5rem" }}>
-        Manage your orders, profile and delivery address.
+        {tStatic(locale, "account.intro")}
       </p>
 
       {rewardBalance.value?.enabled ? (
@@ -49,30 +49,30 @@ export default component$(() => {
 
       <div class="account-cards">
         <Link href={localePath(locale, "/account/orders")} class="account-card">
-          <strong>Orders</strong>
-          <span class="footer-muted">View your order history and status</span>
+          <strong>{tStatic(locale, "account.orders")}</strong>
+          <span class="footer-muted">{tStatic(locale, "account.ordersCardDesc")}</span>
         </Link>
         <Link href={localePath(locale, "/account/profile")} class="account-card">
-          <strong>Profile &amp; address</strong>
-          <span class="footer-muted">Update your details and delivery address</span>
+          <strong>{tStatic(locale, "account.profileAddress")}</strong>
+          <span class="footer-muted">{tStatic(locale, "account.profileCardDesc")}</span>
         </Link>
       </div>
 
       {c ? (
         <div class="account-overview-grid">
           <div class="account-summary">
-            <h2>Your details</h2>
+            <h2>{tStatic(locale, "account.yourDetails")}</h2>
             <dl class="account-detail-list">
               <div>
-                <dt>Name</dt>
+                <dt>{tStatic(locale, "forms.name")}</dt>
                 <dd>{c.name || "—"}</dd>
               </div>
               <div>
-                <dt>Email</dt>
+                <dt>{tStatic(locale, "forms.email")}</dt>
                 <dd>{c.email || "—"}</dd>
               </div>
               <div>
-                <dt>Mobile</dt>
+                <dt>{tStatic(locale, "forms.mobile")}</dt>
                 <dd>{c.mobile || "—"}</dd>
               </div>
             </dl>
@@ -84,7 +84,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "My account",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "account.dashboard"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

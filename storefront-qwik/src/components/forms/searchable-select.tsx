@@ -1,4 +1,5 @@
 import { $, component$, useSignal, type QRL } from "@builder.io/qwik";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 
 export type SelectOption = {
   value: string;
@@ -30,6 +31,7 @@ function filterOptions(options: SelectOption[], query: string): SelectOption[] {
 }
 
 export const SearchableSelect = component$<Props>((props) => {
+  const { locale } = useI18n();
   const open = useSignal(false);
   const query = useSignal("");
   const activeId = useSignal("");
@@ -38,7 +40,8 @@ export const SearchableSelect = component$<Props>((props) => {
     props.options.find((o) => o.value === props.value) ??
     props.options.find((o) => o.label === props.displayLabel);
 
-  const display = props.displayLabel || selected?.label || props.placeholder || "Select…";
+  const display =
+    props.displayLabel || selected?.label || props.placeholder || tStatic(locale, "forms.select");
   const visibleOptions = filterOptions(props.options, query.value);
 
   const close$ = $(() => {
@@ -82,7 +85,7 @@ export const SearchableSelect = component$<Props>((props) => {
           <input
             type="search"
             class="searchable-select__search"
-            placeholder="Search…"
+            placeholder={tStatic(locale, "forms.search")}
             autoComplete="off"
             value={query.value}
             onInput$={(_, el) => {
@@ -129,7 +132,7 @@ export const SearchableSelect = component$<Props>((props) => {
               </li>
             ))}
             {visibleOptions.length === 0 ? (
-              <li class="searchable-select__empty">No matches</li>
+              <li class="searchable-select__empty">{tStatic(locale, "forms.noMatches")}</li>
             ) : null}
           </ul>
         </div>

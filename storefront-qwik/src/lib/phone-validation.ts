@@ -1,3 +1,6 @@
+import type { StoreLocaleCode } from "./i18n/config";
+import { translate } from "./i18n/translate";
+
 export type PhoneCountry = {
   name_en: string;
   name_ar: string;
@@ -47,14 +50,18 @@ export function buildFullPhone(dialCode: string, national: string): string {
   return dialCode + sanitizeNationalNumber(national);
 }
 
-export function phoneHint(dialCode: string): string {
-  return PHONE_EXAMPLES[dialCode] ?? `Please enter a valid mobile number starting with ${dialCode}`;
+export function phoneHint(dialCode: string, locale: StoreLocaleCode = "en"): string {
+  return (
+    PHONE_EXAMPLES[dialCode] ??
+    translate(locale, "phone.hintDefault", { dialCode })
+  );
 }
 
 export function validatePhone(
   dialCode: string,
   national: string,
   countries: PhoneCountry[],
+  locale: StoreLocaleCode = "en",
 ): { valid: boolean; message: string; fullPhone: string } {
   const nationalDigits = sanitizeNationalNumber(national);
   const fullPhone = buildFullPhone(dialCode, nationalDigits);
@@ -79,11 +86,15 @@ export function validatePhone(
     return { valid: true, message: "", fullPhone };
   }
 
-  const hint = phoneHint(dialCode);
-  const countryName = matching.name_en;
+  const hint = phoneHint(dialCode, locale);
+  const countryName = locale === "ar" ? matching.name_ar : matching.name_en;
   return {
     valid: false,
-    message: `Invalid phone number for ${countryName}. You entered: ${fullPhone}. ${hint}`,
+    message: translate(locale, "phone.invalid", {
+      country: countryName,
+      phone: fullPhone,
+      hint,
+    }),
     fullPhone,
   };
 }

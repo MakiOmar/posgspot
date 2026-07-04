@@ -1,6 +1,7 @@
 import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
 import { STORE_LOCALES, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
+import { tStatic } from "~/lib/i18n/context";
 import { localeFromPathname, swapLocalePath } from "~/lib/i18n/paths";
 import type { StoreSettings } from "~/lib/types";
 
@@ -49,7 +50,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
 
   if (alternatives.length === 0) {
     return (
-      <div class="language-switcher" role="navigation" aria-label="Language">
+      <div class="language-switcher" role="navigation" aria-label={tStatic(activeCode, "a11y.language")}>
         <span class="language-switcher__trigger language-switcher__trigger--static" aria-current="true">
           <span class="language-switcher__flag" aria-hidden="true">
             {active.flag}
@@ -61,7 +62,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
   }
 
   return (
-    <div class={`language-switcher${open.value ? " language-switcher--open" : ""}`} role="navigation" aria-label="Language">
+    <div class={`language-switcher${open.value ? " language-switcher--open" : ""}`} role="navigation" aria-label={tStatic(activeCode, "a11y.language")}>
       <button
         type="button"
         class="language-switcher__trigger"
@@ -78,7 +79,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
       </button>
 
       {open.value ? (
-        <ul class="language-switcher__menu" role="listbox" aria-label="Other languages">
+        <ul class="language-switcher__menu" role="listbox" aria-label={tStatic(activeCode, "a11y.otherLanguages")}>
           {alternatives.map((locale) => {
             const href = swapLocalePath(
               loc.url.pathname,

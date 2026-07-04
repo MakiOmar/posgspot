@@ -13,7 +13,9 @@ import { toastError, toastSuccess } from "~/lib/notify";
 import type { GeoState } from "~/lib/phone-validation";
 import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export const usePhoneCountries = routeLoader$(async () => {
   try {
@@ -34,6 +36,7 @@ export const useGeoCountries = routeLoader$(async () => {
 });
 
 export default component$(() => {
+  const { locale } = useI18n();
   const phoneCountries = usePhoneCountries();
   const geoCountries = useGeoCountries();
   const pending = usePendingState();
@@ -80,14 +83,14 @@ export default component$(() => {
   });
 
   const submit$ = $(async () => {
-    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value, locale);
     if (!phoneCheck.valid) {
       await toastError(phoneCheck.message);
       return;
     }
 
     if (!form.state) {
-      await toastError("Please select a state or province.");
+      await toastError(tStatic(locale, "addCustomer.selectState"));
       return;
     }
 
@@ -109,9 +112,9 @@ export default component$(() => {
       } catch (e) {
         if (e instanceof ApiError && e.errors) {
           const first = Object.values(e.errors)[0]?.[0];
-          await toastError(first || "Could not create customer.");
+          await toastError(first || tStatic(locale, "addCustomer.createFailed"));
         } else {
-          await toastError("Could not create customer. Please try again.");
+          await toastError(tStatic(locale, "addCustomer.createFailedRetry"));
         }
       }
     });
@@ -139,10 +142,10 @@ export default component$(() => {
             <div class="landing-success__icon" aria-hidden="true">
               ✓
             </div>
-            <h1 class="landing-title">Congratulations!</h1>
+            <h1 class="landing-title">{tStatic(locale, "addCustomer.congratulations")}</h1>
             <p class="landing-success__message">{successMessage.value}</p>
             <button type="button" class="btn btn-primary" onClick$={resetForm$}>
-              Add another customer
+              {tStatic(locale, "addCustomer.addAnother")}
             </button>
           </div>
         </div>
@@ -168,16 +171,16 @@ export default component$(() => {
     <section class="landing-page landing-page--add-customer">
       <div class="landing-card">
         <header class="landing-card__header">
-          <h1 class="landing-title">Join us</h1>
-          <p class="landing-subtitle">Create your customer account</p>
+          <h1 class="landing-title">{tStatic(locale, "addCustomer.joinUs")}</h1>
+          <p class="landing-subtitle">{tStatic(locale, "addCustomer.subtitle")}</p>
         </header>
 
         <form preventdefault:submit onSubmit$={submit$} class="landing-form">
           <fieldset class="landing-form__section">
-            <legend>Personal information</legend>
+            <legend>{tStatic(locale, "addCustomer.personalInfo")}</legend>
             <div class="form-grid two-col">
               <div class="form-field">
-                <label for="first_name">First name *</label>
+                <label for="first_name">{tStatic(locale, "forms.firstName")} *</label>
                 <input
                   id="first_name"
                   type="text"
@@ -188,7 +191,7 @@ export default component$(() => {
                 />
               </div>
               <div class="form-field">
-                <label for="last_name">Last name *</label>
+                <label for="last_name">{tStatic(locale, "forms.lastName")} *</label>
                 <input
                   id="last_name"
                   type="text"
@@ -202,10 +205,10 @@ export default component$(() => {
           </fieldset>
 
           <fieldset class="landing-form__section">
-            <legend>Contact information</legend>
+            <legend>{tStatic(locale, "addCustomer.contactInfo")}</legend>
             <div class="form-grid two-col">
               <div class="form-field">
-                <label for="email">Email *</label>
+                <label for="email">{tStatic(locale, "forms.email")} *</label>
                 <input
                   id="email"
                   type="email"
@@ -216,7 +219,7 @@ export default component$(() => {
                 />
               </div>
               <div class="form-field">
-                <label for="birth_date">Birth date *</label>
+                <label for="birth_date">{tStatic(locale, "forms.birthDate")} *</label>
                 <input
                   id="birth_date"
                   type="date"
@@ -226,13 +229,13 @@ export default component$(() => {
                 />
               </div>
               <div class="form-field">
-                <label for="country">Country *</label>
+                <label for="country">{tStatic(locale, "forms.country")} *</label>
                 <SearchableSelect
                   id="country"
                   options={countryOptions}
                   value={form.country}
                   displayLabel={selectedCountry?.name}
-                  placeholder="Search countries…"
+                  placeholder={tStatic(locale, "forms.searchCountries")}
                   required
                   onChange$={(code) => {
                     form.country = code;
@@ -240,12 +243,12 @@ export default component$(() => {
                 />
               </div>
               <div class="form-field">
-                <label for="state">State / Province *</label>
+                <label for="state">{tStatic(locale, "forms.stateProvince")} *</label>
                 <SearchableSelect
                   id="state"
                   options={stateOptions}
                   value={form.state}
-                  placeholder={statesLoading.value ? "Loading states…" : "Search states…"}
+                  placeholder={statesLoading.value ? tStatic(locale, "forms.loadingStates") : tStatic(locale, "forms.searchStates")}
                   required
                   disabled={statesLoading.value || stateOptions.length === 0}
                   onChange$={(code) => {
@@ -254,7 +257,7 @@ export default component$(() => {
                 />
               </div>
               <div class="form-field form-field--full">
-                <label for="phone">Phone number *</label>
+                <label for="phone">{tStatic(locale, "forms.phoneNumber")} *</label>
                 <PhoneInputWithDialCode
                   id="phone"
                   countries={phoneCountries.value}
@@ -272,7 +275,7 @@ export default component$(() => {
           </fieldset>
 
           <button type="submit" class="btn btn-primary landing-form__submit" disabled={submitting.value}>
-            {submitting.value ? "Creating account…" : "Create account"}
+            {submitting.value ? tStatic(locale, "auth.creatingAccount") : tStatic(locale, "auth.register")}
           </button>
         </form>
       </div>
@@ -280,7 +283,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Join us — Add Customer",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "addCustomer.seoTitle"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

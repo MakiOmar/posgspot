@@ -78,7 +78,7 @@ export default component$(() => {
           </div>
 
           {meta.last_page > 1 ? (
-            <nav class="pagination" aria-label="Pagination">
+            <nav class="pagination" aria-label={tStatic(lang as "en" | "ar", "a11y.pagination")}>
               {meta.current_page > 1 ? (
                 <Link href={buildPageUrl(meta.current_page - 1)} class="footer-contact">
                   <ChevronLeftIcon size={16} />

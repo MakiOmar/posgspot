@@ -1,11 +1,12 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { forgotPassword } from "~/lib/api";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
-import { useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const { locale } = useI18n();
@@ -17,9 +18,9 @@ export default component$(() => {
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await forgotPassword(email.value);
-        await toastSuccess(data.message || "If the email exists, a reset link has been sent.");
+        await toastSuccess(data.message || tStatic(locale, "auth.resetLinkSent"));
       } catch {
-        await toastError("Could not process the request. Please try again.");
+        await toastError(tStatic(locale, "auth.resetRequestFailed"));
       }
     });
   });
@@ -27,14 +28,14 @@ export default component$(() => {
   return (
     <section class="auth-page container">
       <div class="auth-card">
-        <h1 class="page-title">Reset password</h1>
+        <h1 class="page-title">{tStatic(locale, "auth.resetPassword")}</h1>
         <p class="footer-muted" style={{ marginBottom: "1rem" }}>
-          Enter your email and we’ll send you a link to reset your password.
+          {tStatic(locale, "auth.resetPasswordHint")}
         </p>
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">
-            <label for="email">Email</label>
+            <label for="email">{tStatic(locale, "forms.email")}</label>
             <input
               id="email"
               type="email"
@@ -45,13 +46,13 @@ export default component$(() => {
             />
           </div>
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-            {submitting.value ? "Sending…" : "Send reset link"}
+            {submitting.value ? tStatic(locale, "auth.sending") : tStatic(locale, "auth.sendResetLink")}
           </button>
         </form>
 
         <div class="auth-links">
           <Link href={localePath(locale, "/login")} class="link-accent">
-            Back to sign in
+            {tStatic(locale, "auth.backToSignIn")}
           </Link>
         </div>
       </div>
@@ -59,7 +60,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Reset password",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "auth.resetPassword"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

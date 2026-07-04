@@ -9,7 +9,7 @@ import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { Category } from "~/lib/types";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 interface CategoryPageData {
   category: Category | null;
@@ -54,6 +54,7 @@ export default component$(() => {
   const loc = useLocation();
   const filters = parseProductListFilters(loc.url.searchParams);
   const { category, data, meta } = pageData.value;
+  const lang = (loc.params.lang || "en") as "en" | "ar";
 
   const listKey = loc.url.search || "?";
 
@@ -71,11 +72,11 @@ export default component$(() => {
   if (!category) {
     return (
       <section>
-        <h1 class="page-title">Category not found</h1>
+        <h1 class="page-title">{tStatic(lang, "catalog.categoryNotFound")}</h1>
         <div class="empty-state">
-          This category doesn’t exist or is no longer available.{" "}
-          <Link href={localePath(loc.params.lang || "en", "/products")}>
-            {tStatic((loc.params.lang || "en") as "en" | "ar", "footer.allProducts")}
+          {tStatic(lang, "catalog.categoryNotFoundBody")}{" "}
+          <Link href={localePath(lang, "/products")}>
+            {tStatic(lang, "footer.allProducts")}
           </Link>
         </div>
       </section>
@@ -91,12 +92,12 @@ export default component$(() => {
 
       {data.length === 0 ? (
         <div class="empty-state" key={listKey}>
-          No products in this category yet.
+          {tStatic(lang, "catalog.noProductsInCategory")}
         </div>
       ) : (
         <div key={listKey}>
           <p class="footer-muted" style={{ marginBottom: "1rem" }}>
-            {meta.total} product{meta.total === 1 ? "" : "s"}
+            {tStatic(lang, "catalog.productCount", { count: meta.total })}
           </p>
           <div class="product-grid">
             {data.map((product) => (
@@ -105,19 +106,19 @@ export default component$(() => {
           </div>
 
           {meta.last_page > 1 ? (
-            <nav class="pagination" aria-label="Pagination">
+            <nav class="pagination" aria-label={tStatic(lang, "a11y.pagination")}>
               {meta.current_page > 1 ? (
                 <Link href={buildPageUrl(meta.current_page - 1)} class="footer-contact">
                   <ChevronLeftIcon size={16} />
-                  Prev
+                  {tStatic(lang, "common.prev")}
                 </Link>
               ) : null}
               <span class="active">
-                Page {meta.current_page} of {meta.last_page}
+                {tStatic(lang, "common.pageOf", { current: meta.current_page, last: meta.last_page })}
               </span>
               {meta.current_page < meta.last_page ? (
                 <Link href={buildPageUrl(meta.current_page + 1)} class="footer-contact">
-                  Next
+                  {tStatic(lang, "common.next")}
                   <ChevronRightIcon size={16} />
                 </Link>
               ) : null}
@@ -132,9 +133,10 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, params }) => {
   const settings = resolveValue(useSiteSettings);
   const pageData = resolveValue(useCategoryPage);
+  const lang = resolveValue(useLangParam);
   const name = pageData.category?.name || params.slug;
   const title = `${name} — ${settings.business_name}`;
-  const description = `Shop ${name} at ${settings.business_name}.`;
+  const description = tStatic(lang, "seo.categoryDescription", { name, businessName: settings.business_name });
 
   return {
     title,

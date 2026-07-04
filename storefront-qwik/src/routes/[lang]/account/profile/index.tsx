@@ -3,11 +3,13 @@ import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { fetchPhoneCountries, updateAddress, updateProfile } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
 import type { AuthContact } from "~/lib/types";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 interface ProfileForm {
   first_name: string;
@@ -52,6 +54,7 @@ export const useProfilePhoneCountries = routeLoader$(async () => {
 
 export default component$(() => {
   const auth = useAuth();
+  const { locale } = useI18n();
   const phoneCountries = useProfilePhoneCountries();
   const form = useStore<ProfileForm>(formFromContact(null, "+20", ""));
   const saving = useSignal(false);
@@ -73,7 +76,7 @@ export default component$(() => {
       return;
     }
 
-    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value, locale);
     if (!phoneCheck.valid) {
       await toastError(phoneCheck.message);
       return;
@@ -96,38 +99,34 @@ export default component$(() => {
           zip_code: form.zip_code,
         });
         auth.contact = data;
-        await toastSuccess("Your details were saved.");
+        await toastSuccess(tStatic(locale, "account.saved"));
       } catch {
-        await toastError("Could not save your details. Please check the fields and try again.");
+        await toastError(tStatic(locale, "account.saveFailed"));
       }
     });
   });
 
   return (
     <div>
-      <h1 class="page-title">Profile &amp; address</h1>
+      <h1 class="page-title">{tStatic(locale, "account.profileAddress")}</h1>
 
-      <form
-        preventdefault:submit
-        onSubmit$={save$}
-        class="account-form"
-      >
-        <h2>Personal details</h2>
+      <form preventdefault:submit onSubmit$={save$} class="account-form">
+        <h2>{tStatic(locale, "account.personalDetails")}</h2>
         <div class="form-grid">
           <div class="form-field">
-            <label for="first_name">First name</label>
+            <label for="first_name">{tStatic(locale, "forms.firstName")}</label>
             <input id="first_name" type="text" value={form.first_name} onInput$={(_, el) => (form.first_name = el.value)} />
           </div>
           <div class="form-field">
-            <label for="last_name">Last name</label>
+            <label for="last_name">{tStatic(locale, "forms.lastName")}</label>
             <input id="last_name" type="text" value={form.last_name} onInput$={(_, el) => (form.last_name = el.value)} />
           </div>
           <div class="form-field">
-            <label for="email">Email</label>
+            <label for="email">{tStatic(locale, "forms.email")}</label>
             <input id="email" type="email" value={form.email} onInput$={(_, el) => (form.email = el.value)} />
           </div>
           <div class="form-field">
-            <label for="profile-mobile">Mobile</label>
+            <label for="profile-mobile">{tStatic(locale, "forms.mobile")}</label>
             {phoneReady.value ? (
               <PhoneInputWithDialCode
                 id="profile-mobile"
@@ -144,37 +143,37 @@ export default component$(() => {
           </div>
         </div>
 
-        <h2 style={{ marginTop: "1.5rem" }}>Delivery address</h2>
+        <h2 style={{ marginTop: "1.5rem" }}>{tStatic(locale, "account.deliveryAddress")}</h2>
         <div class="form-grid">
           <div class="form-field form-field--full">
-            <label for="address_line_1">Address line 1</label>
+            <label for="address_line_1">{tStatic(locale, "forms.addressLine1")}</label>
             <input id="address_line_1" type="text" value={form.address_line_1} onInput$={(_, el) => (form.address_line_1 = el.value)} />
           </div>
           <div class="form-field form-field--full">
-            <label for="address_line_2">Address line 2</label>
+            <label for="address_line_2">{tStatic(locale, "forms.addressLine2")}</label>
             <input id="address_line_2" type="text" value={form.address_line_2} onInput$={(_, el) => (form.address_line_2 = el.value)} />
           </div>
           <div class="form-field">
-            <label for="city">City</label>
+            <label for="city">{tStatic(locale, "forms.city")}</label>
             <input id="city" type="text" value={form.city} onInput$={(_, el) => (form.city = el.value)} />
           </div>
           <div class="form-field">
-            <label for="state">State / Governorate</label>
+            <label for="state">{tStatic(locale, "forms.state")}</label>
             <input id="state" type="text" value={form.state} onInput$={(_, el) => (form.state = el.value)} />
           </div>
           <div class="form-field">
-            <label for="country">Country</label>
+            <label for="country">{tStatic(locale, "forms.country")}</label>
             <input id="country" type="text" value={form.country} onInput$={(_, el) => (form.country = el.value)} />
           </div>
           <div class="form-field">
-            <label for="zip_code">Postal code</label>
+            <label for="zip_code">{tStatic(locale, "forms.postalCode")}</label>
             <input id="zip_code" type="text" value={form.zip_code} onInput$={(_, el) => (form.zip_code = el.value)} />
           </div>
         </div>
 
         <div style={{ marginTop: "1.5rem" }}>
           <button type="submit" class="btn btn-primary" disabled={saving.value}>
-            {saving.value ? "Saving…" : "Save changes"}
+            {saving.value ? tStatic(locale, "account.saving") : tStatic(locale, "account.saveChanges")}
           </button>
         </div>
       </form>
@@ -182,7 +181,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Profile & address",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "account.profileAddress"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

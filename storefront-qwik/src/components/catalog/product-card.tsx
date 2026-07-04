@@ -14,20 +14,24 @@ interface ProductCardProps {
   settings: StoreSettings;
 }
 
-function saleBadgeLabel(product: ProductSummary, settings: StoreSettings): string | null {
+function saleBadgeLabel(
+  product: ProductSummary,
+  settings: StoreSettings,
+  locale: "en" | "ar",
+): string | null {
   if (!product.on_sale) {
     return null;
   }
 
   if (settings.sale_badge.mode === "text") {
-    return settings.sale_badge.text || "Sale";
+    return settings.sale_badge.text || tStatic(locale, "catalog.sale");
   }
 
   if (product.sale_percent > 0) {
     return `-${product.sale_percent}%`;
   }
 
-  return settings.sale_badge.text || "Sale";
+  return settings.sale_badge.text || tStatic(locale, "catalog.sale");
 }
 
 export const ProductCard = component$<ProductCardProps>(({ product, settings }) => {
@@ -36,7 +40,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
   const adding = useSignal(false);
   const { locale } = useI18n();
   const pdpUrl = productPath(product, locale);
-  const badge = saleBadgeLabel(product, settings);
+  const badge = saleBadgeLabel(product, settings, locale);
   const hasOptions = product.has_options;
   const outOfStock = !product.in_stock;
   const showCardAvailability =

@@ -3,12 +3,13 @@ import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ApiError, fetchPhoneCountries, registerCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { tStatic, useI18n } from "~/lib/i18n/context";
+import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
-import { useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export const useRegisterPhoneCountries = routeLoader$(async () => {
   try {
@@ -52,11 +53,11 @@ export default component$(() => {
 
   const submit$ = $(async () => {
     if (form.password !== form.password_confirmation) {
-      await toastError("Passwords do not match.");
+      await toastError(tStatic(locale, "auth.passwordsMismatch"));
       return;
     }
 
-    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value);
+    const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value, locale);
     if (!phoneCheck.valid) {
       await toastError(phoneCheck.message);
       return;
@@ -80,9 +81,9 @@ export default component$(() => {
       } catch (e) {
         if (e instanceof ApiError && e.errors) {
           const first = Object.values(e.errors)[0]?.[0];
-          await toastError(first || "Could not create your account.");
+          await toastError(first || tStatic(locale, "auth.registerFailed"));
         } else {
-          await toastError("Could not create your account. Please try again.");
+          await toastError(tStatic(locale, "auth.registerFailedRetry"));
         }
       }
     });
@@ -92,13 +93,11 @@ export default component$(() => {
     return (
       <section class="auth-page container">
         <div class="auth-card">
-          <h1 class="page-title">Account created</h1>
-          <p class="alert alert-success">
-            Welcome aboard! Your account is ready — redirecting you to your account…
-          </p>
+          <h1 class="page-title">{tStatic(locale, "auth.accountCreated")}</h1>
+          <p class="alert alert-success">{tStatic(locale, "auth.welcomeAboard")}</p>
           <div class="auth-links">
             <Link href={accountPath} class="link-accent">
-              Go to my account now
+              {tStatic(locale, "auth.goToAccount")}
             </Link>
           </div>
         </div>
@@ -109,24 +108,24 @@ export default component$(() => {
   return (
     <section class="auth-page container">
       <div class="auth-card">
-        <h1 class="page-title">Create account</h1>
+        <h1 class="page-title">{tStatic(locale, "auth.register")}</h1>
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-grid">
             <div class="form-field">
-              <label for="first_name">First name</label>
+              <label for="first_name">{tStatic(locale, "forms.firstName")}</label>
               <input id="first_name" type="text" value={form.first_name} onInput$={(_, el) => (form.first_name = el.value)} required />
             </div>
             <div class="form-field">
-              <label for="last_name">Last name</label>
+              <label for="last_name">{tStatic(locale, "forms.lastName")}</label>
               <input id="last_name" type="text" value={form.last_name} onInput$={(_, el) => (form.last_name = el.value)} />
             </div>
             <div class="form-field">
-              <label for="email">Email</label>
+              <label for="email">{tStatic(locale, "forms.email")}</label>
               <input id="email" type="email" autoComplete="email" value={form.email} onInput$={(_, el) => (form.email = el.value)} required />
             </div>
             <div class="form-field">
-              <label for="register-mobile">Mobile</label>
+              <label for="register-mobile">{tStatic(locale, "forms.mobile")}</label>
               <PhoneInputWithDialCode
                 id="register-mobile"
                 countries={phoneCountries.value}
@@ -141,22 +140,25 @@ export default component$(() => {
               />
             </div>
             <div class="form-field">
-              <label for="password">Password</label>
+              <label for="password">{tStatic(locale, "forms.password")}</label>
               <input id="password" type="password" autoComplete="new-password" value={form.password} onInput$={(_, el) => (form.password = el.value)} required />
             </div>
             <div class="form-field">
-              <label for="password_confirmation">Confirm password</label>
+              <label for="password_confirmation">{tStatic(locale, "forms.confirmPassword")}</label>
               <input id="password_confirmation" type="password" autoComplete="new-password" value={form.password_confirmation} onInput$={(_, el) => (form.password_confirmation = el.value)} required />
             </div>
           </div>
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-            {submitting.value ? "Creating account…" : "Create account"}
+            {submitting.value ? tStatic(locale, "auth.creatingAccount") : tStatic(locale, "auth.register")}
           </button>
         </form>
 
         <div class="auth-links">
           <span>
-            Already have an account? <Link href={localePath(locale, "/login")} class="link-accent">Sign in</Link>
+            {tStatic(locale, "auth.alreadyHaveAccount")}{" "}
+            <Link href={localePath(locale, "/login")} class="link-accent">
+              {tStatic(locale, "auth.login")}
+            </Link>
           </span>
         </div>
       </div>
@@ -164,7 +166,10 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Create account",
-  meta: [{ name: "robots", content: "noindex, nofollow" }],
+export const head: DocumentHead = ({ resolveValue }) => {
+  const lang = resolveValue(useLangParam);
+  return {
+    title: tStatic(lang, "auth.register"),
+    meta: [{ name: "robots", content: "noindex, nofollow" }],
+  };
 };

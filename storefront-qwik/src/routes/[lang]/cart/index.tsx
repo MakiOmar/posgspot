@@ -7,7 +7,7 @@ import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const settings = useSiteSettings();
@@ -40,10 +40,10 @@ export default component$(() => {
       <table class="cart-table">
         <thead>
           <tr>
-            <th>Product</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Total</th>
+            <th>{tStatic(locale, "cart.product")}</th>
+            <th>{tStatic(locale, "cart.price")}</th>
+            <th>{tStatic(locale, "cart.qty")}</th>
+            <th>{tStatic(locale, "cart.total")}</th>
             <th />
           </tr>
         </thead>
@@ -60,7 +60,7 @@ export default component$(() => {
               <td>
                 <QuantityStepper
                   value={line.quantity}
-                  label={`Quantity for ${line.name}`}
+                  label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
                   onChange$={(next) => setCartQuantity(cart, line.variationId, next)}
                 />
               </td>
@@ -69,11 +69,11 @@ export default component$(() => {
                 <button
                   type="button"
                   class="btn btn-secondary footer-contact"
-                  aria-label="Remove item"
+                  aria-label={tStatic(locale, "a11y.removeItem")}
                   onClick$={() => removeCartItem(cart, line.variationId)}
                 >
                   <TrashIcon size={16} />
-                  Remove
+                  {tStatic(locale, "cart.remove")}
                 </button>
               </td>
             </tr>
@@ -96,8 +96,9 @@ export default component$(() => {
 
 export const head: DocumentHead = ({ resolveValue }) => {
   const settings = resolveValue(useSiteSettings);
+  const lang = resolveValue(useLangParam);
   return {
-    title: `Cart — ${settings.business_name}`,
+    title: tStatic(lang, "cart.seoTitle", { businessName: settings.business_name }),
     meta: [{ name: "robots", content: "noindex, nofollow" }],
   };
 };
