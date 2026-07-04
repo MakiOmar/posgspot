@@ -72,7 +72,9 @@ export function productListUrl(
   }
 
   const qs = params.toString();
-  return qs ? `${basePath}?${qs}` : basePath;
+  // Keep trailing slash so SPA query navigations do not hit a redirect.
+  const path = basePath.endsWith("/") || basePath.includes("?") ? basePath : `${basePath}/`;
+  return qs ? `${path}?${qs}` : path;
 }
 
 export function hasActiveProductFilters(filters: ProductListFilters): boolean {

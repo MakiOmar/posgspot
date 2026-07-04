@@ -55,10 +55,17 @@ export default component$(() => {
   const filters = parseProductListFilters(loc.url.searchParams);
   const { category, data, meta } = pageData.value;
 
+  const listKey = loc.url.search || "?";
+
   const buildPageUrl = (page: number) => {
     const params = new URLSearchParams(loc.url.searchParams);
-    params.set("page", String(page));
-    return `${loc.url.pathname}?${params.toString()}`;
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    const qs = params.toString();
+    return qs ? `${loc.url.pathname}?${qs}` : loc.url.pathname;
   };
 
   if (!category) {
@@ -83,9 +90,11 @@ export default component$(() => {
       <ProductListToolbar basePath={loc.url.pathname} filters={filters} />
 
       {data.length === 0 ? (
-        <div class="empty-state">No products in this category yet.</div>
+        <div class="empty-state" key={listKey}>
+          No products in this category yet.
+        </div>
       ) : (
-        <>
+        <div key={listKey}>
           <p class="footer-muted" style={{ marginBottom: "1rem" }}>
             {meta.total} product{meta.total === 1 ? "" : "s"}
           </p>
@@ -114,7 +123,7 @@ export default component$(() => {
               ) : null}
             </nav>
           ) : null}
-        </>
+        </div>
       )}
     </section>
   );

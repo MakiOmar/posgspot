@@ -40,24 +40,34 @@ export default component$(() => {
   const filters = parseProductListFilters(loc.url.searchParams);
   const { meta } = list.value;
   const lang = loc.params.lang || "en";
-  const productsBase = localePath(lang, "/products");
+  // Use the live pathname (incl. trailing slash) so SPA query-only navigations
+  // re-run route loaders instead of bouncing through a trailing-slash redirect.
+  const listPath = loc.url.pathname || localePath(lang, "/products");
+  const listKey = loc.url.search || "?";
 
   const buildPageUrl = (page: number) => {
     const params = new URLSearchParams(loc.url.searchParams);
-    params.set("page", String(page));
-    return `${productsBase}?${params.toString()}`;
+    if (page <= 1) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    const qs = params.toString();
+    return qs ? `${listPath}?${qs}` : listPath;
   };
 
   return (
     <section>
       <h1 class="page-title">{tStatic(lang as "en" | "ar", "nav.shop")}</h1>
 
-      <ProductListToolbar basePath={productsBase} filters={filters} />
+      <ProductListToolbar basePath={listPath} filters={filters} />
 
       {list.value.data.length === 0 ? (
-        <div class="empty-state">{tStatic(lang as "en" | "ar", "catalog.noProducts")}</div>
+        <div class="empty-state" key={listKey}>
+          {tStatic(lang as "en" | "ar", "catalog.noProducts")}
+        </div>
       ) : (
-        <>
+        <div key={listKey}>
           <p class="footer-muted" style={{ marginBottom: "1rem" }}>
             {tStatic(lang as "en" | "ar", "catalog.productCount", { count: meta.total })}
           </p>
@@ -89,7 +99,7 @@ export default component$(() => {
               ) : null}
             </nav>
           ) : null}
-        </>
+        </div>
       )}
     </section>
   );

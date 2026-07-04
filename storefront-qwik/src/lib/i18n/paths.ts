@@ -14,13 +14,23 @@ export function localeFromPathname(pathname: string): StoreLocaleCode {
   return isSupportedLocale(first) ? first : DEFAULT_CONTENT_LOCALE;
 }
 
+/**
+ * Locale-prefixed path with a trailing slash (Qwik City default).
+ * Query strings in `path` are preserved after the slash, e.g. `/products?q=x` → `/en/products/?q=x`.
+ * Omitting the slash causes a redirect on SPA navigations and can leave route loaders stale
+ * (pagination/filters update the URL but not the product list until a full reload).
+ */
 export function localePath(lang: StoreLocaleCode | string, path = "/"): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  const bare = stripLocalePrefix(normalized);
-  if (bare === "/") {
-    return `/${lang}/`;
+  const qIndex = normalized.indexOf("?");
+  const pathname = qIndex >= 0 ? normalized.slice(0, qIndex) : normalized;
+  const search = qIndex >= 0 ? normalized.slice(qIndex) : "";
+  const bare = stripLocalePrefix(pathname);
+  const withSlash = bare.endsWith("/") ? bare : `${bare}/`;
+  if (withSlash === "/") {
+    return `/${lang}/${search}`;
   }
-  return `/${lang}${bare}`;
+  return `/${lang}${withSlash}${search}`;
 }
 
 export function swapLocalePath(pathname: string, search: string, newLang: StoreLocaleCode): string {
