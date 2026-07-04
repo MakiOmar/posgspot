@@ -38,7 +38,7 @@ class SettingsApiService
             'logo_url' => business_logo_url($business) ?: null,
             'currency' => [
                 'code' => $business->currency_code ?? 'EGP',
-                'symbol' => $business->currency_symbol ?? 'EGP',
+                'symbol' => $business->currency_symbol ?? 'L.E.',
                 'precision' => (int) ($business->currency_precision ?? 2),
                 'symbol_placement' => $business->currency_symbol_placement ?? 'before',
             ],

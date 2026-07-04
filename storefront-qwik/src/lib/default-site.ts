@@ -4,7 +4,7 @@ import type { Category, StoreSettings } from "~/lib/types";
 export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   business_name: "Games Spot",
   logo_url: null,
-  currency: { code: "EGP", symbol: "£", precision: 2, symbol_placement: "before" },
+  currency: { code: "EGP", symbol: "L.E.", precision: 2, symbol_placement: "before" },
   contact: { phone: null, email_encoded: null, whatsapp: null },
   social: {},
   announcement: { message: "", link: "", enabled: false },

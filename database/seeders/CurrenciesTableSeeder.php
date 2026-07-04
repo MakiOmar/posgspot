@@ -83,7 +83,7 @@ class CurrenciesTableSeeder extends Seeder
                 'thousand_separator' => ',', 'decimal_separator' => '.', 'created_at' => null, 'updated_at' => null, ],
             ['id' => '34', 'country' => 'East Caribbean', 'currency' => 'Dollars', 'code' => 'XCD', 'symbol' => '$',
                 'thousand_separator' => ',', 'decimal_separator' => '.', 'created_at' => null, 'updated_at' => null, ],
-            ['id' => '35', 'country' => 'Egypt', 'currency' => 'Pounds', 'code' => 'EGP', 'symbol' => '£',
+            ['id' => '35', 'country' => 'Egypt', 'currency' => 'Pounds', 'code' => 'EGP', 'symbol' => 'L.E.',
                 'thousand_separator' => ',', 'decimal_separator' => '.', 'created_at' => null, 'updated_at' => null, ],
             ['id' => '36', 'country' => 'El Salvador', 'currency' => 'Colones', 'code' => 'SVC', 'symbol' => '$',
                 'thousand_separator' => ',', 'decimal_separator' => '.', 'created_at' => null, 'updated_at' => null, ],
