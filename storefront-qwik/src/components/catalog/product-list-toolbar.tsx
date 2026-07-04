@@ -33,7 +33,9 @@ export const ProductListToolbar = component$<ProductListToolbarProps>(({ basePat
 
   const onSortChange$ = $(async (event: Event) => {
     const value = (event.target as HTMLSelectElement).value;
-    const href = productListUrl(basePath, loc.url.searchParams, { sort: value });
+    const href = productListUrl(basePath, loc.url.searchParams, {
+      sort: value === "default" ? null : value,
+    });
     await nav(href);
   });
 

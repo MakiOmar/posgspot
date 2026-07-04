@@ -38,6 +38,11 @@ class StorefrontTranslationController extends Controller
     public function productsEdit(Request $request, int $id)
     {
         $this->authorizeSettings($request);
+
+        if (! $request->ajax()) {
+            return redirect()->action([self::class, 'productsIndex']);
+        }
+
         $product = $this->translations->getProductForEdit($this->businessId($request), $id);
         if (empty($product)) {
             abort(404);
@@ -59,10 +64,32 @@ class StorefrontTranslationController extends Controller
             'variations.*' => 'nullable|string|max:191',
         ]);
 
-        $this->translations->saveProductTranslation($this->businessId($request), $id, $validated);
+        try {
+            $this->translations->saveProductTranslation($this->businessId($request), $id, $validated);
+        } catch (\Throwable $e) {
+            \Log::emergency('File:'.$e->getFile().' Line:'.$e->getLine().' Message:'.$e->getMessage());
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
+                ]);
+            }
+
+            return redirect()
+                ->action([self::class, 'productsIndex'])
+                ->with('status', ['success' => false, 'msg' => __('messages.something_went_wrong')]);
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'msg' => __('lang_v1.success'),
+            ]);
+        }
 
         return redirect()
-            ->action([self::class, 'productsEdit'], $id)
+            ->action([self::class, 'productsIndex'])
             ->with('status', ['success' => true, 'msg' => __('lang_v1.success')]);
     }
 

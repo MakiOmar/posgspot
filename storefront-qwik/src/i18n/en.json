@@ -31,6 +31,7 @@
   },
   "catalog": {
     "sortBy": "Sort by",
+    "sortDefault": "Default",
     "sortName": "Name (A–Z)",
     "sortPriceAsc": "Price: low to high",
     "sortPriceDesc": "Price: high to low",

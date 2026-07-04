@@ -141,12 +141,14 @@ class CatalogService
             });
         }
 
-        $sort = $filters['sort'] ?? 'name';
+        $sort = $filters['sort'] ?? 'default';
         match ($sort) {
+            'name' => $this->applyNameSort($query, $locale),
             'price_asc' => $query->orderBy('variations.sell_price_inc_tax', 'asc'),
             'price_desc' => $query->orderBy('variations.sell_price_inc_tax', 'desc'),
             'newest' => $query->orderBy('products.created_at', 'desc'),
-            default => $query->orderBy('products.name', 'asc'),
+            // Catalog / POS order — no A–Z or price sort.
+            default => $query->orderBy('products.id', 'asc'),
         };
 
         $query->select('products.*')->groupBy('products.id');
@@ -284,6 +286,24 @@ class CatalogService
         if (! StorefrontLocale::isDefault($locale)) {
             $query->whereHas('storefrontTranslations', fn (Builder $q) => $q->where('locale', $locale));
         }
+    }
+
+    /**
+     * Sort by the name shown to the shopper: POS name for default locale,
+     * translation name for AR (and other overlays).
+     */
+    private function applyNameSort(Builder $query, string $locale): void
+    {
+        if (StorefrontLocale::isDefault($locale)) {
+            $query->orderBy('products.name', 'asc');
+
+            return;
+        }
+
+        $query->orderByRaw(
+            '(SELECT pt.name FROM product_translations pt WHERE pt.product_id = products.id AND pt.locale = ? LIMIT 1) ASC',
+            [$locale]
+        );
     }
 
     private function baseProductQuery(int $businessId, array $locationIds): Builder

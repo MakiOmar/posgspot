@@ -2,12 +2,14 @@
 import type { StoreLocaleCode } from "./i18n/config";
 import { tStatic } from "./i18n/context";
 
-export type ProductSort = "name" | "price_asc" | "price_desc" | "newest";
+/** `default` = catalog order (no A–Z / price / date sort). */
+export type ProductSort = "default" | "name" | "price_asc" | "price_desc" | "newest";
 
 export function getProductSortOptions(
   locale: StoreLocaleCode,
 ): { value: ProductSort; label: string }[] {
   return [
+    { value: "default", label: tStatic(locale, "catalog.sortDefault") },
     { value: "name", label: tStatic(locale, "catalog.sortName") },
     { value: "price_asc", label: tStatic(locale, "catalog.sortPriceAsc") },
     { value: "price_desc", label: tStatic(locale, "catalog.sortPriceDesc") },
@@ -16,6 +18,7 @@ export function getProductSortOptions(
 }
 
 export const PRODUCT_SORT_OPTIONS: { value: ProductSort; label: string }[] = [
+  { value: "default", label: "Default" },
   { value: "name", label: "Name (A–Z)" },
   { value: "price_asc", label: "Price: low to high" },
   { value: "price_desc", label: "Price: high to low" },
@@ -28,7 +31,7 @@ export function parseProductSort(value: string | null | undefined): ProductSort 
   if (value && SORT_VALUES.has(value)) {
     return value as ProductSort;
   }
-  return "name";
+  return "default";
 }
 
 export interface ProductListFilters {
@@ -60,7 +63,8 @@ export function productListUrl(
   const params = new URLSearchParams(searchParams);
 
   for (const [key, value] of Object.entries(changes)) {
-    if (value === null || value === undefined || value === "") {
+    // Omit default sort from the URL so listings stay clean.
+    if (value === null || value === undefined || value === "" || (key === "sort" && value === "default")) {
       params.delete(key);
     } else {
       params.set(key, value);
@@ -78,5 +82,5 @@ export function productListUrl(
 }
 
 export function hasActiveProductFilters(filters: ProductListFilters): boolean {
-  return Boolean(filters.q || filters.inStockOnly || filters.categoryId || filters.sort !== "name");
+  return Boolean(filters.q || filters.inStockOnly || filters.categoryId || filters.sort !== "default");
 }

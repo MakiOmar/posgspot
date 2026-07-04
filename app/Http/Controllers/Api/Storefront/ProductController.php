@@ -19,7 +19,7 @@ class ProductController extends StorefrontController
             'category_slug' => $request->query('category_slug'),
             'brand_id' => $request->query('brand_id'),
             'q' => $request->query('q'),
-            'sort' => $request->query('sort', 'name'),
+            'sort' => $request->query('sort', 'default'),
             'in_stock_only' => $request->boolean('in_stock_only'),
         ];
 

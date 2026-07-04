@@ -7,6 +7,10 @@
 </section>
 
 <section class="content">
+    @if (session('status'))
+        <div class="alert alert-success">{{ session('status')['msg'] ?? 'Saved.' }}</div>
+    @endif
+
     <div class="box box-primary">
         <div class="box-header with-border">
             <h3 class="box-title">Products</h3>
@@ -39,7 +43,14 @@
                                 @endif
                             </td>
                             <td>
-                                <a href="{{ action([\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsEdit'], $product->id) }}" class="btn btn-xs btn-primary">Edit AR</a>
+                                <button
+                                    type="button"
+                                    class="btn btn-xs btn-primary btn-modal"
+                                    data-href="{{ action([\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsEdit'], $product->id) }}"
+                                    data-container=".view_modal"
+                                >
+                                    Edit AR
+                                </button>
                             </td>
                         </tr>
                     @empty
@@ -51,4 +62,48 @@
         </div>
     </div>
 </section>
+@endsection
+
+@section('javascript')
+<script type="text/javascript">
+    $(document).on('submit', 'form#storefront_product_translation_form', function (e) {
+        e.preventDefault();
+        var form = $(this);
+        var submitBtn = form.find('button[type="submit"]');
+
+        $.ajax({
+            method: 'POST',
+            url: form.attr('action'),
+            dataType: 'json',
+            data: form.serialize(),
+            beforeSend: function () {
+                if (typeof __disable_submit_button === 'function') {
+                    __disable_submit_button(submitBtn);
+                } else {
+                    submitBtn.prop('disabled', true);
+                }
+            },
+            success: function (result) {
+                if (result.success) {
+                    $('div.view_modal').modal('hide');
+                    toastr.success(result.msg);
+                    window.location.reload();
+                } else {
+                    toastr.error(result.msg || @json(__('messages.something_went_wrong')));
+                    submitBtn.prop('disabled', false);
+                }
+            },
+            error: function (xhr) {
+                var msg = @json(__('messages.something_went_wrong'));
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    msg = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.msg) {
+                    msg = xhr.responseJSON.msg;
+                }
+                toastr.error(msg);
+                submitBtn.prop('disabled', false);
+            },
+        });
+    });
+</script>
 @endsection
