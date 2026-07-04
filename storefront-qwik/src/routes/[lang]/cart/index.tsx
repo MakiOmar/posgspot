@@ -7,7 +7,7 @@ import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const settings = useSiteSettings();

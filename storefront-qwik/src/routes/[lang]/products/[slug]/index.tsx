@@ -11,7 +11,7 @@ import { isSupportedLocale } from "~/lib/i18n/config";
 import { usePendingState } from "~/lib/pending-context";
 import type { ProductVariation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useProductDetail = routeLoader$(async ({ params, status }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";

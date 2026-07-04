@@ -12,7 +12,7 @@ import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { StoreLocation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useContactLocations = routeLoader$(async () => {
   try {

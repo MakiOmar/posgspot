@@ -3,7 +3,7 @@ import { type DocumentHead } from "@builder.io/qwik-city";
 import { LegalDocumentView } from "~/components/content/legal-document";
 import { getReturnPolicy } from "~/lib/legal-content";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import { useLangParam, useSiteSettings } from "~/routes/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const lang = useLangParam();

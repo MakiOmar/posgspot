@@ -7,7 +7,7 @@ import { useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import type { AccountOrder } from "~/lib/types";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const auth = useAuth();

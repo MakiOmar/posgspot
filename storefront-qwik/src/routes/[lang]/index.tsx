@@ -8,7 +8,7 @@ import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { canonicalUrl, hreflangLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useHomeProducts = routeLoader$(async ({ params }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";

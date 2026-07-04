@@ -3,9 +3,9 @@ import { type DocumentHead } from "@builder.io/qwik-city";
 import { AboutTimeline } from "~/components/content/about-timeline";
 import { JsonLd } from "~/components/seo/json-ld";
 import { getAboutTimeline } from "~/lib/about-timeline";
-import { useLangParam } from "~/routes/layout";
+import { useLangParam } from "~/routes/[lang]/layout";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 const VISION_ITEMS = [
   {

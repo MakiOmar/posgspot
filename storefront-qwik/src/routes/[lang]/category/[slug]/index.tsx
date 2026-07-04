@@ -9,7 +9,7 @@ import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { Category } from "~/lib/types";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 interface CategoryPageData {
   category: Category | null;

@@ -6,7 +6,7 @@ import { fetchRewardPoints } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 import type { RewardPointsBalance } from "~/lib/types";
 
 export default component$(() => {

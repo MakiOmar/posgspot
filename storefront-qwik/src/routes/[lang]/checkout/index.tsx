@@ -13,7 +13,7 @@ import { usePendingState } from "~/lib/pending-context";
 import type { CheckoutOrder, RewardPointsBalance } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
-import { useSiteSettings } from "~/routes/layout";
+import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useCheckoutLocations = routeLoader$(async () => {
   try {
