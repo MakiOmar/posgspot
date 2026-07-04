@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-04 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; card payments **open** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; card payments **deferred** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -22,7 +22,7 @@
 | Header / footer spec | 🟡 Core wired; wishlist, mini-cart, policies missing |
 | i18n / RTL (AR + EN) | ✅ |
 | Online card payments (checkout UI) | ⬜ Webhook exists; UI COD-only |
-| SEO launch pack (sitemap, legal, breadcrumbs) | 🟡 Legal pages + robots/sitemap done; PDP breadcrumbs open |
+| SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
 | Automated tests | 🟡 API feature tests incl. checkout E2E; no Qwik tests |
 
 ---
@@ -59,10 +59,10 @@
 | Route | Status | Notes |
 |-------|--------|-------|
 | `/` → `/en/` or `/ar/` | ✅ | `Accept-Language` redirect |
-| `/[lang]/` Homepage | ✅ | Locale-aware PLP teaser + i18n |
+| `/[lang]/` Homepage | ✅ | Hero, featured categories, featured products, SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
-| `/[lang]/products/[slug]` PDP | 🟡 | Variations, qty stepper, add-to-cart, availability modal; **single hero image** |
+| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, i18n |
 | `/[lang]/checkout` | 🟡 | Guest + auth, stock validation, shipping, **COD only**, reward redeem |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage` |
@@ -132,11 +132,11 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Route `head` (title, description, OG) | 🟡 | Most routes; not full `storefront-seo.mdc` checklist |
-| JSON-LD (WebSite, Product, FAQPage) | 🟡 | Home, PDP, FAQ |
+| Route `head` (title, description, OG) | ✅ | Public routes via `withStorefrontThemeHead` + `publicSeoLinks` |
+| JSON-LD (WebSite, Product, FAQPage, BreadcrumbList) | ✅ | Home, PDP (+ breadcrumbs), FAQ |
 | `noindex` on cart, checkout, account, auth | ✅ | |
-| Canonical / hreflang | ⬜ | |
-| Breadcrumbs (UI + schema) | 🟡 | Contact, FAQ only |
+| Canonical / hreflang | ✅ | Public pages; RouterHead skips default when route sets canonical |
+| Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
 | `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes `robots.txt`, `sitemap.xml` (products + categories from API) |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
 
@@ -163,9 +163,8 @@
 
 ## Recommended next (priority order)
 
-1. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works).
-2. **Homepage + SEO** — hero, featured categories; PDP breadcrumbs + gallery; canonical/hreflang.
-3. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
+1. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
+2. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works; deferred).
 
 ---
 
@@ -173,6 +172,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |
 | 2026-07-04 | Wire remaining UI chrome (checkout, auth, account, contact, cart, PDP, add-customer, about) through `en.json`/`ar.json`; about page locale content module. |
 | 2026-07-04 | Fix SPA pagination (trailing-slash URLs); stop 429s on shell loaders (drop double throttle, higher GET budget, 30s SSR cache for settings/categories). |
 | 2026-07-01 | Sprint 2: PLP sort/in-stock toolbar (`product-list-toolbar`), header search autocomplete (`GET /search`), search API tests. |

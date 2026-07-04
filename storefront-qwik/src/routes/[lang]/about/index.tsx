@@ -5,9 +5,9 @@ import { JsonLd } from "~/components/seo/json-ld";
 import { getAboutContent } from "~/lib/about-content";
 import { getAboutTimeline } from "~/lib/about-timeline";
 import { tStatic } from "~/lib/i18n/context";
-import { useLangParam } from "~/routes/[lang]/layout";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const settings = useSiteSettings();
@@ -92,7 +92,7 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = ({ resolveValue }) => {
+export const head: DocumentHead = ({ resolveValue, url }) => {
   const settings = resolveValue(useSiteSettings);
   const lang = resolveValue(useLangParam);
   const title = tStatic(lang, "seo.aboutTitle", { businessName: settings.business_name });
@@ -110,6 +110,7 @@ export const head: DocumentHead = ({ resolveValue }) => {
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary" },
       ],
+      links: publicSeoLinks(url.origin, "/about", lang),
     },
     settings,
   );

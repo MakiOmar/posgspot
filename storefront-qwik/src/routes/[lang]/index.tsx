@@ -1,14 +1,14 @@
 ﻿import { component$ } from "@builder.io/qwik";
-import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
 import { JsonLd } from "~/components/seo/json-ld";
 import { fetchProductsPage } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { canonicalUrl, hreflangLinks } from "~/lib/seo-hreflang";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import { useSiteSettings } from "~/routes/[lang]/layout";
+import { useNavCategories, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useHomeProducts = routeLoader$(async ({ params }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -22,7 +22,14 @@ export const useHomeProducts = routeLoader$(async ({ params }) => {
 export default component$(() => {
   const settings = useSiteSettings();
   const products = useHomeProducts();
+  const categoriesLoad = useNavCategories();
+  const loc = useLocation();
   const { locale } = useI18n();
+  const origin = loc.url.origin;
+
+  const featuredCategories = categoriesLoad.value.items
+    .filter((category) => Boolean(category.slug))
+    .slice(0, 8);
 
   return (
     <>
@@ -31,30 +38,61 @@ export default component$(() => {
           "@context": "https://schema.org",
           "@type": "WebSite",
           name: settings.value.business_name,
-          url: typeof window !== "undefined" ? window.location.origin : undefined,
+          url: origin,
           potentialAction: {
             "@type": "SearchAction",
-            target: `${localePath(locale, "/products")}?q={search_term_string}`,
+            target: `${origin}${localePath(locale, "/products")}?q={search_term_string}`,
             "query-input": "required name=search_term_string",
           },
         }}
       />
 
-      <section>
-        <h1 class="page-title">
-          {tStatic(locale, "home.welcome", { businessName: settings.value.business_name })}
-        </h1>
-        <p style={{ color: "var(--gs-muted)", marginBottom: "2rem" }}>{tStatic(locale, "home.tagline")}</p>
+      <section class="home-hero">
+        <div class="home-hero__inner">
+          <p class="home-hero__kicker">{tStatic(locale, "home.kicker")}</p>
+          <h1 class="home-hero__title">
+            {tStatic(locale, "home.welcome", { businessName: settings.value.business_name })}
+          </h1>
+          <p class="home-hero__tagline">{tStatic(locale, "home.tagline")}</p>
+          <div class="home-hero__actions">
+            <Link href={localePath(locale, "/products")} class="btn btn-primary">
+              {tStatic(locale, "home.shopNow")}
+            </Link>
+            <Link href={localePath(locale, "/contact")} class="btn btn-secondary">
+              {tStatic(locale, "nav.contact")}
+            </Link>
+          </div>
+        </div>
+      </section>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1rem",
-          }}
-        >
-          <h2 style={{ margin: 0, fontSize: "1.25rem" }}>{tStatic(locale, "home.featured")}</h2>
+      {featuredCategories.length > 0 ? (
+        <section class="home-section">
+          <div class="home-section__head">
+            <h2 class="home-section__title">{tStatic(locale, "home.featuredCategories")}</h2>
+            <Link href={localePath(locale, "/products")} class="home-all-products-link">
+              {tStatic(locale, "footer.allProducts")}
+            </Link>
+          </div>
+          <div class="home-category-grid">
+            {featuredCategories.map((category) => (
+              <Link
+                key={category.id}
+                href={localePath(locale, `/category/${encodeURIComponent(category.slug!)}`)}
+                class="home-category-card"
+              >
+                <span class="home-category-card__name">{category.name}</span>
+                <span class="home-category-card__cta" aria-hidden="true">
+                  {tStatic(locale, "home.shopCategory")}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section class="home-section">
+        <div class="home-section__head">
+          <h2 class="home-section__title">{tStatic(locale, "home.featured")}</h2>
           <Link href={localePath(locale, "/products")} class="home-all-products-link">
             {tStatic(locale, "footer.allProducts")}
           </Link>
@@ -77,8 +115,11 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, url, params }) => {
   const settings = resolveValue(useSiteSettings);
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
-  const title = `${settings.business_name} — ${tStatic(lang, "nav.shop")}`;
-  const description = tStatic(lang, "seo.shopDescription", { businessName: settings.business_name });
+  const title = tStatic(lang, "seo.homeTitle", { businessName: settings.business_name });
+  const description = tStatic(lang, "seo.homeDescription", {
+    businessName: settings.business_name,
+  });
+  const canonical = publicSeoLinks(url.origin, "/", lang)[0]?.href;
 
   return withStorefrontThemeHead(
     {
@@ -88,12 +129,11 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
+        ...(canonical ? [{ property: "og:url", content: canonical }] : []),
+        ...(settings.logo_url ? [{ property: "og:image", content: settings.logo_url }] : []),
         { name: "twitter:card", content: "summary_large_image" },
       ],
-      links: [
-        { rel: "canonical", href: canonicalUrl(url.origin, "/", lang) },
-        ...hreflangLinks(url.origin, "/", lang),
-      ],
+      links: publicSeoLinks(url.origin, "/", lang),
     },
     settings,
   );

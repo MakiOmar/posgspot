@@ -10,6 +10,7 @@ import { usePendingState } from "~/lib/pending-context";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import type { StoreLocation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
@@ -243,7 +244,7 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = ({ resolveValue }) => {
+export const head: DocumentHead = ({ resolveValue, url }) => {
   const settings = resolveValue(useSiteSettings);
   const lang = resolveValue(useLangParam);
   const title = tStatic(lang, "contact.seoTitle", { businessName: settings.business_name });
@@ -259,6 +260,7 @@ export const head: DocumentHead = ({ resolveValue }) => {
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary" },
       ],
+      links: publicSeoLinks(url.origin, "/contact", lang),
     },
     settings,
   );

@@ -29,11 +29,14 @@ export const RouterHead = component$(() => {
     document.documentElement.dir = activeDef.dir;
   });
 
+  const hasCanonical = head.links.some((link) => link.rel === "canonical");
+
   return (
     <>
       <title>{head.title}</title>
 
-      <link rel="canonical" href={loc.url.href} />
+      {/* Prefer route-supplied canonical (locale-aware); fall back to the request URL. */}
+      {!hasCanonical ? <link rel="canonical" href={loc.url.href} /> : null}
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 

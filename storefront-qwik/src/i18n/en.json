@@ -314,11 +314,17 @@
     "lastUpdated": "Last updated: {date}"
   },
   "home": {
+    "kicker": "Play to your level",
     "welcome": "Welcome to {businessName}",
     "tagline": "Consoles, accessories, and gaming services — shop online or check store availability.",
-    "featured": "Featured products"
+    "shopNow": "Shop now",
+    "featured": "Featured products",
+    "featuredCategories": "Shop by category",
+    "shopCategory": "Shop"
   },
   "seo": {
+    "homeTitle": "{businessName} — Gaming consoles, accessories & repairs",
+    "homeDescription": "Shop consoles, games, and accessories at {businessName}. Check store availability or order online for delivery across Egypt.",
     "shopTitle": "Shop — {businessName}",
     "shopDescription": "Browse gaming products at {businessName}.",
     "searchTitle": "Search: {query} — {businessName}",

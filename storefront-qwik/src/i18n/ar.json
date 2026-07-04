@@ -314,11 +314,17 @@
     "lastUpdated": "آخر تحديث: {date}"
   },
   "home": {
+    "kicker": "العب على مستواك",
     "welcome": "مرحبًا بكم في {businessName}",
     "tagline": "أجهزة ألعاب وإكسسوارات وخدمات — تسوق أونلاين أو تحقق من التوفر في الفروع.",
-    "featured": "منتجات مميزة"
+    "shopNow": "تسوق الآن",
+    "featured": "منتجات مميزة",
+    "featuredCategories": "تسوق حسب القسم",
+    "shopCategory": "تسوق"
   },
   "seo": {
+    "homeTitle": "{businessName} — أجهزة ألعاب وإكسسوارات وصيانة",
+    "homeDescription": "تسوق الأجهزة والألعاب والإكسسوارات من {businessName}. تحقق من التوفر في الفروع أو اطلب أونلاين للتوصيل في مصر.",
     "shopTitle": "المتجر — {businessName}",
     "shopDescription": "تصفح منتجات الألعاب في {businessName}.",
     "searchTitle": "بحث: {query} — {businessName}",

@@ -8,6 +8,7 @@ import { parseProductListFilters } from "~/lib/catalog-filters";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import type { Category } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
@@ -130,13 +131,17 @@ export default component$(() => {
   );
 });
 
-export const head: DocumentHead = ({ resolveValue, params }) => {
+export const head: DocumentHead = ({ resolveValue, params, url }) => {
   const settings = resolveValue(useSiteSettings);
   const pageData = resolveValue(useCategoryPage);
   const lang = resolveValue(useLangParam);
   const name = pageData.category?.name || params.slug;
   const title = `${name} — ${settings.business_name}`;
-  const description = tStatic(lang, "seo.categoryDescription", { name, businessName: settings.business_name });
+  const description = tStatic(lang, "seo.categoryDescription", {
+    name,
+    businessName: settings.business_name,
+  });
+  const path = `/category/${encodeURIComponent(params.slug)}`;
 
   return {
     title,
@@ -148,5 +153,6 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
       { name: "twitter:card", content: "summary" },
       ...(pageData.category ? [] : [{ name: "robots", content: "noindex, follow" }]),
     ],
+    links: pageData.category ? publicSeoLinks(url.origin, path, lang) : [],
   };
 };

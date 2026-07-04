@@ -8,7 +8,7 @@ import { parseProductListFilters } from "~/lib/catalog-filters";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { canonicalUrl, hreflangLinks } from "~/lib/seo-hreflang";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
@@ -129,10 +129,7 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         { name: "twitter:card", content: "summary" },
         ...(q ? [{ name: "robots", content: "noindex, follow" }] : []),
       ],
-      links: [
-        { rel: "canonical", href: canonicalUrl(url.origin, path, lang) },
-        ...hreflangLinks(url.origin, path, lang),
-      ],
+      links: publicSeoLinks(url.origin, path, lang),
     },
     settings,
   );

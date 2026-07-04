@@ -6,7 +6,7 @@ import { getFaqEntries } from "~/lib/faq-content";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { canonicalUrl, hreflangLinks } from "~/lib/seo-hreflang";
+import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
@@ -70,10 +70,7 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary" },
       ],
-      links: [
-        { rel: "canonical", href: canonicalUrl(url.origin, "/faq", lang) },
-        ...hreflangLinks(url.origin, "/faq", lang),
-      ],
+      links: publicSeoLinks(url.origin, "/faq", lang),
     },
     settings,
   );
