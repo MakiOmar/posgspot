@@ -85,6 +85,7 @@ export default component$(() => {
   const categories = useNavCategories();
   const loc = useLocation();
   const activeLocale = localeFromPathname(loc.url.pathname);
+  const activeDir = localeDefinition(activeLocale).dir;
   const bare = stripLocalePrefix(loc.url.pathname);
   const isLandingPage = bare === "/add-customer";
 
@@ -100,7 +101,7 @@ export default component$(() => {
             {isLandingPage ? (
               <Slot />
             ) : (
-              <div class="site-shell">
+              <div class="site-shell" dir={activeDir} lang={activeLocale}>
                 <SiteShellHeader />
                 <main class="site-main">
                   <Slot />

@@ -22,7 +22,9 @@
 }
 
 html[lang="ar"],
-html[dir="rtl"] {
+html[dir="rtl"],
+[lang="ar"],
+[dir="rtl"] {
   font-family: var(--gs-font-arabic);
 }
 
@@ -201,8 +203,12 @@ img {
   flex: 1;
   background: var(--gs-surface);
   border: 1px solid var(--gs-border);
-  border-right: 0;
-  border-radius: var(--gs-radius) 0 0 var(--gs-radius);
+  /* Logical edges so the button sits on the inline-end in LTR and RTL. */
+  border-inline-end-width: 0;
+  border-start-start-radius: var(--gs-radius);
+  border-end-start-radius: var(--gs-radius);
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
   color: var(--gs-text);
   padding: 0.55rem 0.75rem;
   font-size: 0.9375rem;
@@ -212,7 +218,10 @@ img {
   background: var(--gs-accent);
   color: #041510;
   border: 0;
-  border-radius: 0 var(--gs-radius) var(--gs-radius) 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  border-start-end-radius: var(--gs-radius);
+  border-end-end-radius: var(--gs-radius);
   padding: 0 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -2607,34 +2616,11 @@ body.is-globally-pending {
   color: var(--gs-danger);
 }
 
-/* RTL layout overrides */
-html[dir="rtl"] {
-  direction: rtl;
-}
-
-html[dir="rtl"] .header-main-inner,
-html[dir="rtl"] .header-subnav-inner {
-  flex-direction: row-reverse;
-}
-
-html[dir="rtl"] .header-nav,
-html[dir="rtl"] .header-actions,
-html[dir="rtl"] .footer-social,
-html[dir="rtl"] .footer-contact {
-  flex-direction: row-reverse;
-}
-
-html[dir="rtl"] .header-search input {
-  border-right: 1px solid var(--gs-border);
-  border-left: 0;
-  border-radius: 0 var(--gs-radius) var(--gs-radius) 0;
-}
-
-html[dir="rtl"] .header-search button {
-  border-radius: var(--gs-radius) 0 0 var(--gs-radius);
-}
-
-html[dir="rtl"] .home-all-products-link::after {
+/*
+ * RTL: rely on [dir=rtl] (html and/or .site-shell) for flex/text start edges.
+ * Do not set flex-direction: row-reverse — that double-flips and looks LTR.
+ */
+[dir="rtl"] .home-all-products-link::after {
   content: " ←";
 }
 
@@ -2643,21 +2629,19 @@ html:not([dir="rtl"]) .home-all-products-link::after {
   content: " →";
 }
 
-html[dir="rtl"] .product-card__body,
-html[dir="rtl"] .product-card__name,
-html[dir="rtl"] .content-page,
-html[dir="rtl"] .page-title,
-html[dir="rtl"] .footer-grid,
-html[dir="rtl"] .footer-bottom,
-html[dir="rtl"] .empty-state {
-  text-align: right;
+[dir="rtl"] .product-card__body,
+[dir="rtl"] .product-card__name,
+[dir="rtl"] .content-page,
+[dir="rtl"] .page-title,
+[dir="rtl"] .footer-grid,
+[dir="rtl"] .footer-bottom,
+[dir="rtl"] .empty-state,
+[dir="rtl"] .searchable-select__panel,
+[dir="rtl"] .dial-code-select__panel {
+  text-align: start;
 }
 
-html[dir="rtl"] .searchable-select__panel,
-html[dir="rtl"] .dial-code-select__panel {
-  text-align: right;
-}
-
+/* Drawer uses physical transforms; mirror open edge for RTL. */
 [dir="rtl"] .categories-drawer-panel {
   left: auto;
   right: 0;
@@ -2669,31 +2653,6 @@ html[dir="rtl"] .dial-code-select__panel {
 
 [dir="rtl"] .categories-drawer--open .categories-drawer-panel {
   transform: translateX(0);
-}
-
-[dir="rtl"] .header-search-suggestions {
-  left: auto;
-  right: 0;
-}
-
-[dir="rtl"] .language-switcher {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .product-list-toolbar__filters {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .content-breadcrumb {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .pagination {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .phone-input-group {
-  flex-direction: row-reverse;
 }
 
 [dir="rtl"] .cart-badge {
