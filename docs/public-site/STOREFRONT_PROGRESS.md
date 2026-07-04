@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-04 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; card payments **deferred** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; **maintenance gate done**; card payments **deferred** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -71,6 +71,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
+| `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs |
 | Wishlist, dedicated `/search` page | ⬜ | |
 
@@ -108,7 +109,7 @@
 | Main nav (shop, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal | ✅ | |
 | Account link / name | ✅ | |
-| Language switcher AR/EN | ⬜ | API exposes `locales`; no UI |
+| Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ⬜ | |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` |
 | Footer policies, newsletter, payment icons | 🟡 Policies linked; newsletter/payment icons open | |
@@ -163,8 +164,9 @@
 
 ## Recommended next (priority order)
 
-1. **Maintenance mode gate** — respect `maintenance_mode` from settings in Qwik shell.
-2. **Online payments** — checkout gateway UI + webhook marks paid (invoice print already works; deferred).
+1. **Guest cart merge on login** — merge `localStorage` cart after auth.
+2. **Mini-cart dropdown** — header polish (badge exists; links to `/cart` only).
+3. **Online payments** — checkout gateway UI + webhook marks paid (deferred).
 
 ---
 
@@ -172,6 +174,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |
 | 2026-07-04 | Wire remaining UI chrome (checkout, auth, account, contact, cart, PDP, add-customer, about) through `en.json`/`ar.json`; about page locale content module. |
 | 2026-07-04 | Fix SPA pagination (trailing-slash URLs); stop 429s on shell loaders (drop double throttle, higher GET budget, 30s SSR cache for settings/categories). |

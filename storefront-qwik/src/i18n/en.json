@@ -322,6 +322,14 @@
     "featuredCategories": "Shop by category",
     "shopCategory": "Shop"
   },
+  "maintenance": {
+    "kicker": "We'll be back soon",
+    "heading": "Store under maintenance",
+    "body": "We're performing scheduled updates. Please check back shortly or reach out if you need help.",
+    "contactLabel": "Need assistance?",
+    "seoTitle": "Maintenance — {businessName}",
+    "seoDescription": "{businessName} is temporarily unavailable while we perform maintenance."
+  },
   "seo": {
     "homeTitle": "{businessName} — Gaming consoles, accessories & repairs",
     "homeDescription": "Shop consoles, games, and accessories at {businessName}. Check store availability or order online for delivery across Egypt.",

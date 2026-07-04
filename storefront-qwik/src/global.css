@@ -1775,6 +1775,103 @@ img {
   font-size: 0.9375rem;
 }
 
+/* Maintenance mode (503) */
+.maintenance-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse at top, color-mix(in srgb, var(--gs-accent) 10%, transparent), transparent 55%),
+    var(--gs-bg);
+}
+
+.maintenance-page__top {
+  display: flex;
+  justify-content: flex-end;
+  padding: 1rem 1.25rem 0;
+}
+
+.maintenance-page__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.maintenance-card {
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at top, color-mix(in srgb, var(--gs-accent) 12%, transparent), transparent 58%),
+    var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: calc(var(--gs-radius) + 2px);
+  padding: 2.5rem 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+}
+
+.maintenance-card__logo {
+  margin: 0 auto 1.25rem;
+  max-height: 56px;
+  width: auto;
+}
+
+.maintenance-card__brand {
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gs-text);
+}
+
+.maintenance-card__kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gs-accent);
+}
+
+.maintenance-card__title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.maintenance-card__body {
+  margin: 0;
+  color: var(--gs-muted);
+  line-height: 1.6;
+}
+
+.maintenance-card__contact {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--gs-border);
+}
+
+.maintenance-card__contact-label {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gs-text);
+}
+
+.maintenance-card__contact-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--gs-muted);
+}
+
+.maintenance-card__contact-item a {
+  color: var(--gs-accent);
+}
+
 /* Auth (login / register / reset) pages */
 .auth-page {
   display: flex;

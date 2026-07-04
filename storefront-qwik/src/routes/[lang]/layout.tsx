@@ -13,7 +13,11 @@ import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
-import { localeFromPathname, stripLocalePrefix } from "~/lib/i18n/paths";
+import { localeFromPathname, localePath, stripLocalePrefix } from "~/lib/i18n/paths";
+import {
+  isMaintenanceExemptPath,
+  isMaintenancePagePath,
+} from "~/lib/maintenance-gate";
 import { PendingProvider } from "~/lib/pending-context";
 import { SiteShellProvider, useSiteShell } from "~/lib/site-shell-context";
 import { cachedCategories, cachedSettings } from "~/lib/ssr-shell-cache";
@@ -41,6 +45,33 @@ export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSet
     return FALLBACK_STORE_SETTINGS;
   }
 });
+
+/** Redirect to maintenance page (503) or home when maintenance toggles off. */
+export const useMaintenanceGate = routeLoader$(
+  async ({ resolveValue, pathname, redirect, params, status }) => {
+    const settings = await resolveValue(useSiteSettings);
+    const lang = isSupportedLocale(params.lang) ? params.lang : "en";
+    const onMaintenancePage = isMaintenancePagePath(pathname);
+    const exempt = isMaintenanceExemptPath(pathname);
+
+    if (settings.maintenance_mode) {
+      if (exempt) {
+        return null;
+      }
+      if (!onMaintenancePage) {
+        throw redirect(302, localePath(lang, "/maintenance"));
+      }
+      status(503);
+      return { active: true as const };
+    }
+
+    if (onMaintenancePage) {
+      throw redirect(302, localePath(lang, "/"));
+    }
+
+    return null;
+  },
+);
 
 export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCategoriesLoad> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -81,13 +112,14 @@ const SiteShellFooter = component$(() => {
 
 export default component$(() => {
   useLangParam();
+  useMaintenanceGate();
   const settings = useSiteSettings();
   const categories = useNavCategories();
   const loc = useLocation();
   const activeLocale = localeFromPathname(loc.url.pathname);
   const activeDir = localeDefinition(activeLocale).dir;
   const bare = stripLocalePrefix(loc.url.pathname);
-  const isLandingPage = bare === "/add-customer";
+  const isBarePage = bare === "/add-customer" || isMaintenancePagePath(loc.url.pathname);
 
   const shell = (
     <I18nProvider locale={activeLocale} key={activeLocale}>
@@ -98,7 +130,7 @@ export default component$(() => {
       >
         <AuthProvider>
           <CartProvider>
-            {isLandingPage ? (
+            {isBarePage ? (
               <Slot />
             ) : (
               <div class="site-shell" dir={activeDir} lang={activeLocale}>
