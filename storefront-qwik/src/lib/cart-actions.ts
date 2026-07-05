@@ -1,5 +1,5 @@
 import { $ } from "@builder.io/qwik";
-import type { CartItem } from "~/lib/types";
+import type { CartItem, CartLine } from "~/lib/types";
 
 /** Legacy single-key cart persisted before guest/user split. */
 export const LEGACY_CART_STORAGE_KEY = "gs-cart-v1";
@@ -110,6 +110,31 @@ export const cartSubtotal = (cart: CartState) =>
     (sum: number, line: CartItem) => sum + line.price * line.quantity,
     0,
   );
+
+/** Apply validated API lines to in-memory cart items (prices + labels). */
+export const applyCartValidation = (cart: CartState, lines: CartLine[]): boolean => {
+  const byVariation = new Map(lines.map((line) => [line.variation_id, line]));
+  let pricesChanged = false;
+
+  for (const item of cart.items) {
+    const validated = byVariation.get(item.variationId);
+    if (!validated) {
+      continue;
+    }
+    if (item.price !== validated.unit_price) {
+      item.price = validated.unit_price;
+      pricesChanged = true;
+    }
+    if (item.name !== validated.name) {
+      item.name = validated.name;
+    }
+    if (item.variationName !== validated.variation_name) {
+      item.variationName = validated.variation_name;
+    }
+  }
+
+  return pricesChanged;
+};
 
 export const addCartItem = $((cart: CartState, item: CartItem) => {
   const existing = cart.items.find((line) => line.variationId === item.variationId);

@@ -95,7 +95,10 @@
     "qty": "الكمية",
     "total": "الإجمالي",
     "remove": "إزالة",
-    "seoTitle": "السلة — {businessName}"
+    "seoTitle": "السلة — {businessName}",
+    "refreshing": "جاري تحديث الأسعار والتوفر…",
+    "pricesUpdated": "تم تحديث الأسعار لتطابق المتجر.",
+    "stockIssue": "بعض المنتجات غير متوفرة أو نفدت الكمية."
   },
   "miniCart": {
     "title": "سلة التسوق",

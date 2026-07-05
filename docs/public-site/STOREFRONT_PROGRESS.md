@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-04 |
+| **Last updated** | 2026-07-05 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done** |
 
@@ -97,7 +97,7 @@
 | Mini-cart dropdown | ✅ | `components/layout/mini-cart.tsx`, header trigger |
 | Guest cart merge on login | ✅ | `lib/cart-actions.ts` guest/user keys + `cart-context.tsx` merge on auth |
 | Coupons / promo codes | ⬜ | |
-| Cart price refresh from API | ⬜ | Validate on checkout only |
+| Cart price refresh from API | ✅ | `/cart` calls `POST /cart/validate`, updates line prices + subtotal |
 
 ---
 
@@ -168,8 +168,8 @@
 ## Recommended next (priority order)
 
 1. **Additional payment gateways** — Paymob / MyFatoorah via `PaymentGatewayManager`.
-2. **Cart price refresh from API** — re-price on cart page, not only checkout.
-3. **Wishlist** — header icon + API when scoped.
+2. **Wishlist** — header icon + API when scoped.
+3. **Footer polish** — newsletter signup, payment method icons.
 
 ---
 
@@ -177,6 +177,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Cart page re-prices via `POST /cart/validate` on load/qty change; stock errors surfaced inline. |
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |

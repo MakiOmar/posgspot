@@ -171,7 +171,7 @@ export function searchProducts(q: string, limit = 8, locale?: string) {
 }
 
 export function validateCart(payload: {
-  location_id: number;
+  location_id?: number;
   items: { variation_id: number; quantity: number }[];
 }) {
   return storefrontFetch<CartValidation>("/cart/validate", {

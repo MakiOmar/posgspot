@@ -95,7 +95,10 @@
     "qty": "Qty",
     "total": "Total",
     "remove": "Remove",
-    "seoTitle": "Cart — {businessName}"
+    "seoTitle": "Cart — {businessName}",
+    "refreshing": "Updating prices and availability…",
+    "pricesUpdated": "Prices were updated to match the store.",
+    "stockIssue": "Some items are unavailable or out of stock."
   },
   "miniCart": {
     "title": "Your cart",
