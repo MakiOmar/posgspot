@@ -5,6 +5,7 @@ import { dispatchAuthSessionExpired } from "./auth-actions";
 import type {
   AccountOrder,
   AccountOrderDetail,
+  AppliedCouponInfo,
   ApiEnvelope,
   ApiErrorBody,
   AuthContact,
@@ -14,6 +15,7 @@ import type {
   CartValidation,
   Category,
   CheckoutOrder,
+  CouponApplyResult,
   FawryPaymentSession,
   PaymentReturnResult,
   ProductAvailability,
@@ -184,6 +186,7 @@ export function searchProducts(q: string, limit = 8, locale?: string) {
 
 export function validateCart(payload: {
   location_id?: number;
+  coupon_code?: string;
   items: { variation_id: number; quantity: number }[];
 }) {
   return storefrontFetch<CartValidation>("/cart/validate", {
@@ -195,11 +198,28 @@ export function validateCart(payload: {
 /** Inspect cart lines — returns per-line max quantity without failing on partial stock. */
 export function inspectCart(payload: {
   location_id?: number;
+  coupon_code?: string;
   items: { variation_id: number; quantity: number }[];
 }) {
   return storefrontFetch<CartInspection>("/cart/validate", {
     method: "POST",
     body: JSON.stringify({ ...payload, resolve: true }),
+  });
+}
+
+export function validateCoupon(payload: {
+  code: string;
+  location_id?: number;
+  items: { variation_id: number; quantity: number }[];
+}, token?: string) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return storefrontFetch<CouponApplyResult>("/coupons/validate", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
   });
 }
 

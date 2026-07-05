@@ -105,6 +105,18 @@
     "stockQuantityIssue": "{name}: المتاح {max} فقط (لديك {requested}).",
     "checkingCheckout": "جاري التحقق من التوفر…"
   },
+  "coupon": {
+    "label": "رمز الخصم",
+    "placeholder": "أدخل الرمز",
+    "apply": "تطبيق",
+    "applying": "جاري التطبيق…",
+    "remove": "إزالة",
+    "applied": "تم تطبيق {code} ({label})",
+    "discount": "خصم الرمز",
+    "invalid": "رمز الخصم غير صالح.",
+    "applyError": "تعذر تطبيق رمز الخصم.",
+    "noStackRewardPoints": "لا يمكن دمج هذا الرمز مع نقاط المكافآت."
+  },
   "miniCart": {
     "title": "سلة التسوق",
     "empty": "سلتك فارغة.",

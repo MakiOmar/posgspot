@@ -17,13 +17,13 @@
 
 | Area | Status |
 |------|--------|
-| Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/server cart N/A; wishlist done |
+| Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
 | Header / footer spec | 🟡 Core wired; wishlist done; policies missing; mini-cart done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
-| Automated tests | 🟡 API feature tests incl. checkout E2E; no Qwik tests |
+| Automated tests | 🟡 API feature tests incl. checkout E2E + `CouponTest`; no Qwik tests |
 
 ---
 
@@ -53,6 +53,7 @@
 | Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
 | Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
 | Wishlist API (list, add, remove, merge) | ✅ | `WishlistService`, `storefront_wishlist_items` |
+| Promo codes (`coupons`, `coupon_redemptions`) | ✅ | `CouponService`, `POST /coupons/validate`, cart/checkout `coupon_code`, POS admin `/coupons` |
 
 ---
 
@@ -65,8 +66,8 @@
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability |
-| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, reward redeem |
+| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo code, i18n |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
@@ -192,6 +193,7 @@
 | 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |
 | 2026-07-05 | Cart page re-prices via `POST /cart/validate` on load/qty change; stock errors surfaced inline. |
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
+| 2026-07-05 | Promo codes v1: `coupons` domain, POS admin `/coupons`, `POST /coupons/validate`, cart/checkout coupon totals + redemption, Qwik cart/checkout UI, `CouponTest`, API.md. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |

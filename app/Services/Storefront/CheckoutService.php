@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Contact;
 use App\Transaction;
 use App\Services\Storefront\Payment\PaymentGatewayManager;
+use App\Coupon;
 use App\Utils\ContactUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
@@ -23,6 +24,7 @@ class CheckoutService
         private TransactionUtil $transactionUtil,
         private ProductUtil $productUtil,
         private RewardPointsService $rewardPointsService,
+        private CouponService $couponService,
         private PaymentGatewayManager $paymentGateways,
     ) {
     }
@@ -49,7 +51,18 @@ class CheckoutService
             throw ValidationException::withMessages(['location_id' => ['Invalid or unconfigured fulfillment location.']]);
         }
 
-        $validated = $this->cartValidation->validate($businessId, $payload['items'] ?? [], $locationId);
+        $couponCode = isset($payload['coupon_code']) ? trim((string) $payload['coupon_code']) : null;
+        if ($couponCode === '') {
+            $couponCode = null;
+        }
+
+        $validated = $this->cartValidation->validate(
+            $businessId,
+            $payload['items'] ?? [],
+            $locationId,
+            $couponCode,
+            $authContact
+        );
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
 
@@ -63,6 +76,10 @@ class CheckoutService
 
         $contact = $authContact ?? $this->resolveGuestContact($businessId, $payload['customer'] ?? []);
 
+        $couponDiscount = (float) ($validated['coupon_discount'] ?? 0);
+        $couponId = $validated['coupon_id'] ?? null;
+        $stackWithRewardPoints = (bool) ($validated['stack_with_reward_points'] ?? true);
+
         $requestedRewardPoints = (int) ($payload['reward_points'] ?? 0);
         $rpRedeemed = 0;
         $rpRedeemedAmount = 0.0;
@@ -71,6 +88,12 @@ class CheckoutService
         if ($requestedRewardPoints > 0) {
             if (empty($authContact)) {
                 throw ValidationException::withMessages(['reward_points' => ['Sign in to redeem reward points.']]);
+            }
+
+            if ($couponId && ! $stackWithRewardPoints) {
+                throw ValidationException::withMessages([
+                    'reward_points' => ['Reward points cannot be combined with this promo code.'],
+                ]);
             }
 
             $redemption = $this->rewardPointsService->resolveCheckoutRedemption(
@@ -124,7 +147,7 @@ class CheckoutService
                 'transaction_date' => now()->format('Y-m-d H:i:s'),
                 'final_total' => $finalTotal,
                 'discount_type' => 'fixed',
-                'discount_amount' => 0,
+                'discount_amount' => $couponDiscount,
                 'tax_rate_id' => null,
                 'products' => $validated['products_payload'],
                 'source' => 'storefront',
@@ -154,6 +177,10 @@ class CheckoutService
             $userId = 1;
             $transaction = $this->transactionUtil->createSellTransaction($businessId, $input, $invoiceTotal, $userId, false);
             $transaction->storefront_order_id = $orderId;
+            if ($couponId) {
+                $transaction->storefront_coupon_id = $couponId;
+                $transaction->storefront_coupon_code = $validated['coupon']['code'] ?? $couponCode;
+            }
             $transaction->save();
 
             $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $locationId, false, null, [], false);
@@ -187,6 +214,17 @@ class CheckoutService
                     $transaction->rp_earned,
                     0,
                     $rpRedeemed
+                );
+            }
+
+            if ($couponId) {
+                $this->persistCouponRedemption(
+                    $businessId,
+                    (int) $couponId,
+                    $transaction,
+                    $contact,
+                    $validated,
+                    $settings
                 );
             }
 
@@ -414,6 +452,52 @@ class CheckoutService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
+    private function persistCouponRedemption(
+        int $businessId,
+        int $couponId,
+        Transaction $transaction,
+        Contact $contact,
+        array $validated,
+        array $settings
+    ): void {
+        if ($this->couponService->hasExistingRedemption($couponId, $transaction->id)) {
+            return;
+        }
+
+        $coupon = $this->couponService->lockForCheckout($couponId);
+
+        $couponLines = array_map(fn ($line) => [
+            'variation_id' => (int) $line['variation_id'],
+            'product_id' => (int) ($line['product_id'] ?? 0),
+            'category_id' => $line['category_id'] ?? null,
+            'line_total' => (float) $line['line_total'],
+            'on_sale' => (bool) ($line['on_sale'] ?? false),
+        ], $validated['lines']);
+
+        $reapplied = $this->couponService->applyToCart(
+            $businessId,
+            $coupon->code,
+            $couponLines,
+            (float) $validated['subtotal'],
+            $settings,
+            $contact,
+            Coupon::CHANNEL_STOREFRONT
+        );
+
+        $this->couponService->recordRedemption(
+            $coupon,
+            $transaction,
+            $contact,
+            (float) $reapplied['coupon_discount'],
+            Coupon::CHANNEL_STOREFRONT
+        );
+
+        $transaction->discount_amount = (float) $reapplied['coupon_discount'];
+        $transaction->storefront_coupon_id = $coupon->id;
+        $transaction->storefront_coupon_code = $coupon->code;
+        $transaction->save();
+    }
+
     private function appendPaymentSession(int $businessId, Transaction $transaction, array $payload): array
     {
         $response = $this->formatOrderResponse($transaction);

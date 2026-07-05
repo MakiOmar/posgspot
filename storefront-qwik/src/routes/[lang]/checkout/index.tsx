@@ -1,17 +1,18 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
+import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart } from "~/lib/cart-actions";
+import { clearCart, loadAppliedCoupon } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storeFawryPaymentSession } from "~/lib/fawry-pay";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { usePendingState } from "~/lib/pending-context";
-import type { CheckoutOrder, RewardPointsBalance } from "~/lib/types";
+import type { AppliedCouponInfo, CheckoutOrder, RewardPointsBalance } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
@@ -66,6 +67,10 @@ export default component$(() => {
   const validatedSubtotal = useSignal(0);
   const validatedShipping = useSignal(0);
   const validatedTotal = useSignal(0);
+  const appliedCoupon = useSignal<AppliedCouponInfo | null>(null);
+  const couponDiscount = useSignal(0);
+  const couponCode = useSignal(loadAppliedCoupon()?.code || "");
+  const stackWithRewardPoints = useSignal(true);
   const paymentMethod = useSignal<"cod" | "fawry">(
     settings.value.cod_enabled ? "cod" : settings.value.online_payments.enabled ? "fawry" : "cod",
   );
@@ -92,12 +97,15 @@ export default component$(() => {
   useVisibleTask$(async ({ track }) => {
     track(() => locationId.value);
     track(() => cartItemsKey);
+    track(() => couponCode.value);
 
     if (cart.items.length === 0 || !locationId.value) {
       stockWarning.value = null;
       validatedSubtotal.value = 0;
       validatedShipping.value = 0;
       validatedTotal.value = 0;
+      appliedCoupon.value = null;
+      couponDiscount.value = 0;
       return;
     }
 
@@ -105,6 +113,7 @@ export default component$(() => {
     try {
       const { data } = await validateCart({
         location_id: locationId.value,
+        coupon_code: couponCode.value || undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -113,6 +122,12 @@ export default component$(() => {
       validatedSubtotal.value = data.subtotal;
       validatedShipping.value = data.shipping;
       validatedTotal.value = data.total;
+      appliedCoupon.value = data.coupon ?? null;
+      couponDiscount.value = data.coupon_discount ?? 0;
+      stackWithRewardPoints.value = data.stack_with_reward_points ?? true;
+      if (!data.coupon && couponCode.value) {
+        couponCode.value = "";
+      }
       stockWarning.value = null;
     } catch (err) {
       if (err instanceof ApiError) {
@@ -160,6 +175,15 @@ export default component$(() => {
     redeemValid.value = isValid || points === 0;
   });
 
+  const onCouponApplied$ = $((coupon: AppliedCouponInfo | null, discount: number) => {
+    appliedCoupon.value = coupon;
+    couponDiscount.value = discount;
+    couponCode.value = coupon?.code || "";
+    if (!coupon) {
+      stackWithRewardPoints.value = true;
+    }
+  });
+
   const submitOrder$ = $(async (form: HTMLFormElement) => {
     if (cart.items.length === 0 || !locationId.value) {
       error.value = tStatic(locale, "checkout.emptyOrNoLocation");
@@ -178,6 +202,11 @@ export default component$(() => {
 
     if (pointsToRedeem.value > 0 && !redeemValid.value) {
       error.value = tStatic(locale, "checkout.fixRewardPoints");
+      return;
+    }
+
+    if (pointsToRedeem.value > 0 && !stackWithRewardPoints.value) {
+      error.value = tStatic(locale, "coupon.noStackRewardPoints");
       return;
     }
 
@@ -214,9 +243,14 @@ export default component$(() => {
         payload.reward_points = pointsToRedeem.value;
       }
 
+      if (couponCode.value) {
+        payload.coupon_code = couponCode.value;
+      }
+
       try {
         await validateCart({
           location_id: locationId.value,
+          coupon_code: couponCode.value || undefined,
           items,
         });
         const { data } = await checkout(payload, auth.token ?? undefined);
@@ -408,7 +442,7 @@ export default component$(() => {
             <p class="alert alert-error">{tStatic(locale, "checkout.noPaymentMethods")}</p>
           )}
 
-          {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 ? (
+          {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 && stackWithRewardPoints.value ? (
             <RewardPointsRedeem
               token={auth.token}
               balance={rewardBalance.value}
@@ -460,6 +494,16 @@ export default component$(() => {
 
         <aside class="cart-summary">
           <h2 style={{ margin: "0 0 1rem", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.orderSummary")}</h2>
+          <CouponField
+            items={cart.items}
+            locationId={locationId.value}
+            token={auth.token ?? undefined}
+            currency={settings.value.currency}
+            initialCode={couponCode.value}
+            appliedCoupon={appliedCoupon.value}
+            couponDiscount={couponDiscount.value}
+            onApplied$={onCouponApplied$}
+          />
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {cart.items.map((line) => (
               <li
@@ -489,6 +533,20 @@ export default component$(() => {
             >
               <span>{tStatic(locale, "checkout.shipping")}</span>
               <span>{formatPrice(validatedShipping.value, settings.value.currency)}</span>
+            </div>
+          ) : null}
+          {couponDiscount.value > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: "0.75rem",
+                fontSize: "0.875rem",
+                color: "var(--gs-accent)",
+              }}
+            >
+              <span>{tStatic(locale, "coupon.discount")}</span>
+              <span>-{formatPrice(couponDiscount.value, settings.value.currency, locale)}</span>
             </div>
           ) : null}
           {redeemAmount.value > 0 ? (

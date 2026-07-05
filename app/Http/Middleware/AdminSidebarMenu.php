@@ -811,7 +811,8 @@ class AdminSidebarMenu
                 auth()->user()->can('tax_rate.view') ||
                 auth()->user()->can('tax_rate.create') ||
                 auth()->user()->can('access_package_subscriptions') ||
-                auth()->user()->can('storefront.settings')) {
+                auth()->user()->can('storefront.settings') ||
+                auth()->user()->can('coupon.access')) {
                 $menu->dropdown(
                     __('business.settings'),
                     function ($sub) use ($enabled_modules) {
@@ -837,6 +838,13 @@ class AdminSidebarMenu
                                 action([\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsIndex']),
                                 'Storefront Translations',
                                 ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'translations']
+                            );
+                        }
+                        if (auth()->user()->can('coupon.access')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\CouponController::class, 'index']),
+                                'Promo codes',
+                                ['icon' => '', 'active' => request()->segment(1) == 'coupons']
                             );
                         }
                         if (auth()->user()->can('invoice_settings.access')) {

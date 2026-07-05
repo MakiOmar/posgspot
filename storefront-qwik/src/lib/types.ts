@@ -165,11 +165,35 @@ export interface CartLine {
   in_stock: boolean;
 }
 
+export interface AppliedCouponInfo {
+  id: number;
+  code: string;
+  label: string;
+  type: string;
+  stack_with_reward_points: boolean;
+}
+
+export interface CouponApplyResult {
+  coupon: AppliedCouponInfo | null;
+  coupon_id: number | null;
+  coupon_discount: number;
+  free_shipping: boolean;
+  eligible_subtotal: number;
+  subtotal: number;
+  shipping: number;
+  total: number;
+  stack_with_reward_points: boolean;
+}
+
 export interface CartValidation {
   lines: CartLine[];
   subtotal: number;
   shipping: number;
   total: number;
+  coupon?: AppliedCouponInfo | null;
+  coupon_discount?: number;
+  eligible_subtotal?: number;
+  stack_with_reward_points?: boolean;
 }
 
 export interface CartLineStatus {
@@ -189,6 +213,10 @@ export interface CartInspection {
   subtotal: number;
   shipping: number;
   total: number;
+  coupon?: AppliedCouponInfo | null;
+  coupon_discount?: number;
+  eligible_subtotal?: number;
+  stack_with_reward_points?: boolean;
 }
 
 export interface CheckoutOrder {

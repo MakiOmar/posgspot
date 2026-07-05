@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Storefront;
 
 use App\Services\Storefront\CartValidationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CartController extends StorefrontController
 {
@@ -19,13 +20,18 @@ class CartController extends StorefrontController
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'location_id' => 'nullable|integer',
             'resolve' => 'sometimes|boolean',
+            'coupon_code' => 'nullable|string|max:64',
         ]);
+
+        $contact = Auth::guard('sanctum')->user();
 
         if (! empty($data['resolve'])) {
             $result = $this->cartValidation->inspect(
                 $this->businessId($request),
                 $data['items'],
-                $data['location_id'] ?? null
+                $data['location_id'] ?? null,
+                $data['coupon_code'] ?? null,
+                $contact
             );
 
             return $this->jsonSuccess($result);
@@ -34,7 +40,9 @@ class CartController extends StorefrontController
         $result = $this->cartValidation->validate(
             $this->businessId($request),
             $data['items'],
-            $data['location_id'] ?? null
+            $data['location_id'] ?? null,
+            $data['coupon_code'] ?? null,
+            $contact
         );
 
         unset($result['products_payload']);

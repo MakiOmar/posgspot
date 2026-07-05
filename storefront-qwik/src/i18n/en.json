@@ -105,6 +105,18 @@
     "stockQuantityIssue": "{name}: only {max} available (you have {requested}).",
     "checkingCheckout": "Checking availability…"
   },
+  "coupon": {
+    "label": "Promo code",
+    "placeholder": "Enter code",
+    "apply": "Apply",
+    "applying": "Applying…",
+    "remove": "Remove",
+    "applied": "{code} applied ({label})",
+    "discount": "Promo discount",
+    "invalid": "Invalid promo code.",
+    "applyError": "Could not apply promo code.",
+    "noStackRewardPoints": "This promo code cannot be combined with reward points."
+  },
   "miniCart": {
     "title": "Your cart",
     "empty": "Your cart is empty.",

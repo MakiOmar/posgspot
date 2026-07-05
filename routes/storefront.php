@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Storefront\CartController;
 use App\Http\Controllers\Api\Storefront\CategoryController;
 use App\Http\Controllers\Api\Storefront\CheckoutController;
 use App\Http\Controllers\Api\Storefront\ContactController;
+use App\Http\Controllers\Api\Storefront\CouponController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\LocationController;
@@ -46,6 +47,7 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::post('/contact', [ContactController::class, 'store']);
 
+    Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/cart/validate', [CartController::class, 'validateCart']);
     Route::post('/checkout', [CheckoutController::class, 'store']);
 

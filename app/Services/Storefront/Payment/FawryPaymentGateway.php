@@ -239,12 +239,14 @@ class FawryPaymentGateway implements PaymentGatewayInterface
         }
 
         $redeemed = (float) ($transaction->rp_redeemed_amount ?? 0);
-        if ($redeemed > 0) {
+        $couponDiscount = (float) ($transaction->discount_amount ?? 0);
+        $totalDiscount = $redeemed + $couponDiscount;
+        if ($totalDiscount > 0) {
             $items[] = [
                 'itemId' => 'discount',
                 'description' => 'Discount',
                 'quantity' => 1,
-                'price' => $this->formatAmount($redeemed * -1),
+                'price' => $this->formatAmount($totalDiscount * -1),
             ];
         }
 

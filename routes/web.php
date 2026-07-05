@@ -15,6 +15,7 @@ use App\Http\Controllers\CombinedPurchaseReturnController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\CustomerGroupController;
 use App\Http\Controllers\DashboardConfiguratorController;
+use App\Http\Controllers\CouponController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\DocumentAndNoteController;
 use App\Http\Controllers\ExpenseCategoryController;
@@ -432,6 +433,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/discount/activate/{id}', [DiscountController::class, 'activate']);
     Route::post('/discount/mass-deactivate', [DiscountController::class, 'massDeactivate']);
     Route::resource('discount', DiscountController::class);
+
+    Route::get('/coupons/activate/{id}', [CouponController::class, 'activate']);
+    Route::get('/coupons/{id}/duplicate', [CouponController::class, 'duplicate']);
+    Route::resource('coupons', CouponController::class)->except(['show']);
 
     Route::prefix('account')->group(function () {
         Route::resource('/account', AccountController::class);

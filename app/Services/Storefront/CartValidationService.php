@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Product;
+use App\Contact;
 use App\Utils\ProductUtil;
 use App\Variation;
 use Illuminate\Validation\ValidationException;
@@ -15,12 +16,18 @@ class CartValidationService
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
         private ProductUtil $productUtil,
-        private StorefrontPricing $storefrontPricing
+        private StorefrontPricing $storefrontPricing,
+        private CouponService $couponService
     ) {
     }
 
-    public function validate(int $businessId, array $items, ?int $locationId = null): array
-    {
+    public function validate(
+        int $businessId,
+        array $items,
+        ?int $locationId = null,
+        ?string $couponCode = null,
+        ?Contact $contact = null
+    ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
             throw ValidationException::withMessages(['cart' => ['Storefront is not configured with selling locations.']]);
@@ -53,7 +60,8 @@ class CartValidationService
                 throw ValidationException::withMessages(["items.$index.variation_id" => ['Product is not available.']]);
             }
 
-            $unitPrice = $this->storefrontPricing->effectiveUnitPrice($variation);
+            $pricing = $this->storefrontPricing->resolve($variation);
+            $unitPrice = $pricing['price'];
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
 
@@ -75,6 +83,8 @@ class CartValidationService
                 'unit_price' => $unitPrice,
                 'line_total' => $lineTotal,
                 'in_stock' => true,
+                'category_id' => $product->category_id ? (int) $product->category_id : null,
+                'on_sale' => (bool) $pricing['on_sale'],
             ];
             $lines[] = $line;
 
@@ -100,13 +110,15 @@ class CartValidationService
         $shipping = $this->calculateShipping($settings, $subtotal);
         $total = $subtotal + $shipping;
 
-        return [
+        $result = [
             'lines' => $lines,
             'products_payload' => $productsPayload,
             'subtotal' => round($subtotal, 4),
             'shipping' => round($shipping, 4),
             'total' => round($total, 4),
         ];
+
+        return $this->mergeCouponTotals($businessId, $result, $settings, $couponCode, $contact);
     }
 
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
@@ -125,8 +137,13 @@ class CartValidationService
     /**
      * Inspect cart lines without failing on stock — returns per-line max quantity for client-side resolution.
      */
-    public function inspect(int $businessId, array $items, ?int $locationId = null): array
-    {
+    public function inspect(
+        int $businessId,
+        array $items,
+        ?int $locationId = null,
+        ?string $couponCode = null,
+        ?Contact $contact = null
+    ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
             throw ValidationException::withMessages(['cart' => ['Storefront is not configured with selling locations.']]);
@@ -169,7 +186,8 @@ class CartValidationService
             }
 
             $product = $variation->product;
-            $unitPrice = $this->storefrontPricing->effectiveUnitPrice($variation);
+            $pricing = $this->storefrontPricing->resolve($variation);
+            $unitPrice = $pricing['price'];
             $status['name'] = $product->name;
             $status['variation_name'] = $variation->name;
             $status['unit_price'] = $unitPrice;
@@ -206,6 +224,8 @@ class CartValidationService
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'in_stock' => true,
+                    'category_id' => $product->category_id ? (int) $product->category_id : null,
+                    'on_sale' => (bool) $pricing['on_sale'],
                 ];
             }
         }
@@ -213,13 +233,62 @@ class CartValidationService
         $shipping = $this->calculateShipping($settings, $subtotal);
         $total = $subtotal + $shipping;
 
-        return [
+        $result = [
             'line_status' => $lineStatus,
             'lines' => $lines,
             'subtotal' => round($subtotal, 4),
             'shipping' => round($shipping, 4),
             'total' => round($total, 4),
         ];
+
+        return $this->mergeCouponTotals($businessId, $result, $settings, $couponCode, $contact);
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    private function mergeCouponTotals(
+        int $businessId,
+        array $result,
+        array $settings,
+        ?string $couponCode,
+        ?Contact $contact
+    ): array {
+        if ($couponCode === null || trim($couponCode) === '') {
+            $result['coupon'] = null;
+            $result['coupon_discount'] = 0;
+            $result['eligible_subtotal'] = $result['subtotal'];
+
+            return $result;
+        }
+
+        $couponLines = array_map(fn ($line) => [
+            'variation_id' => (int) $line['variation_id'],
+            'product_id' => (int) ($line['product_id'] ?? 0),
+            'category_id' => $line['category_id'] ?? null,
+            'line_total' => (float) $line['line_total'],
+            'on_sale' => (bool) ($line['on_sale'] ?? false),
+        ], $result['lines']);
+
+        $applied = $this->couponService->applyToCart(
+            $businessId,
+            $couponCode,
+            $couponLines,
+            (float) $result['subtotal'],
+            $settings,
+            $contact
+        );
+
+        $result['coupon'] = $applied['coupon'];
+        $result['coupon_discount'] = $applied['coupon_discount'];
+        $result['eligible_subtotal'] = $applied['eligible_subtotal'];
+        $result['shipping'] = $applied['shipping'];
+        $result['total'] = $applied['total'];
+        $result['coupon_id'] = $applied['coupon_id'];
+        $result['stack_with_reward_points'] = $applied['stack_with_reward_points'];
+
+        return $result;
     }
 
     private function calculateShipping(array $settings, float $subtotal): float

@@ -2059,6 +2059,32 @@ img {
   opacity: 0.85;
 }
 
+.coupon-field {
+  margin-bottom: 1rem;
+}
+
+.coupon-field__row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.coupon-field__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.coupon-field__applied {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+}
+
+.coupon-field__error {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
 .reward-points-card__cell--negative strong,
 .reward-points-card__cell--value.reward-points-card__cell--negative strong {
   color: #f87171;

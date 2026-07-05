@@ -1,6 +1,51 @@
 import { $ } from "@builder.io/qwik";
 import type { CartInspection, CartItem, CartLine, CartLineStatus } from "~/lib/types";
 
+/** Guest/session promo code persisted alongside cart lines. */
+export const APPLIED_COUPON_STORAGE_KEY = "gs-applied-coupon-v1";
+
+export interface AppliedCouponState {
+  code: string;
+  label?: string;
+}
+
+export const loadAppliedCoupon = (): AppliedCouponState | null => {
+  if (typeof localStorage === "undefined") {
+    return null;
+  }
+  const raw = localStorage.getItem(APPLIED_COUPON_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw) as AppliedCouponState;
+    if (typeof parsed.code === "string" && parsed.code.trim() !== "") {
+      return { code: parsed.code.trim(), label: parsed.label };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
+export const persistAppliedCoupon = (coupon: AppliedCouponState | null) => {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  if (!coupon || coupon.code.trim() === "") {
+    localStorage.removeItem(APPLIED_COUPON_STORAGE_KEY);
+    return;
+  }
+  localStorage.setItem(
+    APPLIED_COUPON_STORAGE_KEY,
+    JSON.stringify({ code: coupon.code.trim(), label: coupon.label }),
+  );
+};
+
+export const clearAppliedCoupon = () => {
+  persistAppliedCoupon(null);
+};
+
 /** Legacy single-key cart persisted before guest/user split. */
 export const LEGACY_CART_STORAGE_KEY = "gs-cart-v1";
 
@@ -224,4 +269,5 @@ export const setCartQuantity = $((cart: CartState, variationId: number, quantity
 
 export const clearCart = $((cart: CartState) => {
   cart.items = [];
+  clearAppliedCoupon();
 });

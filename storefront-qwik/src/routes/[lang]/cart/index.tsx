@@ -1,11 +1,13 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { TrashIcon } from "~/components/icons";
+import { CouponField } from "~/components/checkout/coupon-field";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { ApiError, inspectCart } from "~/lib/api";
 import {
   cartSubtotal,
   formatMaxCartQuantity,
+  loadAppliedCoupon,
   removeCartItem,
   setCartQuantity,
   syncCartFromInspection,
@@ -14,7 +16,7 @@ import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import type { CartLineStatus } from "~/lib/types";
+import type { AppliedCouponInfo, CartLineStatus } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
@@ -27,6 +29,11 @@ export default component$(() => {
   const errorNotice = useSignal<string | null>(null);
   const pricesUpdated = useSignal(false);
   const validatedSubtotal = useSignal<number | null>(null);
+  const validatedShipping = useSignal(0);
+  const validatedTotal = useSignal<number | null>(null);
+  const appliedCoupon = useSignal<AppliedCouponInfo | null>(null);
+  const couponDiscount = useSignal(0);
+  const couponCode = useSignal(loadAppliedCoupon()?.code || "");
   const checkoutQuantityIssues = useSignal<CartLineStatus[]>([]);
   const checkoutChecking = useSignal(false);
 
@@ -39,6 +46,7 @@ export default component$(() => {
   useVisibleTask$(async ({ track }) => {
     track(() => cartItemsKey);
     track(() => cart.hydrated);
+    track(() => couponCode.value);
 
     checkoutQuantityIssues.value = [];
 
@@ -47,6 +55,10 @@ export default component$(() => {
       errorNotice.value = null;
       pricesUpdated.value = false;
       validatedSubtotal.value = null;
+      validatedShipping.value = 0;
+      validatedTotal.value = null;
+      appliedCoupon.value = null;
+      couponDiscount.value = 0;
       return;
     }
 
@@ -54,6 +66,7 @@ export default component$(() => {
     errorNotice.value = null;
     try {
       const { data } = await inspectCart({
+        coupon_code: couponCode.value || undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -62,6 +75,13 @@ export default component$(() => {
       const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
       pricesUpdated.value = pricesChanged;
       validatedSubtotal.value = data.subtotal;
+      validatedShipping.value = data.shipping;
+      validatedTotal.value = data.total;
+      appliedCoupon.value = data.coupon ?? null;
+      couponDiscount.value = data.coupon_discount ?? 0;
+      if (!data.coupon && couponCode.value) {
+        couponCode.value = "";
+      }
       removedNotice.value =
         removedCount > 0
           ? tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) })
@@ -92,6 +112,7 @@ export default component$(() => {
     errorNotice.value = null;
     try {
       const { data } = await inspectCart({
+        coupon_code: couponCode.value || undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -135,6 +156,14 @@ export default component$(() => {
 
   const subtotal =
     validatedSubtotal.value !== null ? validatedSubtotal.value : cartSubtotal(cart);
+  const orderTotal =
+    validatedTotal.value !== null ? validatedTotal.value : subtotal + validatedShipping.value;
+
+  const onCouponApplied$ = $((coupon: AppliedCouponInfo | null, discount: number) => {
+    appliedCoupon.value = coupon;
+    couponDiscount.value = discount;
+    couponCode.value = coupon?.code || "";
+  });
 
   return (
     <section>
@@ -230,9 +259,40 @@ export default component$(() => {
       </table>
 
       <div class="cart-summary">
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+        <CouponField
+          items={cart.items}
+          currency={settings.value.currency}
+          initialCode={couponCode.value}
+          appliedCoupon={appliedCoupon.value}
+          couponDiscount={couponDiscount.value}
+          onApplied$={onCouponApplied$}
+        />
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
           <span>{tStatic(locale, "cart.subtotal")}</span>
           <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>
+        </div>
+        {couponDiscount.value > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginBottom: "0.5rem",
+              color: "var(--gs-accent)",
+            }}
+          >
+            <span>{tStatic(locale, "coupon.discount")}</span>
+            <span>-{formatPrice(couponDiscount.value, settings.value.currency, locale)}</span>
+          </div>
+        ) : null}
+        {validatedShipping.value > 0 ? (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
+            <span>{tStatic(locale, "checkout.shipping")}</span>
+            <span>{formatPrice(validatedShipping.value, settings.value.currency, locale)}</span>
+          </div>
+        ) : null}
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontWeight: 700 }}>
+          <span>{tStatic(locale, "checkout.total")}</span>
+          <strong>{formatPrice(orderTotal, settings.value.currency, locale)}</strong>
         </div>
         <button
           type="button"
