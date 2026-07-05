@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
+import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice, productPath } from "~/lib/format";
@@ -51,21 +52,24 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
 
   return (
     <article class="product-card">
-      <Link href={pdpUrl} class="product-card__media">
-        {badge ? <span class="product-card__sale-badge">{badge}</span> : null}
-        {product.image_url ? (
-          <img
-            class="product-card__image"
-            src={product.image_url}
-            alt={product.name}
-            width={320}
-            height={320}
-            loading="lazy"
-          />
-        ) : (
-          <div class="product-card__image" aria-hidden="true" />
-        )}
-      </Link>
+      <div class="product-card__media-wrap">
+        <Link href={pdpUrl} class="product-card__media">
+          {badge ? <span class="product-card__sale-badge">{badge}</span> : null}
+          {product.image_url ? (
+            <img
+              class="product-card__image"
+              src={product.image_url}
+              alt={product.name}
+              width={320}
+              height={320}
+              loading="lazy"
+            />
+          ) : (
+            <div class="product-card__image" aria-hidden="true" />
+          )}
+        </Link>
+        <WishlistToggle product={product} />
+      </div>
 
       <div class="product-card__body">
         <Link href={pdpUrl} class="product-card__title-link">

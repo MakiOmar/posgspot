@@ -220,6 +220,47 @@ class CatalogService
             ->all();
     }
 
+    /**
+     * @param  int[]  $productIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function productSummariesByIds(
+        int $businessId,
+        array $productIds,
+        string $locale = StorefrontLocale::DEFAULT
+    ): array {
+        $productIds = array_values(array_unique(array_filter(array_map('intval', $productIds))));
+        if ($productIds === [] || ! $this->hasSellingLocations($businessId)) {
+            return [];
+        }
+
+        $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
+        $query = $this->baseProductQuery($businessId, $locationIds)
+            ->whereIn('products.id', $productIds);
+        $this->applyLocaleProductFilter($query, $locale);
+
+        $products = $query->select('products.*')
+            ->groupBy('products.id')
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->get()
+            ->keyBy('id');
+
+        $items = [];
+        foreach ($productIds as $productId) {
+            $product = $products->get($productId);
+            if ($product) {
+                $items[] = $this->formatProductSummary($product, $locationIds, $locale);
+            }
+        }
+
+        return $items;
+    }
+
+    public function isProductWishlistable(int $businessId, int $productId, string $locale = StorefrontLocale::DEFAULT): bool
+    {
+        return $this->productSummariesByIds($businessId, [$productId], $locale) !== [];
+    }
+
     public function generateSlug(string $name, int $businessId, ?int $excludeId = null): string
     {
         $base = Str::slug($name) ?: 'product';

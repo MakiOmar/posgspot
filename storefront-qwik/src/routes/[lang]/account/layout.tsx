@@ -64,6 +64,7 @@ export default component$(() => {
     { path: "/account", label: tStatic(locale, "account.dashboard") },
     { path: "/account/orders", label: tStatic(locale, "account.orders") },
     { path: "/account/profile", label: tStatic(locale, "account.profile") },
+    { path: "/wishlist", label: tStatic(locale, "wishlist.title") },
   ];
 
   if (!auth.ready || !isAuthenticated(auth)) {

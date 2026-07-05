@@ -339,3 +339,8 @@ export interface RewardPointsValidation {
   min_order_total_for_redeem: number;
   order_total: number;
 }
+
+export interface WishlistPayload {
+  items: ProductSummary[];
+  count: number;
+}

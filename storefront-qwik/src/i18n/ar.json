@@ -17,6 +17,7 @@
     "signIn": "تسجيل الدخول",
     "myAccount": "حسابي",
     "cart": "السلة",
+    "wishlist": "المفضلة",
     "mainNav": "القائمة الرئيسية",
     "siteNav": "تنقل الموقع"
   },
@@ -109,6 +110,13 @@
     "empty": "سلتك فارغة.",
     "viewCart": "عرض السلة",
     "qtyPrice": "الكمية {qty} × {price}"
+  },
+  "wishlist": {
+    "title": "المفضلة",
+    "empty": "قائمة المفضلة فارغة.",
+    "add": "أضف إلى المفضلة",
+    "remove": "إزالة من المفضلة",
+    "seoTitle": "المفضلة — {businessName}"
   },
   "checkout": {
     "title": "إتمام الشراء",

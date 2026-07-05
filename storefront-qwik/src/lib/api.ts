@@ -23,6 +23,7 @@ import type {
   RewardPointsValidation,
   StoreLocation,
   StoreSettings,
+  WishlistPayload,
 } from "./types";
 
 export const API_BASE: string =
@@ -414,6 +415,45 @@ export function addCustomer(payload: AddCustomerPayload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function fetchWishlist(token: string, locale?: string) {
+  return storefrontFetch<WishlistPayload>("/wishlist", { headers: authHeaders(token) }, locale);
+}
+
+export function addToWishlist(token: string, productId: number, locale?: string) {
+  return storefrontFetch<WishlistPayload>(
+    "/wishlist",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ product_id: productId }),
+    },
+    locale,
+  );
+}
+
+export function removeFromWishlist(token: string, productId: number, locale?: string) {
+  return storefrontFetch<WishlistPayload>(
+    `/wishlist/${productId}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(token),
+    },
+    locale,
+  );
+}
+
+export function mergeWishlist(token: string, productIds: number[], locale?: string) {
+  return storefrontFetch<WishlistPayload>(
+    "/wishlist/merge",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ product_ids: productIds }),
+    },
+    locale,
+  );
 }
 
 export type { AvailabilityLocation, ProductAvailability, ProductDetail, ProductSummary, StoreSettings };

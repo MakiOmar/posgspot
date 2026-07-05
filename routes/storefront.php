@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Storefront\PingController;
 use App\Http\Controllers\Api\Storefront\ProductController;
 use App\Http\Controllers\Api\Storefront\SearchController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
+use App\Http\Controllers\Api\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,6 +62,13 @@ Route::prefix('storefront/v1')->group(function () {
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
         });
+    });
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/wishlist', [WishlistController::class, 'index']);
+        Route::post('/wishlist/merge', [WishlistController::class, 'merge']);
+        Route::post('/wishlist', [WishlistController::class, 'store']);
+        Route::delete('/wishlist/{productId}', [WishlistController::class, 'destroy']);
     });
 
     Route::middleware('auth:sanctum')->prefix('account')->group(function () {

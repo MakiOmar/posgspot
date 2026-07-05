@@ -121,6 +121,26 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 
+## Wishlist (auth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/wishlist` | List saved products + `count` (product summaries for active locale) |
+| POST | `/wishlist` | Add product — body `{ "product_id": 123 }`; returns updated list |
+| POST | `/wishlist/merge` | Merge guest product ids on login — body `{ "product_ids": [1, 2] }` |
+| DELETE | `/wishlist/{productId}` | Remove product; returns updated list |
+
+Response shape:
+
+```json
+{
+  "items": [/* ProductSummary[] */],
+  "count": 2
+}
+```
+
+Invalid or unavailable products return **422** on add.
+
 ## Admin
 
 Back-office: **Settings → Storefront Settings** (`/storefront/settings`)

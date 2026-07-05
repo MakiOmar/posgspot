@@ -17,6 +17,7 @@
     "signIn": "Sign in",
     "myAccount": "My account",
     "cart": "Cart",
+    "wishlist": "Wishlist",
     "mainNav": "Main",
     "siteNav": "Site navigation"
   },
@@ -109,6 +110,13 @@
     "empty": "Your cart is empty.",
     "viewCart": "View cart",
     "qtyPrice": "Qty {qty} × {price}"
+  },
+  "wishlist": {
+    "title": "Wishlist",
+    "empty": "Your wishlist is empty.",
+    "add": "Add to wishlist",
+    "remove": "Remove from wishlist",
+    "seoTitle": "Wishlist — {businessName}"
   },
   "checkout": {
     "title": "Checkout",

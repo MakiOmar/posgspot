@@ -5,6 +5,7 @@ import {
   galleryImagesForVariation,
   ProductGallery,
 } from "~/components/catalog/product-gallery";
+import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { Breadcrumbs } from "~/components/seo/breadcrumbs";
 import { JsonLd } from "~/components/seo/json-ld";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
@@ -24,6 +25,7 @@ import {
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { ProductVariation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { productSummaryFromDetail } from "~/lib/wishlist-actions";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useProductDetail = routeLoader$(async ({ params, status }) => {
@@ -186,6 +188,11 @@ export default component$(() => {
             ) : null}
 
             <div class="pdp-actions">
+              <WishlistToggle
+                product={productSummaryFromDetail(p, selectedVariation.value)}
+                variant="inline"
+                class="pdp-wishlist-toggle"
+              />
               <div class="pdp-qty-field">
                 <span class="footer-muted">{tStatic(locale, "catalog.qty")}</span>
                 <QuantityStepper

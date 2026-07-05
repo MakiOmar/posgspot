@@ -7,6 +7,7 @@ import {
 } from "~/components/icons";
 import { CategoriesDrawer } from "~/components/layout/categories-drawer";
 import { HeaderSearch } from "~/components/layout/header-search";
+import { HeaderWishlist } from "~/components/layout/header-wishlist";
 import { LanguageSwitcher } from "~/components/layout/language-switcher";
 import { MiniCart } from "~/components/layout/mini-cart";
 import { HeaderNavItems } from "~/components/content/content-blocks";
@@ -90,6 +91,8 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
             <div class="header-actions">
               <LanguageSwitcher settings={settings} />
+
+              <HeaderWishlist />
 
               {phone ? (
                 <a class="header-phone" href={`tel:${phoneHref}`} dir="ltr">

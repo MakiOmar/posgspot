@@ -17,9 +17,9 @@
 
 | Area | Status |
 |------|--------|
-| Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/wishlist/server cart N/A |
+| Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/server cart N/A; wishlist done |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist, policies missing; mini-cart done |
+| Header / footer spec | 🟡 Core wired; wishlist done; policies missing; mini-cart done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -51,6 +51,7 @@
 | `X-Content-Locale` middleware | ✅ | `ResolveStorefrontContentLocale` on API group |
 | Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
 | Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
+| Wishlist API (list, add, remove, merge) | ✅ | `WishlistService`, `storefront_wishlist_items` |
 
 ---
 
@@ -75,7 +76,7 @@
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs |
-| Wishlist, dedicated `/search` page | ⬜ | |
+| Wishlist, dedicated `/search` page | 🟡 | Wishlist page + API done; dedicated search page ⬜ |
 
 ---
 
@@ -98,6 +99,7 @@
 | Guest cart merge on login | ✅ | `lib/cart-actions.ts` guest/user keys + `cart-context.tsx` merge on auth |
 | Coupons / promo codes | ⬜ | |
 | Cart price refresh from API | ✅ | `/cart` inspect + auto-remove OOS; checkout guard with max qty notice |
+| Wishlist (guest + account) | ✅ | `wishlist-context.tsx`, `header-wishlist.tsx`, `wishlist-toggle.tsx`, `/wishlist` |
 
 ---
 
@@ -112,7 +114,7 @@
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
-| Wishlist | ⬜ | |
+| Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` |
 | Footer policies, newsletter, payment icons | 🟡 Policies linked; newsletter/payment icons open | |
 
@@ -167,9 +169,8 @@
 
 ## Recommended next (priority order)
 
-1. **Additional payment gateways** — Paymob / MyFatoorah via `PaymentGatewayManager`.
-2. **Wishlist** — header icon + API when scoped.
-3. **Footer polish** — newsletter signup, payment method icons.
+1. **Footer polish** — newsletter signup, payment method icons.
+2. **Dedicated `/search` page** — full results UI (autocomplete exists in header).
 
 ---
 
@@ -177,6 +178,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Wishlist: API (list/add/remove/merge), guest localStorage + login merge, header badge, PLP/PDP heart toggle, `/wishlist` page, `WishlistTest`. |
 | 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |
 | 2026-07-05 | Cart page re-prices via `POST /cart/validate` on load/qty change; stock errors surfaced inline. |
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |

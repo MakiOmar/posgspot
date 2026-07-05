@@ -11,6 +11,7 @@ import {
 import { API_BASE, fetchCategories, fetchSettings, setActiveContentLocale } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
+import { WishlistProvider } from "~/lib/wishlist-context";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
 import { localeFromPathname, localePath, stripLocalePrefix } from "~/lib/i18n/paths";
@@ -129,7 +130,8 @@ export default component$(() => {
         categories={categories.value}
       >
         <AuthProvider>
-          <CartProvider>
+          <WishlistProvider>
+            <CartProvider>
             {isBarePage ? (
               <Slot />
             ) : (
@@ -141,7 +143,8 @@ export default component$(() => {
                 <SiteShellFooter />
               </div>
             )}
-          </CartProvider>
+            </CartProvider>
+          </WishlistProvider>
         </AuthProvider>
       </SiteShellProvider>
     </I18nProvider>
