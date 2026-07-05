@@ -137,4 +137,18 @@ class WishlistTest extends TestCase
                 ->count()
         );
     }
+
+    public function test_wishlist_merge_rejects_oversized_product_id_list(): void
+    {
+        $session = $this->registerAndLogin();
+        $mergeMax = max(1, (int) config('storefront.wishlist_merge_max_ids', 100));
+        $productIds = range(1, $mergeMax + 1);
+
+        $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/wishlist/merge', [
+                'product_ids' => $productIds,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['product_ids']);
+    }
 }

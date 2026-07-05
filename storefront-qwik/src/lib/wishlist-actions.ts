@@ -11,6 +11,12 @@ import type { ProductDetail, ProductSummary, ProductVariation } from "~/lib/type
 /** Guest wishlist persisted while signed out. */
 export const GUEST_WISHLIST_STORAGE_KEY = "gs-wishlist-guest-v1";
 
+/** Keep in sync with `config/storefront.php` defaults. */
+export const WISHLIST_MAX_ITEMS = 100;
+
+/** Max product IDs sent in one merge request. */
+export const WISHLIST_MERGE_MAX_IDS = 100;
+
 /** Per-customer wishlist cache while signed in. */
 export const userWishlistStorageKey = (contactId: number) => `gs-wishlist-user-${contactId}-v1`;
 
@@ -108,7 +114,7 @@ export const syncWishlistForUser = async (
   const contentLocale = locale ?? getActiveContentLocale();
   const guestItems = loadGuestWishlistFromStorage();
   const sessionItems = mergeWishlistItems(guestItems, wishlist.items);
-  const productIds = sessionItems.map((item) => item.id);
+  const productIds = sessionItems.map((item) => item.id).slice(0, WISHLIST_MERGE_MAX_IDS);
 
   try {
     const { data } =
@@ -148,7 +154,7 @@ export const toggleWishlistItem = async (
 
   if (wasInList) {
     wishlist.items = wishlist.items.filter((item) => item.id !== product.id);
-  } else {
+  } else if (wishlist.items.length < WISHLIST_MAX_ITEMS) {
     wishlist.items = mergeWishlistItems(wishlist.items, [product]);
   }
   return !wasInList;

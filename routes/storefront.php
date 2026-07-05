@@ -53,7 +53,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/payments/{provider}/return', [PaymentReturnController::class, 'confirm']);
     Route::post('/payments/{provider}/session', [PaymentReturnController::class, 'session']);
 
-    Route::prefix('auth')->group(function () {
+    Route::prefix('auth')->middleware('throttle:storefront-auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);

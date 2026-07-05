@@ -24,6 +24,18 @@ return [
      */
     'rate_limit_read_per_minute' => (int) env('STOREFRONT_RATE_LIMIT_READ', 600),
 
+    /** POST auth endpoints (register, login, forgot/reset password) per IP. */
+    'auth_rate_limit_per_minute' => (int) env('STOREFRONT_AUTH_RATE_LIMIT', 20),
+
+    /** Customer password-reset token lifetime (minutes). */
+    'password_reset_expire_minutes' => (int) env('STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES', 60),
+
+    /** Max saved wishlist rows per customer. */
+    'wishlist_max_items' => (int) env('STOREFRONT_WISHLIST_MAX_ITEMS', 100),
+
+    /** Max product IDs accepted in one wishlist merge request. */
+    'wishlist_merge_max_ids' => (int) env('STOREFRONT_WISHLIST_MERGE_MAX_IDS', 100),
+
     /*
     | Public Qwik storefront origin — used in password-reset emails and similar links.
     | Example: https://shop.example.com (no trailing slash).

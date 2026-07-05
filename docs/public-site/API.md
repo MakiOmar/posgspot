@@ -141,6 +141,13 @@ Response shape:
 
 Invalid or unavailable products return **422** on add.
 
+Limits (configurable via `config/storefront.php` / env):
+
+| Setting | Env | Default |
+|---------|-----|---------|
+| Max saved items per customer | `STOREFRONT_WISHLIST_MAX_ITEMS` | 100 |
+| Max IDs per merge request | `STOREFRONT_WISHLIST_MERGE_MAX_IDS` | 100 |
+
 ## Admin
 
 Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
@@ -158,3 +165,5 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - CORS: configure `CORS_ALLOWED_ORIGINS` in `.env`
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
 - Rate limit (`throttle:storefront`, per IP): reads (GET/HEAD) use `STOREFRONT_RATE_LIMIT_READ` (default **600**/min); writes use `STOREFRONT_RATE_LIMIT` (default **120**/min). The Qwik SSR process also caches settings/categories for ~30s so layout loaders do not hit Laravel on every navigation.
+- Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
+- Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).

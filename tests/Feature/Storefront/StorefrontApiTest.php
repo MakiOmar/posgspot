@@ -111,6 +111,39 @@ class StorefrontApiTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_expired_password_reset_token_is_rejected(): void
+    {
+        $email = 'reset_expired_'.uniqid().'@example.com';
+        $mobile = '+2010'.random_int(10000000, 99999999);
+        $plainToken = 'reset-token-'.uniqid();
+
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Reset',
+            'last_name' => 'Expired',
+            'email' => $email,
+            'mobile' => $mobile,
+            'password' => 'oldpassword123',
+            'password_confirmation' => 'oldpassword123',
+        ])->assertCreated();
+
+        \Illuminate\Support\Facades\DB::table('password_resets_contacts')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => \Illuminate\Support\Facades\Hash::make($plainToken),
+                'created_at' => now()->subMinutes((int) config('storefront.password_reset_expire_minutes', 60) + 1),
+            ]
+        );
+
+        $this->postJson('/api/storefront/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => $plainToken,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
     public function test_settings_contact_does_not_expose_raw_email(): void
     {
         $email = 'contact_'.uniqid().'@example.com';

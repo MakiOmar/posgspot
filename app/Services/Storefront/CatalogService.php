@@ -258,7 +258,37 @@ class CatalogService
 
     public function isProductWishlistable(int $businessId, int $productId, string $locale = StorefrontLocale::DEFAULT): bool
     {
-        return $this->productSummariesByIds($businessId, [$productId], $locale) !== [];
+        return in_array($productId, $this->filterWishlistableProductIds($businessId, [$productId], $locale), true);
+    }
+
+    /**
+     * @param  int[]  $productIds
+     * @return int[] Product ids that are sellable for the locale (preserves input order, skips unknown).
+     */
+    public function filterWishlistableProductIds(
+        int $businessId,
+        array $productIds,
+        string $locale = StorefrontLocale::DEFAULT
+    ): array {
+        if ($productIds === []) {
+            return [];
+        }
+
+        $summaries = $this->productSummariesByIds($businessId, $productIds, $locale);
+        $allowed = [];
+        foreach ($summaries as $summary) {
+            $allowed[(int) $summary['id']] = true;
+        }
+
+        $filtered = [];
+        foreach ($productIds as $productId) {
+            $id = (int) $productId;
+            if (isset($allowed[$id])) {
+                $filtered[] = $id;
+            }
+        }
+
+        return $filtered;
     }
 
     public function generateSlug(string $name, int $businessId, ?int $excludeId = null): string

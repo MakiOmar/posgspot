@@ -40,8 +40,9 @@ class WishlistController extends StorefrontController
 
     public function merge(Request $request)
     {
+        $mergeMax = max(1, (int) config('storefront.wishlist_merge_max_ids', 100));
         $data = $request->validate([
-            'product_ids' => 'required|array',
+            'product_ids' => "required|array|max:{$mergeMax}",
             'product_ids.*' => 'integer|min:1',
         ]);
         $locale = StorefrontLocale::fromRequest($request);

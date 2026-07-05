@@ -120,6 +120,14 @@ class AuthController extends StorefrontController
             return $this->jsonError('Invalid or expired reset token.', 422);
         }
 
+        $expireMinutes = max(1, (int) config('storefront.password_reset_expire_minutes', 60));
+        $createdAt = $row->created_at ? \Illuminate\Support\Carbon::parse($row->created_at) : null;
+        if (empty($createdAt) || $createdAt->lt(now()->subMinutes($expireMinutes))) {
+            DB::table('password_resets_contacts')->where('email', $data['email'])->delete();
+
+            return $this->jsonError('Invalid or expired reset token.', 422);
+        }
+
         $contact = Contact::where('business_id', $businessId)
             ->whereIn('type', ['customer', 'both'])
             ->where('email', $data['email'])

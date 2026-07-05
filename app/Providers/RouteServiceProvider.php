@@ -70,5 +70,11 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute(max(1, $perMinute))->by($request->ip());
         });
+
+        RateLimiter::for('storefront-auth', function (Request $request) {
+            $perMinute = (int) config('storefront.auth_rate_limit_per_minute', 20);
+
+            return Limit::perMinute(max(1, $perMinute))->by($request->ip());
+        });
     }
 }
