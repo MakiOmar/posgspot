@@ -120,7 +120,17 @@
     "unavailable": "Promo codes are not available at checkout.",
     "singleOnly": "Only one promo code can be applied per order.",
     "alreadyApplied": "This promo code is already applied.",
-    "totalDiscount": "Total promo discount"
+    "totalDiscount": "Total promo discount",
+    "pickerShow": "Select promo code",
+    "pickerHide": "Hide promo codes",
+    "pickerRegion": "Available promo codes",
+    "pickerLoading": "Loading available promo codes…",
+    "pickerEmpty": "No promo codes apply to this cart right now.",
+    "pickerLoadError": "Could not load promo codes.",
+    "pickerSave": "Save {amount}",
+    "pickerSavePlusShipping": "Save {amount} incl. shipping",
+    "pickerFreeShipping": "Free shipping",
+    "pickerApplied": "Applied"
   },
   "miniCart": {
     "title": "Your cart",

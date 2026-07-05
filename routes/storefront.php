@@ -48,6 +48,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/contact', [ContactController::class, 'store']);
 
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
+    Route::post('/coupons/available', [CouponController::class, 'available']);
     Route::post('/cart/validate', [CartController::class, 'validateCart']);
     Route::post('/checkout', [CheckoutController::class, 'store']);
 

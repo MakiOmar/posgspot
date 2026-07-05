@@ -11,6 +11,7 @@ import type {
   AuthContact,
   AuthSession,
   AvailabilityLocation,
+  AvailableCouponsResult,
   CartInspection,
   CartValidation,
   Category,
@@ -220,6 +221,24 @@ export function validateCoupon(payload: {
     headers.Authorization = `Bearer ${token}`;
   }
   return storefrontFetch<CouponApplyResult>("/coupons/validate", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchAvailableCoupons(
+  payload: {
+    items: { variation_id: number; quantity: number }[];
+    exclude_codes?: string[];
+  },
+  token?: string,
+) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return storefrontFetch<AvailableCouponsResult>("/coupons/available", {
     method: "POST",
     headers,
     body: JSON.stringify(payload),

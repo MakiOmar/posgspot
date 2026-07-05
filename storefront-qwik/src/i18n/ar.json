@@ -120,7 +120,17 @@
     "unavailable": "رموز الخصم غير متاحة عند الدفع.",
     "singleOnly": "يمكن تطبيق رمز خصم واحد فقط لكل طلب.",
     "alreadyApplied": "رمز الخصم هذا مطبّق بالفعل.",
-    "totalDiscount": "إجمالي خصم الرموز"
+    "totalDiscount": "إجمالي خصم الرموز",
+    "pickerShow": "اختر رمز الخصم",
+    "pickerHide": "إخفاء رموز الخصم",
+    "pickerRegion": "رموز الخصم المتاحة",
+    "pickerLoading": "جاري تحميل رموز الخصم…",
+    "pickerEmpty": "لا توجد رموز خصم تنطبق على سلتك حالياً.",
+    "pickerLoadError": "تعذر تحميل رموز الخصم.",
+    "pickerSave": "وفّر {amount}",
+    "pickerSavePlusShipping": "وفّر {amount} شامل الشحن",
+    "pickerFreeShipping": "شحن مجاني",
+    "pickerApplied": "مطبّق"
   },
   "miniCart": {
     "title": "سلة التسوق",

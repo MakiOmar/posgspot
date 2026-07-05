@@ -465,4 +465,87 @@ class CouponTest extends TestCase
         );
         $this->assertCount(2, $stacked->json('data.coupons'));
     }
+
+    public function test_available_lists_eligible_coupons_for_authenticated_customer(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $eligible = $this->createCoupon([
+            'code' => 'PICKER10',
+            'discount_amount' => 10,
+            'min_order_subtotal' => 0,
+        ]);
+        $this->createCoupon([
+            'code' => 'INACTIVE',
+            'is_active' => false,
+        ]);
+        $session = $this->registerAndLogin();
+
+        $response = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/available', [
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true);
+
+        $codes = collect($response->json('data.coupons'))->pluck('code');
+        $this->assertTrue($codes->contains($eligible->code));
+        $this->assertFalse($codes->contains('INACTIVE'));
+
+        $match = collect($response->json('data.coupons'))->firstWhere('code', $eligible->code);
+        $this->assertNotNull($match);
+        $this->assertGreaterThan(0, (float) $match['total_savings']);
+    }
+
+    public function test_available_excludes_coupons_below_min_subtotal(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $this->createCoupon([
+            'code' => 'TOOHIGH',
+            'min_order_subtotal' => 999999,
+        ]);
+        $session = $this->registerAndLogin();
+
+        $response = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/available', [
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ]);
+
+        $response->assertOk();
+        $codes = collect($response->json('data.coupons'))->pluck('code');
+        $this->assertFalse($codes->contains('TOOHIGH'));
+    }
+
+    public function test_available_requires_auth(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $this->createCoupon();
+
+        $this->postJson('/api/storefront/v1/coupons/available', [
+            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+        ])->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Sign in to apply a promo code.');
+    }
+
+    public function test_available_returns_empty_when_checkout_promos_disabled(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $coupon = $this->createCoupon(['code' => 'DISABLED']);
+        $session = $this->registerAndLogin();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'promo_codes' => [
+                'enabled_at_checkout' => false,
+                'allow_stacking' => false,
+            ],
+        ]);
+        Cache::flush();
+
+        $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/available', [
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.coupons', []);
+    }
 }

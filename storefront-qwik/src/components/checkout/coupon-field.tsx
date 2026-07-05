@@ -1,4 +1,5 @@
 import { $, component$, useSignal, type QRL } from "@builder.io/qwik";
+import { CouponPicker } from "~/components/checkout/coupon-picker";
 import { ApiError, validateCoupon } from "~/lib/api";
 import { persistAppliedCoupons } from "~/lib/cart-actions";
 import { formatPrice } from "~/lib/format";
@@ -30,20 +31,20 @@ export const CouponField = component$<CouponFieldProps>((props) => {
     await props.onApplied$(coupons, discount);
   });
 
-  const applyCode$ = $(async () => {
-    const code = inputCode.value.trim();
+  const applyCodeValue$ = $(async (rawCode: string) => {
+    const code = rawCode.trim();
     if (!code || props.items.length === 0) {
-      return;
+      return false;
     }
 
     if (!props.allowStacking && props.appliedCoupons.length > 0) {
       error.value = tStatic(locale, "coupon.singleOnly");
-      return;
+      return false;
     }
 
     if (props.appliedCoupons.some((coupon) => coupon.code.toUpperCase() === code.toUpperCase())) {
       error.value = tStatic(locale, "coupon.alreadyApplied");
-      return;
+      return false;
     }
 
     applying.value = true;
@@ -72,11 +73,12 @@ export const CouponField = component$<CouponFieldProps>((props) => {
       if (nextCoupons.length === 0) {
         error.value = tStatic(locale, "coupon.invalid");
         await syncApplied$(props.allowStacking ? props.appliedCoupons : [], 0);
-        return;
+        return false;
       }
 
       inputCode.value = "";
       await syncApplied$(nextCoupons, data.coupon_discount ?? 0);
+      return true;
     } catch (err) {
       if (err instanceof ApiError) {
         const messages = Object.values(err.errors).flat();
@@ -84,10 +86,17 @@ export const CouponField = component$<CouponFieldProps>((props) => {
       } else {
         error.value = tStatic(locale, "coupon.applyError");
       }
+      return false;
     } finally {
       applying.value = false;
     }
   });
+
+  const applyCode$ = $(async () => {
+    await applyCodeValue$(inputCode.value);
+  });
+
+  const applyFromPicker$ = $((code: string) => applyCodeValue$(code));
 
   const removeCode$ = $(async (codeToRemove?: string) => {
     inputCode.value = "";
@@ -162,6 +171,15 @@ export const CouponField = component$<CouponFieldProps>((props) => {
           ))}
         </ul>
       ) : null}
+      <CouponPicker
+        items={props.items}
+        token={props.token}
+        allowStacking={props.allowStacking}
+        currency={props.currency}
+        appliedCoupons={props.appliedCoupons}
+        applying={applying.value}
+        onSelect$={applyFromPicker$}
+      />
       {canAddMore ? (
         <div class="coupon-field__row">
           <input

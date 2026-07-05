@@ -241,6 +241,131 @@ class CouponService
     }
 
     /**
+     * List storefront promo codes the signed-in customer can apply to the current cart.
+     *
+     * @param  array<int, array{variation_id:int, product_id:int, category_id:?int, line_total:float, on_sale:bool}>  $lines
+     * @param  array<int, string>  $excludeCodes
+     * @return array<int, array{
+     *   id:int,
+     *   code:string,
+     *   name:string,
+     *   label:string,
+     *   type:string,
+     *   description:?string,
+     *   discount_amount:float,
+     *   free_shipping:bool,
+     *   shipping_savings:float,
+     *   total_savings:float
+     * }>
+     */
+    public function listAvailableForCart(
+        int $businessId,
+        array $lines,
+        float $subtotal,
+        array $settings,
+        ?Contact $contact = null,
+        array $excludeCodes = [],
+        string $channel = Coupon::CHANNEL_STOREFRONT
+    ): array {
+        if ($lines === [] || empty($contact)) {
+            return [];
+        }
+
+        $promo = $settings['promo_codes'] ?? [];
+        if (! ($promo['enabled_at_checkout'] ?? true)) {
+            return [];
+        }
+
+        $exclude = array_flip($this->normalizeCodes(null, $excludeCodes));
+        $now = now();
+        $baseShipping = $this->calculateShipping($settings, $subtotal);
+
+        $candidates = Coupon::query()
+            ->where('business_id', $businessId)
+            ->where('is_active', true)
+            ->whereIn('channel', [Coupon::CHANNEL_STOREFRONT, Coupon::CHANNEL_BOTH])
+            ->where(function ($query) use ($now) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function ($query) use ($now) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', $now);
+            })
+            ->where(function ($query) {
+                $query->whereNull('max_uses_total')
+                    ->orWhereColumn('times_used', '<', 'max_uses_total');
+            })
+            ->with(['categories', 'variations'])
+            ->orderByDesc('id')
+            ->get();
+
+        $available = [];
+
+        foreach ($candidates as $coupon) {
+            if (isset($exclude[$coupon->code])) {
+                continue;
+            }
+
+            $preview = $this->previewCouponForCart($coupon, $lines, $subtotal, $contact, $channel, $baseShipping);
+            if ($preview !== null) {
+                $available[] = $preview;
+            }
+        }
+
+        usort($available, fn (array $a, array $b) => $b['total_savings'] <=> $a['total_savings']);
+
+        return $available;
+    }
+
+    /**
+     * @param  array<int, array{variation_id:int, product_id:int, category_id:?int, line_total:float, on_sale:bool}>  $lines
+     * @return array{
+     *   id:int,
+     *   code:string,
+     *   name:string,
+     *   label:string,
+     *   type:string,
+     *   description:?string,
+     *   discount_amount:float,
+     *   free_shipping:bool,
+     *   shipping_savings:float,
+     *   total_savings:float
+     * }|null
+     */
+    private function previewCouponForCart(
+        Coupon $coupon,
+        array $lines,
+        float $subtotal,
+        ?Contact $contact,
+        string $channel,
+        float $baseShipping
+    ): ?array {
+        try {
+            $this->assertCouponEligible($coupon, $lines, $subtotal, $contact, $channel);
+        } catch (ValidationException) {
+            return null;
+        }
+
+        $eligibleSubtotal = $this->eligibleSubtotal($coupon, $lines);
+        $discount = $this->computeDiscountAmount($coupon, $eligibleSubtotal);
+        $freeShipping = $coupon->type === Coupon::TYPE_FREE_SHIPPING;
+        $shippingSavings = $freeShipping ? max(0.0, $baseShipping) : 0.0;
+        $totalSavings = round($discount + $shippingSavings, 4);
+
+        return [
+            'id' => (int) $coupon->id,
+            'code' => $coupon->code,
+            'name' => (string) $coupon->name,
+            'label' => $coupon->displayLabel(),
+            'type' => $coupon->type,
+            'description' => $coupon->description ? (string) $coupon->description : null,
+            'discount_amount' => round($discount, 4),
+            'free_shipping' => $freeShipping,
+            'shipping_savings' => round($shippingSavings, 4),
+            'total_savings' => $totalSavings,
+        ];
+    }
+
+    /**
      * Validate a coupon against cart lines and compute discount totals.
      *
      * @param  array<int, array{variation_id:int, product_id:int, category_id:?int, line_total:float, on_sale:bool}>  $lines

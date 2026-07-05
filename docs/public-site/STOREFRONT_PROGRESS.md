@@ -66,8 +66,8 @@
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability |
-| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo code, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo code, reward redeem |
+| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
@@ -195,6 +195,7 @@
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
 | 2026-07-05 | Promo codes v1: `coupons` domain, POS admin `/coupons`, `POST /coupons/validate`, cart/checkout coupon totals + redemption, Qwik cart/checkout UI, `CouponTest`, API.md. |
 | 2026-07-05 | Promo codes require storefront login: API rejects guest `coupon_code`; cart/checkout hide coupon field for guests. |
+| 2026-07-05 | Promo code picker: `POST /coupons/available`, fancy selectable list on cart/checkout (code + savings), tests + API.md. |
 | 2026-07-05 | Promo code storefront settings: enable/disable checkout field; single vs stacked coupons per order; Qwik UI + tests. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |

@@ -177,6 +177,23 @@ export interface AppliedCouponInfo {
   stack_with_reward_points: boolean;
 }
 
+export interface AvailableCouponInfo {
+  id: number;
+  code: string;
+  name: string;
+  label: string;
+  type: string;
+  description: string | null;
+  discount_amount: number;
+  free_shipping: boolean;
+  shipping_savings: number;
+  total_savings: number;
+}
+
+export interface AvailableCouponsResult {
+  coupons: AvailableCouponInfo[];
+}
+
 export interface CouponApplyResult {
   coupon: AppliedCouponInfo | null;
   coupons?: AppliedCouponInfo[];
