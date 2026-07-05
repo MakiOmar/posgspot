@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ApiError, fetchPhoneCountries, registerCustomer } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -9,7 +10,7 @@ import { toastError } from "~/lib/notify";
 import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useLangParam } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useRegisterPhoneCountries = routeLoader$(async () => {
   try {
@@ -22,9 +23,14 @@ export const useRegisterPhoneCountries = routeLoader$(async () => {
 
 export default component$(() => {
   const auth = useAuth();
+  const settings = useSiteSettings();
   const nav = useNavigate();
   const pending = usePendingState();
   const phoneCountries = useRegisterPhoneCountries();
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
+  const turnstile = settings.value.turnstile;
+  const turnstileEnabled = Boolean(turnstile?.enabled && turnstile.site_key);
   const form = useStore({
     first_name: "",
     last_name: "",
@@ -63,6 +69,11 @@ export default component$(() => {
       return;
     }
 
+    if (turnstileEnabled && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await registerCustomer({
@@ -73,6 +84,7 @@ export default component$(() => {
           password: form.password,
           password_confirmation: form.password_confirmation,
           dial_code: form.dialCode,
+          ...(turnstileEnabled ? { turnstile_token: turnstileToken.value } : {}),
         });
         succeeded.value = true;
         auth.token = data.token;
@@ -85,6 +97,7 @@ export default component$(() => {
         } else {
           await toastError(tStatic(locale, "auth.registerFailedRetry"));
         }
+        turnstileResetKey.value += 1;
       }
     });
   });
@@ -148,6 +161,9 @@ export default component$(() => {
               <input id="password_confirmation" type="password" autoComplete="new-password" value={form.password_confirmation} onInput$={(_, el) => (form.password_confirmation = el.value)} required />
             </div>
           </div>
+          {turnstileEnabled && turnstile.site_key ? (
+            <TurnstileWidget siteKey={turnstile.site_key} token={turnstileToken} resetKey={turnstileResetKey.value} />
+          ) : null}
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
             {submitting.value ? tStatic(locale, "auth.creatingAccount") : tStatic(locale, "auth.register")}
           </button>

@@ -66,6 +66,7 @@ class SettingsApiService
                 'enabled' => (int) ($business->enable_rp ?? 0) === 1,
                 'name' => $this->presenter->localizedSetting($rewardName, $locale, $business->rp_name ?? 'Reward Points'),
             ],
+            'turnstile' => $this->turnstilePayload($settings),
             'locales' => ['en', 'ar'],
         ];
     }
@@ -174,6 +175,18 @@ class SettingsApiService
             'enabled' => $enabled,
             'provider' => $enabled ? (string) $provider : null,
             'label' => $enabled ? (string) (config("storefront-payments.labels.{$provider}") ?? ucfirst((string) $provider)) : null,
+        ];
+    }
+
+    private function turnstilePayload(array $settings): array
+    {
+        $siteKey = trim((string) ($settings['turnstile']['site_key'] ?? ''));
+        $secret = $this->storefrontSettings->decryptTurnstileSecretKey($settings);
+        $enabled = $siteKey !== '' && ! empty($secret);
+
+        return [
+            'enabled' => $enabled,
+            'site_key' => $enabled ? $siteKey : null,
         ];
     }
 }

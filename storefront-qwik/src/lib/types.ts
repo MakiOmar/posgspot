@@ -54,6 +54,10 @@ export interface StoreSettings {
     enabled: boolean;
     name: string;
   };
+  turnstile: {
+    enabled: boolean;
+    site_key: string | null;
+  };
   locales: string[];
 }
 

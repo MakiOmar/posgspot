@@ -71,6 +71,8 @@ class StorefrontSettingController extends Controller
             'reward_points_name_en' => 'nullable|string|max:100',
             'reward_points_name_ar' => 'nullable|string|max:100',
             'catalog_show_availability_on_cards' => 'nullable|boolean',
+            'turnstile_site_key' => 'nullable|string|max:191',
+            'turnstile_secret_key' => 'nullable|string|max:500',
         ]);
 
         $payload = [
@@ -129,6 +131,10 @@ class StorefrontSettingController extends Controller
             ],
             'catalog' => [
                 'show_availability_on_cards' => $request->boolean('catalog_show_availability_on_cards'),
+            ],
+            'turnstile' => [
+                'site_key' => $validated['turnstile_site_key'] ?? '',
+                'secret_key' => $validated['turnstile_secret_key'] ?? null,
             ],
         ];
 

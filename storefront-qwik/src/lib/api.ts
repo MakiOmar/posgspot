@@ -235,6 +235,7 @@ export function registerCustomer(payload: {
   password: string;
   password_confirmation: string;
   dial_code?: string;
+  turnstile_token?: string;
 }) {
   return storefrontFetch<AuthSession>("/auth/register", {
     method: "POST",
@@ -360,6 +361,7 @@ export interface ContactFormPayload {
   email: string;
   phone: string;
   message: string;
+  turnstile_token?: string;
 }
 
 export function submitContactForm(payload: ContactFormPayload) {

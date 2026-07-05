@@ -65,12 +65,12 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.atfawry.com https://atfawry.fawrystaging.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
-    `connect-src ${connectSrc.join(" ")}`,
-    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com",
+    `connect-src ${connectSrc.join(" ")} https://challenges.cloudflare.com`,
+    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com",
     "form-action 'self' https://www.atfawry.com https://atfawry.fawrystaging.com",
   ];
 

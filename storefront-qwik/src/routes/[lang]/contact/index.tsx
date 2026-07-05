@@ -2,6 +2,7 @@ import { $, component$, useSignal, useStore } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { MapPinIcon, PhoneIcon } from "~/components/icons";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
 import { ApiError, fetchLocations, fetchPhoneCountries, submitContactForm } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
@@ -51,6 +52,10 @@ export default component$(() => {
   const phoneCountries = useContactPhoneCountries();
   const pending = usePendingState();
   const submitting = useSignal(false);
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
+  const turnstile = settings.value.turnstile;
+  const turnstileEnabled = Boolean(turnstile?.enabled && turnstile.site_key);
   const form = useStore({
     name: "",
     email: "",
@@ -71,6 +76,11 @@ export default component$(() => {
       return;
     }
 
+    if (turnstileEnabled && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await submitContactForm({
@@ -78,6 +88,7 @@ export default component$(() => {
           email: form.email.trim(),
           phone: phoneCheck.fullPhone,
           message: form.message.trim(),
+          ...(turnstileEnabled ? { turnstile_token: turnstileToken.value } : {}),
         });
         form.name = "";
         form.email = "";
@@ -85,6 +96,7 @@ export default component$(() => {
         form.nationalNumber = "";
         form.phone = "";
         form.message = "";
+        turnstileResetKey.value += 1;
         await toastSuccess(data.message);
       } catch (e) {
         const message =
@@ -92,6 +104,7 @@ export default component$(() => {
             ? e.message || tStatic(locale, "contact.sendFailed")
             : tStatic(locale, "contact.sendFailed");
         await toastError(message);
+        turnstileResetKey.value += 1;
       }
     });
   });
@@ -233,6 +246,9 @@ export default component$(() => {
               onInput$={(_, el) => (form.message = el.value)}
             />
           </div>
+          {turnstileEnabled && turnstile.site_key ? (
+            <TurnstileWidget siteKey={turnstile.site_key} token={turnstileToken} resetKey={turnstileResetKey.value} />
+          ) : null}
           <div class="form-actions form-actions--left">
             <button type="submit" class="btn btn-primary" disabled={submitting.value}>
               {submitting.value ? tStatic(locale, "contact.sending") : tStatic(locale, "contact.sendMessage")}

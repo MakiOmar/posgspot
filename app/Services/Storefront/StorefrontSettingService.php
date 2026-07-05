@@ -73,6 +73,10 @@ class StorefrontSettingService
                     'ar' => 'نقاط المكافآت',
                 ],
             ],
+            'turnstile' => [
+                'site_key' => '',
+                'secret_key' => null,
+            ],
         ];
     }
 
@@ -136,6 +140,13 @@ class StorefrontSettingService
             $merged['gateway']['fawry']['security_key'] = $existing['gateway']['fawry']['security_key'] ?? null;
         }
 
+        if (! empty($settings['turnstile']['secret_key'])) {
+            $merged['turnstile']['secret_key'] = Crypt::encryptString($settings['turnstile']['secret_key']);
+        } else {
+            $existing = $existing ?? $this->getRaw($businessId);
+            $merged['turnstile']['secret_key'] = $existing['turnstile']['secret_key'] ?? null;
+        }
+
         $row = StorefrontSetting::updateOrCreate(
             ['business_id' => $businessId],
             ['value' => $merged]
@@ -173,6 +184,20 @@ class StorefrontSettingService
         $key = $settings['gateway']['fawry']['security_key'] ?? null;
         if (empty($key)) {
             return $this->decryptGatewayApiKey($settings);
+        }
+
+        try {
+            return Crypt::decryptString($key);
+        } catch (\Throwable) {
+            return $key;
+        }
+    }
+
+    public function decryptTurnstileSecretKey(array $settings): ?string
+    {
+        $key = $settings['turnstile']['secret_key'] ?? null;
+        if (empty($key)) {
+            return null;
         }
 
         try {

@@ -69,9 +69,9 @@
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
-| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage` |
+| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; register shows Turnstile when configured |
 | `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
-| `/[lang]/contact` | ✅ | Form + branches + map |
+| `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -128,6 +128,7 @@
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
 | Selling locations, COD, shipping, maintenance | ✅ | |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
+| Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
@@ -145,7 +146,7 @@
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
 | `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes `robots.txt`, `sitemap.xml` (products + categories from API) |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
-| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; skipped in dev |
+| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Cloudflare Turnstile allowed when enabled; skipped in dev |
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
 | Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
 
@@ -184,6 +185,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
 | 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |
 | 2026-07-05 | Harden auth/wishlist: reset token expiry, auth rate limit, wishlist caps + batch merge. |
 | 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |

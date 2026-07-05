@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Contact;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\PhoneValidationService;
+use App\Services\Storefront\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +18,8 @@ class AuthController extends StorefrontController
 {
     public function __construct(
         private CustomerAuthService $authService,
-        private PhoneValidationService $phoneValidation
+        private PhoneValidationService $phoneValidation,
+        private TurnstileService $turnstile
     ) {
     }
 
@@ -30,7 +32,14 @@ class AuthController extends StorefrontController
             'mobile' => 'required|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'dial_code' => 'nullable|string|max:6',
+            'turnstile_token' => 'nullable|string',
         ]);
+
+        $businessId = $this->businessId($request);
+        $turnstileError = $this->turnstile->validate($businessId, $data['turnstile_token'] ?? null, $request->ip());
+        if ($turnstileError !== null) {
+            return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
+        }
 
         $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['mobile']);
         $phoneCheck = $this->phoneValidation->validate($data['mobile'], $dialCode);
@@ -38,7 +47,7 @@ class AuthController extends StorefrontController
             return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
         }
 
-        $result = $this->authService->register($this->businessId($request), $data);
+        $result = $this->authService->register($businessId, $data);
 
         return $this->jsonSuccess($result, [], 201);
     }

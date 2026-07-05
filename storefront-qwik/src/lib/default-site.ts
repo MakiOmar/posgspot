@@ -15,6 +15,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   maintenance_mode: false,
   online_payments: { enabled: false, provider: null, label: null },
   reward_points: { enabled: false, name: "Reward Points" },
+  turnstile: { enabled: false, site_key: null },
   locales: ["en"],
 };
 

@@ -311,6 +311,10 @@
     "qrAlt": "QR code with your contact details",
     "generating": "Generating…"
   },
+  "turnstile": {
+    "required": "Please complete the security check.",
+    "failed": "Security check failed. Please try again."
+  },
   "contact": {
     "title": "Contact",
     "emailAddress": "Email address",

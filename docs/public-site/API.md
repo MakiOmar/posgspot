@@ -93,7 +93,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side) |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
-| POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings) |
+| POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings). Optional `turnstile_token` when Turnstile is enabled in storefront settings |
 | POST | `/cart/validate` | Revalidate cart lines (price + stock). When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
 | POST | `/checkout` | Create order (idempotent). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. |
 | POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
@@ -104,7 +104,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/auth/register` | Register customer |
+| POST | `/auth/register` | Register customer. Optional `turnstile_token` when Turnstile is enabled in storefront settings |
 | POST | `/auth/login` | Login |
 | POST | `/auth/logout` | Logout (auth required) |
 | POST | `/auth/forgot-password` | Request reset (email contains link to `{STOREFRONT_URL}/reset-password?email=&token=`) |
@@ -154,6 +154,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 - Select selling locations (catalog is empty when none selected)
 - COD, shipping, announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
+- **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact and registration require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
 - Public `GET /locations` uses the same `email_encoded` pattern per location (no raw `email` field)

@@ -215,6 +215,25 @@
             </div>
 
             <hr>
+            <h4>Spam protection (Cloudflare Turnstile)</h4>
+            <p class="help-block">When both site key and secret key are saved, the contact and registration forms require Turnstile verification.</p>
+            @php $turnstile = $settings['turnstile'] ?? []; @endphp
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {!! Form::label('turnstile_site_key', 'Site key') !!}
+                        {!! Form::text('turnstile_site_key', $turnstile['site_key'] ?? '', ['class' => 'form-control', 'autocomplete' => 'off']) !!}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        {!! Form::label('turnstile_secret_key', 'Secret key (leave blank to keep current)') !!}
+                        {!! Form::password('turnstile_secret_key', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                    </div>
+                </div>
+            </div>
+
+            <hr>
             <h4>Payment gateway</h4>
             <div class="checkbox">
                 <label>

@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Mail\StorefrontContactMessage;
 use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\StorefrontMailService;
+use App\Services\Storefront\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class ContactController extends StorefrontController
 {
-    public function __construct(private PhoneValidationService $phoneValidation)
-    {
+    public function __construct(
+        private PhoneValidationService $phoneValidation,
+        private TurnstileService $turnstile
+    ) {
     }
 
     public function store(Request $request)
@@ -23,7 +26,14 @@ class ContactController extends StorefrontController
             'phone' => 'required|string|max:30',
             'message' => 'required|string|max:5000',
             'dial_code' => 'nullable|string|max:6',
+            'turnstile_token' => 'nullable|string',
         ]);
+
+        $businessId = $this->businessId($request);
+        $turnstileError = $this->turnstile->validate($businessId, $data['turnstile_token'] ?? null, $request->ip());
+        if ($turnstileError !== null) {
+            return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
+        }
 
         $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['phone']);
         $phoneCheck = $this->phoneValidation->validate($data['phone'], $dialCode);
@@ -31,7 +41,6 @@ class ContactController extends StorefrontController
             return $this->jsonError($phoneCheck['message'], 422, ['phone' => [$phoneCheck['message']]]);
         }
 
-        $businessId = $this->businessId($request);
         $mailService = app(StorefrontMailService::class);
         $mailService->applyForBusiness($businessId);
         $recipient = $mailService->contactRecipient($businessId);
