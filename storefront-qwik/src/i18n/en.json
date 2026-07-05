@@ -97,6 +97,12 @@
     "remove": "Remove",
     "seoTitle": "Cart — {businessName}"
   },
+  "miniCart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "viewCart": "View cart",
+    "qtyPrice": "Qty {qty} × {price}"
+  },
   "checkout": {
     "title": "Checkout",
     "placeOrder": "Place order",

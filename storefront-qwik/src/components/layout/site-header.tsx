@@ -1,7 +1,6 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import {
-  CartIcon,
   MenuIcon,
   PhoneIcon,
   UserIcon,
@@ -9,13 +8,11 @@ import {
 import { CategoriesDrawer } from "~/components/layout/categories-drawer";
 import { HeaderSearch } from "~/components/layout/header-search";
 import { LanguageSwitcher } from "~/components/layout/language-switcher";
+import { MiniCart } from "~/components/layout/mini-cart";
 import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
-import { cartSubtotal, totalCartItems } from "~/lib/cart-actions";
-import { useCart } from "~/lib/cart-context";
 import { HEADER_STYLE } from "~/lib/config";
-import { formatPrice } from "~/lib/format";
 import { buildMainNavLinks } from "~/lib/header-nav";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -29,14 +26,11 @@ interface SiteHeaderProps {
 export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories }) => {
   const { locale } = useI18n();
   const categoriesOpen = useSignal(false);
-  const cart = useCart();
   const auth = useAuth();
   const signedIn = isAuthenticated(auth);
   const isStyleOne = HEADER_STYLE === "one";
   const navLinks = buildMainNavLinks(locale);
 
-  const itemCount = totalCartItems(cart);
-  const subtotal = cartSubtotal(cart);
   const phone = settings.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");
 
@@ -115,15 +109,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 </span>
               </Link>
 
-              <Link href={localePath(locale, "/cart")} class="action-link action-cart" aria-label={tStatic(locale, "header.cart")}>
-                <span class="action-cart-icon">
-                  <CartIcon size={22} />
-                  {itemCount > 0 ? <span class="cart-badge">{itemCount}</span> : null}
-                </span>
-                <span class="action-text">
-                  {formatPrice(subtotal, settings.currency, locale)}
-                </span>
-              </Link>
+              <MiniCart settings={settings} />
             </div>
           </div>
         </div>

@@ -97,6 +97,12 @@
     "remove": "إزالة",
     "seoTitle": "السلة — {businessName}"
   },
+  "miniCart": {
+    "title": "سلة التسوق",
+    "empty": "سلتك فارغة.",
+    "viewCart": "عرض السلة",
+    "qtyPrice": "الكمية {qty} × {price}"
+  },
   "checkout": {
     "title": "إتمام الشراء",
     "placeOrder": "تأكيد الطلب",

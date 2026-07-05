@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | 🟡 Most endpoints done; coupons/wishlist/server cart N/A |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist, mini-cart, policies missing |
+| Header / footer spec | 🟡 Core wired; wishlist, policies missing; mini-cart done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -94,8 +94,8 @@
 | 4-column product grid (responsive) | ✅ | `.product-grid` in `global.css` |
 | Reward points (account + checkout) | ✅ | `reward-points-summary.tsx`, `reward-points-redeem.tsx` |
 | Phone input + dial code | ✅ | `PhoneInputWithDialCode` |
-| Mini-cart dropdown | ⬜ | Header links to `/cart` only |
-| Guest cart merge on login | ⬜ | |
+| Mini-cart dropdown | ✅ | `components/layout/mini-cart.tsx`, header trigger |
+| Guest cart merge on login | ✅ | `lib/cart-actions.ts` guest/user keys + `cart-context.tsx` merge on auth |
 | Coupons / promo codes | ⬜ | |
 | Cart price refresh from API | ⬜ | Validate on checkout only |
 
@@ -109,7 +109,7 @@
 | Search → `/products?q=` + autocomplete | ✅ | `header-search.tsx` → `GET /search` |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Main nav (shop, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
-| Cart badge + subtotal | ✅ | |
+| Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ⬜ | |
@@ -167,9 +167,9 @@
 
 ## Recommended next (priority order)
 
-1. **Guest cart merge on login** — merge `localStorage` cart after auth.
-2. **Mini-cart dropdown** — header polish (badge exists; links to `/cart` only).
-3. **Additional payment gateways** — Paymob / MyFatoorah via `PaymentGatewayManager`.
+1. **Additional payment gateways** — Paymob / MyFatoorah via `PaymentGatewayManager`.
+2. **Cart price refresh from API** — re-price on cart page, not only checkout.
+3. **Wishlist** — header icon + API when scoped.
 
 ---
 
@@ -177,6 +177,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |
