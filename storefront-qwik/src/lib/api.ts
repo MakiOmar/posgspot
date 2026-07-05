@@ -185,27 +185,43 @@ export function searchProducts(q: string, limit = 8, locale?: string) {
   );
 }
 
-export function validateCart(payload: {
-  location_id?: number;
-  coupon_code?: string;
-  coupon_codes?: string[];
-  items: { variation_id: number; quantity: number }[];
-}) {
+export function validateCart(
+  payload: {
+    location_id?: number;
+    coupon_code?: string;
+    coupon_codes?: string[];
+    items: { variation_id: number; quantity: number }[];
+  },
+  token?: string,
+) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return storefrontFetch<CartValidation>("/cart/validate", {
     method: "POST",
+    headers,
     body: JSON.stringify(payload),
   });
 }
 
 /** Inspect cart lines — returns per-line max quantity without failing on partial stock. */
-export function inspectCart(payload: {
-  location_id?: number;
-  coupon_code?: string;
-  coupon_codes?: string[];
-  items: { variation_id: number; quantity: number }[];
-}) {
+export function inspectCart(
+  payload: {
+    location_id?: number;
+    coupon_code?: string;
+    coupon_codes?: string[];
+    items: { variation_id: number; quantity: number }[];
+  },
+  token?: string,
+) {
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return storefrontFetch<CartInspection>("/cart/validate", {
     method: "POST",
+    headers,
     body: JSON.stringify({ ...payload, resolve: true }),
   });
 }

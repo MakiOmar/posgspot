@@ -14,7 +14,13 @@ interface CouponFieldProps {
   currency: StoreSettings["currency"];
   appliedCoupons: AppliedCouponInfo[];
   couponDiscount: number;
-  onApplied$: QRL<(coupons: AppliedCouponInfo[], discount: number) => void>;
+  onApplied$: QRL<
+    (
+      coupons: AppliedCouponInfo[],
+      discount: number,
+      totals?: { shipping: number; total: number },
+    ) => void
+  >;
 }
 
 /** Cart/checkout promo code apply and remove (single or stacked). */
@@ -24,11 +30,15 @@ export const CouponField = component$<CouponFieldProps>((props) => {
   const applying = useSignal(false);
   const error = useSignal<string | null>(null);
 
-  const syncApplied$ = $(async (coupons: AppliedCouponInfo[], discount: number) => {
+  const syncApplied$ = $(async (
+    coupons: AppliedCouponInfo[],
+    discount: number,
+    totals?: { shipping: number; total: number },
+  ) => {
     persistAppliedCoupons(
       coupons.map((coupon) => ({ code: coupon.code, label: coupon.label })),
     );
-    await props.onApplied$(coupons, discount);
+    await props.onApplied$(coupons, discount, totals);
   });
 
   const applyCodeValue$ = $(async (rawCode: string) => {
@@ -77,7 +87,10 @@ export const CouponField = component$<CouponFieldProps>((props) => {
       }
 
       inputCode.value = "";
-      await syncApplied$(nextCoupons, data.coupon_discount ?? 0);
+      await syncApplied$(nextCoupons, data.coupon_discount ?? 0, {
+        shipping: data.shipping,
+        total: data.total,
+      });
       return true;
     } catch (err) {
       if (err instanceof ApiError) {
@@ -128,7 +141,10 @@ export const CouponField = component$<CouponFieldProps>((props) => {
         props.token,
       );
       const nextCoupons = data.coupons ?? (data.coupon ? [data.coupon] : []);
-      await syncApplied$(nextCoupons, data.coupon_discount ?? 0);
+      await syncApplied$(nextCoupons, data.coupon_discount ?? 0, {
+        shipping: data.shipping,
+        total: data.total,
+      });
     } catch (err) {
       await syncApplied$([], 0);
       if (err instanceof ApiError) {

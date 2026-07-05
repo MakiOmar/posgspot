@@ -87,13 +87,16 @@ export default component$(() => {
         auth.token && promoAtCheckout
           ? couponRequestPayload(couponCodes.value, allowCouponStacking)
           : {};
-      const { data } = await inspectCart({
-        ...couponPayload,
-        items: cart.items.map((line) => ({
-          variation_id: line.variationId,
-          quantity: line.quantity,
-        })),
-      });
+      const { data } = await inspectCart(
+        {
+          ...couponPayload,
+          items: cart.items.map((line) => ({
+            variation_id: line.variationId,
+            quantity: line.quantity,
+          })),
+        },
+        auth.token ?? undefined,
+      );
       const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
       pricesUpdated.value = pricesChanged;
       validatedSubtotal.value = data.subtotal;
@@ -120,6 +123,7 @@ export default component$(() => {
     } catch (err) {
       pricesUpdated.value = false;
       validatedSubtotal.value = null;
+      validatedTotal.value = null;
       removedNotice.value = null;
       if (err instanceof ApiError) {
         const messages = Object.values(err.errors).flat();
@@ -146,13 +150,16 @@ export default component$(() => {
         auth.token && promoAtCheckout
           ? couponRequestPayload(couponCodes.value, allowCouponStacking)
           : {};
-      const { data } = await inspectCart({
-        ...couponPayload,
-        items: cart.items.map((line) => ({
-          variation_id: line.variationId,
-          quantity: line.quantity,
-        })),
-      });
+      const { data } = await inspectCart(
+        {
+          ...couponPayload,
+          items: cart.items.map((line) => ({
+            variation_id: line.variationId,
+            quantity: line.quantity,
+          })),
+        },
+        auth.token ?? undefined,
+      );
       const { removedCount, partialIssues } = syncCartFromInspection(cart, data);
       if (removedCount > 0) {
         removedNotice.value = tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) });
@@ -192,13 +199,27 @@ export default component$(() => {
   const subtotal =
     validatedSubtotal.value !== null ? validatedSubtotal.value : cartSubtotal(cart);
   const orderTotal =
-    validatedTotal.value !== null ? validatedTotal.value : subtotal + validatedShipping.value;
+    validatedTotal.value !== null
+      ? validatedTotal.value
+      : Math.max(0, subtotal - couponDiscount.value + validatedShipping.value);
 
-  const onCouponApplied$ = $((coupons: AppliedCouponInfo[], discount: number) => {
-    appliedCoupons.value = coupons;
-    couponDiscount.value = discount;
-    couponCodes.value = coupons.map((coupon) => coupon.code);
-  });
+  const onCouponApplied$ = $(
+    (
+      coupons: AppliedCouponInfo[],
+      discount: number,
+      totals?: { shipping: number; total: number },
+    ) => {
+      appliedCoupons.value = coupons;
+      couponDiscount.value = discount;
+      couponCodes.value = coupons.map((coupon) => coupon.code);
+      if (totals) {
+        validatedShipping.value = totals.shipping;
+        validatedTotal.value = totals.total;
+      } else if (coupons.length === 0 && validatedSubtotal.value !== null) {
+        validatedTotal.value = validatedSubtotal.value + validatedShipping.value;
+      }
+    },
+  );
 
   return (
     <section>

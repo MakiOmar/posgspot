@@ -128,14 +128,17 @@ export default component$(() => {
         auth.token && promoAtCheckout
           ? couponRequestPayload(couponCodes.value, allowCouponStacking)
           : {};
-      const { data } = await validateCart({
-        location_id: locationId.value,
-        ...couponPayload,
-        items: cart.items.map((line) => ({
-          variation_id: line.variationId,
-          quantity: line.quantity,
-        })),
-      });
+      const { data } = await validateCart(
+        {
+          location_id: locationId.value,
+          ...couponPayload,
+          items: cart.items.map((line) => ({
+            variation_id: line.variationId,
+            quantity: line.quantity,
+          })),
+        },
+        auth.token ?? undefined,
+      );
       validatedSubtotal.value = data.subtotal;
       validatedShipping.value = data.shipping;
       validatedTotal.value = data.total;
@@ -201,14 +204,26 @@ export default component$(() => {
     redeemValid.value = isValid || points === 0;
   });
 
-  const onCouponApplied$ = $((coupons: AppliedCouponInfo[], discount: number) => {
-    appliedCoupons.value = coupons;
-    couponDiscount.value = discount;
-    couponCodes.value = coupons.map((coupon) => coupon.code);
-    if (coupons.length === 0) {
-      stackWithRewardPoints.value = true;
-    }
-  });
+  const onCouponApplied$ = $(
+    (
+      coupons: AppliedCouponInfo[],
+      discount: number,
+      totals?: { shipping: number; total: number },
+    ) => {
+      appliedCoupons.value = coupons;
+      couponDiscount.value = discount;
+      couponCodes.value = coupons.map((coupon) => coupon.code);
+      if (totals) {
+        validatedShipping.value = totals.shipping;
+        validatedTotal.value = totals.total;
+      } else if (coupons.length === 0) {
+        stackWithRewardPoints.value = true;
+        if (validatedSubtotal.value > 0) {
+          validatedTotal.value = validatedSubtotal.value + validatedShipping.value;
+        }
+      }
+    },
+  );
 
   const submitOrder$ = $(async (form: HTMLFormElement) => {
     if (cart.items.length === 0 || !locationId.value) {
@@ -284,13 +299,16 @@ export default component$(() => {
       }
 
       try {
-        await validateCart({
-          location_id: locationId.value,
-          ...(auth.token && promoAtCheckout
-            ? couponRequestPayload(couponCodes.value, allowCouponStacking)
-            : {}),
-          items,
-        });
+        await validateCart(
+          {
+            location_id: locationId.value,
+            ...(auth.token && promoAtCheckout
+              ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+              : {}),
+            items,
+          },
+          auth.token ?? undefined,
+        );
         const { data } = await checkout(payload, auth.token ?? undefined);
         clearCart(cart);
 
