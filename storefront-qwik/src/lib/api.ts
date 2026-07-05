@@ -9,6 +9,7 @@ import type {
   AuthContact,
   AuthSession,
   AvailabilityLocation,
+  CartInspection,
   CartValidation,
   Category,
   CheckoutOrder,
@@ -177,6 +178,17 @@ export function validateCart(payload: {
   return storefrontFetch<CartValidation>("/cart/validate", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+/** Inspect cart lines — returns per-line max quantity without failing on partial stock. */
+export function inspectCart(payload: {
+  location_id?: number;
+  items: { variation_id: number; quantity: number }[];
+}) {
+  return storefrontFetch<CartInspection>("/cart/validate", {
+    method: "POST",
+    body: JSON.stringify({ ...payload, resolve: true }),
   });
 }
 

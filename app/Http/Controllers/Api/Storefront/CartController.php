@@ -18,7 +18,18 @@ class CartController extends StorefrontController
             'items.*.variation_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'location_id' => 'nullable|integer',
+            'resolve' => 'sometimes|boolean',
         ]);
+
+        if (! empty($data['resolve'])) {
+            $result = $this->cartValidation->inspect(
+                $this->businessId($request),
+                $data['items'],
+                $data['location_id'] ?? null
+            );
+
+            return $this->jsonSuccess($result);
+        }
 
         $result = $this->cartValidation->validate(
             $this->businessId($request),

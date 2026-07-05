@@ -281,6 +281,18 @@ class StorefrontApiTest extends TestCase
             'location_id' => $locationA->id,
             'items' => $payload['items'],
         ])->assertOk()->assertJsonPath('success', true);
+
+        $resolve = $this->postJson('/api/storefront/v1/cart/validate', [
+            'location_id' => $locationB->id,
+            'resolve' => true,
+            'items' => $payload['items'],
+        ]);
+
+        $resolve->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.line_status.0.max_quantity', 1)
+            ->assertJsonPath('data.line_status.0.available', false)
+            ->assertJsonPath('data.line_status.0.requested_quantity', 5);
     }
 
     public function test_contact_form_accepts_valid_payload(): void

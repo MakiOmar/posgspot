@@ -1380,6 +1380,15 @@ img {
   margin-top: 1.5rem;
 }
 
+.cart-stock-issues {
+  margin: 0;
+  padding-inline-start: 1.15rem;
+}
+
+.cart-stock-issues li + li {
+  margin-top: 0.35rem;
+}
+
 /* ---- Shared form controls ---- */
 .form-field {
   display: flex;

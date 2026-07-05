@@ -98,7 +98,11 @@
     "seoTitle": "Cart — {businessName}",
     "refreshing": "Updating prices and availability…",
     "pricesUpdated": "Prices were updated to match the store.",
-    "stockIssue": "Some items are unavailable or out of stock."
+    "stockIssue": "Some items are unavailable or out of stock.",
+    "removedOutOfStock": "Removed {count} out-of-stock item(s) from your cart.",
+    "stockQuantityIssuesTitle": "Adjust quantities before checkout:",
+    "stockQuantityIssue": "{name}: only {max} available (you have {requested}).",
+    "checkingCheckout": "Checking availability…"
   },
   "miniCart": {
     "title": "Your cart",

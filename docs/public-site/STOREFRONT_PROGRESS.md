@@ -97,7 +97,7 @@
 | Mini-cart dropdown | ✅ | `components/layout/mini-cart.tsx`, header trigger |
 | Guest cart merge on login | ✅ | `lib/cart-actions.ts` guest/user keys + `cart-context.tsx` merge on auth |
 | Coupons / promo codes | ⬜ | |
-| Cart price refresh from API | ✅ | `/cart` calls `POST /cart/validate`, updates line prices + subtotal |
+| Cart price refresh from API | ✅ | `/cart` inspect + auto-remove OOS; checkout guard with max qty notice |
 
 ---
 
@@ -177,6 +177,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |
 | 2026-07-05 | Cart page re-prices via `POST /cart/validate` on load/qty change; stock errors surfaced inline. |
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |

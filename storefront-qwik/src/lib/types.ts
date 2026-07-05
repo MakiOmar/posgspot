@@ -168,6 +168,25 @@ export interface CartValidation {
   total: number;
 }
 
+export interface CartLineStatus {
+  variation_id: number;
+  requested_quantity: number;
+  max_quantity: number | null;
+  unit_price: number;
+  name: string;
+  variation_name: string;
+  available: boolean;
+  stock_tracked: boolean;
+}
+
+export interface CartInspection {
+  line_status: CartLineStatus[];
+  lines: CartLine[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+}
+
 export interface CheckoutOrder {
   id: number;
   storefront_order_id: string;

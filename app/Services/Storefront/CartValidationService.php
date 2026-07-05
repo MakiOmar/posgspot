@@ -122,6 +122,106 @@ class CartValidationService
         return (float) $available >= $qty;
     }
 
+    /**
+     * Inspect cart lines without failing on stock — returns per-line max quantity for client-side resolution.
+     */
+    public function inspect(int $businessId, array $items, ?int $locationId = null): array
+    {
+        $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
+        if (empty($locationIds)) {
+            throw ValidationException::withMessages(['cart' => ['Storefront is not configured with selling locations.']]);
+        }
+
+        if ($locationId && ! in_array($locationId, $locationIds, true)) {
+            throw ValidationException::withMessages(['location_id' => ['Invalid fulfillment location.']]);
+        }
+
+        $settings = $this->storefrontSettings->get($businessId);
+        $stockLocationIds = $locationId ? [$locationId] : $locationIds;
+        $lineStatus = [];
+        $lines = [];
+        $subtotal = 0;
+
+        foreach ($items as $index => $item) {
+            $variationId = (int) ($item['variation_id'] ?? 0);
+            $requested = (float) ($item['quantity'] ?? 0);
+
+            if ($requested <= 0) {
+                throw ValidationException::withMessages(["items.$index.quantity" => ['Invalid quantity.']]);
+            }
+
+            $status = [
+                'variation_id' => $variationId,
+                'requested_quantity' => $requested,
+                'max_quantity' => 0.0,
+                'unit_price' => 0.0,
+                'name' => '',
+                'variation_name' => '',
+                'available' => false,
+                'stock_tracked' => true,
+            ];
+
+            $variation = Variation::with('product')->find($variationId);
+            if (empty($variation) || empty($variation->product) || $variation->product->business_id != $businessId) {
+                $lineStatus[] = $status;
+
+                continue;
+            }
+
+            $product = $variation->product;
+            $unitPrice = $this->storefrontPricing->effectiveUnitPrice($variation);
+            $status['name'] = $product->name;
+            $status['variation_name'] = $variation->name;
+            $status['unit_price'] = $unitPrice;
+
+            if ($product->is_inactive || $product->not_for_selling) {
+                $lineStatus[] = $status;
+
+                continue;
+            }
+
+            if (! $product->enable_stock) {
+                $status['stock_tracked'] = false;
+                $status['max_quantity'] = null;
+                $status['available'] = true;
+            } else {
+                $available = (float) $variation->variation_location_details()
+                    ->whereIn('location_id', $stockLocationIds)
+                    ->sum('qty_available');
+                $status['max_quantity'] = max(0, $available);
+                $status['available'] = $available >= $requested;
+            }
+
+            $lineStatus[] = $status;
+
+            if ($status['available']) {
+                $lineTotal = $unitPrice * $requested;
+                $subtotal += $lineTotal;
+                $lines[] = [
+                    'variation_id' => $variation->id,
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'variation_name' => $variation->name,
+                    'quantity' => $requested,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                    'in_stock' => true,
+                ];
+            }
+        }
+
+        $shipping = $this->calculateShipping($settings, $subtotal);
+        $total = $subtotal + $shipping;
+
+        return [
+            'line_status' => $lineStatus,
+            'lines' => $lines,
+            'subtotal' => round($subtotal, 4),
+            'shipping' => round($shipping, 4),
+            'total' => round($total, 4),
+        ];
+    }
+
     private function calculateShipping(array $settings, float $subtotal): float
     {
         $flat = (float) ($settings['shipping']['flat_rate'] ?? 0);

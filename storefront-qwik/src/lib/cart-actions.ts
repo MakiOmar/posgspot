@@ -1,5 +1,5 @@
 import { $ } from "@builder.io/qwik";
-import type { CartItem, CartLine } from "~/lib/types";
+import type { CartInspection, CartItem, CartLine, CartLineStatus } from "~/lib/types";
 
 /** Legacy single-key cart persisted before guest/user split. */
 export const LEGACY_CART_STORAGE_KEY = "gs-cart-v1";
@@ -134,6 +134,67 @@ export const applyCartValidation = (cart: CartState, lines: CartLine[]): boolean
   }
 
   return pricesChanged;
+};
+
+/** Lines where requested quantity exceeds available stock (partial stock only). */
+export const getPartialStockIssues = (lineStatus: CartLineStatus[]): CartLineStatus[] =>
+  lineStatus.filter(
+    (line) =>
+      line.stock_tracked &&
+      line.max_quantity !== null &&
+      line.max_quantity > 0 &&
+      line.requested_quantity > line.max_quantity,
+  );
+
+/** True when the line should be dropped from the cart (OOS or unavailable). */
+export const shouldAutoRemoveCartLine = (line: CartLineStatus): boolean =>
+  line.max_quantity !== null && line.max_quantity <= 0;
+
+/**
+ * Apply inspect API results: drop OOS lines, refresh prices, return sync metadata.
+ */
+export const syncCartFromInspection = (
+  cart: CartState,
+  inspection: CartInspection,
+): { removedCount: number; pricesChanged: boolean; partialIssues: CartLineStatus[] } => {
+  const statusByVariation = new Map(inspection.line_status.map((line) => [line.variation_id, line]));
+  let removedCount = 0;
+
+  cart.items = cart.items.filter((item) => {
+    const status = statusByVariation.get(item.variationId);
+    if (status && shouldAutoRemoveCartLine(status)) {
+      removedCount += 1;
+      return false;
+    }
+    return true;
+  });
+
+  const pricesChanged = applyCartValidation(cart, inspection.lines);
+  for (const item of cart.items) {
+    const status = statusByVariation.get(item.variationId);
+    if (!status) {
+      continue;
+    }
+    if (item.name !== status.name) {
+      item.name = status.name;
+    }
+    if (item.variationName !== status.variation_name) {
+      item.variationName = status.variation_name;
+    }
+    if (item.price !== status.unit_price) {
+      item.price = status.unit_price;
+    }
+  }
+
+  return {
+    removedCount,
+    pricesChanged,
+    partialIssues: getPartialStockIssues(inspection.line_status),
+  };
+};
+
+export const formatMaxCartQuantity = (max: number): string => {
+  return Number.isInteger(max) ? String(max) : String(max);
 };
 
 export const addCartItem = $((cart: CartState, item: CartItem) => {

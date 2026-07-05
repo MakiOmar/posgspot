@@ -94,7 +94,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
 | POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings) |
-| POST | `/cart/validate` | Revalidate cart lines (price + stock). When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations |
+| POST | `/cart/validate` | Revalidate cart lines (price + stock). When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
 | POST | `/checkout` | Create order (idempotent). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. |
 | POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
 | POST | `/payments/{provider}/return` | Verify customer return URL payload after hosted checkout |

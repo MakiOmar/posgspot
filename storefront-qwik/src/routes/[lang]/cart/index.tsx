@@ -1,64 +1,121 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { TrashIcon } from "~/components/icons";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
-import { ApiError, validateCart } from "~/lib/api";
-import { applyCartValidation, cartSubtotal, removeCartItem, setCartQuantity } from "~/lib/cart-actions";
+import { ApiError, inspectCart } from "~/lib/api";
+import {
+  cartSubtotal,
+  formatMaxCartQuantity,
+  removeCartItem,
+  setCartQuantity,
+  syncCartFromInspection,
+} from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import type { CartLineStatus } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const settings = useSiteSettings();
   const cart = useCart();
+  const nav = useNavigate();
   const { locale } = useI18n();
   const validating = useSignal(false);
-  const stockWarning = useSignal<string | null>(null);
+  const removedNotice = useSignal<string | null>(null);
+  const errorNotice = useSignal<string | null>(null);
   const pricesUpdated = useSignal(false);
   const validatedSubtotal = useSignal<number | null>(null);
+  const checkoutQuantityIssues = useSignal<CartLineStatus[]>([]);
+  const checkoutChecking = useSignal(false);
 
   const cartItemsKey = cart.items
     .map((line) => `${line.variationId}:${line.quantity}`)
     .join("|");
 
-  // Re-validate prices and stock whenever cart lines change (after localStorage hydrate).
+  // Inspect prices/stock and auto-remove fully OOS lines whenever the cart changes.
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => cartItemsKey);
     track(() => cart.hydrated);
 
+    checkoutQuantityIssues.value = [];
+
     if (!cart.hydrated || cart.items.length === 0) {
-      stockWarning.value = null;
+      removedNotice.value = null;
+      errorNotice.value = null;
       pricesUpdated.value = false;
       validatedSubtotal.value = null;
       return;
     }
 
     validating.value = true;
+    errorNotice.value = null;
     try {
-      const { data } = await validateCart({
+      const { data } = await inspectCart({
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
         })),
       });
-      pricesUpdated.value = applyCartValidation(cart, data.lines);
+      const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
+      pricesUpdated.value = pricesChanged;
       validatedSubtotal.value = data.subtotal;
-      stockWarning.value = null;
+      removedNotice.value =
+        removedCount > 0
+          ? tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) })
+          : null;
     } catch (err) {
       pricesUpdated.value = false;
       validatedSubtotal.value = null;
+      removedNotice.value = null;
       if (err instanceof ApiError) {
         const messages = Object.values(err.errors).flat();
-        stockWarning.value = messages.length ? messages.join(" ") : err.message;
+        errorNotice.value = messages.length ? messages.join(" ") : err.message;
       } else {
-        stockWarning.value =
+        errorNotice.value =
           err instanceof Error ? err.message : tStatic(locale, "cart.stockIssue");
       }
     } finally {
       validating.value = false;
+    }
+  });
+
+  const goToCheckout$ = $(async () => {
+    if (cart.items.length === 0) {
+      return;
+    }
+
+    checkoutChecking.value = true;
+    checkoutQuantityIssues.value = [];
+    errorNotice.value = null;
+    try {
+      const { data } = await inspectCart({
+        items: cart.items.map((line) => ({
+          variation_id: line.variationId,
+          quantity: line.quantity,
+        })),
+      });
+      const { removedCount, partialIssues } = syncCartFromInspection(cart, data);
+      if (removedCount > 0) {
+        removedNotice.value = tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) });
+      }
+      if (partialIssues.length > 0) {
+        checkoutQuantityIssues.value = partialIssues;
+        return;
+      }
+      await nav(localePath(locale, "/checkout"));
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const messages = Object.values(err.errors).flat();
+        errorNotice.value = messages.length ? messages.join(" ") : err.message;
+      } else {
+        errorNotice.value =
+          err instanceof Error ? err.message : tStatic(locale, "cart.stockIssue");
+      }
+    } finally {
+      checkoutChecking.value = false;
     }
   });
 
@@ -89,13 +146,40 @@ export default component$(() => {
         </p>
       ) : null}
 
-      {stockWarning.value ? (
-        <p class="alert alert-error" role="alert">
-          {stockWarning.value}
+      {removedNotice.value ? (
+        <p class="alert alert-success" role="status">
+          {removedNotice.value}
         </p>
       ) : null}
 
-      {!validating.value && pricesUpdated.value && !stockWarning.value ? (
+      {errorNotice.value ? (
+        <p class="alert alert-error" role="alert">
+          {errorNotice.value}
+        </p>
+      ) : null}
+
+      {checkoutQuantityIssues.value.length > 0 ? (
+        <div class="alert alert-error" role="alert">
+          <p style={{ margin: "0 0 0.5rem" }}>{tStatic(locale, "cart.stockQuantityIssuesTitle")}</p>
+          <ul class="cart-stock-issues">
+            {checkoutQuantityIssues.value.map((line) => (
+              <li key={line.variation_id}>
+                {tStatic(locale, "cart.stockQuantityIssue", {
+                  name: line.name,
+                  max: formatMaxCartQuantity(line.max_quantity ?? 0),
+                  requested: String(line.requested_quantity),
+                })}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {!validating.value &&
+      pricesUpdated.value &&
+      !removedNotice.value &&
+      !errorNotice.value &&
+      checkoutQuantityIssues.value.length === 0 ? (
         <p class="alert alert-success" role="status">
           {tStatic(locale, "cart.pricesUpdated")}
         </p>
@@ -150,9 +234,14 @@ export default component$(() => {
           <span>{tStatic(locale, "cart.subtotal")}</span>
           <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>
         </div>
-        <Link href={localePath(locale, "/checkout")} class="btn btn-primary btn-block">
-          {tStatic(locale, "cart.checkout")}
-        </Link>
+        <button
+          type="button"
+          class="btn btn-primary btn-block"
+          disabled={validating.value || checkoutChecking.value}
+          onClick$={goToCheckout$}
+        >
+          {checkoutChecking.value ? tStatic(locale, "cart.checkingCheckout") : tStatic(locale, "cart.checkout")}
+        </button>
       </div>
     </section>
   );

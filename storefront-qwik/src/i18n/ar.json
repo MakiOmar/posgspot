@@ -98,7 +98,11 @@
     "seoTitle": "السلة — {businessName}",
     "refreshing": "جاري تحديث الأسعار والتوفر…",
     "pricesUpdated": "تم تحديث الأسعار لتطابق المتجر.",
-    "stockIssue": "بعض المنتجات غير متوفرة أو نفدت الكمية."
+    "stockIssue": "بعض المنتجات غير متوفرة أو نفدت الكمية.",
+    "removedOutOfStock": "تمت إزالة {count} منتج/منتجات غير متوفرة من سلتك.",
+    "stockQuantityIssuesTitle": "عدّل الكميات قبل إتمام الشراء:",
+    "stockQuantityIssue": "{name}: المتاح {max} فقط (لديك {requested}).",
+    "checkingCheckout": "جاري التحقق من التوفر…"
   },
   "miniCart": {
     "title": "سلة التسوق",
