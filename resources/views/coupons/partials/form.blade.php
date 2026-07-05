@@ -7,6 +7,13 @@
     </section>
 
     <section class="content">
+        @can('storefront.settings')
+            <div class="alert alert-info">
+                <strong>Storefront checkout behavior</strong> (show promo field, allow multiple codes per order) is configured under
+                <a href="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'edit']) }}#promo-checkout-settings">Storefront Settings → Promo codes (storefront checkout)</a>,
+                not on each code. Sign-in is required for customers to apply codes online.
+            </div>
+        @endcan
         <div class="tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 tw-ring-gray-200 tw-p-4 sm:tw-p-6">
             {!! Form::open(['url' => $action, 'method' => $method, 'id' => 'coupon_form']) !!}
 
@@ -146,7 +153,7 @@
                     <div class="checkbox">
                         <label>
                             {!! Form::checkbox('is_active', 1, old('is_active', $coupon->is_active ?? true), ['class' => 'input-icheck']) !!}
-                            @lang('lang_v1.active') @show_tooltip(__('lang_v1.coupon_active_help'))
+                            @lang('lang_v1.is_active') @show_tooltip(__('lang_v1.coupon_active_help'))
                         </label>
                     </div>
                     <div class="checkbox">

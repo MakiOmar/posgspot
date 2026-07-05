@@ -1964,31 +1964,33 @@ $(document).ready(function() {
                 });
 
 
-    coupons_table = $('#coupons_table').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    fixedHeader:false,
-                    ajax: base_path + '/coupons',
-                    columnDefs: [
-                        {
-                            targets: [8],
-                            orderable: false,
-                            searchable: false,
-                        },
-                    ],
-                    aaSorting: [0, 'asc'],
-                    columns: [
-                        { data: 'code', name: 'code' },
-                        { data: 'name', name: 'name' },
-                        { data: 'type', name: 'type' },
-                        { data: 'discount_amount', name: 'discount_amount' },
-                        { data: 'usage', name: 'times_used' },
-                        { data: 'starts_at', name: 'starts_at' },
-                        { data: 'ends_at', name: 'ends_at' },
-                        { data: 'channel', name: 'channel' },
-                        { data: 'action', name: 'action' },
-                    ],
-                });
+    if ($('#coupons_table').length) {
+        coupons_table = $('#coupons_table').DataTable({
+                        processing: true,
+                        serverSide: true,
+                        fixedHeader:false,
+                        ajax: base_path + '/coupons',
+                        columnDefs: [
+                            {
+                                targets: [8],
+                                orderable: false,
+                                searchable: false,
+                            },
+                        ],
+                        aaSorting: [0, 'asc'],
+                        columns: [
+                            { data: 'code', name: 'code' },
+                            { data: 'name', name: 'name' },
+                            { data: 'type', name: 'type' },
+                            { data: 'discount_amount', name: 'discount_amount' },
+                            { data: 'usage', name: 'times_used' },
+                            { data: 'starts_at', name: 'starts_at' },
+                            { data: 'ends_at', name: 'ends_at' },
+                            { data: 'channel', name: 'channel' },
+                            { data: 'action', name: 'action' },
+                        ],
+                    });
+    }
 
 
     types_of_service_table = $('#types_of_service_table').DataTable({

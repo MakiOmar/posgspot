@@ -8,6 +8,12 @@
     </section>
 
     <section class="content">
+        @can('storefront.settings')
+            <div class="alert alert-info">
+                <strong>Storefront checkout:</strong> control whether customers see the promo field and can stack multiple codes in
+                <a href="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'edit']) }}#promo-checkout-settings">Storefront Settings → Promo codes (storefront checkout)</a>.
+            </div>
+        @endcan
         <div class="tw-transition-all lg:tw-col-span-1 tw-duration-200 tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 hover:tw-shadow-md tw-ring-gray-200">
             <div class="tw-p-4 sm:tw-p-5">
                 <div class="tw-flex tw-gap-2.5 tw-justify-end">

@@ -53,15 +53,23 @@ class CouponController extends Controller
                 ->editColumn('type', fn ($row) => ucwords(str_replace('_', ' ', $row->type)))
                 ->editColumn('discount_amount', function ($row) {
                     if ($row->type === Coupon::TYPE_PERCENT_ORDER) {
-                        return @num_format($row->discount_amount).' %';
+                        return $this->commonUtil->num_f($row->discount_amount).' %';
                     }
                     if ($row->type === Coupon::TYPE_FREE_SHIPPING) {
                         return '—';
                     }
 
-                    return @num_format($row->discount_amount);
+                    return $this->commonUtil->num_f($row->discount_amount);
                 })
-                ->editColumn('usage', fn ($row) => (int) $row->times_used.'/'.($row->max_uses_total ?: '∞'))
+                ->addColumn('usage', fn ($row) => (int) $row->times_used.'/'.($row->max_uses_total ?: '∞'))
+                ->editColumn('channel', function ($row) {
+                    return match ($row->channel) {
+                        Coupon::CHANNEL_STOREFRONT => 'Storefront',
+                        Coupon::CHANNEL_POS => 'POS',
+                        Coupon::CHANNEL_BOTH => 'Both',
+                        default => e((string) $row->channel),
+                    };
+                })
                 ->editColumn('starts_at', function ($row) {
                     return ! empty($row->starts_at)
                         ? $this->commonUtil->format_date($row->starts_at->toDateTimeString(), true)

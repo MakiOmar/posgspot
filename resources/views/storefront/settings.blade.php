@@ -197,7 +197,7 @@
             </div>
 
             <hr>
-            <h4>Promo codes (storefront checkout)</h4>
+            <h4 id="promo-checkout-settings">Promo codes (storefront checkout)</h4>
             @php $promoCodes = $settings['promo_codes'] ?? []; @endphp
             <div class="row">
                 <div class="col-md-6">
