@@ -148,6 +148,7 @@ class AuthController extends StorefrontController
 
         $contact->password = Hash::make($data['password']);
         $contact->save();
+        $contact->tokens()->delete();
         DB::table('password_resets_contacts')->where('email', $data['email'])->delete();
 
         return $this->jsonSuccess(['message' => 'Password updated successfully.']);

@@ -30,6 +30,12 @@ return [
     /** Customer password-reset token lifetime (minutes). */
     'password_reset_expire_minutes' => (int) env('STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES', 60),
 
+    /**
+     * Storefront Sanctum bearer token lifetime (minutes). Default 30 days.
+     * Set to 0 to disable expiration (not recommended for production).
+     */
+    'sanctum_expiration_minutes' => (int) env('STOREFRONT_SANCTUM_EXPIRATION_MINUTES', 43200),
+
     /** Max saved wishlist rows per customer. */
     'wishlist_max_items' => (int) env('STOREFRONT_WISHLIST_MAX_ITEMS', 100),
 

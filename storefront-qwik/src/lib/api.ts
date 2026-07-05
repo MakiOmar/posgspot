@@ -1,6 +1,7 @@
 /**
  * Storefront API client for the Laravel POS backend.
  */
+import { dispatchAuthSessionExpired } from "./auth-actions";
 import type {
   AccountOrder,
   AccountOrderDetail,
@@ -86,6 +87,15 @@ export async function storefrontFetch<T>(
 
   if (!response.ok || !json.success) {
     const err = json as ApiErrorBody;
+    const authHeader = headers.Authorization || headers.authorization;
+    const isPublicAuthAttempt =
+      path === "/auth/login" ||
+      path === "/auth/register" ||
+      path.startsWith("/auth/forgot-password") ||
+      path.startsWith("/auth/reset-password");
+    if (response.status === 401 && authHeader && !isPublicAuthAttempt) {
+      dispatchAuthSessionExpired();
+    }
     throw new ApiError(
       response.status,
       err.message || `API ${response.status}`,

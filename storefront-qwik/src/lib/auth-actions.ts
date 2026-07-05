@@ -12,6 +12,16 @@ export interface AuthState {
 
 export const AUTH_STORAGE_KEY = "gs-auth-v1";
 
+/** Dispatched when an authenticated API call returns 401 (expired or revoked token). */
+export const AUTH_SESSION_EXPIRED_EVENT = "gs-auth-session-expired";
+
+export function dispatchAuthSessionExpired(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_EXPIRED_EVENT));
+}
+
 export const isAuthenticated = (auth: AuthState): boolean => !!auth.token;
 
 /** Display label for the header/account nav. */

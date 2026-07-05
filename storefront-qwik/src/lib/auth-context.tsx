@@ -9,10 +9,14 @@ import {
 } from "@builder.io/qwik";
 import { ApiError, fetchProfile } from "~/lib/api";
 import {
+  AUTH_SESSION_EXPIRED_EVENT,
   AUTH_STORAGE_KEY,
   type AuthState,
   type PersistedAuth,
 } from "~/lib/auth-actions";
+import { tStatic } from "~/lib/i18n/context";
+import { localeFromPathname } from "~/lib/i18n/paths";
+import { toastError } from "~/lib/notify";
 
 export const AuthContext = createContextId<AuthState>("games-spot.auth");
 
@@ -60,6 +64,24 @@ export const AuthProvider = component$(() => {
       }
       // Network/other errors: keep the optimistic session for offline tolerance.
     }
+  });
+
+  // Clear session and notify when an authenticated API call returns 401.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ cleanup }) => {
+    let handled = false;
+    const onExpired = async () => {
+      if (handled) {
+        return;
+      }
+      handled = true;
+      auth.token = null;
+      auth.contact = null;
+      const locale = localeFromPathname(window.location.pathname);
+      await toastError(tStatic(locale, "auth.sessionExpired"));
+    };
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, onExpired);
+    cleanup(() => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, onExpired));
   });
 
   // Persist (or clear) the session whenever token/contact change.

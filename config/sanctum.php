@@ -46,7 +46,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => config('storefront.sanctum_expiration_minutes') ?: null,
 
     /*
     |--------------------------------------------------------------------------

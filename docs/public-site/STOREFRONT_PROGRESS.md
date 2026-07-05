@@ -38,7 +38,7 @@
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
-| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password |
+| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
@@ -69,7 +69,7 @@
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
-| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; register shows Turnstile when configured |
+| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
 | `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
@@ -185,6 +185,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
 | 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |
 | 2026-07-05 | Harden auth/wishlist: reset token expiry, auth rate limit, wishlist caps + batch merge. |
