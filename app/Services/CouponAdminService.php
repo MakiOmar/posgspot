@@ -68,6 +68,14 @@ class CouponAdminService
         ];
     }
 
+    /** Generate a random promo code guaranteed unique for the business. */
+    public function generateUniqueCode(int $businessId): string
+    {
+        $segment = strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+
+        return $this->uniqueCode($businessId, 'SAVE-'.$segment);
+    }
+
     private function mapPayload(int $businessId, array $data, ?Coupon $existing = null): array
     {
         $code = strtoupper(trim((string) ($data['code'] ?? '')));

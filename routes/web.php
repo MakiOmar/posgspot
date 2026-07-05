@@ -434,6 +434,7 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/discount/mass-deactivate', [DiscountController::class, 'massDeactivate']);
     Route::resource('discount', DiscountController::class);
 
+    Route::get('/coupons/generate-code', [CouponController::class, 'generateCode']);
     Route::get('/coupons/activate/{id}', [CouponController::class, 'activate']);
     Route::get('/coupons/{id}/duplicate', [CouponController::class, 'duplicate']);
     Route::resource('coupons', CouponController::class)->except(['show']);

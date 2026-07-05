@@ -230,6 +230,18 @@ class CouponController extends Controller
             ->with('status', ['success' => 1, 'msg' => 'Promo code duplicated. Review and activate when ready.']);
     }
 
+    public function generateCode()
+    {
+        if (! auth()->user()->can('coupon.create')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $businessId = (int) request()->session()->get('user.business_id');
+        $code = $this->couponAdmin->generateUniqueCode($businessId);
+
+        return ['success' => true, 'code' => $code];
+    }
+
     private function normalizeInput(Request $request): array
     {
         $data = $request->only([
