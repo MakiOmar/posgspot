@@ -73,6 +73,8 @@ class StorefrontSettingController extends Controller
             'catalog_show_availability_on_cards' => 'nullable|boolean',
             'turnstile_site_key' => 'nullable|string|max:191',
             'turnstile_secret_key' => 'nullable|string|max:500',
+            'promo_codes_enabled_at_checkout' => 'nullable|boolean',
+            'promo_codes_allow_stacking' => 'nullable|boolean',
         ]);
 
         $payload = [
@@ -135,6 +137,10 @@ class StorefrontSettingController extends Controller
             'turnstile' => [
                 'site_key' => $validated['turnstile_site_key'] ?? '',
                 'secret_key' => $validated['turnstile_secret_key'] ?? null,
+            ],
+            'promo_codes' => [
+                'enabled_at_checkout' => $request->boolean('promo_codes_enabled_at_checkout'),
+                'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
         ];
 

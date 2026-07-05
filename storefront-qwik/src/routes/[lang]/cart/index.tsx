@@ -7,8 +7,10 @@ import { ApiError, inspectCart } from "~/lib/api";
 import {
   cartSubtotal,
   clearAppliedCoupon,
+  couponRequestPayload,
   formatMaxCartQuantity,
-  loadAppliedCoupon,
+  loadAppliedCoupons,
+  persistAppliedCoupons,
   removeCartItem,
   setCartQuantity,
   syncCartFromInspection,
@@ -34,11 +36,15 @@ export default component$(() => {
   const validatedSubtotal = useSignal<number | null>(null);
   const validatedShipping = useSignal(0);
   const validatedTotal = useSignal<number | null>(null);
-  const appliedCoupon = useSignal<AppliedCouponInfo | null>(null);
+  const appliedCoupons = useSignal<AppliedCouponInfo[]>([]);
   const couponDiscount = useSignal(0);
-  const couponCode = useSignal(loadAppliedCoupon()?.code || "");
+  const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
   const checkoutQuantityIssues = useSignal<CartLineStatus[]>([]);
   const checkoutChecking = useSignal(false);
+
+  const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
+  const allowCouponStacking = settings.value.promo_codes?.allow_stacking ?? false;
+  const couponCodesKey = couponCodes.value.join("|");
 
   const cartItemsKey = cart.items
     .map((line) => `${line.variationId}:${line.quantity}`)
@@ -49,12 +55,13 @@ export default component$(() => {
   useVisibleTask$(async ({ track }) => {
     track(() => cartItemsKey);
     track(() => cart.hydrated);
-    track(() => couponCode.value);
+    track(() => couponCodesKey);
     track(() => auth.token);
+    track(() => promoAtCheckout);
 
-    if (!auth.token) {
-      couponCode.value = "";
-      appliedCoupon.value = null;
+    if (!auth.token || !promoAtCheckout) {
+      couponCodes.value = [];
+      appliedCoupons.value = [];
       couponDiscount.value = 0;
       clearAppliedCoupon();
     }
@@ -68,7 +75,7 @@ export default component$(() => {
       validatedSubtotal.value = null;
       validatedShipping.value = 0;
       validatedTotal.value = null;
-      appliedCoupon.value = null;
+      appliedCoupons.value = [];
       couponDiscount.value = 0;
       return;
     }
@@ -76,8 +83,12 @@ export default component$(() => {
     validating.value = true;
     errorNotice.value = null;
     try {
+      const couponPayload =
+        auth.token && promoAtCheckout
+          ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+          : {};
       const { data } = await inspectCart({
-        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
+        ...couponPayload,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -88,10 +99,19 @@ export default component$(() => {
       validatedSubtotal.value = data.subtotal;
       validatedShipping.value = data.shipping;
       validatedTotal.value = data.total;
-      appliedCoupon.value = data.coupon ?? null;
+      appliedCoupons.value = data.coupons?.length
+        ? data.coupons
+        : data.coupon
+          ? [data.coupon]
+          : [];
       couponDiscount.value = data.coupon_discount ?? 0;
-      if (!data.coupon && couponCode.value) {
-        couponCode.value = "";
+      couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
+      if (appliedCoupons.value.length === 0) {
+        clearAppliedCoupon();
+      } else {
+        persistAppliedCoupons(
+          appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+        );
       }
       removedNotice.value =
         removedCount > 0
@@ -122,8 +142,12 @@ export default component$(() => {
     checkoutQuantityIssues.value = [];
     errorNotice.value = null;
     try {
+      const couponPayload =
+        auth.token && promoAtCheckout
+          ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+          : {};
       const { data } = await inspectCart({
-        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
+        ...couponPayload,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -170,10 +194,10 @@ export default component$(() => {
   const orderTotal =
     validatedTotal.value !== null ? validatedTotal.value : subtotal + validatedShipping.value;
 
-  const onCouponApplied$ = $((coupon: AppliedCouponInfo | null, discount: number) => {
-    appliedCoupon.value = coupon;
+  const onCouponApplied$ = $((coupons: AppliedCouponInfo[], discount: number) => {
+    appliedCoupons.value = coupons;
     couponDiscount.value = discount;
-    couponCode.value = coupon?.code || "";
+    couponCodes.value = coupons.map((coupon) => coupon.code);
   });
 
   return (
@@ -270,24 +294,24 @@ export default component$(() => {
       </table>
 
       <div class="cart-summary">
-        {auth.token ? (
+        {promoAtCheckout && auth.token ? (
           <CouponField
             items={cart.items}
             token={auth.token}
+            allowStacking={allowCouponStacking}
             currency={settings.value.currency}
-            initialCode={couponCode.value}
-            appliedCoupon={appliedCoupon.value}
+            appliedCoupons={appliedCoupons.value}
             couponDiscount={couponDiscount.value}
             onApplied$={onCouponApplied$}
           />
-        ) : (
+        ) : promoAtCheckout ? (
           <p class="footer-muted" style={{ marginBottom: "1rem" }}>
             <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/cart"))}`}>
               {tStatic(locale, "auth.login")}
             </Link>{" "}
             {tStatic(locale, "coupon.signInRequired")}
           </p>
-        )}
+        ) : null}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
           <span>{tStatic(locale, "cart.subtotal")}</span>
           <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>

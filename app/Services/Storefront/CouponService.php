@@ -22,6 +22,212 @@ class CouponService
         return strtoupper(trim($code));
     }
 
+    /**
+     * @param  array<int, string>|null  $couponCodes
+     * @return array<int, string>
+     */
+    public function normalizeCodes(?string $couponCode = null, ?array $couponCodes = null): array
+    {
+        $raw = [];
+        if ($couponCode !== null && trim($couponCode) !== '') {
+            $raw[] = $couponCode;
+        }
+        foreach ((array) $couponCodes as $code) {
+            if (is_string($code) && trim($code) !== '') {
+                $raw[] = $code;
+            }
+        }
+
+        $normalized = [];
+        foreach ($raw as $code) {
+            $value = $this->normalizeCode($code);
+            if ($value !== '') {
+                $normalized[] = $value;
+            }
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    /**
+     * @param  array<int, string>  $codes
+     */
+    public function assertPromoCodesAllowed(array $settings, array $codes): void
+    {
+        if ($codes === []) {
+            return;
+        }
+
+        $promo = $settings['promo_codes'] ?? [];
+        if (! ($promo['enabled_at_checkout'] ?? true)) {
+            throw ValidationException::withMessages([
+                'coupon_code' => ['Promo codes are not available at checkout.'],
+            ]);
+        }
+
+        if (! ($promo['allow_stacking'] ?? false) && count($codes) > 1) {
+            throw ValidationException::withMessages([
+                'coupon_code' => ['Only one promo code can be applied per order.'],
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<int, string>  $codes
+     * @param  array<int, array{variation_id:int, product_id:int, category_id:?int, line_total:float, on_sale:bool}>  $lines
+     * @return array{
+     *   coupon: array{id:int, code:string, label:string, type:string, stack_with_reward_points:bool}|null,
+     *   coupons: array<int, array{id:int, code:string, label:string, type:string, stack_with_reward_points:bool, coupon_discount:float}>,
+     *   applied_coupons: array<int, array{coupon_id:int, code:string, coupon_discount:float, coupon:array{id:int, code:string, label:string, type:string, stack_with_reward_points:bool}}>,
+     *   coupon_id: ?int,
+     *   coupon_ids: array<int, int>,
+     *   coupon_codes: array<int, string>,
+     *   coupon_discount: float,
+     *   free_shipping: bool,
+     *   eligible_subtotal: float,
+     *   subtotal: float,
+     *   shipping: float,
+     *   total: float,
+     *   stack_with_reward_points: bool
+     * }
+     */
+    public function applyMultipleToCart(
+        int $businessId,
+        array $codes,
+        array $lines,
+        float $subtotal,
+        array $settings,
+        ?Contact $contact = null,
+        string $channel = Coupon::CHANNEL_STOREFRONT
+    ): array {
+        $codes = $this->normalizeCodes(null, $codes);
+        $baseShipping = $this->calculateShipping($settings, $subtotal);
+        $empty = [
+            'coupon' => null,
+            'coupons' => [],
+            'applied_coupons' => [],
+            'coupon_id' => null,
+            'coupon_ids' => [],
+            'coupon_codes' => [],
+            'coupon_discount' => 0.0,
+            'free_shipping' => false,
+            'eligible_subtotal' => round($subtotal, 4),
+            'subtotal' => round($subtotal, 4),
+            'shipping' => round($baseShipping, 4),
+            'total' => round($subtotal + $baseShipping, 4),
+            'stack_with_reward_points' => true,
+        ];
+
+        if ($codes === []) {
+            return $empty;
+        }
+
+        $this->assertPromoCodesAllowed($settings, $codes);
+
+        if ($channel === Coupon::CHANNEL_STOREFRONT && empty($contact)) {
+            throw ValidationException::withMessages(['coupon_code' => ['Sign in to apply a promo code.']]);
+        }
+
+        if (count($codes) === 1) {
+            $single = $this->applyToCart(
+                $businessId,
+                $codes[0],
+                $lines,
+                $subtotal,
+                $settings,
+                $contact,
+                $channel
+            );
+
+            $appliedCoupons = [];
+            if (! empty($single['coupon'])) {
+                $appliedCoupons[] = [
+                    'coupon_id' => (int) $single['coupon_id'],
+                    'code' => $single['coupon']['code'],
+                    'coupon_discount' => (float) $single['coupon_discount'],
+                    'coupon' => $single['coupon'],
+                ];
+            }
+
+            return array_merge($single, [
+                'coupons' => $appliedCoupons !== [] ? [$single['coupon']] : [],
+                'applied_coupons' => $appliedCoupons,
+                'coupon_ids' => $single['coupon_id'] ? [(int) $single['coupon_id']] : [],
+                'coupon_codes' => $single['coupon'] ? [$single['coupon']['code']] : [],
+            ]);
+        }
+
+        $remainingCap = $subtotal;
+        $totalDiscount = 0.0;
+        $freeShipping = false;
+        $stackWithRewardPoints = true;
+        $couponsMeta = [];
+        $appliedCoupons = [];
+        $couponIds = [];
+        $couponCodesOut = [];
+        $maxEligibleSubtotal = 0.0;
+
+        foreach ($codes as $code) {
+            $coupon = $this->findByCode($businessId, $code);
+            if (empty($coupon)) {
+                throw ValidationException::withMessages(['coupon_code' => ['Invalid promo code.']]);
+            }
+
+            $this->assertCouponEligible($coupon, $lines, $subtotal, $contact, $channel);
+
+            $eligibleSubtotal = $this->eligibleSubtotal($coupon, $lines);
+            $maxEligibleSubtotal = max($maxEligibleSubtotal, $eligibleSubtotal);
+            $discount = $this->computeDiscountAmount($coupon, $eligibleSubtotal);
+            $discount = min($discount, max(0.0, $remainingCap));
+            $remainingCap = max(0.0, $remainingCap - $discount);
+            $totalDiscount += $discount;
+
+            if ($coupon->type === Coupon::TYPE_FREE_SHIPPING) {
+                $freeShipping = true;
+            }
+            if (! $coupon->stack_with_reward_points) {
+                $stackWithRewardPoints = false;
+            }
+
+            $couponMeta = [
+                'id' => $coupon->id,
+                'code' => $coupon->code,
+                'label' => $coupon->displayLabel(),
+                'type' => $coupon->type,
+                'stack_with_reward_points' => (bool) $coupon->stack_with_reward_points,
+                'coupon_discount' => round($discount, 4),
+            ];
+            $couponsMeta[] = $couponMeta;
+            $appliedCoupons[] = [
+                'coupon_id' => (int) $coupon->id,
+                'code' => $coupon->code,
+                'coupon_discount' => round($discount, 4),
+                'coupon' => $couponMeta,
+            ];
+            $couponIds[] = (int) $coupon->id;
+            $couponCodesOut[] = $coupon->code;
+        }
+
+        $shipping = $freeShipping ? 0.0 : $baseShipping;
+        $total = max(0, round($subtotal - $totalDiscount + $shipping, 4));
+
+        return [
+            'coupon' => $couponsMeta[0] ?? null,
+            'coupons' => $couponsMeta,
+            'applied_coupons' => $appliedCoupons,
+            'coupon_id' => $couponIds[0] ?? null,
+            'coupon_ids' => $couponIds,
+            'coupon_codes' => $couponCodesOut,
+            'coupon_discount' => round($totalDiscount, 4),
+            'free_shipping' => $freeShipping,
+            'eligible_subtotal' => round($maxEligibleSubtotal, 4),
+            'subtotal' => round($subtotal, 4),
+            'shipping' => round($shipping, 4),
+            'total' => $total,
+            'stack_with_reward_points' => $stackWithRewardPoints,
+        ];
+    }
+
     public function findByCode(int $businessId, string $code): ?Coupon
     {
         $normalized = $this->normalizeCode($code);
@@ -84,6 +290,8 @@ class CouponService
         if ($channel === Coupon::CHANNEL_STOREFRONT && empty($contact)) {
             throw ValidationException::withMessages(['coupon_code' => ['Sign in to apply a promo code.']]);
         }
+
+        $this->assertPromoCodesAllowed($settings, [$coupon->code]);
 
         $this->assertCouponEligible($coupon, $lines, $subtotal, $contact, $channel);
 

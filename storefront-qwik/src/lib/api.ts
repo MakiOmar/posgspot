@@ -187,6 +187,7 @@ export function searchProducts(q: string, limit = 8, locale?: string) {
 export function validateCart(payload: {
   location_id?: number;
   coupon_code?: string;
+  coupon_codes?: string[];
   items: { variation_id: number; quantity: number }[];
 }) {
   return storefrontFetch<CartValidation>("/cart/validate", {
@@ -199,6 +200,7 @@ export function validateCart(payload: {
 export function inspectCart(payload: {
   location_id?: number;
   coupon_code?: string;
+  coupon_codes?: string[];
   items: { variation_id: number; quantity: number }[];
 }) {
   return storefrontFetch<CartInspection>("/cart/validate", {
@@ -209,6 +211,7 @@ export function inspectCart(payload: {
 
 export function validateCoupon(payload: {
   code: string;
+  coupon_codes?: string[];
   location_id?: number;
   items: { variation_id: number; quantity: number }[];
 }, token?: string) {

@@ -26,7 +26,8 @@ class CartValidationService
         array $items,
         ?int $locationId = null,
         ?string $couponCode = null,
-        ?Contact $contact = null
+        ?Contact $contact = null,
+        ?array $couponCodes = null
     ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
@@ -118,7 +119,13 @@ class CartValidationService
             'total' => round($total, 4),
         ];
 
-        return $this->mergeCouponTotals($businessId, $result, $settings, $couponCode, $contact);
+        return $this->mergeCouponTotals(
+            $businessId,
+            $result,
+            $settings,
+            $this->couponService->normalizeCodes($couponCode, $couponCodes),
+            $contact
+        );
     }
 
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
@@ -142,7 +149,8 @@ class CartValidationService
         array $items,
         ?int $locationId = null,
         ?string $couponCode = null,
-        ?Contact $contact = null
+        ?Contact $contact = null,
+        ?array $couponCodes = null
     ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
@@ -241,24 +249,35 @@ class CartValidationService
             'total' => round($total, 4),
         ];
 
-        return $this->mergeCouponTotals($businessId, $result, $settings, $couponCode, $contact);
+        return $this->mergeCouponTotals(
+            $businessId,
+            $result,
+            $settings,
+            $this->couponService->normalizeCodes($couponCode, $couponCodes),
+            $contact
+        );
     }
 
     /**
      * @param  array<string, mixed>  $result
+     * @param  array<int, string>  $couponCodes
      * @return array<string, mixed>
      */
     private function mergeCouponTotals(
         int $businessId,
         array $result,
         array $settings,
-        ?string $couponCode,
+        array $couponCodes,
         ?Contact $contact
     ): array {
-        if ($couponCode === null || trim($couponCode) === '') {
+        if ($couponCodes === []) {
             $result['coupon'] = null;
+            $result['coupons'] = [];
+            $result['applied_coupons'] = [];
             $result['coupon_discount'] = 0;
             $result['eligible_subtotal'] = $result['subtotal'];
+            $result['coupon_ids'] = [];
+            $result['coupon_codes'] = [];
 
             return $result;
         }
@@ -271,9 +290,9 @@ class CartValidationService
             'on_sale' => (bool) ($line['on_sale'] ?? false),
         ], $result['lines']);
 
-        $applied = $this->couponService->applyToCart(
+        $applied = $this->couponService->applyMultipleToCart(
             $businessId,
-            $couponCode,
+            $couponCodes,
             $couponLines,
             (float) $result['subtotal'],
             $settings,
@@ -281,11 +300,15 @@ class CartValidationService
         );
 
         $result['coupon'] = $applied['coupon'];
+        $result['coupons'] = $applied['coupons'] ?? [];
+        $result['applied_coupons'] = $applied['applied_coupons'] ?? [];
         $result['coupon_discount'] = $applied['coupon_discount'];
         $result['eligible_subtotal'] = $applied['eligible_subtotal'];
         $result['shipping'] = $applied['shipping'];
         $result['total'] = $applied['total'];
         $result['coupon_id'] = $applied['coupon_id'];
+        $result['coupon_ids'] = $applied['coupon_ids'] ?? [];
+        $result['coupon_codes'] = $applied['coupon_codes'] ?? [];
         $result['stack_with_reward_points'] = $applied['stack_with_reward_points'];
 
         return $result;

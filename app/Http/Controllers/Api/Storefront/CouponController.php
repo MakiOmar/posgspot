@@ -24,6 +24,8 @@ class CouponController extends StorefrontController
             'items.*.variation_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'location_id' => 'nullable|integer',
+            'coupon_codes' => 'nullable|array|max:10',
+            'coupon_codes.*' => 'string|max:64',
         ]);
 
         $businessId = $this->businessId($request);
@@ -31,10 +33,11 @@ class CouponController extends StorefrontController
         $contact = Auth::guard('sanctum')->user();
         $settings = $this->storefrontSettings->get($businessId);
         $built = $this->couponService->buildCouponLines($businessId, $data['items']);
+        $codes = $this->couponService->normalizeCodes($data['code'], $data['coupon_codes'] ?? null);
 
-        $applied = $this->couponService->applyToCart(
+        $applied = $this->couponService->applyMultipleToCart(
             $businessId,
-            $data['code'],
+            $codes,
             $built['lines'],
             $built['subtotal'],
             $settings,

@@ -77,6 +77,10 @@ class StorefrontSettingService
                 'site_key' => '',
                 'secret_key' => null,
             ],
+            'promo_codes' => [
+                'enabled_at_checkout' => true,
+                'allow_stacking' => false,
+            ],
         ];
     }
 

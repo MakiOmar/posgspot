@@ -54,6 +54,10 @@ export interface StoreSettings {
     enabled: boolean;
     name: string;
   };
+  promo_codes: {
+    enabled_at_checkout: boolean;
+    allow_stacking: boolean;
+  };
   turnstile: {
     enabled: boolean;
     site_key: string | null;
@@ -175,6 +179,7 @@ export interface AppliedCouponInfo {
 
 export interface CouponApplyResult {
   coupon: AppliedCouponInfo | null;
+  coupons?: AppliedCouponInfo[];
   coupon_id: number | null;
   coupon_discount: number;
   free_shipping: boolean;
@@ -191,6 +196,7 @@ export interface CartValidation {
   shipping: number;
   total: number;
   coupon?: AppliedCouponInfo | null;
+  coupons?: AppliedCouponInfo[];
   coupon_discount?: number;
   eligible_subtotal?: number;
   stack_with_reward_points?: boolean;
@@ -214,6 +220,7 @@ export interface CartInspection {
   shipping: number;
   total: number;
   coupon?: AppliedCouponInfo | null;
+  coupons?: AppliedCouponInfo[];
   coupon_discount?: number;
   eligible_subtotal?: number;
   stack_with_reward_points?: boolean;

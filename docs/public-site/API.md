@@ -50,6 +50,7 @@ Public `GET /settings` also exposes:
 
 - `cod_enabled`
 - `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
+- `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 
 ### Checkout + Fawry payment
 
@@ -94,9 +95,9 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
 | POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings). Optional `turnstile_token` when Turnstile is enabled in storefront settings |
-| POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id" }`. **Requires storefront customer auth** (Bearer token). Returns `coupon`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
-| POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` returns adjusted totals (`coupon_discount`, `coupon`, `eligible_subtotal`) — **coupon requires auth**. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
-| POST | `/checkout` | Create order (idempotent). Optional `coupon_code` (**logged-in customers only**; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. |
+| POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id", optional "coupon_codes[]" (already applied when stacking) }`. **Requires storefront customer auth** (Bearer token). Respects storefront settings `promo_codes.enabled_at_checkout` and `allow_stacking`. Returns `coupon`, `coupons[]`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
+| POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
+| POST | `/checkout` | Create order (idempotent). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. |
 | POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
 | POST | `/payments/{provider}/return` | Verify customer return URL payload after hosted checkout |
 | POST | `/payments/{provider}/session` | Rebuild signed payment session for an existing pending order (`storefront_order_id`, optional `locale`) |
@@ -160,7 +161,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
 - Public `GET /locations` uses the same `email_encoded` pattern per location (no raw `email` field)
 
-**Promo codes (POS admin):** Settings → **Promo codes** (`/coupons`) — separate from automatic POS **Discounts**. Types: percentage off order, fixed amount off order, free shipping. Limits: date window, min eligible subtotal, max discount cap, global/per-customer usage, first-order-only, exclude sale items, channel (`storefront` / `pos` / `both`). Permissions: `coupon.access`, `coupon.create`, `coupon.delete`.
+**Promo codes (POS admin):** Settings → **Promo codes** (`/coupons`) — separate from automatic POS **Discounts**. Storefront visibility/stacking: **Storefront Settings → Promo codes (storefront checkout)** (`enabled_at_checkout`, `allow_stacking`). Types: percentage off order, fixed amount off order, free shipping. Limits: date window, min eligible subtotal, max discount cap, global/per-customer usage, first-order-only, exclude sale items, channel (`storefront` / `pos` / `both`). Permissions: `coupon.access`, `coupon.create`, `coupon.delete`.
 
 ### Checkout totals order
 

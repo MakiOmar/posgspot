@@ -35,6 +35,8 @@ class CheckoutController extends StorefrontController
             'order_note' => 'nullable|string|max:1000',
             'reward_points' => 'nullable|integer|min:0',
             'coupon_code' => 'nullable|string|max:64',
+            'coupon_codes' => 'nullable|array|max:10',
+            'coupon_codes.*' => 'string|max:64',
         ]);
 
         $data['storefront_order_id'] = $data['idempotency_key'];

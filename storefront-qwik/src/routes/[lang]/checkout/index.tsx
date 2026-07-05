@@ -5,7 +5,7 @@ import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, clearAppliedCoupon, loadAppliedCoupon } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storeFawryPaymentSession } from "~/lib/fawry-pay";
 import { formatPrice } from "~/lib/format";
@@ -67,13 +67,17 @@ export default component$(() => {
   const validatedSubtotal = useSignal(0);
   const validatedShipping = useSignal(0);
   const validatedTotal = useSignal(0);
-  const appliedCoupon = useSignal<AppliedCouponInfo | null>(null);
+  const appliedCoupons = useSignal<AppliedCouponInfo[]>([]);
   const couponDiscount = useSignal(0);
-  const couponCode = useSignal(loadAppliedCoupon()?.code || "");
+  const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
   const stackWithRewardPoints = useSignal(true);
   const paymentMethod = useSignal<"cod" | "fawry">(
     settings.value.cod_enabled ? "cod" : settings.value.online_payments.enabled ? "fawry" : "cod",
   );
+
+  const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
+  const allowCouponStacking = settings.value.promo_codes?.allow_stacking ?? false;
+  const couponCodesKey = couponCodes.value.join("|");
 
   const onlinePaymentsEnabled =
     settings.value.online_payments.enabled && settings.value.online_payments.provider === "fawry";
@@ -97,12 +101,13 @@ export default component$(() => {
   useVisibleTask$(async ({ track }) => {
     track(() => locationId.value);
     track(() => cartItemsKey);
-    track(() => couponCode.value);
+    track(() => couponCodesKey);
     track(() => auth.token);
+    track(() => promoAtCheckout);
 
-    if (!auth.token) {
-      couponCode.value = "";
-      appliedCoupon.value = null;
+    if (!auth.token || !promoAtCheckout) {
+      couponCodes.value = [];
+      appliedCoupons.value = [];
       couponDiscount.value = 0;
       clearAppliedCoupon();
     }
@@ -112,16 +117,20 @@ export default component$(() => {
       validatedSubtotal.value = 0;
       validatedShipping.value = 0;
       validatedTotal.value = 0;
-      appliedCoupon.value = null;
+      appliedCoupons.value = [];
       couponDiscount.value = 0;
       return;
     }
 
     validatingStock.value = true;
     try {
+      const couponPayload =
+        auth.token && promoAtCheckout
+          ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+          : {};
       const { data } = await validateCart({
         location_id: locationId.value,
-        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
+        ...couponPayload,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -130,11 +139,20 @@ export default component$(() => {
       validatedSubtotal.value = data.subtotal;
       validatedShipping.value = data.shipping;
       validatedTotal.value = data.total;
-      appliedCoupon.value = data.coupon ?? null;
+      appliedCoupons.value = data.coupons?.length
+        ? data.coupons
+        : data.coupon
+          ? [data.coupon]
+          : [];
       couponDiscount.value = data.coupon_discount ?? 0;
       stackWithRewardPoints.value = data.stack_with_reward_points ?? true;
-      if (!data.coupon && couponCode.value) {
-        couponCode.value = "";
+      couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
+      if (appliedCoupons.value.length === 0) {
+        clearAppliedCoupon();
+      } else {
+        persistAppliedCoupons(
+          appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+        );
       }
       stockWarning.value = null;
     } catch (err) {
@@ -183,11 +201,11 @@ export default component$(() => {
     redeemValid.value = isValid || points === 0;
   });
 
-  const onCouponApplied$ = $((coupon: AppliedCouponInfo | null, discount: number) => {
-    appliedCoupon.value = coupon;
+  const onCouponApplied$ = $((coupons: AppliedCouponInfo[], discount: number) => {
+    appliedCoupons.value = coupons;
     couponDiscount.value = discount;
-    couponCode.value = coupon?.code || "";
-    if (!coupon) {
+    couponCodes.value = coupons.map((coupon) => coupon.code);
+    if (coupons.length === 0) {
       stackWithRewardPoints.value = true;
     }
   });
@@ -208,8 +226,13 @@ export default component$(() => {
       return;
     }
 
-    if (couponCode.value && !auth.token) {
+    if (couponCodes.value.length > 0 && !auth.token) {
       error.value = tStatic(locale, "coupon.signInRequired");
+      return;
+    }
+
+    if (couponCodes.value.length > 0 && !promoAtCheckout) {
+      error.value = tStatic(locale, "coupon.unavailable");
       return;
     }
 
@@ -256,14 +279,16 @@ export default component$(() => {
         payload.reward_points = pointsToRedeem.value;
       }
 
-      if (auth.token && couponCode.value) {
-        payload.coupon_code = couponCode.value;
+      if (auth.token && promoAtCheckout && couponCodes.value.length > 0) {
+        Object.assign(payload, couponRequestPayload(couponCodes.value, allowCouponStacking));
       }
 
       try {
         await validateCart({
           location_id: locationId.value,
-          coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
+          ...(auth.token && promoAtCheckout
+            ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+            : {}),
           items,
         });
         const { data } = await checkout(payload, auth.token ?? undefined);
@@ -507,25 +532,25 @@ export default component$(() => {
 
         <aside class="cart-summary">
           <h2 style={{ margin: "0 0 1rem", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.orderSummary")}</h2>
-          {auth.token ? (
+          {promoAtCheckout && auth.token ? (
             <CouponField
               items={cart.items}
               locationId={locationId.value}
               token={auth.token}
+              allowStacking={allowCouponStacking}
               currency={settings.value.currency}
-              initialCode={couponCode.value}
-              appliedCoupon={appliedCoupon.value}
+              appliedCoupons={appliedCoupons.value}
               couponDiscount={couponDiscount.value}
               onApplied$={onCouponApplied$}
             />
-          ) : (
+          ) : promoAtCheckout ? (
             <p class="footer-muted" style={{ marginBottom: "1rem" }}>
               <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/checkout"))}`}>
                 {tStatic(locale, "auth.login")}
               </Link>{" "}
               {tStatic(locale, "coupon.signInRequired")}
             </p>
-          )}
+          ) : null}
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {cart.items.map((line) => (
               <li

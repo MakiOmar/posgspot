@@ -9,41 +9,85 @@ export interface AppliedCouponState {
   label?: string;
 }
 
-export const loadAppliedCoupon = (): AppliedCouponState | null => {
-  if (typeof localStorage === "undefined") {
-    return null;
-  }
-  const raw = localStorage.getItem(APPLIED_COUPON_STORAGE_KEY);
+const parseStoredCoupons = (raw: string | null): AppliedCouponState[] => {
   if (!raw) {
-    return null;
+    return [];
   }
   try {
-    const parsed = JSON.parse(raw) as AppliedCouponState;
-    if (typeof parsed.code === "string" && parsed.code.trim() !== "") {
-      return { code: parsed.code.trim(), label: parsed.label };
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter(
+          (entry): entry is AppliedCouponState =>
+            typeof entry === "object" &&
+            entry !== null &&
+            typeof (entry as AppliedCouponState).code === "string" &&
+            (entry as AppliedCouponState).code.trim() !== "",
+        )
+        .map((entry) => ({
+          code: entry.code.trim(),
+          label: entry.label,
+        }));
+    }
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      typeof (parsed as AppliedCouponState).code === "string" &&
+      (parsed as AppliedCouponState).code.trim() !== ""
+    ) {
+      const single = parsed as AppliedCouponState;
+      return [{ code: single.code.trim(), label: single.label }];
     }
   } catch {
-    return null;
+    return [];
   }
-  return null;
+  return [];
 };
 
-export const persistAppliedCoupon = (coupon: AppliedCouponState | null) => {
+export const loadAppliedCoupons = (): AppliedCouponState[] => {
+  if (typeof localStorage === "undefined") {
+    return [];
+  }
+  return parseStoredCoupons(localStorage.getItem(APPLIED_COUPON_STORAGE_KEY));
+};
+
+export const loadAppliedCoupon = (): AppliedCouponState | null => loadAppliedCoupons()[0] ?? null;
+
+export const persistAppliedCoupons = (coupons: AppliedCouponState[]) => {
   if (typeof localStorage === "undefined") {
     return;
   }
-  if (!coupon || coupon.code.trim() === "") {
+  const cleaned = coupons
+    .map((coupon) => ({ code: coupon.code.trim(), label: coupon.label }))
+    .filter((coupon) => coupon.code !== "");
+  if (cleaned.length === 0) {
     localStorage.removeItem(APPLIED_COUPON_STORAGE_KEY);
     return;
   }
-  localStorage.setItem(
-    APPLIED_COUPON_STORAGE_KEY,
-    JSON.stringify({ code: coupon.code.trim(), label: coupon.label }),
-  );
+  localStorage.setItem(APPLIED_COUPON_STORAGE_KEY, JSON.stringify(cleaned));
+};
+
+export const persistAppliedCoupon = (coupon: AppliedCouponState | null) => {
+  persistAppliedCoupons(coupon ? [coupon] : []);
 };
 
 export const clearAppliedCoupon = () => {
-  persistAppliedCoupon(null);
+  persistAppliedCoupons([]);
+};
+
+/** Build cart validate payload for single or stacked promo codes. */
+export const couponRequestPayload = (
+  codes: string[],
+  allowStacking: boolean,
+): { coupon_code?: string; coupon_codes?: string[] } => {
+  const normalized = codes.map((code) => code.trim()).filter(Boolean);
+  if (normalized.length === 0) {
+    return {};
+  }
+  if (allowStacking) {
+    return { coupon_codes: normalized };
+  }
+  return { coupon_code: normalized[0] };
 };
 
 /** Legacy single-key cart persisted before guest/user split. */

@@ -197,6 +197,30 @@
             </div>
 
             <hr>
+            <h4>Promo codes (storefront checkout)</h4>
+            @php $promoCodes = $settings['promo_codes'] ?? []; @endphp
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('promo_codes_enabled_at_checkout', 1, $promoCodes['enabled_at_checkout'] ?? true) !!}
+                            Show promo code field at cart/checkout (signed-in customers)
+                        </label>
+                    </div>
+                    <p class="help-block">When off, customers cannot apply promo codes online even if codes exist in POS.</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('promo_codes_allow_stacking', 1, $promoCodes['allow_stacking'] ?? false) !!}
+                            Allow multiple promo codes per order
+                        </label>
+                    </div>
+                    <p class="help-block">When off, only one promo code can be applied per checkout.</p>
+                </div>
+            </div>
+
+            <hr>
             <h4>Reward points (storefront label)</h4>
             <div class="row">
                 <div class="col-md-6">

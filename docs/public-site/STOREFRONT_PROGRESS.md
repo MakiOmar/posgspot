@@ -53,7 +53,7 @@
 | Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
 | Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
 | Wishlist API (list, add, remove, merge) | ✅ | `WishlistService`, `storefront_wishlist_items` |
-| Promo codes (`coupons`, `coupon_redemptions`) | ✅ | `CouponService`, `POST /coupons/validate`, cart/checkout `coupon_code`, POS admin `/coupons` |
+| Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons` |
 
 ---
 
@@ -195,6 +195,7 @@
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |
 | 2026-07-05 | Promo codes v1: `coupons` domain, POS admin `/coupons`, `POST /coupons/validate`, cart/checkout coupon totals + redemption, Qwik cart/checkout UI, `CouponTest`, API.md. |
 | 2026-07-05 | Promo codes require storefront login: API rejects guest `coupon_code`; cart/checkout hide coupon field for guests. |
+| 2026-07-05 | Promo code storefront settings: enable/disable checkout field; single vs stacked coupons per order; Qwik UI + tests. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |

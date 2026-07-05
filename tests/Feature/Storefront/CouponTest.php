@@ -128,11 +128,13 @@ class CouponTest extends TestCase
     public function test_validate_rejects_invalid_code(): void
     {
         $fixtures = $this->setupCheckoutFixtures();
+        $session = $this->registerAndLogin();
 
-        $this->postJson('/api/storefront/v1/coupons/validate', [
-            'code' => 'NOTREAL',
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-        ])->assertStatus(422)
+        $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/validate', [
+                'code' => 'NOTREAL',
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])->assertStatus(422)
             ->assertJsonPath('errors.coupon_code.0', 'Invalid promo code.');
     }
 
@@ -372,5 +374,95 @@ class CouponTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonPath('errors.reward_points.0', 'Reward points cannot be combined with this promo code.');
+    }
+
+    public function test_rejects_coupon_when_disabled_at_checkout(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $coupon = $this->createCoupon();
+        $session = $this->registerAndLogin();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$fixtures['location']->id],
+            'default_fulfillment_location_id' => $fixtures['location']->id,
+            'promo_codes' => [
+                'enabled_at_checkout' => false,
+                'allow_stacking' => false,
+            ],
+        ]);
+        Cache::flush();
+
+        $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/validate', [
+                'code' => $coupon->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Promo codes are not available at checkout.');
+    }
+
+    public function test_rejects_multiple_coupons_when_stacking_disabled(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $couponA = $this->createCoupon(['discount_amount' => 5]);
+        $couponB = $this->createCoupon(['discount_amount' => 5]);
+        $session = $this->registerAndLogin();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$fixtures['location']->id],
+            'default_fulfillment_location_id' => $fixtures['location']->id,
+            'promo_codes' => [
+                'enabled_at_checkout' => true,
+                'allow_stacking' => false,
+            ],
+        ]);
+        Cache::flush();
+
+        $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'coupon_codes' => [$couponA->code, $couponB->code],
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Only one promo code can be applied per order.');
+    }
+
+    public function test_allows_stacked_coupons_when_enabled(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $couponA = $this->createCoupon(['discount_amount' => 5]);
+        $couponB = $this->createCoupon(['discount_amount' => 5]);
+        $session = $this->registerAndLogin();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$fixtures['location']->id],
+            'default_fulfillment_location_id' => $fixtures['location']->id,
+            'promo_codes' => [
+                'enabled_at_checkout' => true,
+                'allow_stacking' => true,
+            ],
+        ]);
+        Cache::flush();
+
+        $single = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'coupon_code' => $couponA->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])->assertOk();
+
+        $stacked = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'coupon_codes' => [$couponA->code, $couponB->code],
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])->assertOk();
+
+        $this->assertLessThan(
+            (float) $single->json('data.total'),
+            (float) $stacked->json('data.total')
+        );
+        $this->assertCount(2, $stacked->json('data.coupons'));
     }
 }

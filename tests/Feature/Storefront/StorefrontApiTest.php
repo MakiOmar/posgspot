@@ -186,6 +186,22 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.catalog.show_availability_on_cards', false);
     }
 
+    public function test_settings_exposes_promo_code_flags(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'promo_codes' => [
+                'enabled_at_checkout' => false,
+                'allow_stacking' => true,
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.promo_codes.enabled_at_checkout', false)
+            ->assertJsonPath('data.promo_codes.allow_stacking', true);
+    }
+
     public function test_locations_do_not_expose_raw_email(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

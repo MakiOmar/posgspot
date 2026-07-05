@@ -21,6 +21,8 @@ class CartController extends StorefrontController
             'location_id' => 'nullable|integer',
             'resolve' => 'sometimes|boolean',
             'coupon_code' => 'nullable|string|max:64',
+            'coupon_codes' => 'nullable|array|max:10',
+            'coupon_codes.*' => 'string|max:64',
         ]);
 
         $contact = Auth::guard('sanctum')->user();
@@ -31,7 +33,8 @@ class CartController extends StorefrontController
                 $data['items'],
                 $data['location_id'] ?? null,
                 $data['coupon_code'] ?? null,
-                $contact
+                $contact,
+                $data['coupon_codes'] ?? null
             );
 
             return $this->jsonSuccess($result);
@@ -42,7 +45,8 @@ class CartController extends StorefrontController
             $data['items'],
             $data['location_id'] ?? null,
             $data['coupon_code'] ?? null,
-            $contact
+            $contact,
+            $data['coupon_codes'] ?? null
         );
 
         unset($result['products_payload']);

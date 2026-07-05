@@ -67,6 +67,10 @@ class SettingsApiService
                 'name' => $this->presenter->localizedSetting($rewardName, $locale, $business->rp_name ?? 'Reward Points'),
             ],
             'turnstile' => $this->turnstilePayload($settings),
+            'promo_codes' => [
+                'enabled_at_checkout' => (bool) ($settings['promo_codes']['enabled_at_checkout'] ?? true),
+                'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }
