@@ -9,6 +9,7 @@ import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { Breadcrumbs } from "~/components/seo/breadcrumbs";
 import { JsonLd } from "~/components/seo/json-ld";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
+import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { fetchProduct } from "~/lib/api";
@@ -181,9 +182,9 @@ export default component$(() => {
             </span>
 
             {p.description ? (
-              <div
-                style={{ marginTop: "1.25rem", color: "var(--gs-muted)" }}
-                dangerouslySetInnerHTML={p.description}
+              <SanitizedHtml
+                class="pdp-description"
+                html={p.description}
               />
             ) : null}
 

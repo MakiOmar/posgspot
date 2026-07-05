@@ -1,4 +1,5 @@
 import { component$, useVisibleTask$ } from "@builder.io/qwik";
+import { useServerData } from "@builder.io/qwik";
 import { useDocumentHead, useLocation } from "@builder.io/qwik-city";
 import { setActiveContentLocale } from "~/lib/api";
 import {
@@ -15,6 +16,7 @@ import { localeFromPathname } from "~/lib/i18n/paths";
 export const RouterHead = component$(() => {
   const head = useDocumentHead();
   const loc = useLocation();
+  const nonce = useServerData<string>("nonce");
   const locale = localeFromPathname(loc.url.pathname);
   const loadArabicFont = needsArabicFont(locale);
 
@@ -72,6 +74,7 @@ export const RouterHead = component$(() => {
       {head.scripts.map((s) => (
         <script
           key={s.key}
+          {...(nonce ? { nonce } : {})}
           {...s.props}
           {...(s.props?.dangerouslySetInnerHTML
             ? {}

@@ -47,6 +47,7 @@
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
 | Order confirmation email | ✅ | `StorefrontMailService` |
 | CORS / `STOREFRONT_URL` | ✅ | Documented in `API.md` |
+| Product description HTML sanitization | ✅ | `StorefrontHtmlSanitizer` on PDP API responses |
 | Catalog translations (`product_translations`, etc.) | ✅ | Overlay via `StorefrontContentPresenter`; strict AR list filter |
 | `X-Content-Locale` middleware | ✅ | `ResolveStorefrontContentLocale` on API group |
 | Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
@@ -144,6 +145,9 @@
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
 | `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes `robots.txt`, `sitemap.xml` (products + categories from API) |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
+| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; skipped in dev |
+| PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
+| Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
 
 ---
 
@@ -163,6 +167,8 @@
 | Invoice print URL (unit) | ✅ |
 | Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` |
 | Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
+| Wishlist API | ✅ | `WishlistTest` |
+| HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Frontend (Qwik) tests | ⬜ |
 
 ---
@@ -178,7 +184,8 @@
 
 | Date | Change |
 |------|--------|
-| 2026-07-05 | Wishlist: API (list/add/remove/merge), guest localStorage + login merge, header badge, PLP/PDP heart toggle, `/wishlist` page, `WishlistTest`. |
+| 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |
+| 2026-07-05 | Harden auth/wishlist: reset token expiry, auth rate limit, wishlist caps + batch merge. |
 | 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |
 | 2026-07-05 | Cart page re-prices via `POST /cart/validate` on load/qty change; stock errors surfaced inline. |
 | 2026-07-04 | Guest cart merge on login (guest/user localStorage keys); header mini-cart dropdown with line items, remove, view cart + checkout. |

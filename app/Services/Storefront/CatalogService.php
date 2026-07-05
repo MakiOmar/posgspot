@@ -20,7 +20,8 @@ class CatalogService
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
         private StorefrontPricing $storefrontPricing,
-        private StorefrontContentPresenter $presenter
+        private StorefrontContentPresenter $presenter,
+        private StorefrontHtmlSanitizer $htmlSanitizer,
     ) {
     }
 
@@ -472,7 +473,7 @@ class CatalogService
             'name' => $product->name,
             'sku' => $product->sku,
             'type' => $product->type,
-            'description' => $product->product_description,
+            'description' => $this->htmlSanitizer->sanitize($product->product_description),
             'brand' => $product->brand ? [
                 'id' => $product->brand->id,
                 'name' => $this->presenter->brandName($product->brand, $locale),

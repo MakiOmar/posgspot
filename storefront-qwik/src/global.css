@@ -1357,6 +1357,11 @@ img {
   margin-bottom: 1rem;
 }
 
+.pdp-description {
+  margin-top: 1.25rem;
+  color: var(--gs-muted);
+}
+
 .pdp-actions {
   display: flex;
   flex-wrap: wrap;

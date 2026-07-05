@@ -90,7 +90,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
-| GET | `/products/{idOrSlug}` | Product detail |
+| GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side) |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
 | POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings) |
@@ -167,3 +167,4 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Rate limit (`throttle:storefront`, per IP): reads (GET/HEAD) use `STOREFRONT_RATE_LIMIT_READ` (default **600**/min); writes use `STOREFRONT_RATE_LIMIT` (default **120**/min). The Qwik SSR process also caches settings/categories for ~30s so layout loaders do not hit Laravel on every navigation.
 - Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).
+- Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry/Google Fonts/Maps; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.

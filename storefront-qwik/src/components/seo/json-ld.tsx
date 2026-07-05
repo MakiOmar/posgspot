@@ -1,4 +1,6 @@
 import { component$ } from "@builder.io/qwik";
+import { useServerData } from "@builder.io/qwik";
+import { serializeJsonLd } from "~/lib/security/json-ld";
 
 interface JsonLdProps {
   data: Record<string, unknown>;
@@ -6,10 +8,13 @@ interface JsonLdProps {
 
 /** Renders structured data for SEO. */
 export const JsonLd = component$<JsonLdProps>(({ data }) => {
+  const nonce = useServerData<string>("nonce");
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={JSON.stringify(data)}
+      {...(nonce ? { nonce } : {})}
+      dangerouslySetInnerHTML={serializeJsonLd(data)}
     />
   );
 });
