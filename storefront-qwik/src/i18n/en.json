@@ -115,7 +115,8 @@
     "discount": "Promo discount",
     "invalid": "Invalid promo code.",
     "applyError": "Could not apply promo code.",
-    "noStackRewardPoints": "This promo code cannot be combined with reward points."
+    "noStackRewardPoints": "This promo code cannot be combined with reward points.",
+    "signInRequired": "Sign in to apply a promo code."
   },
   "miniCart": {
     "title": "Your cart",

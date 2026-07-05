@@ -56,6 +56,10 @@ class CheckoutService
             $couponCode = null;
         }
 
+        if ($couponCode && empty($authContact)) {
+            throw ValidationException::withMessages(['coupon_code' => ['Sign in to apply a promo code.']]);
+        }
+
         $validated = $this->cartValidation->validate(
             $businessId,
             $payload['items'] ?? [],
@@ -217,12 +221,12 @@ class CheckoutService
                 );
             }
 
-            if ($couponId) {
+            if ($couponId && $authContact) {
                 $this->persistCouponRedemption(
                     $businessId,
                     (int) $couponId,
                     $transaction,
-                    $contact,
+                    $authContact,
                     $validated,
                     $settings
                 );

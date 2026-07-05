@@ -87,6 +87,44 @@ class CouponTest extends TestCase
         ], $overrides));
     }
 
+    private function registerAndLogin(): array
+    {
+        $email = 'coupon_test_'.uniqid().'@example.com';
+        $mobile = '+2010'.str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Coupon',
+            'last_name' => 'Tester',
+            'email' => $email,
+            'mobile' => $mobile,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $login = $this->postJson('/api/storefront/v1/auth/login', [
+            'login' => $email,
+            'password' => 'password123',
+        ])->assertOk();
+
+        return [
+            'token' => $login->json('data.token'),
+            'contact_id' => (int) $login->json('data.contact.id'),
+            'email' => $email,
+        ];
+    }
+
+    public function test_validate_rejects_guest_without_auth(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $coupon = $this->createCoupon();
+
+        $this->postJson('/api/storefront/v1/coupons/validate', [
+            'code' => $coupon->code,
+            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+        ])->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Sign in to apply a promo code.');
+    }
+
     public function test_validate_rejects_invalid_code(): void
     {
         $fixtures = $this->setupCheckoutFixtures();
@@ -102,11 +140,13 @@ class CouponTest extends TestCase
     {
         $fixtures = $this->setupCheckoutFixtures();
         $coupon = $this->createCoupon(['discount_amount' => 10]);
+        $session = $this->registerAndLogin();
 
-        $response = $this->postJson('/api/storefront/v1/coupons/validate', [
-            'code' => $coupon->code,
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-        ]);
+        $response = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/coupons/validate', [
+                'code' => $coupon->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ]);
 
         $response->assertOk()
             ->assertJsonPath('success', true)
@@ -120,17 +160,20 @@ class CouponTest extends TestCase
     {
         $fixtures = $this->setupCheckoutFixtures();
         $coupon = $this->createCoupon(['discount_amount' => 10]);
+        $session = $this->registerAndLogin();
 
-        $without = $this->postJson('/api/storefront/v1/cart/validate', [
-            'location_id' => $fixtures['location']->id,
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-        ])->assertOk();
+        $without = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])->assertOk();
 
-        $with = $this->postJson('/api/storefront/v1/cart/validate', [
-            'location_id' => $fixtures['location']->id,
-            'coupon_code' => $coupon->code,
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-        ])->assertOk();
+        $with = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'coupon_code' => $coupon->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ])->assertOk();
 
         $baseTotal = (float) $without->json('data.total');
         $discountedTotal = (float) $with->json('data.total');
@@ -139,31 +182,46 @@ class CouponTest extends TestCase
         $this->assertGreaterThan(0, (float) $with->json('data.coupon_discount'));
     }
 
+    public function test_cart_validate_rejects_guest_coupon(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $coupon = $this->createCoupon();
+
+        $this->postJson('/api/storefront/v1/cart/validate', [
+            'location_id' => $fixtures['location']->id,
+            'coupon_code' => $coupon->code,
+            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+        ])->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Sign in to apply a promo code.');
+    }
+
     public function test_checkout_records_redemption_and_discount(): void
     {
         Mail::fake();
         $fixtures = $this->setupCheckoutFixtures();
         $coupon = $this->createCoupon(['discount_amount' => 10]);
+        $session = $this->registerAndLogin();
 
         $orderKey = 'SF-COUPON-'.uniqid();
 
-        $response = $this->postJson('/api/storefront/v1/checkout', [
-            'idempotency_key' => $orderKey,
-            'location_id' => $fixtures['location']->id,
-            'payment_method' => 'cod',
-            'coupon_code' => $coupon->code,
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-            'customer' => [
-                'first_name' => 'Coupon',
-                'last_name' => 'Buyer',
-                'email' => 'coupon_'.uniqid().'@example.com',
-            ],
-            'shipping_address' => [
-                'address_line_1' => '1 Coupon St',
-                'city' => 'Cairo',
-                'country' => 'Egypt',
-            ],
-        ]);
+        $response = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/checkout', [
+                'idempotency_key' => $orderKey,
+                'location_id' => $fixtures['location']->id,
+                'payment_method' => 'cod',
+                'coupon_code' => $coupon->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+                'customer' => [
+                    'first_name' => 'Coupon',
+                    'last_name' => 'Buyer',
+                    'email' => $session['email'],
+                ],
+                'shipping_address' => [
+                    'address_line_1' => '1 Coupon St',
+                    'city' => 'Cairo',
+                    'country' => 'Egypt',
+                ],
+            ]);
 
         $response->assertCreated();
 
@@ -182,11 +240,38 @@ class CouponTest extends TestCase
         $this->assertSame(1, (int) $coupon->times_used);
     }
 
+    public function test_checkout_rejects_guest_coupon(): void
+    {
+        Mail::fake();
+        $fixtures = $this->setupCheckoutFixtures();
+        $coupon = $this->createCoupon();
+
+        $this->postJson('/api/storefront/v1/checkout', [
+            'idempotency_key' => 'SF-GUEST-COUPON-'.uniqid(),
+            'location_id' => $fixtures['location']->id,
+            'payment_method' => 'cod',
+            'coupon_code' => $coupon->code,
+            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            'customer' => [
+                'first_name' => 'Guest',
+                'last_name' => 'Buyer',
+                'email' => 'guest_coupon_'.uniqid().'@example.com',
+            ],
+            'shipping_address' => [
+                'address_line_1' => '1 Guest St',
+                'city' => 'Cairo',
+                'country' => 'Egypt',
+            ],
+        ])->assertStatus(422)
+            ->assertJsonPath('errors.coupon_code.0', 'Sign in to apply a promo code.');
+    }
+
     public function test_idempotent_checkout_does_not_double_redeem(): void
     {
         Mail::fake();
         $fixtures = $this->setupCheckoutFixtures();
         $coupon = $this->createCoupon(['discount_amount' => 5]);
+        $session = $this->registerAndLogin();
 
         $payload = [
             'idempotency_key' => 'SF-COUPON-IDEM-'.uniqid(),
@@ -197,7 +282,7 @@ class CouponTest extends TestCase
             'customer' => [
                 'first_name' => 'Idem',
                 'last_name' => 'Coupon',
-                'email' => 'idem_coupon_'.uniqid().'@example.com',
+                'email' => $session['email'],
             ],
             'shipping_address' => [
                 'address_line_1' => '2 Idem Rd',
@@ -206,8 +291,8 @@ class CouponTest extends TestCase
             ],
         ];
 
-        $this->postJson('/api/storefront/v1/checkout', $payload)->assertCreated();
-        $this->postJson('/api/storefront/v1/checkout', $payload)->assertCreated();
+        $this->withToken($session['token'])->postJson('/api/storefront/v1/checkout', $payload)->assertCreated();
+        $this->withToken($session['token'])->postJson('/api/storefront/v1/checkout', $payload)->assertCreated();
 
         $transaction = Transaction::where('storefront_order_id', $payload['idempotency_key'])->first();
         $this->assertSame(
@@ -226,12 +311,14 @@ class CouponTest extends TestCase
             'type' => Coupon::TYPE_FREE_SHIPPING,
             'discount_amount' => 0,
         ]);
+        $session = $this->registerAndLogin();
 
-        $response = $this->postJson('/api/storefront/v1/cart/validate', [
-            'location_id' => $fixtures['location']->id,
-            'coupon_code' => $coupon->code,
-            'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
-        ]);
+        $response = $this->withToken($session['token'])
+            ->postJson('/api/storefront/v1/cart/validate', [
+                'location_id' => $fixtures['location']->id,
+                'coupon_code' => $coupon->code,
+                'items' => [['variation_id' => $fixtures['variation']->id, 'quantity' => 1]],
+            ]);
 
         $response->assertOk()
             ->assertJsonPath('data.shipping', 0);

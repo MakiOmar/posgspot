@@ -5,7 +5,7 @@ import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, loadAppliedCoupon } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, loadAppliedCoupon } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storeFawryPaymentSession } from "~/lib/fawry-pay";
 import { formatPrice } from "~/lib/format";
@@ -98,6 +98,14 @@ export default component$(() => {
     track(() => locationId.value);
     track(() => cartItemsKey);
     track(() => couponCode.value);
+    track(() => auth.token);
+
+    if (!auth.token) {
+      couponCode.value = "";
+      appliedCoupon.value = null;
+      couponDiscount.value = 0;
+      clearAppliedCoupon();
+    }
 
     if (cart.items.length === 0 || !locationId.value) {
       stockWarning.value = null;
@@ -113,7 +121,7 @@ export default component$(() => {
     try {
       const { data } = await validateCart({
         location_id: locationId.value,
-        coupon_code: couponCode.value || undefined,
+        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -200,6 +208,11 @@ export default component$(() => {
       return;
     }
 
+    if (couponCode.value && !auth.token) {
+      error.value = tStatic(locale, "coupon.signInRequired");
+      return;
+    }
+
     if (pointsToRedeem.value > 0 && !redeemValid.value) {
       error.value = tStatic(locale, "checkout.fixRewardPoints");
       return;
@@ -243,14 +256,14 @@ export default component$(() => {
         payload.reward_points = pointsToRedeem.value;
       }
 
-      if (couponCode.value) {
+      if (auth.token && couponCode.value) {
         payload.coupon_code = couponCode.value;
       }
 
       try {
         await validateCart({
           location_id: locationId.value,
-          coupon_code: couponCode.value || undefined,
+          coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
           items,
         });
         const { data } = await checkout(payload, auth.token ?? undefined);
@@ -494,16 +507,25 @@ export default component$(() => {
 
         <aside class="cart-summary">
           <h2 style={{ margin: "0 0 1rem", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.orderSummary")}</h2>
-          <CouponField
-            items={cart.items}
-            locationId={locationId.value}
-            token={auth.token ?? undefined}
-            currency={settings.value.currency}
-            initialCode={couponCode.value}
-            appliedCoupon={appliedCoupon.value}
-            couponDiscount={couponDiscount.value}
-            onApplied$={onCouponApplied$}
-          />
+          {auth.token ? (
+            <CouponField
+              items={cart.items}
+              locationId={locationId.value}
+              token={auth.token}
+              currency={settings.value.currency}
+              initialCode={couponCode.value}
+              appliedCoupon={appliedCoupon.value}
+              couponDiscount={couponDiscount.value}
+              onApplied$={onCouponApplied$}
+            />
+          ) : (
+            <p class="footer-muted" style={{ marginBottom: "1rem" }}>
+              <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/checkout"))}`}>
+                {tStatic(locale, "auth.login")}
+              </Link>{" "}
+              {tStatic(locale, "coupon.signInRequired")}
+            </p>
+          )}
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {cart.items.map((line) => (
               <li

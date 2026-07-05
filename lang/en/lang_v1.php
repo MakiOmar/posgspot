@@ -637,7 +637,7 @@ return [
     'inactive' => 'Inactive',
     'applied_discount_text' => 'Discount: <i>:discount_name</i> applied (Ends at: <i>:ends_at</i>)',
     'discount.access' => 'Add/Edit/Delete Discount',
-    'coupon_code_help' => 'Code customers enter at storefront checkout. Stored uppercase; must be unique. Use Generate for a random code.',
+    'coupon_code_help' => 'Code customers enter at storefront checkout while signed in. Stored uppercase; must be unique. Use Generate for a random code.',
     'coupon_name_help' => 'Internal name shown in the admin list and on the storefront order summary label.',
     'coupon_description_help' => 'Optional internal notes for your team. Not shown to customers.',
     'coupon_type_help' => 'Percentage or fixed amount off the eligible cart subtotal, or free shipping (shipping fee set to zero).',

@@ -6,12 +6,14 @@ import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { ApiError, inspectCart } from "~/lib/api";
 import {
   cartSubtotal,
+  clearAppliedCoupon,
   formatMaxCartQuantity,
   loadAppliedCoupon,
   removeCartItem,
   setCartQuantity,
   syncCartFromInspection,
 } from "~/lib/cart-actions";
+import { useAuth } from "~/lib/auth-context";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -22,6 +24,7 @@ import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 export default component$(() => {
   const settings = useSiteSettings();
   const cart = useCart();
+  const auth = useAuth();
   const nav = useNavigate();
   const { locale } = useI18n();
   const validating = useSignal(false);
@@ -47,6 +50,14 @@ export default component$(() => {
     track(() => cartItemsKey);
     track(() => cart.hydrated);
     track(() => couponCode.value);
+    track(() => auth.token);
+
+    if (!auth.token) {
+      couponCode.value = "";
+      appliedCoupon.value = null;
+      couponDiscount.value = 0;
+      clearAppliedCoupon();
+    }
 
     checkoutQuantityIssues.value = [];
 
@@ -66,7 +77,7 @@ export default component$(() => {
     errorNotice.value = null;
     try {
       const { data } = await inspectCart({
-        coupon_code: couponCode.value || undefined,
+        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -112,7 +123,7 @@ export default component$(() => {
     errorNotice.value = null;
     try {
       const { data } = await inspectCart({
-        coupon_code: couponCode.value || undefined,
+        coupon_code: auth.token && couponCode.value ? couponCode.value : undefined,
         items: cart.items.map((line) => ({
           variation_id: line.variationId,
           quantity: line.quantity,
@@ -259,14 +270,24 @@ export default component$(() => {
       </table>
 
       <div class="cart-summary">
-        <CouponField
-          items={cart.items}
-          currency={settings.value.currency}
-          initialCode={couponCode.value}
-          appliedCoupon={appliedCoupon.value}
-          couponDiscount={couponDiscount.value}
-          onApplied$={onCouponApplied$}
-        />
+        {auth.token ? (
+          <CouponField
+            items={cart.items}
+            token={auth.token}
+            currency={settings.value.currency}
+            initialCode={couponCode.value}
+            appliedCoupon={appliedCoupon.value}
+            couponDiscount={couponDiscount.value}
+            onApplied$={onCouponApplied$}
+          />
+        ) : (
+          <p class="footer-muted" style={{ marginBottom: "1rem" }}>
+            <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/cart"))}`}>
+              {tStatic(locale, "auth.login")}
+            </Link>{" "}
+            {tStatic(locale, "coupon.signInRequired")}
+          </p>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
           <span>{tStatic(locale, "cart.subtotal")}</span>
           <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>

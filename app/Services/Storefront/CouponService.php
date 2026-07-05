@@ -81,6 +81,10 @@ class CouponService
             throw ValidationException::withMessages(['coupon_code' => ['Invalid promo code.']]);
         }
 
+        if ($channel === Coupon::CHANNEL_STOREFRONT && empty($contact)) {
+            throw ValidationException::withMessages(['coupon_code' => ['Sign in to apply a promo code.']]);
+        }
+
         $this->assertCouponEligible($coupon, $lines, $subtotal, $contact, $channel);
 
         $eligibleSubtotal = $this->eligibleSubtotal($coupon, $lines);

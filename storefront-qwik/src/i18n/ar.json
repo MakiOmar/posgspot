@@ -115,7 +115,8 @@
     "discount": "خصم الرمز",
     "invalid": "رمز الخصم غير صالح.",
     "applyError": "تعذر تطبيق رمز الخصم.",
-    "noStackRewardPoints": "لا يمكن دمج هذا الرمز مع نقاط المكافآت."
+    "noStackRewardPoints": "لا يمكن دمج هذا الرمز مع نقاط المكافآت.",
+    "signInRequired": "سجّل الدخول لتطبيق رمز الخصم."
   },
   "miniCart": {
     "title": "سلة التسوق",
