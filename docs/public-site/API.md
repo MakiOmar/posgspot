@@ -89,7 +89,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 |--------|------|-------------|
 | GET | `/ping` | Health check |
 | GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`) |
-| GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw |
+| GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |

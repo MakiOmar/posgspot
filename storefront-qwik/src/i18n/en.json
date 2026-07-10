@@ -7,6 +7,7 @@
     "contact": "Contact us",
     "faq": "FAQs",
     "about": "About us",
+    "stores": "Stores",
     "categories": "Categories"
   },
   "header": {
@@ -26,6 +27,7 @@
     "company": "Company",
     "policies": "Policies",
     "allProducts": "All products",
+    "stores": "Our stores",
     "contact": "Contact",
     "terms": "Terms & conditions",
     "privacy": "Privacy policy",
@@ -363,6 +365,7 @@
     "hotline": "Hotline",
     "ourBranches": "Our branches",
     "noBranches": "Branch addresses will appear here once locations are configured.",
+    "viewStoreLocator": "View store locator",
     "leaveUs": "Leave us",
     "aMessage": "a message",
     "namePlaceholder": "Your full name",
@@ -375,6 +378,19 @@
     "mapTitle": "Games Spot store locations map",
     "seoTitle": "Contact — {businessName}",
     "seoDescription": "Contact {businessName}—call, email, or visit our branches across Egypt."
+  },
+  "stores": {
+    "title": "Our stores",
+    "lead": "Find a Games Spot branch near you—get directions or call ahead.",
+    "listLabel": "Store branches",
+    "mapTitle": "Map of {name}",
+    "pickup": "Pickup available",
+    "getDirections": "Get directions",
+    "call": "Call",
+    "empty": "No store locations are published yet.",
+    "contactPrompt": "Need help choosing a branch?",
+    "seoTitle": "Store locator — {businessName}",
+    "seoDescription": "Find {businessName} store locations, addresses, maps, and phone numbers."
   },
   "addCustomer": {
     "congratulations": "Congratulations!",

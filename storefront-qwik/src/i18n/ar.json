@@ -7,6 +7,7 @@
     "contact": "اتصل بنا",
     "faq": "الأسئلة الشائعة",
     "about": "من نحن",
+    "stores": "الفروع",
     "categories": "الأقسام"
   },
   "header": {
@@ -26,6 +27,7 @@
     "company": "الشركة",
     "policies": "السياسات",
     "allProducts": "كل المنتجات",
+    "stores": "فروعنا",
     "contact": "اتصل بنا",
     "terms": "الشروط والأحكام",
     "privacy": "سياسة الخصوصية",
@@ -363,6 +365,7 @@
     "hotline": "الخط الساخن",
     "ourBranches": "فروعنا",
     "noBranches": "ستظهر عناوين الفروع هنا بعد إعداد المواقع.",
+    "viewStoreLocator": "عرض دليل الفروع",
     "leaveUs": "اترك لنا",
     "aMessage": "رسالة",
     "namePlaceholder": "اسمك الكامل",
@@ -375,6 +378,19 @@
     "mapTitle": "خريطة مواقع فروع جيمز سبوت",
     "seoTitle": "اتصل بنا — {businessName}",
     "seoDescription": "تواصل مع {businessName}—اتصل أو راسلنا أو زر فروعنا في مصر."
+  },
+  "stores": {
+    "title": "فروعنا",
+    "lead": "اعثر على أقرب فرع لجيمز سبوت—احصل على الاتجاهات أو اتصل مسبقاً.",
+    "listLabel": "فروع المتجر",
+    "mapTitle": "خريطة {name}",
+    "pickup": "استلام من الفرع متاح",
+    "getDirections": "الاتجاهات",
+    "call": "اتصال",
+    "empty": "لا توجد فروع منشورة حالياً.",
+    "contactPrompt": "تحتاج مساعدة في اختيار الفرع؟",
+    "seoTitle": "دليل الفروع — {businessName}",
+    "seoDescription": "اعثر على مواقع فروع {businessName} والعناوين والخرائط وأرقام الهاتف."
   },
   "addCustomer": {
     "congratulations": "تهانينا!",

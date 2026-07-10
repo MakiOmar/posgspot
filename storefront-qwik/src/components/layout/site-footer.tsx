@@ -46,6 +46,9 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
               <Link href={localePath(locale, "/products")}>{tStatic(locale, "footer.allProducts")}</Link>
             </li>
             <li>
+              <Link href={localePath(locale, "/stores")}>{tStatic(locale, "footer.stores")}</Link>
+            </li>
+            <li>
               <Link href={localePath(locale, "/cart")}>{tStatic(locale, "header.cart")}</Link>
             </li>
           </ul>

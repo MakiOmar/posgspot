@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
-import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { MapPinIcon, PhoneIcon } from "~/components/icons";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
@@ -12,6 +12,7 @@ import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
+import { pickDefaultStore, storeMapEmbedUrl } from "~/lib/maps";
 import type { StoreLocation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
@@ -33,17 +34,6 @@ export const useContactPhoneCountries = routeLoader$(async () => {
     return [];
   }
 });
-
-function mapEmbedUrl(locations: StoreLocation[]): string {
-  const withCoords = locations.find((loc) => loc.latitude != null && loc.longitude != null);
-  if (withCoords?.latitude != null && withCoords.longitude != null) {
-    return `https://maps.google.com/maps?q=${withCoords.latitude},${withCoords.longitude}&z=14&output=embed`;
-  }
-  if (locations[0]?.address) {
-    return `https://maps.google.com/maps?q=${encodeURIComponent(locations[0].address)}&z=14&output=embed`;
-  }
-  return "https://maps.google.com/maps?q=Cairo%2C%20Egypt&z=11&output=embed";
-}
 
 export default component$(() => {
   const settings = useSiteSettings();
@@ -68,6 +58,7 @@ export default component$(() => {
   const phone = settings.value.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");
   const emailEncoded = settings.value.contact?.email_encoded || "";
+  const mapLocation = pickDefaultStore(locations.value);
 
   const submit$ = $(async () => {
     const phoneCheck = validatePhone(form.dialCode, form.nationalNumber, phoneCountries.value, locale);
@@ -125,7 +116,7 @@ export default component$(() => {
           class="contact-map"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
-          src={mapEmbedUrl(locations.value)}
+          src={storeMapEmbedUrl(mapLocation)}
         />
       </div>
 
@@ -150,31 +141,36 @@ export default component$(() => {
         <div class="contact-card contact-card--wide">
           <p class="contact-card-label">{tStatic(locale, "contact.ourBranches")}</p>
           {locations.value.length > 0 ? (
-            <ul class="contact-branches">
-              {locations.value.map((loc) => (
-                <li key={loc.id}>
-                  <strong>{loc.name}</strong>
-                  {loc.address ? (
-                    <span class="footer-contact">
-                      <MapPinIcon size={16} />
-                      {loc.maps_url ? (
-                        <a href={loc.maps_url} target="_blank" rel="noopener noreferrer">
-                          {loc.address}
-                        </a>
-                      ) : (
-                        <span>{loc.address}</span>
-                      )}
-                    </span>
-                  ) : null}
-                  {loc.phone ? (
-                    <span class="footer-contact">
-                      <PhoneIcon size={16} />
-                      <a href={`tel:${loc.phone.replace(/[^\d+]/g, "")}`}>{loc.phone}</a>
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul class="contact-branches">
+                {locations.value.map((loc) => (
+                  <li key={loc.id}>
+                    <strong>{loc.name}</strong>
+                    {loc.address ? (
+                      <span class="footer-contact">
+                        <MapPinIcon size={16} />
+                        {loc.maps_url ? (
+                          <a href={loc.maps_url} target="_blank" rel="noopener noreferrer">
+                            {loc.address}
+                          </a>
+                        ) : (
+                          <span>{loc.address}</span>
+                        )}
+                      </span>
+                    ) : null}
+                    {loc.phone ? (
+                      <span class="footer-contact">
+                        <PhoneIcon size={16} />
+                        <a href={`tel:${loc.phone.replace(/[^\d+]/g, "")}`}>{loc.phone}</a>
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+              <p class="contact-stores-link">
+                <Link href={localePath(locale, "/stores")}>{tStatic(locale, "contact.viewStoreLocator")}</Link>
+              </p>
+            </>
           ) : (
             <p class="footer-muted">{tStatic(locale, "contact.noBranches")}</p>
           )}

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-10 |
+| **Last updated** | 2026-07-11 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -73,7 +73,8 @@
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
 | `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
-| `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured |
+| `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
+| `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -114,12 +115,12 @@
 | Logo, announcement bar | ✅ | `site-header.tsx` |
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete |
 | Categories drawer | ✅ | Top-level; not full nested tree |
-| Main nav (shop, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
+| Main nav (shop, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
-| Footer contact, social, shop links | ✅ | `site-footer.tsx` |
+| Footer contact, social, shop links | ✅ | `site-footer.tsx` (includes store locator) |
 | Footer policies, newsletter, payment icons | ✅ | Newsletter: Mailchimp/MailerLite/AWeber via settings; icons via `payment_icons` |
 
 ---
@@ -145,7 +146,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Route `head` (title, description, OG) | ✅ | Public routes via `withStorefrontThemeHead` + `publicSeoLinks` |
-| JSON-LD (WebSite, Product, FAQPage, BreadcrumbList) | ✅ | Home, PDP (+ breadcrumbs), FAQ |
+| JSON-LD (WebSite, Product, FAQPage, BreadcrumbList, Store ItemList) | ✅ | Home, PDP (+ breadcrumbs), FAQ, store locator |
 | `noindex` on cart, checkout, account, auth | ✅ | |
 | Canonical / hreflang | ✅ | Public pages; RouterHead skips default when route sets canonical |
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
@@ -181,7 +182,9 @@
 
 ## Recommended next (priority order)
 
-_(No high-priority Phase 1 items queued — pick from README Should/Could or ops polish.)_
+1. Recently viewed (client-side PDP/PLP history)
+2. Reviews & ratings (moderated; larger slice)
+3. Promotional banners / ops polish from README Should list
 
 ---
 
@@ -189,6 +192,7 @@ _(No high-priority Phase 1 items queued — pick from README Should/Could or ops
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Store locator `/[lang]/stores`: map + branch list from `GET /locations`, nav/footer/sitemap, Store ItemList JSON-LD. |
 | 2026-07-10 | Related products on PDP: `related_products[]` on product detail (category then brand), Qwik section with ProductCard grid. |
 | 2026-07-10 | Dedicated `/[lang]/search` page: full product results (sort/stock/pagination), header submit + “view all” → `/search?q=`, `noindex` + robots disallow. |
 | 2026-07-10 | Newsletter signup: pluggable Mailchimp/MailerLite/AWeber, admin settings, `POST /newsletter/subscribe`, footer form + Turnstile when configured. |
