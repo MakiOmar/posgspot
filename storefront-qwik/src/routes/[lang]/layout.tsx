@@ -2,6 +2,7 @@ import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
+import { CookieConsentBanner } from "~/components/layout/cookie-consent-banner";
 import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
 import {
   EMPTY_NAV_CATEGORIES,
@@ -141,6 +142,7 @@ export default component$(() => {
                   <Slot />
                 </main>
                 <SiteShellFooter />
+                <CookieConsentBanner />
               </div>
             )}
             </CartProvider>

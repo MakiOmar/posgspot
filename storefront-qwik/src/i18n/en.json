@@ -45,6 +45,12 @@
     "newsletterInvalidEmail": "Please enter a valid email address.",
     "newsletterFailed": "Could not subscribe. Please try again."
   },
+  "consent": {
+    "title": "Cookies & privacy",
+    "body": "We use essential cookies to run the shop. With your OK we may also use analytics cookies to improve the site. See our",
+    "acceptAll": "Accept all",
+    "necessaryOnly": "Necessary only"
+  },
   "a11y": {
     "breadcrumb": "Breadcrumb",
     "pagination": "Pagination",

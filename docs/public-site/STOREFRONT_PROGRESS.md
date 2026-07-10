@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist, policies, payment icons, newsletter done |
+| Header / footer spec | 🟡 Core wired; wishlist, policies, payment icons, newsletter, cookie consent done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -125,6 +125,7 @@
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` (includes store locator) |
 | Footer policies, newsletter, payment icons | ✅ | Newsletter: Mailchimp/MailerLite/AWeber via settings; icons via `payment_icons` |
+| Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
 ---
 
@@ -188,7 +189,9 @@
 
 ## Recommended next (priority order)
 
-_(No high-priority Phase 1 items queued — pick from README Should/Could: cookie consent, brand pages, share buttons, returns, etc.)_
+1. Brand pages (`/brands/[slug]`) — catalog discovery / SEO
+2. Share buttons on PDP
+3. Returns / cancel order (larger post-purchase)
 
 ---
 
@@ -196,6 +199,7 @@ _(No high-priority Phase 1 items queued — pick from README Should/Could: cooki
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Cookie consent banner: Accept all / Necessary only, privacy link, localStorage; `hasAnalyticsConsent()` for future tags. |
 | 2026-07-11 | Promotional banners: admin Banners tab (home/category), `GET /settings` → `banners[]`, Qwik home + category render. |
 | 2026-07-11 | Product reviews & ratings: moderated submit (auth + purchase), public list, PDP/PLP stars, POS approve/reject, denormalized product rating. |
 | 2026-07-11 | Recently viewed: per-locale localStorage history; PDP records + grid; homepage section when non-empty. |
