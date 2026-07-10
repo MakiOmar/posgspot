@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
+import { useLocation, useNavigate } from "@builder.io/qwik-city";
 import { SearchIcon } from "~/components/icons";
 import { searchProducts } from "~/lib/api";
 import { productPath, formatPrice } from "~/lib/format";
@@ -23,6 +23,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
   const results = useSignal<ProductSummary[]>([]);
   const open = useSignal(false);
   const loading = useSignal(false);
+  // -1 = no highlight (Enter → full search); arrows / hover select a product.
   const activeIndex = useSignal(-1);
 
   // Keep the input in sync when navigating (e.g. after landing on /search?q=).
@@ -44,6 +45,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
     if (term.length < 2) {
       results.value = [];
       loading.value = false;
+      activeIndex.value = -1;
       return;
     }
 
@@ -53,9 +55,10 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
         const { data } = await searchProducts(term, 8, locale);
         results.value = data;
         open.value = true;
-        activeIndex.value = data.length > 0 ? 0 : -1;
+        activeIndex.value = -1;
       } catch {
         results.value = [];
+        activeIndex.value = -1;
       } finally {
         loading.value = false;
       }
@@ -68,14 +71,23 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
     const base = localePath(locale, "/search");
     const href = term ? `${base}?q=${encodeURIComponent(term)}` : base;
     open.value = false;
+    activeIndex.value = -1;
+    results.value = [];
     await withPendingFeedback(pending, searching, async () => {
       await nav(href);
     });
   });
 
-  const close$ = $(() => {
+  const goToProduct$ = $(async (productId: number) => {
+    const product = results.value.find((item) => item.id === productId);
+    if (!product) {
+      return;
+    }
+    const href = productPath(product, locale);
     open.value = false;
     activeIndex.value = -1;
+    results.value = [];
+    await nav(href);
   });
 
   return (
@@ -85,6 +97,13 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
         role="search"
         preventdefault:submit
         onSubmit$={async (_, formEl) => {
+          if (open.value && activeIndex.value >= 0) {
+            const item = results.value[activeIndex.value];
+            if (item) {
+              await goToProduct$(item.id);
+              return;
+            }
+          }
           const form = formEl as HTMLFormElement;
           const q = new FormData(form).get("q");
           const term = typeof q === "string" ? q.trim() : "";
@@ -112,30 +131,33 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               open.value = true;
             }
           }}
-          onKeyDown$={async (event) => {
+          onKeyDown$={(event) => {
             if (!open.value || results.value.length === 0) {
               return;
             }
             if (event.key === "Escape") {
-              await close$();
+              event.preventDefault();
+              open.value = false;
+              activeIndex.value = -1;
               return;
             }
             if (event.key === "ArrowDown") {
               event.preventDefault();
-              activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1);
+              activeIndex.value =
+                activeIndex.value < results.value.length - 1 ? activeIndex.value + 1 : 0;
               return;
             }
             if (event.key === "ArrowUp") {
               event.preventDefault();
-              activeIndex.value = Math.max(activeIndex.value - 1, 0);
+              activeIndex.value =
+                activeIndex.value <= 0 ? results.value.length - 1 : activeIndex.value - 1;
               return;
             }
             if (event.key === "Enter" && activeIndex.value >= 0) {
               event.preventDefault();
               const item = results.value[activeIndex.value];
               if (item) {
-                open.value = false;
-                await nav(productPath(item, locale));
+                void goToProduct$(item.id);
               }
             }
           }}
@@ -151,7 +173,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           class="header-search-suggestions"
           role="listbox"
           aria-label={tStatic(locale, "header.searchSuggestions")}
-          onMouseDown$={(event) => event.preventDefault()}
         >
           {loading.value ? (
             <p class="header-search-suggestions__status">{tStatic(locale, "common.searching")}</p>
@@ -163,13 +184,22 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
 
           {!loading.value
             ? results.value.map((product, index) => (
-                <Link
+                <button
                   key={product.id}
-                  href={productPath(product, locale)}
+                  type="button"
                   class={`header-search-suggestion${index === activeIndex.value ? " is-active" : ""}`}
                   role="option"
                   aria-selected={index === activeIndex.value}
-                  onClick$={close$}
+                  // Prevent input blur so the panel stays open through the click.
+                  onMouseDown$={(event) => event.preventDefault()}
+                  onMouseEnter$={() => {
+                    activeIndex.value = index;
+                  }}
+                  onClick$={async (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    await goToProduct$(product.id);
+                  }}
                 >
                   {product.image_url ? (
                     <img
@@ -189,7 +219,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
                       {formatPrice(product.price, settings.currency, locale)}
                     </span>
                   </span>
-                </Link>
+                </button>
               ))
             : null}
 
@@ -197,7 +227,12 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
             <button
               type="button"
               class="header-search-suggestions__all"
-              onClick$={() => submitSearch$(query.value.trim())}
+              onMouseDown$={(event) => event.preventDefault()}
+              onClick$={async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                await submitSearch$(query.value.trim());
+              }}
             >
               {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
             </button>

@@ -260,10 +260,18 @@ img {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  width: 100%;
+  margin: 0;
   padding: 0.65rem 1rem;
-  color: var(--gs-text);
-  text-decoration: none;
+  border: 0;
   border-bottom: 1px solid var(--gs-border);
+  border-radius: 0;
+  background: transparent;
+  color: var(--gs-text);
+  text-align: start;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .header-search-suggestion:last-of-type {
