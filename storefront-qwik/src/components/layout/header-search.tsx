@@ -25,7 +25,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
   const loading = useSignal(false);
   const activeIndex = useSignal(-1);
 
-  // Keep the input in sync when navigating (e.g. after landing on /products?q=).
+  // Keep the input in sync when navigating (e.g. after landing on /search?q=).
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => loc.url.pathname);
@@ -65,7 +65,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
   });
 
   const submitSearch$ = $(async (term: string) => {
-    const base = localePath(locale, "/products");
+    const base = localePath(locale, "/search");
     const href = term ? `${base}?q=${encodeURIComponent(term)}` : base;
     open.value = false;
     await withPendingFeedback(pending, searching, async () => {

@@ -405,6 +405,12 @@
     "pageOf": "صفحة {current} من {last}",
     "lastUpdated": "آخر تحديث: {date}"
   },
+  "search": {
+    "heading": "بحث",
+    "prompt": "اكتب اسم منتج أو SKU أو كلمة مفتاحية للعثور على ما تحتاجه.",
+    "noResultsFor": "لم يُعثر على منتجات لـ «{query}».",
+    "browseShop": "تصفح كل المنتجات"
+  },
   "home": {
     "kicker": "العب على مستواك",
     "welcome": "مرحبًا بكم في {businessName}",
@@ -429,6 +435,8 @@
     "shopDescription": "تصفح منتجات الألعاب في {businessName}.",
     "searchTitle": "بحث: {query} — {businessName}",
     "searchDescription": "نتائج البحث عن \"{query}\" في {businessName}.",
+    "searchPageTitle": "بحث — {businessName}",
+    "searchPageDescription": "ابحث عن ألعاب وأجهزة وإكسسوارات في {businessName}.",
     "aboutTitle": "من نحن — {businessName}",
     "aboutDescription": "تعرّف على {businessName}—قصتنا وفريقنا والتزامنا تجاه اللاعبين في مصر.",
     "productDescription": "اشترِ {name} من {businessName}.",

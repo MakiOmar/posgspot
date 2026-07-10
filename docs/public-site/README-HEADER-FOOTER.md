@@ -234,13 +234,14 @@ When hovering a category with children:
 |---------|--------|
 | **Placeholder (EN)** | Search games, consoles, accessories… |
 | **Placeholder (AR)** | ابحث عن ألعاب، أجهزة، إكسسوارات… |
-| **Trigger** | Submit on Enter or search icon click |
+| **Trigger** | Submit on Enter or search icon click → `/[lang]/search?q=` |
 | **Autocomplete** | Phase 1: product name + SKU; Phase 2: categories, brands, popular terms |
-| **Results dropdown** | Up to 8 products (image, name, price); "View all results" link |
-| **Empty state** | "No products found" + suggested categories |
-| **Mobile** | Search icon opens full-width overlay or dedicated `/search` page |
+| **Results dropdown** | Up to 8 products (image, name, price); "View all results" → dedicated search page |
+| **Search page** | `/[lang]/search` — full grid, sort / in-stock filters, pagination (`GET /products?q=`) |
+| **Empty state** | "No products found" + link to shop |
+| **Mobile** | Same header search; dedicated `/search` page for full results |
 
-**API:** `GET /api/storefront/v1/search?q={query}&limit=8`
+**API:** `GET /api/storefront/v1/search?q={query}&limit=8` (autocomplete). Full page uses `GET /products?q=`.
 
 ---
 

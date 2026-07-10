@@ -79,7 +79,7 @@
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs |
-| Wishlist, dedicated `/search` page | 🟡 | Wishlist page + API done; dedicated search page ⬜ |
+| Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit |
 
 ---
 
@@ -111,7 +111,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Logo, announcement bar | ✅ | `site-header.tsx` |
-| Search → `/products?q=` + autocomplete | ✅ | `header-search.tsx` → `GET /search` |
+| Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Main nav (shop, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
@@ -180,7 +180,7 @@
 
 ## Recommended next (priority order)
 
-1. **Dedicated `/search` page** — full results UI (autocomplete exists in header).
+_(No high-priority Phase 1 items queued — pick from README Should/Could or ops polish.)_
 
 ---
 
@@ -188,6 +188,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Dedicated `/[lang]/search` page: full product results (sort/stock/pagination), header submit + “view all” → `/search?q=`, `noindex` + robots disallow. |
 | 2026-07-10 | Newsletter signup: pluggable Mailchimp/MailerLite/AWeber, admin settings, `POST /newsletter/subscribe`, footer form + Turnstile when configured. |
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |

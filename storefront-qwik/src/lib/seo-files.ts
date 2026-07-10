@@ -12,6 +12,7 @@ const ROBOTS_DISALLOW_SUFFIXES = [
   "/account",
   "/add-customer",
   "/api-test",
+  "/search",
 ] as const;
 
 export function robotsDisallowPaths(): string[] {

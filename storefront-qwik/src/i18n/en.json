@@ -405,6 +405,12 @@
     "pageOf": "Page {current} of {last}",
     "lastUpdated": "Last updated: {date}"
   },
+  "search": {
+    "heading": "Search",
+    "prompt": "Type a product name, SKU, or keyword to find what you need.",
+    "noResultsFor": "No products found for “{query}”.",
+    "browseShop": "Browse all products"
+  },
   "home": {
     "kicker": "Play to your level",
     "welcome": "Welcome to {businessName}",
@@ -429,6 +435,8 @@
     "shopDescription": "Browse gaming products at {businessName}.",
     "searchTitle": "Search: {query} — {businessName}",
     "searchDescription": "Search results for \"{query}\" at {businessName}.",
+    "searchPageTitle": "Search — {businessName}",
+    "searchPageDescription": "Search games, consoles, and accessories at {businessName}.",
     "aboutTitle": "About us — {businessName}",
     "aboutDescription": "Learn about {businessName}—our story, team, and commitment to gamers in Egypt.",
     "productDescription": "Buy {name} at {businessName}.",
