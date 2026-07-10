@@ -82,6 +82,17 @@ class StorefrontSettingController extends Controller
             'payment_icons.*.label' => 'nullable|string|max:80',
             'payment_icons.*.url' => 'nullable|string|max:500',
             'payment_icons.*.existing_image' => 'nullable|string|max:191',
+            'banners' => 'nullable|array|max:12',
+            'banners.*.id' => 'nullable|string|max:40',
+            'banners.*.placement' => 'nullable|in:home,category',
+            'banners.*.category_slug' => 'nullable|string|max:191',
+            'banners.*.title_en' => 'nullable|string|max:120',
+            'banners.*.title_ar' => 'nullable|string|max:120',
+            'banners.*.link' => 'nullable|string|max:500',
+            'banners.*.url' => 'nullable|string|max:500',
+            'banners.*.existing_image' => 'nullable|string|max:191',
+            'banners.*.enabled' => 'nullable|boolean',
+            'banners.*.sort_order' => 'nullable|integer|min:0|max:999',
             'newsletter_enabled' => 'nullable|boolean',
             'newsletter_provider' => 'nullable|in:mailchimp,mailerlite,aweber',
             'newsletter_double_opt_in' => 'nullable|boolean',
@@ -160,6 +171,7 @@ class StorefrontSettingController extends Controller
                 'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
             'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
+            'banners' => $this->buildBannersPayload($request, $validated['banners'] ?? []),
             'newsletter' => [
                 'enabled' => $request->boolean('newsletter_enabled'),
                 'provider' => $validated['newsletter_provider'] ?? null,
@@ -234,5 +246,55 @@ class StorefrontSettingController extends Controller
         }
 
         return $icons;
+    }
+
+    /**
+     * Build promotional banner rows from form fields + optional uploads.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildBannersPayload(Request $request, array $rows): array
+    {
+        $this->commonUtil->ensurePublicUploadPermissions('storefront_banners', null, true);
+
+        $banners = [];
+
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $existing = basename(trim((string) ($row['existing_image'] ?? '')));
+            $uploaded = null;
+            $fileKey = 'banner_image_'.$index;
+            if ($request->hasFile($fileKey)) {
+                try {
+                    $uploaded = $this->commonUtil->uploadFile($request, $fileKey, 'storefront_banners', 'image');
+                } catch (\Throwable) {
+                    $uploaded = null;
+                }
+            }
+
+            $image = $uploaded ?: ($existing !== '' ? $existing : null);
+            $url = trim((string) ($row['url'] ?? ''));
+
+            $banners[] = [
+                'id' => trim((string) ($row['id'] ?? '')),
+                'placement' => ($row['placement'] ?? 'home') === 'category' ? 'category' : 'home',
+                'category_slug' => trim((string) ($row['category_slug'] ?? '')),
+                'title' => [
+                    'en' => trim((string) ($row['title_en'] ?? '')),
+                    'ar' => trim((string) ($row['title_ar'] ?? '')),
+                ],
+                'link' => trim((string) ($row['link'] ?? '')),
+                'image' => $image,
+                'url' => empty($image) ? $url : '',
+                'enabled' => ! empty($row['enabled']),
+                'sort_order' => (int) ($row['sort_order'] ?? $index),
+            ];
+        }
+
+        return $banners;
     }
 }

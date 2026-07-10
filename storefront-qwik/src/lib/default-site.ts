@@ -17,6 +17,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   reward_points: { enabled: false, name: "Reward Points" },
   promo_codes: { enabled_at_checkout: true, allow_stacking: false },
   payment_icons: [],
+  banners: [],
   newsletter: { enabled: false },
   turnstile: { enabled: false, site_key: null },
   locales: ["en"],

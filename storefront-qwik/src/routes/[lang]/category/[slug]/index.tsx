@@ -2,6 +2,7 @@ import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
+import { PromoBanners } from "~/components/catalog/promo-banners";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
 import { fetchCategory, fetchProductsPage } from "~/lib/api";
 import { parseProductListFilters } from "~/lib/catalog-filters";
@@ -88,6 +89,12 @@ export default component$(() => {
     <section>
       {/* Category heading driven by the resolved POS category name. */}
       <h1 class="page-title">{category.name}</h1>
+
+      <PromoBanners
+        banners={settings.value.banners ?? []}
+        placement="category"
+        categorySlug={category.slug}
+      />
 
       <ProductListToolbar basePath={loc.url.pathname} filters={filters} />
 

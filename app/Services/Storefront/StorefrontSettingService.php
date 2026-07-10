@@ -83,6 +83,8 @@ class StorefrontSettingService
             ],
             // Footer payment method icons (label + uploaded file or external URL).
             'payment_icons' => [],
+            // Homepage / category promotional banners (image + link).
+            'banners' => [],
             'newsletter' => [
                 'enabled' => false,
                 'provider' => null,
@@ -153,6 +155,10 @@ class StorefrontSettingService
         // Numeric lists must replace wholesale — array_replace_recursive cannot clear rows.
         if (array_key_exists('payment_icons', $settings)) {
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
+        }
+
+        if (array_key_exists('banners', $settings)) {
+            $merged['banners'] = $this->normalizeBanners($settings['banners']);
         }
 
         if (! empty($settings['gateway']['api_key'])) {
@@ -363,6 +369,93 @@ class StorefrontSettingService
         }
 
         // Allow relative paths under /uploads or site root.
+        if (str_starts_with($url, '/')) {
+            return url($url);
+        }
+
+        return asset($url);
+    }
+
+    /**
+     * Normalize promotional banner rows for persistence.
+     *
+     * @param  mixed  $banners
+     * @return array<int, array{id: string, placement: string, category_slug: string, title: array{en: string, ar: string}, link: string, image: string|null, url: string, enabled: bool, sort_order: int}>
+     */
+    public function normalizeBanners($banners): array
+    {
+        if (! is_array($banners)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($banners as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $image = trim((string) ($row['image'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            $titleEn = trim((string) (is_array($row['title'] ?? null) ? ($row['title']['en'] ?? '') : ($row['title_en'] ?? '')));
+            $titleAr = trim((string) (is_array($row['title'] ?? null) ? ($row['title']['ar'] ?? '') : ($row['title_ar'] ?? '')));
+            $link = trim((string) ($row['link'] ?? ''));
+            $placement = ($row['placement'] ?? 'home') === 'category' ? 'category' : 'home';
+            $categorySlug = trim((string) ($row['category_slug'] ?? ''));
+            $enabled = filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN);
+            $sortOrder = (int) ($row['sort_order'] ?? $index);
+            $id = trim((string) ($row['id'] ?? ''));
+            if ($id === '') {
+                $id = 'bn_'.bin2hex(random_bytes(4));
+            }
+
+            if ($image === '' && $url === '') {
+                continue;
+            }
+
+            if ($placement === 'category' && $categorySlug === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'id' => mb_substr($id, 0, 40),
+                'placement' => $placement,
+                'category_slug' => $placement === 'category' ? mb_substr($categorySlug, 0, 191) : '',
+                'title' => [
+                    'en' => mb_substr($titleEn, 0, 120),
+                    'ar' => mb_substr($titleAr, 0, 120),
+                ],
+                'link' => mb_substr($link, 0, 500),
+                'image' => $image !== '' ? $image : null,
+                'url' => $image === '' ? mb_substr($url, 0, 500) : '',
+                'enabled' => $enabled,
+                'sort_order' => $sortOrder,
+            ];
+        }
+
+        usort($normalized, fn ($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+
+        return array_values($normalized);
+    }
+
+    /**
+     * Absolute public URL for a stored banner image row.
+     */
+    public function bannerPublicUrl(array $row): ?string
+    {
+        $image = trim((string) ($row['image'] ?? ''));
+        if ($image !== '') {
+            return asset('uploads/storefront_banners/'.$image);
+        }
+
+        $url = trim((string) ($row['url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
         if (str_starts_with($url, '/')) {
             return url($url);
         }

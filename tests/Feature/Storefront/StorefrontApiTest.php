@@ -231,6 +231,61 @@ class StorefrontApiTest extends TestCase
             );
     }
 
+    public function test_settings_exposes_promotional_banners(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'banners' => [
+                [
+                    'id' => 'bn_home',
+                    'placement' => 'home',
+                    'category_slug' => '',
+                    'title' => ['en' => 'Weekend sale', 'ar' => 'عرض نهاية الأسبوع'],
+                    'link' => '/products',
+                    'image' => null,
+                    'url' => 'https://cdn.example.com/home-banner.webp',
+                    'enabled' => true,
+                    'sort_order' => 0,
+                ],
+                [
+                    'id' => 'bn_cat',
+                    'placement' => 'category',
+                    'category_slug' => 'playstation',
+                    'title' => ['en' => 'PS deals', 'ar' => ''],
+                    'link' => 'https://example.com/ps',
+                    'image' => null,
+                    'url' => 'https://cdn.example.com/ps-banner.webp',
+                    'enabled' => true,
+                    'sort_order' => 1,
+                ],
+                [
+                    'id' => 'bn_off',
+                    'placement' => 'home',
+                    'category_slug' => '',
+                    'title' => ['en' => 'Hidden', 'ar' => ''],
+                    'link' => '',
+                    'image' => null,
+                    'url' => 'https://cdn.example.com/hidden.webp',
+                    'enabled' => false,
+                    'sort_order' => 2,
+                ],
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonCount(2, 'data.banners')
+            ->assertJsonPath('data.banners.0.placement', 'home')
+            ->assertJsonPath('data.banners.0.title', 'Weekend sale')
+            ->assertJsonPath('data.banners.0.image_url', 'https://cdn.example.com/home-banner.webp')
+            ->assertJsonPath('data.banners.1.placement', 'category')
+            ->assertJsonPath('data.banners.1.category_slug', 'playstation');
+
+        $this->getJson('/api/storefront/v1/settings', ['X-Content-Locale' => 'ar'])
+            ->assertOk()
+            ->assertJsonPath('data.banners.0.title', 'عرض نهاية الأسبوع');
+    }
+
     public function test_locations_do_not_expose_raw_email(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

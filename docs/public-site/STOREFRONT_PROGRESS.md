@@ -64,9 +64,9 @@
 | Route | Status | Notes |
 |-------|--------|-------|
 | `/` → `/en/` or `/ar/` | ✅ | `Accept-Language` redirect |
-| `/[lang]/` Homepage | ✅ | Hero, featured categories, featured products, SEO |
+| `/[lang]/` Homepage | ✅ | Hero, promo banners, featured categories, featured products, recently viewed, SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
-| `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
+| `/[lang]/category/[slug]` | ✅ | Category PLP + promo banners + pagination + locale filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
@@ -138,6 +138,7 @@
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
+| Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
@@ -187,7 +188,7 @@
 
 ## Recommended next (priority order)
 
-1. Promotional banners / ops polish from README Should list
+_(No high-priority Phase 1 items queued — pick from README Should/Could: cookie consent, brand pages, share buttons, returns, etc.)_
 
 ---
 
@@ -195,6 +196,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Promotional banners: admin Banners tab (home/category), `GET /settings` → `banners[]`, Qwik home + category render. |
 | 2026-07-11 | Product reviews & ratings: moderated submit (auth + purchase), public list, PDP/PLP stars, POS approve/reject, denormalized product rating. |
 | 2026-07-11 | Recently viewed: per-locale localStorage history; PDP records + grid; homepage section when non-empty. |
 | 2026-07-11 | Store locator `/[lang]/stores`: map + branch list from `GET /locations`, nav/footer/sitemap, Store ItemList JSON-LD. |

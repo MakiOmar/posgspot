@@ -73,6 +73,7 @@ class SettingsApiService
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
+            'banners' => $this->bannersPayload($settings, $locale),
             'newsletter' => [
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
             ],
@@ -224,6 +225,47 @@ class SettingsApiService
             $out[] = [
                 'label' => $label !== '' ? $label : 'Payment',
                 'icon_url' => $url,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Public promotional banners (enabled rows with a resolvable image).
+     *
+     * @return array<int, array{id: string, placement: string, category_slug: string|null, title: string, link: string, image_url: string}>
+     */
+    private function bannersPayload(array $settings, string $locale): array
+    {
+        $banners = $settings['banners'] ?? [];
+        if (! is_array($banners)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($banners as $row) {
+            if (! is_array($row) || empty($row['enabled'])) {
+                continue;
+            }
+            $imageUrl = $this->storefrontSettings->bannerPublicUrl($row);
+            if ($imageUrl === null) {
+                continue;
+            }
+
+            $placement = ($row['placement'] ?? 'home') === 'category' ? 'category' : 'home';
+            $categorySlug = trim((string) ($row['category_slug'] ?? ''));
+            if ($placement === 'category' && $categorySlug === '') {
+                continue;
+            }
+
+            $out[] = [
+                'id' => (string) ($row['id'] ?? ''),
+                'placement' => $placement,
+                'category_slug' => $placement === 'category' ? $categorySlug : null,
+                'title' => $this->presenter->localizedSetting($row['title'] ?? '', $locale, ''),
+                'link' => trim((string) ($row['link'] ?? '')),
+                'image_url' => $imageUrl,
             ];
         }
 

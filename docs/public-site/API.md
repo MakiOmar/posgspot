@@ -52,6 +52,7 @@ Public `GET /settings` also exposes:
 - `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
+- `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 
 ### Checkout + Fawry payment
@@ -88,7 +89,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`) |
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
@@ -164,6 +165,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Select selling locations (catalog is empty when none selected)
 - COD, shipping, announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
+- **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
 - **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact, registration, and newsletter require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable

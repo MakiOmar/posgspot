@@ -63,6 +63,8 @@ export interface StoreSettings {
     label: string;
     icon_url: string;
   }>;
+  /** Homepage / category promotional banners. */
+  banners: PromoBanner[];
   newsletter: {
     enabled: boolean;
   };
@@ -71,6 +73,15 @@ export interface StoreSettings {
     site_key: string | null;
   };
   locales: string[];
+}
+
+export interface PromoBanner {
+  id: string;
+  placement: "home" | "category";
+  category_slug: string | null;
+  title: string;
+  link: string;
+  image_url: string;
 }
 
 export interface StoreLocation {

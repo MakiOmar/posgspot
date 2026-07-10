@@ -1,6 +1,7 @@
 ﻿import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
+import { PromoBanners } from "~/components/catalog/promo-banners";
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
 import { JsonLd } from "~/components/seo/json-ld";
 import { fetchProductsPage } from "~/lib/api";
@@ -65,6 +66,8 @@ export default component$(() => {
           </div>
         </div>
       </section>
+
+      <PromoBanners banners={settings.value.banners ?? []} placement="home" />
 
       {featuredCategories.length > 0 ? (
         <section class="home-section">

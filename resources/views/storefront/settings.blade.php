@@ -30,6 +30,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_banners" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-picture-o"></i> Banners
+                </a>
+            </li>
+            <li>
                 <a href="#tab_contact" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-phone"></i> Contact &amp; social
                 </a>
@@ -185,6 +190,90 @@
                     {!! Form::label('announcement_link', 'Link (optional)') !!}
                     {!! Form::text('announcement_link', $settings['announcement']['link'] ?? '', ['class' => 'form-control']) !!}
                 </div>
+            </div>
+
+            {{-- Promotional banners: homepage + category --}}
+            <div class="tab-pane" id="tab_banners">
+                <div class="alert alert-info">
+                    Upload or link images for the storefront homepage and category pages. Category banners need a matching category slug.
+                </div>
+                @php $promoBanners = $settings['banners'] ?? []; @endphp
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="banners_table">
+                        <thead>
+                            <tr>
+                                <th style="width:12%">Placement</th>
+                                <th style="width:12%">Category slug</th>
+                                <th style="width:14%">Title EN / AR</th>
+                                <th style="width:14%">Link</th>
+                                <th style="width:14%">Image URL</th>
+                                <th style="width:12%">Upload</th>
+                                <th style="width:6%">Sort</th>
+                                <th style="width:6%">On</th>
+                                <th style="width:8%">Preview</th>
+                                <th style="width:4%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="banners_tbody">
+                            @foreach ($promoBanners as $biIndex => $banner)
+                                @php
+                                    $bTitle = $banner['title'] ?? [];
+                                    $bImage = $banner['image'] ?? null;
+                                    $bUrl = $banner['url'] ?? '';
+                                    $bPreview = ! empty($bImage)
+                                        ? asset('uploads/storefront_banners/'.$bImage)
+                                        : $bUrl;
+                                @endphp
+                                <tr class="banner-row" data-index="{{ $biIndex }}">
+                                    <td>
+                                        <input type="hidden" name="banners[{{ $biIndex }}][id]" value="{{ $banner['id'] ?? '' }}">
+                                        <select class="form-control banner-placement" name="banners[{{ $biIndex }}][placement]">
+                                            <option value="home" @if(($banner['placement'] ?? 'home') === 'home') selected @endif>Home</option>
+                                            <option value="category" @if(($banner['placement'] ?? '') === 'category') selected @endif>Category</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control banner-category-slug" name="banners[{{ $biIndex }}][category_slug]" value="{{ $banner['category_slug'] ?? '' }}" maxlength="191" placeholder="e.g. playstation" @if(($banner['placement'] ?? 'home') !== 'category') disabled @endif>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control" name="banners[{{ $biIndex }}][title_en]" value="{{ is_array($bTitle) ? ($bTitle['en'] ?? '') : '' }}" maxlength="120" placeholder="EN alt/title">
+                                        <input type="text" class="form-control" name="banners[{{ $biIndex }}][title_ar]" value="{{ is_array($bTitle) ? ($bTitle['ar'] ?? '') : '' }}" maxlength="120" placeholder="AR" dir="rtl" style="margin-top:4px;">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control" name="banners[{{ $biIndex }}][link]" value="{{ $banner['link'] ?? '' }}" maxlength="500" placeholder="/products or https://…">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control" name="banners[{{ $biIndex }}][url]" value="{{ $bUrl }}" maxlength="500" placeholder="https://…">
+                                        <input type="hidden" name="banners[{{ $biIndex }}][existing_image]" value="{{ $bImage }}">
+                                    </td>
+                                    <td>
+                                        <input type="file" class="form-control" name="banner_image_{{ $biIndex }}" accept="image/*">
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control" name="banners[{{ $biIndex }}][sort_order]" value="{{ (int) ($banner['sort_order'] ?? $biIndex) }}" min="0" max="999">
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" name="banners[{{ $biIndex }}][enabled]" value="1" @if(!empty($banner['enabled'])) checked @endif>
+                                    </td>
+                                    <td class="text-center">
+                                        @if ($bPreview)
+                                            <img src="{{ $bPreview }}" alt="" style="max-height:36px;max-width:72px;">
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-danger btn-xs remove-banner" title="Remove">&times;</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-default btn-sm" id="add_banner_row">
+                    <i class="fa fa-plus"></i> Add banner
+                </button>
+                <p class="help-block">Max 12 banners. Prefer wide images (~1200×400). Relative links like <code>/products</code> work on the storefront.</p>
             </div>
 
             {{-- Contact & social --}}
@@ -627,6 +716,59 @@
 
         $('#payment_icons_tbody').on('click', '.remove-payment-icon', function () {
             $(this).closest('tr').remove();
+        });
+
+        // Promotional banners — add / remove rows
+        var bannerIndex = $('#banners_tbody .banner-row').length;
+
+        function bannerRowHtml(index) {
+            return '' +
+                '<tr class="banner-row" data-index="' + index + '">' +
+                '<td>' +
+                '<input type="hidden" name="banners[' + index + '][id]" value="">' +
+                '<select class="form-control banner-placement" name="banners[' + index + '][placement]">' +
+                '<option value="home" selected>Home</option>' +
+                '<option value="category">Category</option>' +
+                '</select>' +
+                '</td>' +
+                '<td><input type="text" class="form-control banner-category-slug" name="banners[' + index + '][category_slug]" value="" maxlength="191" placeholder="e.g. playstation" disabled></td>' +
+                '<td>' +
+                '<input type="text" class="form-control" name="banners[' + index + '][title_en]" value="" maxlength="120" placeholder="EN alt/title">' +
+                '<input type="text" class="form-control" name="banners[' + index + '][title_ar]" value="" maxlength="120" placeholder="AR" dir="rtl" style="margin-top:4px;">' +
+                '</td>' +
+                '<td><input type="text" class="form-control" name="banners[' + index + '][link]" value="" maxlength="500" placeholder="/products or https://…"></td>' +
+                '<td>' +
+                '<input type="text" class="form-control" name="banners[' + index + '][url]" value="" maxlength="500" placeholder="https://…">' +
+                '<input type="hidden" name="banners[' + index + '][existing_image]" value="">' +
+                '</td>' +
+                '<td><input type="file" class="form-control" name="banner_image_' + index + '" accept="image/*"></td>' +
+                '<td><input type="number" class="form-control" name="banners[' + index + '][sort_order]" value="' + index + '" min="0" max="999"></td>' +
+                '<td class="text-center"><input type="checkbox" name="banners[' + index + '][enabled]" value="1" checked></td>' +
+                '<td class="text-center"><span class="text-muted">—</span></td>' +
+                '<td class="text-center"><button type="button" class="btn btn-danger btn-xs remove-banner" title="Remove">&times;</button></td>' +
+                '</tr>';
+        }
+
+        function syncBannerCategorySlug($row) {
+            var isCategory = $row.find('.banner-placement').val() === 'category';
+            $row.find('.banner-category-slug').prop('disabled', !isCategory);
+        }
+
+        $('#add_banner_row').on('click', function () {
+            if ($('#banners_tbody .banner-row').length >= 12) {
+                toastr.warning('Maximum 12 banners.');
+                return;
+            }
+            $('#banners_tbody').append(bannerRowHtml(bannerIndex));
+            bannerIndex += 1;
+        });
+
+        $('#banners_tbody').on('click', '.remove-banner', function () {
+            $(this).closest('tr').remove();
+        });
+
+        $('#banners_tbody').on('change', '.banner-placement', function () {
+            syncBannerCategorySlug($(this).closest('tr'));
         });
     });
 </script>
