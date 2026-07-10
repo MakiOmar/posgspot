@@ -101,6 +101,16 @@
     "relatedProducts": "You may also like",
     "recentlyViewed": "Recently viewed"
   },
+  "share": {
+    "label": "Share",
+    "native": "Share via…",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "copyFailed": "Could not copy link",
+    "whatsapp": "Share on WhatsApp",
+    "facebook": "Share on Facebook",
+    "x": "Share on X"
+  },
   "brands": {
     "title": "Brands",
     "lead": "Shop by brand — find consoles, games, and accessories from the labels you trust."

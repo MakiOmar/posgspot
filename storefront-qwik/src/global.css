@@ -1523,6 +1523,45 @@ img {
   margin: 1.25rem 0;
 }
 
+.pdp-share {
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.pdp-share__label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--gs-muted);
+}
+
+.pdp-share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pdp-share__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  color: var(--gs-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.pdp-share__btn:hover {
+  border-color: var(--gs-accent, var(--gs-primary));
+  color: var(--gs-accent, var(--gs-primary));
+}
+
 .pdp-related {
   margin-top: 2.5rem;
   padding-top: 1.5rem;

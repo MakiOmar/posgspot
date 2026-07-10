@@ -70,7 +70,7 @@
 | `/[lang]/category/[slug]` | ✅ | Category PLP + promo banners + pagination + locale filter |
 | `/[lang]/brands` | ✅ | Brand index (sellable brands with slug) |
 | `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
-| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews; brand links to `/brands/{slug}` |
+| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews, share; brand links to `/brands/{slug}` |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
@@ -95,6 +95,7 @@
 | Client cart (`localStorage`) | ✅ | `lib/cart-context.tsx` |
 | Add to cart (PLP + PDP) | ✅ | `product-card.tsx`, PDP |
 | Related products on PDP | ✅ | Same category → brand fill via detail API; `ProductCard` grid |
+| Share buttons on PDP | ✅ | Native share + copy link + WhatsApp / Facebook / X; `product-share-buttons.tsx` |
 | Recently viewed | ✅ | Client localStorage per locale; PDP + homepage; `recently-viewed.tsx` |
 | Reviews & ratings | ✅ | Moderated; purchase-gated submit; PDP list/form; card stars; POS `/product-reviews` |
 | Quantity stepper | ✅ | `components/ui/quantity-stepper.tsx` |
@@ -194,8 +195,8 @@
 
 ## Recommended next (priority order)
 
-1. Share buttons on PDP
-2. Returns / cancel order (larger post-purchase)
+1. Returns / cancel order (larger post-purchase)
+2. Auto-generate brand `slug` on POS create/update (new brands after migration)
 
 ---
 
@@ -203,6 +204,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | PDP share buttons: native Web Share, copy link, WhatsApp / Facebook / X. |
 | 2026-07-11 | Brand pages: `brands.slug`, `GET /brands` + `/brands/{slug}`, products `brand_slug`, Qwik `/brands` + `/brands/[slug]` PLP, nav/footer/sitemap, PDP brand link. |
 | 2026-07-11 | Cookie consent banner: Accept all / Necessary only, privacy link, localStorage; `hasAnalyticsConsent()` for future tags. |
 | 2026-07-11 | Promotional banners: admin Banners tab (home/category), `GET /settings` → `banners[]`, Qwik home + category render. |

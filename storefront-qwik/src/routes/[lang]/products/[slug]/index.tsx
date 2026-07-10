@@ -7,6 +7,7 @@ import {
   galleryImagesForVariation,
   ProductGallery,
 } from "~/components/catalog/product-gallery";
+import { ProductShareButtons } from "~/components/catalog/product-share-buttons";
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
 import { StarRating } from "~/components/catalog/star-rating";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
@@ -266,6 +267,11 @@ export default component$(() => {
                 <AvailabilityCheckButton productId={p.id} variationId={variation.id} />
               ) : null}
             </div>
+
+            <ProductShareButtons
+              title={p.name}
+              url={`${origin}${localePath(locale, `/products/${encodeURIComponent(p.slug || String(p.id))}`)}`}
+            />
           </div>
         </div>
 
