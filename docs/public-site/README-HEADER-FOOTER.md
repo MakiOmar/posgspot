@@ -468,7 +468,7 @@ Display **accepted payment** icons (grayscale or brand-compliant):
 | | Mobile wallets (Vodafone Cash, etc. as applicable) |
 | | InstaPay / bank transfer icon if offered |
 
-Icons are **informational** (not clickable). Actual methods at checkout come from POS payment settings.
+Icons are **informational** (not clickable). Configure which icons appear under **POS → Storefront Settings → Footer payment icons** (upload or image URL). Actual methods at checkout come from payment gateway / COD settings.
 
 ### Right — Trust & legal
 
@@ -493,7 +493,7 @@ Optional Phase 2: trust badges (SSL, verified business).
 | Announcement bar | Env / CMS (Phase 2) | Yes |
 | Footer static links | Qwik i18n translation files | Build time |
 | Store list (footer link target) | Storefront API — locations | Yes |
-| Payment icons | Static assets in Qwik | Build time |
+| Payment icons | Storefront settings → `payment_icons` via `GET /settings` | Yes |
 
 ---
 

@@ -32,7 +32,8 @@
     "returns": "سياسة الاستبدال",
     "copyright": "© {year} {businessName}. جميع الحقوق محفوظة.",
     "tagline": "وجهتك لأجهزة الألعاب والإكسسوارات وخدمات الصيانة.",
-    "followUs": "تابعنا"
+    "followUs": "تابعنا",
+    "paymentMethods": "طرق الدفع المقبولة"
   },
   "a11y": {
     "breadcrumb": "مسار التنقل",

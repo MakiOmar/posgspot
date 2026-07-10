@@ -81,6 +81,8 @@ class StorefrontSettingService
                 'enabled_at_checkout' => true,
                 'allow_stacking' => false,
             ],
+            // Footer payment method icons (label + uploaded file or external URL).
+            'payment_icons' => [],
         ];
     }
 
@@ -129,6 +131,11 @@ class StorefrontSettingService
     public function save(int $businessId, array $settings): StorefrontSetting
     {
         $merged = array_replace_recursive($this->defaults(), $settings);
+
+        // Numeric lists must replace wholesale — array_replace_recursive cannot clear rows.
+        if (array_key_exists('payment_icons', $settings)) {
+            $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
+        }
 
         if (! empty($settings['gateway']['api_key'])) {
             $merged['gateway']['api_key'] = Crypt::encryptString($settings['gateway']['api_key']);
@@ -216,6 +223,74 @@ class StorefrontSettingService
         $row = StorefrontSetting::where('business_id', $businessId)->first();
 
         return empty($row) ? $this->defaults() : array_replace_recursive($this->defaults(), $row->value ?? []);
+    }
+
+    /**
+     * Normalize payment icon rows for persistence.
+     * Each row: label + either uploaded filename (image) or external url.
+     *
+     * @param  mixed  $icons
+     * @return array<int, array{label: string, image: string|null, url: string}>
+     */
+    public function normalizePaymentIcons($icons): array
+    {
+        if (! is_array($icons)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($icons as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $label = trim((string) ($row['label'] ?? ''));
+            $image = trim((string) ($row['image'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+
+            if ($label === '' && $image === '' && $url === '') {
+                continue;
+            }
+
+            if ($label === '') {
+                $label = $image !== '' ? pathinfo($image, PATHINFO_FILENAME) : 'Payment';
+            }
+
+            $normalized[] = [
+                'label' => mb_substr($label, 0, 80),
+                'image' => $image !== '' ? $image : null,
+                'url' => $image === '' ? mb_substr($url, 0, 500) : '',
+            ];
+        }
+
+        return array_values($normalized);
+    }
+
+    /**
+     * Absolute public URL for a stored payment icon row.
+     */
+    public function paymentIconPublicUrl(array $row): ?string
+    {
+        $image = trim((string) ($row['image'] ?? ''));
+        if ($image !== '') {
+            return asset('uploads/storefront_payment_icons/'.$image);
+        }
+
+        $url = trim((string) ($row['url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
+        // Allow relative paths under /uploads or site root.
+        if (str_starts_with($url, '/')) {
+            return url($url);
+        }
+
+        return asset($url);
     }
 
     /**

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-05 |
+| **Last updated** | 2026-07-10 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done** |
 
@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist done; policies missing; mini-cart done |
+| Header / footer spec | 🟡 Core wired; wishlist done; policies + payment icons done; newsletter open |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -99,7 +99,7 @@
 | Phone input + dial code | ✅ | `PhoneInputWithDialCode` |
 | Mini-cart dropdown | ✅ | `components/layout/mini-cart.tsx`, header trigger |
 | Guest cart merge on login | ✅ | `lib/cart-actions.ts` guest/user keys + `cart-context.tsx` merge on auth |
-| Coupons / promo codes | ⬜ | |
+| Coupons / promo codes | ✅ | Settings-gated; login required; picker + cart/checkout |
 | Cart price refresh from API | ✅ | `/cart` inspect + auto-remove OOS; checkout guard with max qty notice |
 | Wishlist (guest + account) | ✅ | `wishlist-context.tsx`, `header-wishlist.tsx`, `wishlist-toggle.tsx`, `/wishlist` |
 
@@ -118,7 +118,7 @@
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` |
-| Footer policies, newsletter, payment icons | 🟡 Policies linked; newsletter/payment icons open | |
+| Footer policies, newsletter, payment icons | 🟡 Policies + payment icons done; newsletter open | Icons via storefront settings `payment_icons` |
 
 ---
 
@@ -131,6 +131,7 @@
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
+| Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 
@@ -177,7 +178,7 @@
 
 ## Recommended next (priority order)
 
-1. **Footer polish** — newsletter signup, payment method icons.
+1. **Footer newsletter signup** — subscribe form + `POST /newsletter/subscribe` (payment icons done).
 2. **Dedicated `/search` page** — full results UI (autocomplete exists in header).
 
 ---
@@ -186,6 +187,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
 | 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |

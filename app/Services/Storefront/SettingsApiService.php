@@ -71,6 +71,7 @@ class SettingsApiService
                 'enabled_at_checkout' => (bool) ($settings['promo_codes']['enabled_at_checkout'] ?? true),
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
+            'payment_icons' => $this->paymentIconsPayload($settings),
             'locales' => ['en', 'ar'],
         ];
     }
@@ -192,5 +193,36 @@ class SettingsApiService
             'enabled' => $enabled,
             'site_key' => $enabled ? $siteKey : null,
         ];
+    }
+
+    /**
+     * Public footer payment icons (label + absolute icon URL only).
+     *
+     * @return array<int, array{label: string, icon_url: string}>
+     */
+    private function paymentIconsPayload(array $settings): array
+    {
+        $icons = $settings['payment_icons'] ?? [];
+        if (! is_array($icons)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($icons as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $url = $this->storefrontSettings->paymentIconPublicUrl($row);
+            if ($url === null) {
+                continue;
+            }
+            $label = trim((string) ($row['label'] ?? ''));
+            $out[] = [
+                'label' => $label !== '' ? $label : 'Payment',
+                'icon_url' => $url,
+            ];
+        }
+
+        return $out;
     }
 }

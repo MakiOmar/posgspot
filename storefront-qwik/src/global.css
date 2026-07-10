@@ -1053,7 +1053,43 @@ img {
   border-top: 1px solid var(--gs-border);
   color: var(--gs-muted);
   font-size: 0.8125rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem 1.5rem;
   text-align: center;
+}
+
+.footer-bottom__copy {
+  flex: 1 1 auto;
+  min-width: min(100%, 12rem);
+}
+
+.footer-payment-icons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.footer-payment-icons li {
+  display: flex;
+  align-items: center;
+}
+
+.footer-payment-icons img {
+  display: block;
+  max-height: 1.75rem;
+  width: auto;
+  max-width: 3.5rem;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.85;
 }
 
 .page-title {

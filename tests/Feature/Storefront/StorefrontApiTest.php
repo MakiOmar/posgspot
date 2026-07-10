@@ -202,6 +202,35 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.promo_codes.allow_stacking', true);
     }
 
+    public function test_settings_exposes_payment_icons(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'payment_icons' => [
+                [
+                    'label' => 'Visa',
+                    'image' => null,
+                    'url' => 'https://cdn.example.com/visa.svg',
+                ],
+                [
+                    'label' => 'Cash on delivery',
+                    'image' => 'cod.png',
+                    'url' => '',
+                ],
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.payment_icons.0.label', 'Visa')
+            ->assertJsonPath('data.payment_icons.0.icon_url', 'https://cdn.example.com/visa.svg')
+            ->assertJsonPath('data.payment_icons.1.label', 'Cash on delivery')
+            ->assertJsonPath(
+                'data.payment_icons.1.icon_url',
+                asset('uploads/storefront_payment_icons/cod.png')
+            );
+    }
+
     public function test_locations_do_not_expose_raw_email(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

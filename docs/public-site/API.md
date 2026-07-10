@@ -51,6 +51,7 @@ Public `GET /settings` also exposes:
 - `cod_enabled`
 - `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
+- `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 
 ### Checkout + Fawry payment
 
@@ -157,6 +158,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 - Select selling locations (catalog is empty when none selected)
 - COD, shipping, announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
+- **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact and registration require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)

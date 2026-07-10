@@ -32,7 +32,8 @@
     "returns": "Return policy",
     "copyright": "© {year} {businessName}. All rights reserved.",
     "tagline": "Your destination for gaming consoles, accessories, and repair services.",
-    "followUs": "Follow us"
+    "followUs": "Follow us",
+    "paymentMethods": "Accepted payment methods"
   },
   "a11y": {
     "breadcrumb": "Breadcrumb",

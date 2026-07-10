@@ -110,7 +110,18 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
         </div>
       </div>
       <div class="container footer-bottom">
-        {tStatic(locale, "footer.copyright", { year, businessName: settings.business_name })}
+        <div class="footer-bottom__copy">
+          {tStatic(locale, "footer.copyright", { year, businessName: settings.business_name })}
+        </div>
+        {settings.payment_icons?.length ? (
+          <ul class="footer-payment-icons" aria-label={tStatic(locale, "footer.paymentMethods")}>
+            {settings.payment_icons.map((icon) => (
+              <li key={`${icon.label}-${icon.icon_url}`}>
+                <img src={icon.icon_url} alt={icon.label} width={48} height={28} loading="lazy" />
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
     </footer>
   );

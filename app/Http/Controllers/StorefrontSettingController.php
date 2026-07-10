@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\BusinessLocation;
 use App\Services\Storefront\StorefrontSettingService;
+use App\Utils\Util;
 use Illuminate\Http\Request;
 
 /**
@@ -11,8 +12,10 @@ use Illuminate\Http\Request;
  */
 class StorefrontSettingController extends Controller
 {
-    public function __construct(private StorefrontSettingService $settings)
-    {
+    public function __construct(
+        private StorefrontSettingService $settings,
+        private Util $commonUtil
+    ) {
     }
 
     public function edit(Request $request)
@@ -75,6 +78,10 @@ class StorefrontSettingController extends Controller
             'turnstile_secret_key' => 'nullable|string|max:500',
             'promo_codes_enabled_at_checkout' => 'nullable|boolean',
             'promo_codes_allow_stacking' => 'nullable|boolean',
+            'payment_icons' => 'nullable|array|max:20',
+            'payment_icons.*.label' => 'nullable|string|max:80',
+            'payment_icons.*.url' => 'nullable|string|max:500',
+            'payment_icons.*.existing_image' => 'nullable|string|max:191',
         ]);
 
         $payload = [
@@ -142,6 +149,7 @@ class StorefrontSettingController extends Controller
                 'enabled_at_checkout' => $request->boolean('promo_codes_enabled_at_checkout'),
                 'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
+            'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
         ];
 
         $this->settings->save($business_id, $payload);
@@ -149,5 +157,51 @@ class StorefrontSettingController extends Controller
         $output = ['success' => true, 'msg' => __('lang_v1.success')];
 
         return redirect()->action([self::class, 'edit'])->with('status', $output);
+    }
+
+    /**
+     * Build payment icon rows from form fields + optional uploads.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array{label: string, image: string|null, url: string}>
+     */
+    private function buildPaymentIconsPayload(Request $request, array $rows): array
+    {
+        $icons = [];
+
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $label = trim((string) ($row['label'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            $existing = basename(trim((string) ($row['existing_image'] ?? '')));
+            $uploaded = null;
+
+            // Flat file keys — Util::uploadFile does not support nested request names.
+            $fileKey = 'payment_icon_image_'.$index;
+            if ($request->hasFile($fileKey)) {
+                try {
+                    $uploaded = $this->commonUtil->uploadFile($request, $fileKey, 'storefront_payment_icons', 'image');
+                } catch (\Throwable) {
+                    $uploaded = null;
+                }
+            }
+
+            $image = $uploaded ?: ($existing !== '' ? $existing : null);
+
+            if ($label === '' && empty($image) && $url === '') {
+                continue;
+            }
+
+            $icons[] = [
+                'label' => $label,
+                'image' => $image,
+                'url' => empty($image) ? $url : '',
+            ];
+        }
+
+        return $icons;
     }
 }

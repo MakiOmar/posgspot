@@ -20,7 +20,7 @@
             <h3 class="box-title">Public website configuration</h3>
         </div>
 
-        {!! Form::open(['url' => action([\App\Http\Controllers\StorefrontSettingController::class, 'update']), 'method' => 'post', 'id' => 'storefront_settings_form']) !!}
+        {!! Form::open(['url' => action([\App\Http\Controllers\StorefrontSettingController::class, 'update']), 'method' => 'post', 'id' => 'storefront_settings_form', 'files' => true]) !!}
         <div class="box-body">
             <div class="alert alert-info">
                 Select which locations sell online. If none are selected, the storefront catalog will show no products.
@@ -258,6 +258,70 @@
             </div>
 
             <hr>
+            <h4 id="payment-icons-settings">Footer payment icons</h4>
+            <p class="help-block">
+                Icons shown in the storefront footer (informational only — not checkout methods).
+                Upload an image or paste an external image URL. Max 20 icons.
+            </p>
+            @php
+                $paymentIcons = $settings['payment_icons'] ?? [];
+                if (! is_array($paymentIcons)) {
+                    $paymentIcons = [];
+                }
+            @endphp
+            <div class="table-responsive">
+                <table class="table table-bordered" id="payment_icons_table">
+                    <thead>
+                        <tr>
+                            <th style="width: 22%;">Label (alt text)</th>
+                            <th style="width: 28%;">Image URL (optional)</th>
+                            <th style="width: 28%;">Upload image</th>
+                            <th style="width: 14%;">Preview</th>
+                            <th style="width: 8%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment_icons_tbody">
+                        @forelse ($paymentIcons as $piIndex => $pi)
+                            @php
+                                $piLabel = $pi['label'] ?? '';
+                                $piImage = $pi['image'] ?? null;
+                                $piUrl = $pi['url'] ?? '';
+                                $piPreview = ! empty($piImage)
+                                    ? asset('uploads/storefront_payment_icons/'.$piImage)
+                                    : $piUrl;
+                            @endphp
+                            <tr class="payment-icon-row" data-index="{{ $piIndex }}">
+                                <td>
+                                    <input type="text" class="form-control" name="payment_icons[{{ $piIndex }}][label]" value="{{ $piLabel }}" maxlength="80" placeholder="e.g. Visa">
+                                    <input type="hidden" name="payment_icons[{{ $piIndex }}][existing_image]" value="{{ $piImage }}">
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control payment-icon-url" name="payment_icons[{{ $piIndex }}][url]" value="{{ $piUrl }}" maxlength="500" placeholder="https://…">
+                                </td>
+                                <td>
+                                    <input type="file" class="form-control payment-icon-file" name="payment_icon_image_{{ $piIndex }}" accept="image/*">
+                                </td>
+                                <td class="text-center">
+                                    @if (! empty($piPreview))
+                                        <img src="{{ $piPreview }}" alt="" class="payment-icon-preview" style="max-height: 32px; max-width: 64px;">
+                                    @else
+                                        <span class="text-muted">—</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-xs remove-payment-icon" title="Remove">&times;</button>
+                                </td>
+                            </tr>
+                        @empty
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" class="btn btn-default btn-sm" id="add_payment_icon_row">
+                <i class="fa fa-plus"></i> Add payment icon
+            </button>
+
+            <hr>
             <h4>Payment gateway</h4>
             <div class="checkbox">
                 <label>
@@ -348,6 +412,42 @@
 
         $('#gateway_provider').on('change', toggleGatewayFields);
         toggleGatewayFields();
+
+        // Footer payment icons — add / remove rows
+        var paymentIconIndex = $('#payment_icons_tbody .payment-icon-row').length;
+
+        function paymentIconRowHtml(index) {
+            return '' +
+                '<tr class="payment-icon-row" data-index="' + index + '">' +
+                '<td>' +
+                '<input type="text" class="form-control" name="payment_icons[' + index + '][label]" value="" maxlength="80" placeholder="e.g. Visa">' +
+                '<input type="hidden" name="payment_icons[' + index + '][existing_image]" value="">' +
+                '</td>' +
+                '<td>' +
+                '<input type="text" class="form-control payment-icon-url" name="payment_icons[' + index + '][url]" value="" maxlength="500" placeholder="https://…">' +
+                '</td>' +
+                '<td>' +
+                '<input type="file" class="form-control payment-icon-file" name="payment_icon_image_' + index + '" accept="image/*">' +
+                '</td>' +
+                '<td class="text-center"><span class="text-muted">—</span></td>' +
+                '<td class="text-center">' +
+                '<button type="button" class="btn btn-danger btn-xs remove-payment-icon" title="Remove">&times;</button>' +
+                '</td>' +
+                '</tr>';
+        }
+
+        $('#add_payment_icon_row').on('click', function () {
+            if ($('#payment_icons_tbody .payment-icon-row').length >= 20) {
+                toastr.warning('Maximum 20 payment icons.');
+                return;
+            }
+            $('#payment_icons_tbody').append(paymentIconRowHtml(paymentIconIndex));
+            paymentIconIndex += 1;
+        });
+
+        $('#payment_icons_tbody').on('click', '.remove-payment-icon', function () {
+            $(this).closest('tr').remove();
+        });
     });
 </script>
 @endsection

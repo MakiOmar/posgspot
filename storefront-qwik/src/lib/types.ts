@@ -58,6 +58,11 @@ export interface StoreSettings {
     enabled_at_checkout: boolean;
     allow_stacking: boolean;
   };
+  /** Footer payment method icons from storefront settings. */
+  payment_icons: Array<{
+    label: string;
+    icon_url: string;
+  }>;
   turnstile: {
     enabled: boolean;
     site_key: string | null;
