@@ -86,7 +86,8 @@
     "categoryNotFoundBody": "This category doesn’t exist or is no longer available.",
     "brand": "Brand",
     "category": "Category",
-    "relatedProducts": "You may also like"
+    "relatedProducts": "You may also like",
+    "recentlyViewed": "Recently viewed"
   },
   "availability": {
     "title": "Store availability",

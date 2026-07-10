@@ -1,6 +1,7 @@
 ﻿import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ProductCard } from "~/components/catalog/product-card";
+import { RecentlyViewed } from "~/components/catalog/recently-viewed";
 import { JsonLd } from "~/components/seo/json-ld";
 import { fetchProductsPage } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -108,6 +109,11 @@ export default component$(() => {
           </div>
         )}
       </section>
+
+      <RecentlyViewed
+        settings={settings.value}
+        headingId="home-recently-viewed-heading"
+      />
     </>
   );
 });

@@ -86,7 +86,8 @@
     "categoryNotFoundBody": "هذا القسم غير موجود أو لم يعد متاحًا.",
     "brand": "العلامة التجارية",
     "category": "القسم",
-    "relatedProducts": "قد يعجبك أيضاً"
+    "relatedProducts": "قد يعجبك أيضاً",
+    "recentlyViewed": "شوهدت مؤخراً"
   },
   "availability": {
     "title": "التوفر في الفروع",

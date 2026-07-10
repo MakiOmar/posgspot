@@ -6,6 +6,7 @@ import {
   galleryImagesForVariation,
   ProductGallery,
 } from "~/components/catalog/product-gallery";
+import { RecentlyViewed } from "~/components/catalog/recently-viewed";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { Breadcrumbs } from "~/components/seo/breadcrumbs";
 import { JsonLd } from "~/components/seo/json-ld";
@@ -256,6 +257,14 @@ export default component$(() => {
             </div>
           </section>
         ) : null}
+
+        <RecentlyViewed
+          settings={settings.value}
+          recordProduct={productSummaryFromDetail(p, selectedVariation.value)}
+          excludeProductId={p.id}
+          headingId="pdp-recently-viewed-heading"
+          class="pdp-related"
+        />
       </article>
     </>
   );
