@@ -536,6 +536,8 @@ class CatalogService
             'on_sale' => $pricingRows->contains(fn (array $row) => $row['on_sale']),
             'sale_percent' => (int) $onSaleRow['sale_percent'],
             'in_stock' => $inStock,
+            'rating_average' => round((float) ($product->storefront_rating_avg ?? 0), 2),
+            'rating_count' => (int) ($product->storefront_rating_count ?? 0),
         ];
     }
 
@@ -585,6 +587,10 @@ class CatalogService
             'images' => $images,
             'enable_stock' => (bool) $product->enable_stock,
             'variations' => $variations,
+            'rating' => [
+                'average' => round((float) ($product->storefront_rating_avg ?? 0), 2),
+                'count' => (int) ($product->storefront_rating_count ?? 0),
+            ],
         ];
     }
 

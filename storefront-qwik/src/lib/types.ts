@@ -108,6 +108,8 @@ export interface ProductSummary {
   on_sale: boolean;
   sale_percent: number;
   in_stock: boolean;
+  rating_average?: number;
+  rating_count?: number;
 }
 
 export interface ProductVariation {
@@ -135,8 +137,26 @@ export interface ProductDetail {
   images: string[];
   enable_stock: boolean;
   variations: ProductVariation[];
+  rating?: { average: number; count: number };
   /** Same category / brand summaries for PDP upsell (catalog ProductSummary shape). */
   related_products?: ProductSummary[];
+}
+
+export interface ProductReviewItem {
+  id: number;
+  rating: number;
+  title: string | null;
+  body: string;
+  is_verified_purchase: boolean;
+  author_name: string;
+  created_at: string | null;
+  moderated_at: string | null;
+}
+
+export interface ReviewEligibility {
+  can_review: boolean;
+  already_reviewed: boolean;
+  reason: string | null;
 }
 
 export interface ProductsMeta {

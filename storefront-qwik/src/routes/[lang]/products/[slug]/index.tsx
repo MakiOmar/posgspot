@@ -2,11 +2,13 @@ import { component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { ProductCard } from "~/components/catalog/product-card";
+import { ProductReviews } from "~/components/catalog/product-reviews";
 import {
   galleryImagesForVariation,
   ProductGallery,
 } from "~/components/catalog/product-gallery";
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
+import { StarRating } from "~/components/catalog/star-rating";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { Breadcrumbs } from "~/components/seo/breadcrumbs";
 import { JsonLd } from "~/components/seo/json-ld";
@@ -104,6 +106,17 @@ export default component$(() => {
               ? "https://schema.org/InStock"
               : "https://schema.org/OutOfStock",
           },
+          ...((p.rating?.count ?? 0) > 0
+            ? {
+                aggregateRating: {
+                  "@type": "AggregateRating",
+                  ratingValue: p.rating!.average,
+                  reviewCount: p.rating!.count,
+                  bestRating: 5,
+                  worstRating: 1,
+                },
+              }
+            : {}),
         }}
       />
       <JsonLd
@@ -151,6 +164,12 @@ export default component$(() => {
                 formatPrice(selectedVariation.value.price, currency, locale)
               )}
             </div>
+
+            {(p.rating?.count ?? 0) > 0 ? (
+              <div class="pdp-rating">
+                <StarRating average={p.rating!.average} count={p.rating!.count} size="md" />
+              </div>
+            ) : null}
 
             {p.variations.length > 1 ? (
               <label>
@@ -264,6 +283,13 @@ export default component$(() => {
           excludeProductId={p.id}
           headingId="pdp-recently-viewed-heading"
           class="pdp-related"
+        />
+
+        <ProductReviews
+          productId={p.id}
+          productSlug={p.slug}
+          ratingAverage={p.rating?.average ?? 0}
+          ratingCount={p.rating?.count ?? 0}
         />
       </article>
     </>

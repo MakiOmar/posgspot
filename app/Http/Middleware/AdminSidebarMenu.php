@@ -812,7 +812,8 @@ class AdminSidebarMenu
                 auth()->user()->can('tax_rate.create') ||
                 auth()->user()->can('access_package_subscriptions') ||
                 auth()->user()->can('storefront.settings') ||
-                auth()->user()->can('coupon.access')) {
+                auth()->user()->can('coupon.access') ||
+                auth()->user()->can('product_review.access')) {
                 $menu->dropdown(
                     __('business.settings'),
                     function ($sub) use ($enabled_modules) {
@@ -845,6 +846,13 @@ class AdminSidebarMenu
                                 action([\App\Http\Controllers\CouponController::class, 'index']),
                                 'Promo codes',
                                 ['icon' => '', 'active' => request()->segment(1) == 'coupons']
+                            );
+                        }
+                        if (auth()->user()->can('product_review.access')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\ProductReviewController::class, 'index']),
+                                'Product reviews',
+                                ['icon' => '', 'active' => request()->segment(1) == 'product-reviews']
                             );
                         }
                         if (auth()->user()->can('invoice_settings.access')) {

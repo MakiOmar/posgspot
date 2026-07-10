@@ -89,6 +89,28 @@
     "relatedProducts": "قد يعجبك أيضاً",
     "recentlyViewed": "شوهدت مؤخراً"
   },
+  "reviews": {
+    "title": "آراء العملاء",
+    "noneYet": "لا توجد مراجعات بعد.",
+    "writeReview": "اكتب مراجعة",
+    "rating": "التقييم",
+    "starsOption": "{count} نجوم",
+    "titleField": "العنوان (اختياري)",
+    "titlePlaceholder": "لخّص تجربتك",
+    "bodyField": "مراجعتك",
+    "bodyPlaceholder": "ما الذي أعجبك أو لم يعجبك؟",
+    "submit": "إرسال المراجعة",
+    "submitting": "جاري الإرسال…",
+    "submitSuccess": "شكراً لك! مراجعتك بانتظار الموافقة.",
+    "submitFailed": "تعذر إرسال مراجعتك. يرجى المحاولة مرة أخرى.",
+    "pendingNotice": "مراجعتك بانتظار المراجعة.",
+    "alreadyReviewed": "لقد راجعت هذا المنتج مسبقاً.",
+    "purchaseRequired": "يمكن للعملاء الذين اشتروا هذا المنتج فقط ترك مراجعة.",
+    "loginPrompt": "سجّل الدخول لترك مراجعة.",
+    "verifiedPurchase": "شراء موثّق",
+    "averageTitle": "{average} من 5 من {count} مراجعة",
+    "countLabel": "{count}"
+  },
   "availability": {
     "title": "التوفر في الفروع",
     "loading": "جاري تحميل التوفر…",

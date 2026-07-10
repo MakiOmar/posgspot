@@ -99,6 +99,8 @@ export const productSummaryFromDetail = (
   on_sale: variation.on_sale ?? false,
   sale_percent: variation.sale_percent ?? 0,
   in_stock: variation.in_stock,
+  rating_average: product.rating?.average ?? 0,
+  rating_count: product.rating?.count ?? 0,
 });
 
 /**

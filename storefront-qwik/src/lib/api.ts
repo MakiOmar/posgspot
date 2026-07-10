@@ -21,8 +21,10 @@ import type {
   PaymentReturnResult,
   ProductAvailability,
   ProductDetail,
+  ProductReviewItem,
   ProductSummary,
   ProductsMeta,
+  ReviewEligibility,
   RewardPointsBalance,
   RewardPointsValidation,
   StoreLocation,
@@ -170,6 +172,51 @@ export async function fetchProductsPage(
 
 export function fetchProduct(idOrSlug: string, locale?: string) {
   return storefrontFetch<ProductDetail>(`/products/${encodeURIComponent(idOrSlug)}`, {}, locale);
+}
+
+export async function fetchProductReviews(
+  idOrSlug: string,
+  page = 1,
+  perPage = 10,
+  locale?: string,
+) {
+  const qs = `?page=${page}&per_page=${perPage}`;
+  const json = await storefrontFetch<ProductReviewItem[]>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews${qs}`,
+    {},
+    locale,
+  );
+  return {
+    data: json.data,
+    meta: json.meta as unknown as ProductsMeta,
+  };
+}
+
+export function fetchReviewEligibility(idOrSlug: string, token: string, locale?: string) {
+  return storefrontFetch<ReviewEligibility>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews/eligibility`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+    locale,
+  );
+}
+
+export function submitProductReview(
+  idOrSlug: string,
+  token: string,
+  payload: { rating: number; title?: string; body: string },
+  locale?: string,
+) {
+  return storefrontFetch<{ id: number; status: string; message: string }>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    },
+    locale,
+  );
 }
 
 export function fetchAvailability(productId: number, variationId?: number, locale?: string) {

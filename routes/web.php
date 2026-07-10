@@ -439,6 +439,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/coupons/{id}/duplicate', [CouponController::class, 'duplicate']);
     Route::resource('coupons', CouponController::class)->except(['show']);
 
+    Route::get('/product-reviews', [\App\Http\Controllers\ProductReviewController::class, 'index']);
+    Route::post('/product-reviews/{id}/approve', [\App\Http\Controllers\ProductReviewController::class, 'approve']);
+    Route::post('/product-reviews/{id}/reject', [\App\Http\Controllers\ProductReviewController::class, 'reject']);
+
     Route::prefix('account')->group(function () {
         Route::resource('/account', AccountController::class);
         Route::get('/fund-transfer/{id}', [AccountController::class, 'getFundTransfer']);

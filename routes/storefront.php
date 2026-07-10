@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Storefront\PaymentReturnController;
 use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
 use App\Http\Controllers\Api\Storefront\ProductController;
+use App\Http\Controllers\Api\Storefront\ProductReviewController;
 use App\Http\Controllers\Api\Storefront\SearchController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
 use App\Http\Controllers\Api\Storefront\WishlistController;
@@ -42,6 +43,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
     Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/{idOrSlug}/reviews', [ProductReviewController::class, 'index']);
     Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
     Route::get('/products/{productId}/availability', [AvailabilityController::class, 'show']);
     Route::get('/search', [SearchController::class, 'index']);
@@ -74,6 +76,9 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/wishlist/merge', [WishlistController::class, 'merge']);
         Route::post('/wishlist', [WishlistController::class, 'store']);
         Route::delete('/wishlist/{productId}', [WishlistController::class, 'destroy']);
+
+        Route::get('/products/{idOrSlug}/reviews/eligibility', [ProductReviewController::class, 'eligibility']);
+        Route::post('/products/{idOrSlug}/reviews', [ProductReviewController::class, 'store']);
     });
 
     Route::middleware('auth:sanctum')->prefix('account')->group(function () {

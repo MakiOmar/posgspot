@@ -1454,6 +1454,146 @@ img {
   border-top: 1px solid var(--gs-border);
 }
 
+.pdp-rating {
+  margin-top: 0.75rem;
+}
+
+.product-card__rating {
+  margin: 0.35rem 0 0.15rem;
+}
+
+.star-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.star-rating__stars {
+  display: inline-flex;
+  gap: 0.05rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--gs-muted) 55%, transparent);
+}
+
+.star-rating__star--full,
+.star-rating__star--half {
+  color: #d4a017;
+}
+
+.star-rating--sm {
+  font-size: 0.85rem;
+}
+
+.star-rating--md {
+  font-size: 1rem;
+}
+
+.star-rating__meta {
+  display: inline-flex;
+  gap: 0.25rem;
+  color: var(--gs-muted);
+  font-size: 0.85em;
+}
+
+.star-rating__avg {
+  font-weight: 700;
+  color: var(--gs-text);
+}
+
+.product-reviews {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--gs-border);
+}
+
+.product-reviews__summary {
+  margin-bottom: 1.25rem;
+}
+
+.product-reviews__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+}
+
+.product-reviews__form-title {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.product-reviews__notice {
+  margin: 0 0 1.25rem;
+  color: var(--gs-muted);
+}
+
+.product-reviews__notice a {
+  color: var(--gs-accent);
+  font-weight: 600;
+}
+
+.product-reviews__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.product-reviews__item {
+  padding: 1rem 0;
+  border-top: 1px solid var(--gs-border);
+}
+
+.product-reviews__item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.product-reviews__item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.product-reviews__author {
+  font-size: 0.95rem;
+}
+
+.product-reviews__verified {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gs-accent);
+}
+
+.product-reviews__item-title {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+}
+
+.product-reviews__item-body {
+  margin: 0;
+  color: var(--gs-muted);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.product-reviews__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
 /* Shared +/- quantity stepper (cart + product detail). */
 .qty-stepper {
   display: inline-flex;

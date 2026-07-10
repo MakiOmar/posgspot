@@ -93,7 +93,10 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
-| GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. |
+| GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. |
+| GET | `/products/{idOrSlug}/reviews` | Approved reviews only (paginated). Each item: `id`, `rating`, `title`, `body`, `is_verified_purchase`, `author_name` (masked), timestamps. |
+| GET | `/products/{idOrSlug}/reviews/eligibility` | **Auth required.** `{ can_review, already_reviewed, reason }` — reasons: `not_purchased`, `pending`, `already_reviewed`, `not_found`. |
+| POST | `/products/{idOrSlug}/reviews` | **Auth required.** Body `{ rating (1–5), title?, body (10–2000) }`. Requires a final sell of the product for the contact. Creates/updates as `pending` (rejected rows may be resubmitted). |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete (header dropdown). Full results UI is the Qwik `/[lang]/search` page using `GET /products?q=`. |
 | POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings). Optional `turnstile_token` when Turnstile is enabled in storefront settings |

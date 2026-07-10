@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
+import { StarRating } from "~/components/catalog/star-rating";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -75,6 +76,16 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
         <Link href={pdpUrl} class="product-card__title-link">
           <h2 class="product-card__name">{product.name}</h2>
         </Link>
+
+        {(product.rating_count ?? 0) > 0 ? (
+          <div class="product-card__rating">
+            <StarRating
+              average={product.rating_average ?? 0}
+              count={product.rating_count ?? 0}
+              size="sm"
+            />
+          </div>
+        ) : null}
 
         <div class="product-card__prices">
           {product.on_sale && product.compare_at_price != null ? (

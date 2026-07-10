@@ -89,6 +89,28 @@
     "relatedProducts": "You may also like",
     "recentlyViewed": "Recently viewed"
   },
+  "reviews": {
+    "title": "Customer reviews",
+    "noneYet": "No reviews yet.",
+    "writeReview": "Write a review",
+    "rating": "Rating",
+    "starsOption": "{count} stars",
+    "titleField": "Title (optional)",
+    "titlePlaceholder": "Sum up your experience",
+    "bodyField": "Your review",
+    "bodyPlaceholder": "What did you like or dislike?",
+    "submit": "Submit review",
+    "submitting": "Submitting…",
+    "submitSuccess": "Thank you! Your review is awaiting approval.",
+    "submitFailed": "Could not submit your review. Please try again.",
+    "pendingNotice": "Your review is awaiting moderation.",
+    "alreadyReviewed": "You have already reviewed this product.",
+    "purchaseRequired": "Only customers who purchased this product can leave a review.",
+    "loginPrompt": "Sign in to leave a review.",
+    "verifiedPurchase": "Verified purchase",
+    "averageTitle": "{average} out of 5 from {count} reviews",
+    "countLabel": "{count}"
+  },
   "availability": {
     "title": "Store availability",
     "loading": "Loading availability…",

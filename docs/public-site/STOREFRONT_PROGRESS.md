@@ -33,7 +33,8 @@
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService` |
-| Products list + detail + search | ✅ | Filters: category, brand, `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` |
+| Products list + detail + search | ✅ | Filters: category, brand, `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` + `rating` |
+| Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth |
@@ -66,7 +67,7 @@
 | `/[lang]/` Homepage | ✅ | Hero, featured categories, featured products, SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
-| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability, related products |
+| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
@@ -92,6 +93,7 @@
 | Add to cart (PLP + PDP) | ✅ | `product-card.tsx`, PDP |
 | Related products on PDP | ✅ | Same category → brand fill via detail API; `ProductCard` grid |
 | Recently viewed | ✅ | Client localStorage per locale; PDP + homepage; `recently-viewed.tsx` |
+| Reviews & ratings | ✅ | Moderated; purchase-gated submit; PDP list/form; card stars; POS `/product-reviews` |
 | Quantity stepper | ✅ | `components/ui/quantity-stepper.tsx` |
 | Sale badge on cards | ✅ | Settings-driven `sale_badge` |
 | OOS: disabled add-to-cart + optional card availability | ✅ | `catalog.show_availability_on_cards` |
@@ -137,6 +139,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
+| Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 
@@ -176,6 +179,7 @@
 | Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` |
 | Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
 | Wishlist API | ✅ | `WishlistTest` |
+| Product reviews API | ✅ | `ProductReviewTest` |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Frontend (Qwik) tests | ⬜ |
 
@@ -183,8 +187,7 @@
 
 ## Recommended next (priority order)
 
-1. Reviews & ratings (moderated; larger slice)
-2. Promotional banners / ops polish from README Should list
+1. Promotional banners / ops polish from README Should list
 
 ---
 
@@ -192,6 +195,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Product reviews & ratings: moderated submit (auth + purchase), public list, PDP/PLP stars, POS approve/reject, denormalized product rating. |
 | 2026-07-11 | Recently viewed: per-locale localStorage history; PDP records + grid; homepage section when non-empty. |
 | 2026-07-11 | Store locator `/[lang]/stores`: map + branch list from `GET /locations`, nav/footer/sitemap, Store ItemList JSON-LD. |
 | 2026-07-10 | Related products on PDP: `related_products[]` on product detail (category then brand), Qwik section with ProductCard grid. |
