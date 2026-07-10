@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
+import { ProductCard } from "~/components/catalog/product-card";
 import {
   galleryImagesForVariation,
   ProductGallery,
@@ -240,6 +241,21 @@ export default component$(() => {
             </div>
           </div>
         </div>
+
+        {(p.related_products?.length ?? 0) > 0 ? (
+          <section class="pdp-related home-section" aria-labelledby="pdp-related-heading">
+            <div class="home-section__head">
+              <h2 id="pdp-related-heading" class="home-section__title">
+                {tStatic(locale, "catalog.relatedProducts")}
+              </h2>
+            </div>
+            <div class="product-grid">
+              {p.related_products!.map((related) => (
+                <ProductCard key={related.id} product={related} settings={settings.value} />
+              ))}
+            </div>
+          </section>
+        ) : null}
       </article>
     </>
   );

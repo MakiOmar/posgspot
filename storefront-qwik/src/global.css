@@ -1448,6 +1448,12 @@ img {
   margin: 1.25rem 0;
 }
 
+.pdp-related {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--gs-border);
+}
+
 /* Shared +/- quantity stepper (cart + product detail). */
 .qty-stepper {
   display: inline-flex;

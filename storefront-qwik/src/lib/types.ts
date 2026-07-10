@@ -135,6 +135,8 @@ export interface ProductDetail {
   images: string[];
   enable_stock: boolean;
   variations: ProductVariation[];
+  /** Same category / brand summaries for PDP upsell (catalog ProductSummary shape). */
+  related_products?: ProductSummary[];
 }
 
 export interface ProductsMeta {

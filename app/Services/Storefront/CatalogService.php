@@ -186,7 +186,110 @@ class CatalogService
             return null;
         }
 
-        return $this->formatProductDetail($product, $locationIds, $locale);
+        $detail = $this->formatProductDetail($product, $locationIds, $locale);
+        $detail['related_products'] = $this->relatedProducts($product, $locationIds, $locale);
+
+        return $detail;
+    }
+
+    /**
+     * Same-category first, then same-brand fill — ProductSummary rows for PDP upsell.
+     *
+     * @param  int[]  $locationIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function relatedProducts(
+        Product $product,
+        array $locationIds,
+        string $locale = StorefrontLocale::DEFAULT,
+        int $limit = 8
+    ): array {
+        $limit = max(1, min(12, $limit));
+        $businessId = (int) $product->business_id;
+        $excludeIds = [(int) $product->id];
+        $ids = [];
+
+        $categoryIds = array_values(array_unique(array_filter([
+            (int) ($product->category_id ?? 0),
+            (int) ($product->sub_category_id ?? 0),
+        ])));
+
+        if ($categoryIds !== []) {
+            $ids = $this->relatedProductCandidateIds(
+                $businessId,
+                $locationIds,
+                $locale,
+                $excludeIds,
+                $limit,
+                ['category_ids' => $categoryIds]
+            );
+            $excludeIds = array_merge($excludeIds, $ids);
+        }
+
+        if (count($ids) < $limit && ! empty($product->brand_id)) {
+            $more = $this->relatedProductCandidateIds(
+                $businessId,
+                $locationIds,
+                $locale,
+                $excludeIds,
+                $limit - count($ids),
+                ['brand_id' => (int) $product->brand_id]
+            );
+            $ids = array_merge($ids, $more);
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return $this->productSummariesByIds($businessId, $ids, $locale);
+    }
+
+    /**
+     * @param  int[]  $locationIds
+     * @param  int[]  $excludeIds
+     * @param  array{category_ids?: int[], brand_id?: int}  $filters
+     * @return int[]
+     */
+    private function relatedProductCandidateIds(
+        int $businessId,
+        array $locationIds,
+        string $locale,
+        array $excludeIds,
+        int $limit,
+        array $filters
+    ): array {
+        if ($limit < 1) {
+            return [];
+        }
+
+        $query = $this->baseProductQuery($businessId, $locationIds)
+            ->whereNotIn('products.id', $excludeIds);
+        $this->applyLocaleProductFilter($query, $locale);
+
+        if (! empty($filters['category_ids'])) {
+            $categoryIds = $filters['category_ids'];
+            $query->where(function (Builder $q) use ($categoryIds) {
+                $q->whereIn('products.category_id', $categoryIds)
+                    ->orWhereIn('products.sub_category_id', $categoryIds);
+            });
+        }
+
+        if (! empty($filters['brand_id'])) {
+            $query->where('products.brand_id', $filters['brand_id']);
+        }
+
+        // Prefer in-stock, then newest — conversion-friendly without a separate FBT table.
+        return $query->select('products.id')
+            ->groupBy('products.id')
+            ->orderByRaw(
+                'CASE WHEN products.enable_stock = 0 OR COALESCE(SUM(vld.qty_available), 0) > 0 THEN 0 ELSE 1 END'
+            )
+            ->orderByDesc('products.id')
+            ->limit($limit)
+            ->pluck('products.id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
     }
 
     public function search(int $businessId, string $q, int $limit = 8, string $locale = StorefrontLocale::DEFAULT): array

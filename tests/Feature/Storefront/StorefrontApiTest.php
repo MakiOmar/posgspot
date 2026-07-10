@@ -496,6 +496,67 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.name', $arName);
     }
 
+    public function test_product_detail_includes_related_products_from_same_category(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        $products = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->whereNotNull('category_id')
+            ->where('category_id', '>', 0)
+            ->orderBy('id')
+            ->limit(20)
+            ->get();
+
+        $primary = null;
+        $related = null;
+        foreach ($products as $candidate) {
+            $peer = $products->first(
+                fn (Product $p) => $p->id !== $candidate->id
+                    && (int) $p->category_id === (int) $candidate->category_id
+            );
+            if ($peer) {
+                $primary = $candidate;
+                $related = $peer;
+                break;
+            }
+        }
+
+        if (empty($primary) || empty($related)) {
+            $this->markTestSkipped('Need at least two sellable products in the same category.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/products/'.$primary->id);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'related_products' => [
+                        ['id', 'name', 'slug', 'price', 'in_stock'],
+                    ],
+                ],
+            ]);
+
+        $relatedIds = collect($response->json('data.related_products'))->pluck('id');
+        $this->assertFalse($relatedIds->contains($primary->id), 'Related list must exclude the current product.');
+        $this->assertTrue(
+            $relatedIds->contains($related->id),
+            'Expected a same-category peer in related_products.'
+        );
+    }
+
     public function test_ar_product_list_excludes_untranslated_products(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();

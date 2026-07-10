@@ -33,7 +33,7 @@
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService` |
-| Products list + detail + search | ✅ | Filters: category, brand, `q`, `in_stock_only`; sort: name, price, newest |
+| Products list + detail + search | ✅ | Filters: category, brand, `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth |
@@ -66,7 +66,7 @@
 | `/[lang]/` Homepage | ✅ | Hero, featured categories, featured products, SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + pagination + locale filter |
-| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability |
+| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD, variations, cart, availability, related products |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
@@ -89,6 +89,7 @@
 |------|--------|-----------|
 | Client cart (`localStorage`) | ✅ | `lib/cart-context.tsx` |
 | Add to cart (PLP + PDP) | ✅ | `product-card.tsx`, PDP |
+| Related products on PDP | ✅ | Same category → brand fill via detail API; `ProductCard` grid |
 | Quantity stepper | ✅ | `components/ui/quantity-stepper.tsx` |
 | Sale badge on cards | ✅ | Settings-driven `sale_badge` |
 | OOS: disabled add-to-cart + optional card availability | ✅ | `catalog.show_availability_on_cards` |
@@ -188,6 +189,7 @@ _(No high-priority Phase 1 items queued — pick from README Should/Could or ops
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Related products on PDP: `related_products[]` on product detail (category then brand), Qwik section with ProductCard grid. |
 | 2026-07-10 | Dedicated `/[lang]/search` page: full product results (sort/stock/pagination), header submit + “view all” → `/search?q=`, `noindex` + robots disallow. |
 | 2026-07-10 | Newsletter signup: pluggable Mailchimp/MailerLite/AWeber, admin settings, `POST /newsletter/subscribe`, footer form + Turnstile when configured. |
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
