@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-10 |
 | **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist done; policies + payment icons done; newsletter open |
+| Header / footer spec | 🟡 Core wired; wishlist, policies, payment icons, newsletter done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -42,6 +42,7 @@
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
+| Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController` |
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
@@ -118,7 +119,7 @@
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | `site-footer.tsx` |
-| Footer policies, newsletter, payment icons | 🟡 Policies + payment icons done; newsletter open | Icons via storefront settings `payment_icons` |
+| Footer policies, newsletter, payment icons | ✅ | Newsletter: Mailchimp/MailerLite/AWeber via settings; icons via `payment_icons` |
 
 ---
 
@@ -132,6 +133,7 @@
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
+| Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 
@@ -178,8 +180,7 @@
 
 ## Recommended next (priority order)
 
-1. **Footer newsletter signup** — subscribe form + `POST /newsletter/subscribe` (payment icons done).
-2. **Dedicated `/search` page** — full results UI (autocomplete exists in header).
+1. **Dedicated `/search` page** — full results UI (autocomplete exists in header).
 
 ---
 
@@ -187,6 +188,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-10 | Newsletter signup: pluggable Mailchimp/MailerLite/AWeber, admin settings, `POST /newsletter/subscribe`, footer form + Turnstile when configured. |
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |

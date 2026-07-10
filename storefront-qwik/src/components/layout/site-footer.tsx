@@ -8,6 +8,7 @@ import {
   YoutubeIcon,
 } from "~/components/icons";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
+import { FooterNewsletter } from "~/components/layout/footer-newsletter";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { StoreSettings } from "~/lib/types";
@@ -107,6 +108,7 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
               </a>
             ) : null}
           </div>
+          <FooterNewsletter settings={settings} />
         </div>
       </div>
       <div class="container footer-bottom">

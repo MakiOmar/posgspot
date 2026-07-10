@@ -439,6 +439,13 @@ export function submitContactForm(payload: ContactFormPayload) {
   });
 }
 
+export function subscribeNewsletter(payload: { email: string; turnstile_token?: string }) {
+  return storefrontFetch<{ status: string; message: string }>("/newsletter/subscribe", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function fetchPhoneCountries() {
   return storefrontFetch<import("./phone-validation").PhoneCountry[]>("/phone-countries");
 }

@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\BusinessLocation;
+use App\Services\Storefront\Newsletter\NewsletterProviderManager;
 use App\Support\StorefrontLocale;
 use App\Utils\BusinessUtil;
 
@@ -72,6 +73,9 @@ class SettingsApiService
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
+            'newsletter' => [
+                'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }

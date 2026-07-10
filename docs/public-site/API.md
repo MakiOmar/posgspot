@@ -52,6 +52,7 @@ Public `GET /settings` also exposes:
 - `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
+- `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 
 ### Checkout + Fawry payment
 
@@ -96,6 +97,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **all active business locations** (incl. out-of-stock), not only public selling locations. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=` | Search autocomplete |
 | POST | `/contact` | Public contact form — emails the business SMTP username (`mail_username` from email settings). Optional `turnstile_token` when Turnstile is enabled in storefront settings |
+| POST | `/newsletter/subscribe` | Footer newsletter signup — body `{ "email", optional "turnstile_token" }`. Requires newsletter enabled + provider credentials in Storefront Settings. Providers: Mailchimp, MailerLite, AWeber. Returns `{ status, message }` (`subscribed` / `pending` / `already_subscribed`). |
 | POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id", optional "coupon_codes[]" (already applied when stacking) }`. **Requires storefront customer auth** (Bearer token). Respects storefront settings `promo_codes.enabled_at_checkout` and `allow_stacking`. Returns `coupon`, `coupons[]`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
 | POST | `/coupons/available` | List promo codes the signed-in customer can apply to the current cart — body `{ "items[]", optional "exclude_codes[]" (already applied when stacking) }`. **Requires auth.** Returns `{ coupons[] }` with `code`, `name`, `label`, `total_savings`, `discount_amount`, `free_shipping`, etc. Empty when checkout promos disabled or none eligible. |
 | POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
@@ -159,7 +161,8 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Select selling locations (catalog is empty when none selected)
 - COD, shipping, announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
-- **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact and registration require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
+- **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
+- **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact, registration, and newsletter require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
 - Public `GET /locations` uses the same `email_encoded` pattern per location (no raw `email` field)

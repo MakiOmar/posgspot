@@ -33,7 +33,15 @@
     "copyright": "© {year} {businessName}. جميع الحقوق محفوظة.",
     "tagline": "وجهتك لأجهزة الألعاب والإكسسوارات وخدمات الصيانة.",
     "followUs": "تابعنا",
-    "paymentMethods": "طرق الدفع المقبولة"
+    "paymentMethods": "طرق الدفع المقبولة",
+    "newsletterTitle": "النشرة البريدية",
+    "newsletterBlurb": "احصل على العروض والمنتجات الجديدة في بريدك.",
+    "newsletterEmailLabel": "البريد الإلكتروني",
+    "newsletterPlaceholder": "you@example.com",
+    "newsletterSubscribe": "اشترك",
+    "newsletterSubmitting": "جاري الاشتراك…",
+    "newsletterInvalidEmail": "يرجى إدخال بريد إلكتروني صالح.",
+    "newsletterFailed": "تعذر الاشتراك. حاول مرة أخرى."
   },
   "a11y": {
     "breadcrumb": "مسار التنقل",

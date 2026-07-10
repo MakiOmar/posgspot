@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\LocationController;
 use App\Http\Controllers\Api\Storefront\PhoneCountryController;
+use App\Http\Controllers\Api\Storefront\NewsletterController;
 use App\Http\Controllers\Api\Storefront\PaymentReturnController;
 use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
@@ -46,6 +47,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/search', [SearchController::class, 'index']);
 
     Route::post('/contact', [ContactController::class, 'store']);
+    Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
 
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/coupons/available', [CouponController::class, 'available']);

@@ -83,6 +83,24 @@ class StorefrontSettingService
             ],
             // Footer payment method icons (label + uploaded file or external URL).
             'payment_icons' => [],
+            'newsletter' => [
+                'enabled' => false,
+                'provider' => null,
+                'double_opt_in' => true,
+                'mailchimp' => [
+                    'api_key' => null,
+                    'audience_id' => '',
+                ],
+                'mailerlite' => [
+                    'api_token' => null,
+                    'group_id' => '',
+                ],
+                'aweber' => [
+                    'access_token' => null,
+                    'account_id' => '',
+                    'list_id' => '',
+                ],
+            ],
         ];
     }
 
@@ -158,6 +176,13 @@ class StorefrontSettingService
             $merged['turnstile']['secret_key'] = $existing['turnstile']['secret_key'] ?? null;
         }
 
+        $existing = $existing ?? $this->getRaw($businessId);
+        $merged['newsletter'] = $this->mergeNewsletterSecrets(
+            $merged['newsletter'] ?? [],
+            $settings['newsletter'] ?? [],
+            $existing['newsletter'] ?? []
+        );
+
         $row = StorefrontSetting::updateOrCreate(
             ['business_id' => $businessId],
             ['value' => $merged]
@@ -216,6 +241,58 @@ class StorefrontSettingService
         } catch (\Throwable) {
             return $key;
         }
+    }
+
+    /**
+     * Return newsletter settings with provider secrets decrypted (for outbound API calls).
+     *
+     * @param  array<string, mixed>  $newsletter
+     * @return array<string, mixed>
+     */
+    public function withDecryptedNewsletterSecrets(array $newsletter): array
+    {
+        foreach (['mailchimp' => 'api_key', 'mailerlite' => 'api_token', 'aweber' => 'access_token'] as $provider => $secretField) {
+            $raw = $newsletter[$provider][$secretField] ?? null;
+            if (empty($raw)) {
+                $newsletter[$provider][$secretField] = null;
+                continue;
+            }
+            try {
+                $newsletter[$provider][$secretField] = Crypt::decryptString($raw);
+            } catch (\Throwable) {
+                $newsletter[$provider][$secretField] = $raw;
+            }
+        }
+
+        return $newsletter;
+    }
+
+    /**
+     * Encrypt new newsletter secrets; keep existing when form fields are blank.
+     *
+     * @param  array<string, mixed>  $merged
+     * @param  array<string, mixed>  $incoming
+     * @param  array<string, mixed>  $existing
+     * @return array<string, mixed>
+     */
+    private function mergeNewsletterSecrets(array $merged, array $incoming, array $existing): array
+    {
+        $secretPaths = [
+            ['mailchimp', 'api_key'],
+            ['mailerlite', 'api_token'],
+            ['aweber', 'access_token'],
+        ];
+
+        foreach ($secretPaths as [$provider, $field]) {
+            $newValue = $incoming[$provider][$field] ?? null;
+            if (! empty($newValue)) {
+                $merged[$provider][$field] = Crypt::encryptString((string) $newValue);
+            } else {
+                $merged[$provider][$field] = $existing[$provider][$field] ?? null;
+            }
+        }
+
+        return $merged;
     }
 
     private function getRaw(int $businessId): array

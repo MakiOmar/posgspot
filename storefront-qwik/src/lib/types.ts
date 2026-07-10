@@ -63,6 +63,9 @@ export interface StoreSettings {
     label: string;
     icon_url: string;
   }>;
+  newsletter: {
+    enabled: boolean;
+  };
   turnstile: {
     enabled: boolean;
     site_key: string | null;

@@ -436,11 +436,12 @@ Background: dark brand color or neutral dark gray; light text. Sufficient contra
 | **Social icons** | Facebook, Instagram, TikTok, YouTube — URLs from settings / env |
 | **Newsletter** | Email input + **Subscribe** button (Phase 2) |
 
-**Newsletter (Phase 2):**
+**Newsletter:**
 
 - Single email field; validation; success/error toast.
-- Double opt-in per marketing policy.
+- Double opt-in when enabled in settings (provider-dependent).
 - API: `POST /api/storefront/v1/newsletter/subscribe`
+- Providers (POS **Storefront Settings → Newsletter**): Mailchimp, MailerLite, or AWeber (encrypted credentials).
 
 ---
 

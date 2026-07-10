@@ -82,6 +82,16 @@ class StorefrontSettingController extends Controller
             'payment_icons.*.label' => 'nullable|string|max:80',
             'payment_icons.*.url' => 'nullable|string|max:500',
             'payment_icons.*.existing_image' => 'nullable|string|max:191',
+            'newsletter_enabled' => 'nullable|boolean',
+            'newsletter_provider' => 'nullable|in:mailchimp,mailerlite,aweber',
+            'newsletter_double_opt_in' => 'nullable|boolean',
+            'newsletter_mailchimp_api_key' => 'nullable|string|max:500',
+            'newsletter_mailchimp_audience_id' => 'nullable|string|max:191',
+            'newsletter_mailerlite_api_token' => 'nullable|string|max:500',
+            'newsletter_mailerlite_group_id' => 'nullable|string|max:191',
+            'newsletter_aweber_access_token' => 'nullable|string|max:2000',
+            'newsletter_aweber_account_id' => 'nullable|string|max:191',
+            'newsletter_aweber_list_id' => 'nullable|string|max:191',
         ]);
 
         $payload = [
@@ -150,6 +160,24 @@ class StorefrontSettingController extends Controller
                 'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
             'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
+            'newsletter' => [
+                'enabled' => $request->boolean('newsletter_enabled'),
+                'provider' => $validated['newsletter_provider'] ?? null,
+                'double_opt_in' => $request->boolean('newsletter_double_opt_in'),
+                'mailchimp' => [
+                    'api_key' => $validated['newsletter_mailchimp_api_key'] ?? null,
+                    'audience_id' => $validated['newsletter_mailchimp_audience_id'] ?? '',
+                ],
+                'mailerlite' => [
+                    'api_token' => $validated['newsletter_mailerlite_api_token'] ?? null,
+                    'group_id' => $validated['newsletter_mailerlite_group_id'] ?? '',
+                ],
+                'aweber' => [
+                    'access_token' => $validated['newsletter_aweber_access_token'] ?? null,
+                    'account_id' => $validated['newsletter_aweber_account_id'] ?? '',
+                    'list_id' => $validated['newsletter_aweber_list_id'] ?? '',
+                ],
+            ],
         ];
 
         $this->settings->save($business_id, $payload);

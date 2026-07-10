@@ -45,6 +45,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_newsletter" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-envelope"></i> Newsletter
+                </a>
+            </li>
+            <li>
                 <a href="#tab_security" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-shield"></i> Security
                 </a>
@@ -400,10 +405,109 @@
                 </div>
             </div>
 
+            {{-- Newsletter: Mailchimp / MailerLite / AWeber --}}
+            <div class="tab-pane" id="tab_newsletter">
+                @php $newsletter = $settings['newsletter'] ?? []; @endphp
+                <h4>Footer newsletter signup</h4>
+                <p class="help-block">
+                    When enabled with a configured provider, the storefront footer shows an email subscribe form.
+                    Secrets are encrypted at rest; leave secret fields blank to keep the current value.
+                </p>
+                <div class="checkbox">
+                    <label>
+                        {!! Form::checkbox('newsletter_enabled', 1, $newsletter['enabled'] ?? false) !!} Enable newsletter signup
+                    </label>
+                </div>
+                <div class="checkbox">
+                    <label>
+                        {!! Form::checkbox('newsletter_double_opt_in', 1, $newsletter['double_opt_in'] ?? true) !!}
+                        Prefer double opt-in (confirmation email) when the provider supports it
+                    </label>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('newsletter_provider', 'Provider') !!}
+                            {!! Form::select('newsletter_provider', [
+                                '' => '— Select —',
+                                'mailchimp' => 'Mailchimp',
+                                'mailerlite' => 'MailerLite',
+                                'aweber' => 'AWeber',
+                            ], $newsletter['provider'] ?? '', ['class' => 'form-control', 'id' => 'newsletter_provider']) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <div id="newsletter_mailchimp_fields" class="newsletter-provider-fields">
+                    <h4>Mailchimp</h4>
+                    @php $mc = $newsletter['mailchimp'] ?? []; @endphp
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_mailchimp_api_key', 'API key (leave blank to keep current)') !!}
+                                {!! Form::password('newsletter_mailchimp_api_key', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                                <p class="help-block">Format: <code>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-usX</code></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_mailchimp_audience_id', 'Audience / list ID') !!}
+                                {!! Form::text('newsletter_mailchimp_audience_id', $mc['audience_id'] ?? '', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="newsletter_mailerlite_fields" class="newsletter-provider-fields">
+                    <h4>MailerLite</h4>
+                    @php $ml = $newsletter['mailerlite'] ?? []; @endphp
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_mailerlite_api_token', 'API token (leave blank to keep current)') !!}
+                                {!! Form::password('newsletter_mailerlite_api_token', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_mailerlite_group_id', 'Group ID (optional)') !!}
+                                {!! Form::text('newsletter_mailerlite_group_id', $ml['group_id'] ?? '', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="newsletter_aweber_fields" class="newsletter-provider-fields">
+                    <h4>AWeber</h4>
+                    <p class="help-block">Create an AWeber developer app and paste a valid OAuth access token. Double opt-in is also controlled in the AWeber list settings.</p>
+                    @php $aw = $newsletter['aweber'] ?? []; @endphp
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_aweber_access_token', 'Access token (leave blank to keep current)') !!}
+                                {!! Form::password('newsletter_aweber_access_token', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_aweber_account_id', 'Account ID') !!}
+                                {!! Form::text('newsletter_aweber_account_id', $aw['account_id'] ?? '', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('newsletter_aweber_list_id', 'List ID') !!}
+                                {!! Form::text('newsletter_aweber_list_id', $aw['list_id'] ?? '', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Security: Turnstile --}}
             <div class="tab-pane" id="tab_security">
                 <h4>Spam protection (Cloudflare Turnstile)</h4>
-                <p class="help-block">When both site key and secret key are saved, the contact and registration forms require Turnstile verification.</p>
+                <p class="help-block">When both site key and secret key are saved, the contact, registration, and newsletter forms require Turnstile verification.</p>
                 @php $turnstile = $settings['turnstile'] ?? []; @endphp
                 <div class="row">
                     <div class="col-md-6">
@@ -478,6 +582,16 @@
 
         $('#gateway_provider').on('change', toggleGatewayFields);
         toggleGatewayFields();
+
+        function toggleNewsletterFields() {
+            var provider = $('#newsletter_provider').val();
+            $('.newsletter-provider-fields').hide();
+            if (provider) {
+                $('#newsletter_' + provider + '_fields').show();
+            }
+        }
+        $('#newsletter_provider').on('change', toggleNewsletterFields);
+        toggleNewsletterFields();
 
         // Footer payment icons — add / remove rows
         var paymentIconIndex = $('#payment_icons_tbody .payment-icon-row').length;
