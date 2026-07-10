@@ -8,6 +8,7 @@
     "faq": "الأسئلة الشائعة",
     "about": "من نحن",
     "stores": "الفروع",
+    "brands": "العلامات التجارية",
     "categories": "الأقسام"
   },
   "header": {
@@ -27,6 +28,7 @@
     "company": "الشركة",
     "policies": "السياسات",
     "allProducts": "كل المنتجات",
+    "brands": "العلامات التجارية",
     "stores": "فروعنا",
     "contact": "اتصل بنا",
     "terms": "الشروط والأحكام",
@@ -77,6 +79,8 @@
     "showingResults": "نتائج البحث عن",
     "noProducts": "لا توجد منتجات تطابق الفلاتر.",
     "noProductsInCategory": "لا توجد منتجات في هذا القسم بعد.",
+    "noProductsInBrand": "لا توجد منتجات لهذه العلامة التجارية بعد.",
+    "noBrands": "لا توجد علامات تجارية متاحة بعد.",
     "productCount": "{count} منتج",
     "addToCart": "أضف إلى السلة",
     "addingToCart": "جاري الإضافة…",
@@ -90,10 +94,16 @@
     "qty": "الكمية",
     "categoryNotFound": "القسم غير موجود",
     "categoryNotFoundBody": "هذا القسم غير موجود أو لم يعد متاحًا.",
+    "brandNotFound": "العلامة التجارية غير موجودة",
+    "brandNotFoundBody": "هذه العلامة التجارية غير موجودة أو لم تعد متاحة.",
     "brand": "العلامة التجارية",
     "category": "القسم",
     "relatedProducts": "قد يعجبك أيضاً",
     "recentlyViewed": "شوهدت مؤخراً"
+  },
+  "brands": {
+    "title": "العلامات التجارية",
+    "lead": "تسوق حسب العلامة التجارية — أجهزة وألعاب وإكسسوارات من العلامات التي تثق بها."
   },
   "reviews": {
     "title": "آراء العملاء",
@@ -486,6 +496,9 @@
     "aboutTitle": "من نحن — {businessName}",
     "aboutDescription": "تعرّف على {businessName}—قصتنا وفريقنا والتزامنا تجاه اللاعبين في مصر.",
     "productDescription": "اشترِ {name} من {businessName}.",
-    "categoryDescription": "تسوق {name} من {businessName}."
+    "categoryDescription": "تسوق {name} من {businessName}.",
+    "brandsTitle": "العلامات التجارية — {businessName}",
+    "brandsDescription": "تصفح المنتجات حسب العلامة التجارية في {businessName}.",
+    "brandDescription": "تسوق منتجات {name} من {businessName}."
   }
 }

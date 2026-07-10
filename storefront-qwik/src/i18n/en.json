@@ -8,6 +8,7 @@
     "faq": "FAQs",
     "about": "About us",
     "stores": "Stores",
+    "brands": "Brands",
     "categories": "Categories"
   },
   "header": {
@@ -27,6 +28,7 @@
     "company": "Company",
     "policies": "Policies",
     "allProducts": "All products",
+    "brands": "Brands",
     "stores": "Our stores",
     "contact": "Contact",
     "terms": "Terms & conditions",
@@ -77,6 +79,8 @@
     "showingResults": "Showing results for",
     "noProducts": "No products match your filters.",
     "noProductsInCategory": "No products in this category yet.",
+    "noProductsInBrand": "No products for this brand yet.",
+    "noBrands": "No brands available yet.",
     "productCount": "{count} product(s)",
     "addToCart": "Add to cart",
     "addingToCart": "Adding…",
@@ -90,10 +94,16 @@
     "qty": "Qty",
     "categoryNotFound": "Category not found",
     "categoryNotFoundBody": "This category doesn’t exist or is no longer available.",
+    "brandNotFound": "Brand not found",
+    "brandNotFoundBody": "This brand doesn’t exist or is no longer available.",
     "brand": "Brand",
     "category": "Category",
     "relatedProducts": "You may also like",
     "recentlyViewed": "Recently viewed"
+  },
+  "brands": {
+    "title": "Brands",
+    "lead": "Shop by brand — find consoles, games, and accessories from the labels you trust."
   },
   "reviews": {
     "title": "Customer reviews",
@@ -486,6 +496,9 @@
     "aboutTitle": "About us — {businessName}",
     "aboutDescription": "Learn about {businessName}—our story, team, and commitment to gamers in Egypt.",
     "productDescription": "Buy {name} at {businessName}.",
-    "categoryDescription": "Shop {name} at {businessName}."
+    "categoryDescription": "Shop {name} at {businessName}.",
+    "brandsTitle": "Brands — {businessName}",
+    "brandsDescription": "Browse products by brand at {businessName}.",
+    "brandDescription": "Shop {name} products at {businessName}."
   }
 }

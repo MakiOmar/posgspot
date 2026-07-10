@@ -1,5 +1,5 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductReviews } from "~/components/catalog/product-reviews";
@@ -140,7 +140,14 @@ export default component$(() => {
             <h1>{p.name}</h1>
             {p.brand ? (
               <p class="footer-muted">
-                {tStatic(locale, "catalog.brand")}: {p.brand.name}
+                {tStatic(locale, "catalog.brand")}:{" "}
+                {p.brand.slug ? (
+                  <Link href={localePath(locale, `/brands/${encodeURIComponent(p.brand.slug)}`)}>
+                    {p.brand.name}
+                  </Link>
+                ) : (
+                  p.brand.name
+                )}
               </p>
             ) : null}
             {p.category ? (

@@ -14,6 +14,7 @@ import type {
   AvailableCouponsResult,
   CartInspection,
   CartValidation,
+  Brand,
   Category,
   CheckoutOrder,
   CouponApplyResult,
@@ -125,6 +126,14 @@ export function fetchCategories(locale?: string) {
 
 export function fetchCategory(slug: string, locale?: string) {
   return storefrontFetch<Category>(`/categories/${encodeURIComponent(slug)}`, {}, locale);
+}
+
+export function fetchBrands(locale?: string) {
+  return storefrontFetch<Brand[]>("/brands", {}, locale);
+}
+
+export function fetchBrand(slug: string, locale?: string) {
+  return storefrontFetch<Brand>(`/brands/${encodeURIComponent(slug)}`, {}, locale);
 }
 
 export function fetchProducts(

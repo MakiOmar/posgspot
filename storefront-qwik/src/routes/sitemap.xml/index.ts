@@ -1,5 +1,5 @@
 import type { RequestHandler } from "@builder.io/qwik-city";
-import { fetchCategories, fetchProductsPage } from "~/lib/api";
+import { fetchBrands, fetchCategories, fetchProductsPage } from "~/lib/api";
 import { DEFAULT_CONTENT_LOCALE, STORE_LOCALES } from "~/lib/i18n/config";
 import { localePath } from "~/lib/i18n/paths";
 import { buildSitemapXml, staticSitemapPaths } from "~/lib/seo-files";
@@ -26,6 +26,17 @@ export const onGet: RequestHandler = async ({ url, headers, send }) => {
       const { data: categories } = await fetchCategories(loc.code);
       for (const path of collectCategoryPaths(categories, loc.code)) {
         paths.add(path);
+      }
+
+      try {
+        const { data: brands } = await fetchBrands(loc.code);
+        for (const brand of brands) {
+          if (brand.slug) {
+            paths.add(localePath(loc.code, `/brands/${encodeURIComponent(brand.slug)}`));
+          }
+        }
+      } catch {
+        // Brand paths skipped when brands API unreachable.
       }
 
       let page = 1;

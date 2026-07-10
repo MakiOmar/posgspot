@@ -104,6 +104,12 @@ export interface Category {
   sub_categories?: Category[];
 }
 
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface ProductSummary {
   id: number;
   slug: string | null;
@@ -143,7 +149,7 @@ export interface ProductDetail {
   sku: string;
   type: string;
   description: string | null;
-  brand: { id: number; name: string } | null;
+  brand: { id: number; name: string; slug?: string | null } | null;
   category: { id: number; name: string; slug: string | null } | null;
   images: string[];
   enable_stock: boolean;

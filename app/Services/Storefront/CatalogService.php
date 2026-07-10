@@ -2,6 +2,7 @@
 
 namespace App\Services\Storefront;
 
+use App\Brands;
 use App\Category;
 use App\CategoryTranslation;
 use App\Product;
@@ -88,6 +89,67 @@ class CatalogService
         return $this->presenter->categoryFields($category, $locale);
     }
 
+    /**
+     * Brands with at least one sellable product in public selling locations.
+     *
+     * @return array<int, array{id:int,name:string,slug:string}>
+     */
+    public function getBrands(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
+    {
+        $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
+        if (empty($locationIds)) {
+            return [];
+        }
+
+        $query = Brands::query()
+            ->where('business_id', $businessId)
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->whereHas('products', function (Builder $q) use ($businessId, $locationIds) {
+                $q->where('products.business_id', $businessId)
+                    ->active()
+                    ->where('products.not_for_selling', 0)
+                    ->where('products.type', '!=', 'modifier')
+                    ->whereHas('product_locations', fn (Builder $lq) => $lq->whereIn('product_locations.location_id', $locationIds));
+            });
+
+        if (! StorefrontLocale::isDefault($locale)) {
+            $query->whereHas('storefrontTranslations', fn (Builder $q) => $q->where('locale', $locale));
+        }
+
+        return $query->orderBy('name')
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->get()
+            ->map(fn (Brands $brand) => $this->presenter->brandFields($brand, $locale))
+            ->filter(fn (array $row) => $row !== [])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{id:int,name:string,slug:string}|null
+     */
+    public function findBrandBySlug(int $businessId, string $slug, string $locale = StorefrontLocale::DEFAULT): ?array
+    {
+        if (! $this->hasSellingLocations($businessId)) {
+            return null;
+        }
+
+        $brand = Brands::query()
+            ->where('business_id', $businessId)
+            ->where('slug', $slug)
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->first();
+
+        if (empty($brand)) {
+            return null;
+        }
+
+        $fields = $this->presenter->brandFields($brand, $locale);
+
+        return $fields === [] ? null : $fields;
+    }
+
     public function listProducts(
         int $businessId,
         array $filters = [],
@@ -105,6 +167,14 @@ class CatalogService
                 return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
             }
             $filters['category_id'] = $category['id'];
+        }
+
+        if (empty($filters['brand_id']) && ! empty($filters['brand_slug'])) {
+            $brand = $this->findBrandBySlug($businessId, (string) $filters['brand_slug'], $locale);
+            if (empty($brand)) {
+                return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            }
+            $filters['brand_id'] = $brand['id'];
         }
 
         $query = $this->baseProductQuery($businessId, $locationIds);
@@ -579,10 +649,19 @@ class CatalogService
             'sku' => $product->sku,
             'type' => $product->type,
             'description' => $this->htmlSanitizer->sanitize($product->product_description),
-            'brand' => $product->brand ? [
-                'id' => $product->brand->id,
-                'name' => $this->presenter->brandName($product->brand, $locale),
-            ] : null,
+            'brand' => $product->brand ? (function () use ($product, $locale) {
+                $fields = $this->presenter->brandFields($product->brand, $locale);
+                if ($fields === []) {
+                    // Detail still shows brand name even without AR translation row.
+                    return [
+                        'id' => $product->brand->id,
+                        'name' => $this->presenter->brandName($product->brand, $locale),
+                        'slug' => $product->brand->slug,
+                    ];
+                }
+
+                return $fields;
+            })() : null,
             'category' => $categoryPayload,
             'images' => $images,
             'enable_stock' => (bool) $product->enable_stock,

@@ -12,6 +12,7 @@ export interface HeaderNavLink {
 const NAV_DEFS: HeaderNavLink[] = [
   { labelKey: "nav.home", path: "/" },
   { labelKey: "nav.shop", path: "/products" },
+  { labelKey: "nav.brands", path: "/brands" },
   { labelKey: "nav.stores", path: "/stores" },
   { labelKey: "nav.trackRepairs", path: REPAIR_STATUS_URL, external: true },
   { labelKey: "nav.trackConsole", path: TRACK_CONSOLE_URL, external: true },

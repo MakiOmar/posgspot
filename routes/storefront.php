@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Storefront\AccountController;
 use App\Http\Controllers\Api\Storefront\AuthController;
 use App\Http\Controllers\Api\Storefront\AvailabilityController;
+use App\Http\Controllers\Api\Storefront\BrandController;
 use App\Http\Controllers\Api\Storefront\CartController;
 use App\Http\Controllers\Api\Storefront\CategoryController;
 use App\Http\Controllers\Api\Storefront\CheckoutController;
@@ -42,6 +43,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+    Route::get('/brands', [BrandController::class, 'index']);
+    Route::get('/brands/{slug}', [BrandController::class, 'show']);
     Route::get('/products', [ProductController::class, 'index']);
     Route::get('/products/{idOrSlug}/reviews', [ProductReviewController::class, 'index']);
     Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);

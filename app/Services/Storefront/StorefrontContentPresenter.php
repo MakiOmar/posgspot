@@ -84,6 +84,37 @@ class StorefrontContentPresenter
         return $row?->name ?? $brand->name;
     }
 
+    /**
+     * @return array{id:int,name:string,slug:?string}|array{}
+     */
+    public function brandFields(Brands $brand, string $locale): array
+    {
+        $name = $brand->name;
+        $slug = $brand->slug;
+
+        if (! StorefrontLocale::isDefault($locale)) {
+            $row = $brand->relationLoaded('storefrontTranslations')
+                ? $brand->storefrontTranslations->firstWhere('locale', $locale)
+                : $brand->storefrontTranslations()->where('locale', $locale)->first();
+
+            if (empty($row)) {
+                return [];
+            }
+
+            $name = $row->name;
+        }
+
+        if (empty($slug)) {
+            return [];
+        }
+
+        return [
+            'id' => (int) $brand->id,
+            'name' => $name,
+            'slug' => $slug,
+        ];
+    }
+
     public function categoryFields(Category $category, string $locale): array
     {
         $name = $category->name;

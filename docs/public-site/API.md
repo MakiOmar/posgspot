@@ -93,8 +93,10 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
-| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` or `category_slug` |
-| GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. |
+| GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`). Locale-filtered: AR requires a brand translation row. |
+| GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content) |
+| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug` or `brand_id` / `brand_slug` |
+| GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. Brand object includes `slug` when available. |
 | GET | `/products/{idOrSlug}/reviews` | Approved reviews only (paginated). Each item: `id`, `rating`, `title`, `body`, `is_verified_purchase`, `author_name` (masked), timestamps. |
 | GET | `/products/{idOrSlug}/reviews/eligibility` | **Auth required.** `{ can_review, already_reviewed, reason }` — reasons: `not_purchased`, `pending`, `already_reviewed`, `not_found`. |
 | POST | `/products/{idOrSlug}/reviews` | **Auth required.** Body `{ rating (1–5), title?, body (10–2000) }`. Requires a final sell of the product for the contact. Creates/updates as `pending` (rejected rows may be resubmitted). |

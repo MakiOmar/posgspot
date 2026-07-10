@@ -33,7 +33,8 @@
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService` |
-| Products list + detail + search | ✅ | Filters: category, brand, `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` + `rating` |
+| Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` + `rating` + brand `slug` |
+| Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` migration; locale-strict AR |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
@@ -67,7 +68,9 @@
 | `/[lang]/` Homepage | ✅ | Hero, promo banners, featured categories, featured products, recently viewed, SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + promo banners + pagination + locale filter |
-| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews |
+| `/[lang]/brands` | ✅ | Brand index (sellable brands with slug) |
+| `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
+| `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews; brand links to `/brands/{slug}` |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
@@ -118,6 +121,7 @@
 | Logo, announcement bar | ✅ | `site-header.tsx` |
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete |
 | Categories drawer | ✅ | Top-level; not full nested tree |
+| Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
 | Main nav (shop, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
@@ -182,6 +186,7 @@
 | Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
 | Wishlist API | ✅ | `WishlistTest` |
 | Product reviews API | ✅ | `ProductReviewTest` |
+| Brand slug API | ✅ | `BrandSlugApiTest` |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Frontend (Qwik) tests | ⬜ |
 
@@ -189,9 +194,8 @@
 
 ## Recommended next (priority order)
 
-1. Brand pages (`/brands/[slug]`) — catalog discovery / SEO
-2. Share buttons on PDP
-3. Returns / cancel order (larger post-purchase)
+1. Share buttons on PDP
+2. Returns / cancel order (larger post-purchase)
 
 ---
 
@@ -199,6 +203,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Brand pages: `brands.slug`, `GET /brands` + `/brands/{slug}`, products `brand_slug`, Qwik `/brands` + `/brands/[slug]` PLP, nav/footer/sitemap, PDP brand link. |
 | 2026-07-11 | Cookie consent banner: Accept all / Necessary only, privacy link, localStorage; `hasAnalyticsConsent()` for future tags. |
 | 2026-07-11 | Promotional banners: admin Banners tab (home/category), `GET /settings` → `banners[]`, Qwik home + category render. |
 | 2026-07-11 | Product reviews & ratings: moderated submit (auth + purchase), public list, PDP/PLP stars, POS approve/reject, denormalized product rating. |
