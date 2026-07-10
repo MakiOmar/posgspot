@@ -89,13 +89,18 @@ class CartValidationService
             ];
             $lines[] = $line;
 
+            $exclusive = (float) $variation->default_sell_price;
+            if ($exclusive <= 0) {
+                $exclusive = $unitPrice;
+            }
             $productLine = [
                 'product_id' => $product->id,
                 'variation_id' => $variation->id,
                 'quantity' => $qty,
-                'unit_price' => $variation->default_sell_price,
+                'unit_price' => $exclusive,
                 'unit_price_inc_tax' => $unitPrice,
-                'item_tax' => max(0, $unitPrice - (float) $variation->default_sell_price) * $qty,
+                // Per-unit tax; createOrUpdateSellLines stores this as unit tax.
+                'item_tax' => max(0, $unitPrice - $exclusive),
                 'tax_id' => $product->tax,
                 'enable_stock' => $product->enable_stock,
             ];

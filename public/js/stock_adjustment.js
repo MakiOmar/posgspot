@@ -201,5 +201,5 @@ function update_table_row(tr) {
 }
 
 $(document).on('shown.bs.modal', '.view_modal', function() {
-    __currency_convert_recursively($('.view_modal'));
+    // Currency formatting is handled once in app.js (shown.bs.modal .view_modal).
 });

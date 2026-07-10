@@ -104,25 +104,34 @@ function __currency_trans_from_en(
 
 function __currency_convert_recursively(element, use_page_currency = false) {
     element.find('.display_currency').each(function() {
-        var value = $(this).text();
+        var $el = $(this);
+        // Prefer the original numeric value so repeated calls (multiple shown.bs.modal
+        // handlers) stay correct when the currency symbol contains dots (e.g. "L.E.").
+        var value = $el.data('orig-value');
+        if (typeof value === 'undefined' || value === null || value === '') {
+            value = $el.text();
+            $el.attr('data-orig-value', value);
+            $el.data('orig-value', value);
+        }
 
-        var show_symbol = $(this).data('currency_symbol');
+        var show_symbol = $el.data('currency_symbol');
         if (show_symbol == undefined || show_symbol != true) {
             show_symbol = false;
         }
 
         //If data-use_page_currency is present in the element use_page_currency 
         //value will be over written 
-        if (typeof $(this).data('use_page_currency') !== 'undefined') {
-            use_page_currency = $(this).data('use_page_currency');
+        var page_currency = use_page_currency;
+        if (typeof $el.data('use_page_currency') !== 'undefined') {
+            page_currency = $el.data('use_page_currency');
         }
 
-        var highlight = $(this).data('highlight');
+        var highlight = $el.data('highlight');
         if (highlight == true) {
-            __highlight(value, $(this));
+            __highlight(value, $el);
         }
 
-        var is_quantity = $(this).data('is_quantity');
+        var is_quantity = $el.data('is_quantity');
         if (is_quantity == undefined || is_quantity != true) {
             is_quantity = false;
         }
@@ -131,7 +140,7 @@ function __currency_convert_recursively(element, use_page_currency = false) {
             show_symbol = false;
         }
 
-        $(this).text(__currency_trans_from_en(value, show_symbol, use_page_currency, __currency_precision, is_quantity));
+        $el.text(__currency_trans_from_en(value, show_symbol, page_currency, __currency_precision, is_quantity));
     });
 }
 

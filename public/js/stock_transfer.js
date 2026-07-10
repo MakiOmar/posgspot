@@ -420,5 +420,7 @@ $(document).on('submit', '#update_stock_transfer_status_form', function(e) {
     });
 });
 $(document).on('shown.bs.modal', '.view_modal', function() {
-    __currency_convert_recursively($('.view_modal'));
+    // Currency formatting is handled once in app.js (shown.bs.modal .view_modal).
+    // Do not call __currency_convert_recursively here — with symbols like "L.E." a
+    // second pass re-parses formatted text as NaN and displays 0.00.
 });

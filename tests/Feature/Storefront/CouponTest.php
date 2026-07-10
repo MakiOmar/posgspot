@@ -470,12 +470,12 @@ class CouponTest extends TestCase
     {
         $fixtures = $this->setupCheckoutFixtures();
         $eligible = $this->createCoupon([
-            'code' => 'PICKER10',
+            'code' => 'PICKER'.strtoupper(substr(uniqid(), -6)),
             'discount_amount' => 10,
             'min_order_subtotal' => 0,
         ]);
-        $this->createCoupon([
-            'code' => 'INACTIVE',
+        $inactive = $this->createCoupon([
+            'code' => 'INACT'.strtoupper(substr(uniqid(), -6)),
             'is_active' => false,
         ]);
         $session = $this->registerAndLogin();
@@ -490,7 +490,7 @@ class CouponTest extends TestCase
 
         $codes = collect($response->json('data.coupons'))->pluck('code');
         $this->assertTrue($codes->contains($eligible->code));
-        $this->assertFalse($codes->contains('INACTIVE'));
+        $this->assertFalse($codes->contains($inactive->code));
 
         $match = collect($response->json('data.coupons'))->firstWhere('code', $eligible->code);
         $this->assertNotNull($match);
@@ -500,8 +500,8 @@ class CouponTest extends TestCase
     public function test_available_excludes_coupons_below_min_subtotal(): void
     {
         $fixtures = $this->setupCheckoutFixtures();
-        $this->createCoupon([
-            'code' => 'TOOHIGH',
+        $tooHigh = $this->createCoupon([
+            'code' => 'HIGH'.strtoupper(substr(uniqid(), -6)),
             'min_order_subtotal' => 999999,
         ]);
         $session = $this->registerAndLogin();
@@ -513,7 +513,7 @@ class CouponTest extends TestCase
 
         $response->assertOk();
         $codes = collect($response->json('data.coupons'))->pluck('code');
-        $this->assertFalse($codes->contains('TOOHIGH'));
+        $this->assertFalse($codes->contains($tooHigh->code));
     }
 
     public function test_available_requires_auth(): void
@@ -530,7 +530,7 @@ class CouponTest extends TestCase
     public function test_available_returns_empty_when_checkout_promos_disabled(): void
     {
         $fixtures = $this->setupCheckoutFixtures();
-        $coupon = $this->createCoupon(['code' => 'DISABLED']);
+        $coupon = $this->createCoupon(['code' => 'DISAB'.strtoupper(substr(uniqid(), -6))]);
         $session = $this->registerAndLogin();
 
         app(StorefrontSettingService::class)->save($this->businessId, [

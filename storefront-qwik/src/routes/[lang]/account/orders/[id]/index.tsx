@@ -111,6 +111,29 @@ export default component$(() => {
             <span>
               <strong>{tStatic(locale, "account.paymentLabel")}</strong> {order.payment_status}
             </span>
+            {order.coupon_code ? (
+              <span>
+                <strong>{tStatic(locale, "account.couponCodeLabel")}</strong> {order.coupon_code}
+              </span>
+            ) : null}
+            {typeof order.subtotal === "number" && order.subtotal > 0 ? (
+              <span>
+                <strong>{tStatic(locale, "account.subtotalLabel")}</strong>{" "}
+                {formatPrice(order.subtotal, settings.value.currency, locale)}
+              </span>
+            ) : null}
+            {typeof order.discount_amount === "number" && order.discount_amount > 0 ? (
+              <span style={{ color: "var(--gs-accent)" }}>
+                <strong>{tStatic(locale, "account.discountLabel")}</strong> −
+                {formatPrice(order.discount_amount, settings.value.currency, locale)}
+              </span>
+            ) : null}
+            {typeof order.shipping_charges === "number" && order.shipping_charges > 0 ? (
+              <span>
+                <strong>{tStatic(locale, "account.shippingLabel")}</strong>{" "}
+                {formatPrice(order.shipping_charges, settings.value.currency, locale)}
+              </span>
+            ) : null}
             <span>
               <strong>{tStatic(locale, "account.totalLabel")}</strong>{" "}
               {formatPrice(order.final_total, settings.value.currency, locale)}

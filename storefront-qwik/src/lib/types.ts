@@ -366,6 +366,11 @@ export interface AccountOrderDetail extends AccountOrder {
   fulfillment_location: string | null;
   /** POS invoice page with auto-print; only when payment_status is paid */
   invoice_print_url: string | null;
+  subtotal?: number;
+  discount_amount?: number;
+  discount_type?: string | null;
+  shipping_charges?: number;
+  coupon_code?: string | null;
 }
 
 export interface RewardPointsBalance {

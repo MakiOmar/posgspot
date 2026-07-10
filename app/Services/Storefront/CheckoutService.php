@@ -382,6 +382,11 @@ class CheckoutService
         $data = $this->formatOrderResponse($transaction);
         $data['shipping_address'] = $this->shippingAddressPayload($transaction);
         $data['fulfillment_location'] = $transaction->location->name ?? null;
+        $data['subtotal'] = (float) $transaction->total_before_tax;
+        $data['discount_amount'] = (float) $transaction->discount_amount;
+        $data['discount_type'] = $transaction->discount_type;
+        $data['shipping_charges'] = (float) $transaction->shipping_charges;
+        $data['coupon_code'] = $transaction->storefront_coupon_code;
         $data['lines'] = $transaction->sell_lines->map(fn ($line) => [
             'product_id' => $line->product_id,
             'variation_id' => $line->variation_id,
