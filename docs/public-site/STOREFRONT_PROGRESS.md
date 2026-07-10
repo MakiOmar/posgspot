@@ -195,8 +195,10 @@
 
 ## Recommended next (priority order)
 
-1. Returns / cancel order (larger post-purchase)
-2. Auto-generate brand `slug` on POS create/update (new brands after migration)
+1. Auto-generate brand `slug` on POS create/update (new brands after migration)
+2. Shipment tracking on account order detail (carrier + tracking URL when set in POS)
+3. Reorder from past order (account → cart with current stock/price)
+4. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 
 ---
 
@@ -204,6 +206,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Deferred returns/cancel; next: brand slug on save, shipment tracking, reorder. |
 | 2026-07-11 | PDP share buttons: native Web Share, copy link, WhatsApp / Facebook / X. |
 | 2026-07-11 | Brand pages: `brands.slug`, `GET /brands` + `/brands/{slug}`, products `brand_slug`, Qwik `/brands` + `/brands/[slug]` PLP, nav/footer/sitemap, PDP brand link. |
 | 2026-07-11 | Cookie consent banner: Accept all / Necessary only, privacy link, localStorage; `hasAnalyticsConsent()` for future tags. |
