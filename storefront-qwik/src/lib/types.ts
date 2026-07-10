@@ -392,6 +392,8 @@ export interface AccountOrderLine {
   variation_id: number;
   product_name: string | null;
   variation_name: string | null;
+  slug?: string | null;
+  image_url?: string | null;
   quantity: number;
   unit_price_inc_tax: number;
   line_total: number;

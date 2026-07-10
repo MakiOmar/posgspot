@@ -4,6 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Brands extends Model
 {
@@ -21,6 +22,28 @@ class Brands extends Model
      * @var array
      */
     protected $guarded = ['id'];
+
+    /**
+     * URL-safe unique slug for storefront brand pages (scoped per business).
+     *
+     * Clashes get numeric suffixes: base, base-1, base-2, …
+     */
+    public static function generateSlug(string $name, int $businessId, ?int $excludeId = null): string
+    {
+        $base = Str::slug($name) ?: 'brand';
+        $slug = $base;
+        $i = 1;
+
+        while (static::where('business_id', $businessId)
+            ->where('slug', $slug)
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->exists()) {
+            $slug = $base.'-'.$i;
+            $i++;
+        }
+
+        return $slug;
+    }
 
     /**
      * Return list of brands for a business

@@ -295,6 +295,21 @@ export const addCartItem = $((cart: CartState, item: CartItem) => {
   }
 });
 
+/** Add multiple lines (e.g. reorder); merges quantities for matching variations. */
+export const addCartItems = $((cart: CartState, items: CartItem[]) => {
+  for (const item of items) {
+    if (!item.variationId || item.quantity <= 0) {
+      continue;
+    }
+    const existing = cart.items.find((line) => line.variationId === item.variationId);
+    if (existing) {
+      existing.quantity += item.quantity;
+    } else {
+      cart.items.push({ ...item });
+    }
+  }
+});
+
 export const removeCartItem = $((cart: CartState, variationId: number) => {
   cart.items = cart.items.filter((line) => line.variationId !== variationId);
 });

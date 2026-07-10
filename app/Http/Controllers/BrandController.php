@@ -105,6 +105,8 @@ class BrandController extends Controller
                 $input['use_for_repair'] = ! empty($request->input('use_for_repair')) ? 1 : 0;
             }
 
+            $input['slug'] = Brands::generateSlug((string) $input['name'], $business_id);
+
             $brand = Brands::create($input);
             $output = ['success' => true,
                 'data' => $brand,
@@ -176,6 +178,10 @@ class BrandController extends Controller
                 $brand = Brands::where('business_id', $business_id)->findOrFail($id);
                 $brand->name = $input['name'];
                 $brand->description = $input['description'];
+
+                if (empty($brand->slug)) {
+                    $brand->slug = Brands::generateSlug((string) $brand->name, $business_id, $brand->id);
+                }
 
                 if ($this->moduleUtil->isModuleInstalled('Repair')) {
                     $brand->use_for_repair = ! empty($request->input('use_for_repair')) ? 1 : 0;

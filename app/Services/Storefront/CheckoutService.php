@@ -392,6 +392,8 @@ class CheckoutService
             'variation_id' => $line->variation_id,
             'product_name' => $line->product->name ?? null,
             'variation_name' => $line->variations->name ?? null,
+            'slug' => $line->product->slug ?? null,
+            'image_url' => $line->product->image_url ?? null,
             'quantity' => (float) $line->quantity,
             'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
             'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,

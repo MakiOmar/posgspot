@@ -34,7 +34,7 @@
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService` |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`; sort: name, price, newest; detail embeds `related_products[]` + `rating` + brand `slug` |
-| Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` migration; locale-strict AR |
+| Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` migration; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
@@ -76,7 +76,7 @@
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail, invoice print |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail (+ reorder → cart), invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
@@ -112,6 +112,7 @@
 | Coupons / promo codes | ✅ | Settings-gated; login required; picker + cart/checkout |
 | Cart price refresh from API | ✅ | `/cart` inspect + auto-remove OOS; checkout guard with max qty notice |
 | Wishlist (guest + account) | ✅ | `wishlist-context.tsx`, `header-wishlist.tsx`, `wishlist-toggle.tsx`, `/wishlist` |
+| Reorder from past order | ✅ | Account order detail → cart; cart inspect refreshes price/stock |
 
 ---
 
@@ -188,6 +189,7 @@
 | Wishlist API | ✅ | `WishlistTest` |
 | Product reviews API | ✅ | `ProductReviewTest` |
 | Brand slug API | ✅ | `BrandSlugApiTest` |
+| Brand slug generation | ✅ | `BrandSlugGenerationTest`; POS `BrandController` create/update |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Frontend (Qwik) tests | ⬜ |
 
@@ -195,10 +197,8 @@
 
 ## Recommended next (priority order)
 
-1. Auto-generate brand `slug` on POS create/update (new brands after migration)
-2. Shipment tracking on account order detail (carrier + tracking URL when set in POS)
-3. Reorder from past order (account → cart with current stock/price)
-4. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
+1. Shipment tracking on account order detail (carrier + tracking URL when set in POS)
+2. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 
 ---
 
@@ -206,6 +206,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Brand slug on POS create/update; account reorder → cart (price/stock refreshed on cart). |
 | 2026-07-11 | Deferred returns/cancel; next: brand slug on save, shipment tracking, reorder. |
 | 2026-07-11 | PDP share buttons: native Web Share, copy link, WhatsApp / Facebook / X. |
 | 2026-07-11 | Brand pages: `brands.slug`, `GET /brands` + `/brands/{slug}`, products `brand_slug`, Qwik `/brands` + `/brands/[slug]` PLP, nav/footer/sitemap, PDP brand link. |

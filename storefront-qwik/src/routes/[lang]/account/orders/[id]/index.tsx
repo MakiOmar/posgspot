@@ -1,26 +1,46 @@
 import { component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, fetchOrder, fetchOrderInvoiceUrl } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
+import { addCartItems } from "~/lib/cart-actions";
+import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { toastError } from "~/lib/notify";
-import type { AccountOrderDetail } from "~/lib/types";
+import { confirmAction, toastError, toastSuccess } from "~/lib/notify";
+import type { AccountOrderDetail, CartItem } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 function isPaidOrder(paymentStatus: string | undefined): boolean {
   return (paymentStatus ?? "").trim().toLowerCase() === "paid";
 }
 
+function orderLinesToCartItems(order: AccountOrderDetail): CartItem[] {
+  return order.lines
+    .filter((line) => line.variation_id && line.quantity > 0)
+    .map((line) => ({
+      productId: line.product_id,
+      variationId: line.variation_id,
+      slug: line.slug ?? null,
+      name: line.product_name || `Product #${line.product_id}`,
+      variationName: line.variation_name || "",
+      price: line.unit_price_inc_tax,
+      quantity: line.quantity,
+      imageUrl: line.image_url ?? null,
+    }));
+}
+
 export default component$(() => {
   const auth = useAuth();
+  const cart = useCart();
+  const nav = useNavigate();
   const loc = useLocation();
   const settings = useSiteSettings();
   const { locale } = useI18n();
   const state = useStore<{ order: AccountOrderDetail | null }>({ order: null });
   const loading = useSignal(true);
   const printUrl = useSignal<string | null>(null);
+  const reordering = useSignal(false);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
@@ -92,16 +112,53 @@ export default component$(() => {
                 id: order.invoice_no || order.storefront_order_id,
               })}
             </h1>
-            {printUrl.value ? (
-              <a
-                href={printUrl.value}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-secondary"
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
+              <button
+                type="button"
+                class="btn btn-primary"
+                disabled={reordering.value || order.lines.length === 0}
+                onClick$={async () => {
+                  const items = orderLinesToCartItems(order);
+                  if (items.length === 0) {
+                    await toastError(tStatic(locale, "account.reorderEmpty"));
+                    return;
+                  }
+                  const ok = await confirmAction({
+                    title: tStatic(locale, "account.reorderConfirm"),
+                    text: tStatic(locale, "account.reorderConfirmText"),
+                    confirmText: tStatic(locale, "account.reorder"),
+                    cancelText: tStatic(locale, "common.cancel"),
+                    icon: "question",
+                    dir: locale === "ar" ? "rtl" : "ltr",
+                  });
+                  if (!ok) {
+                    return;
+                  }
+                  reordering.value = true;
+                  try {
+                    await addCartItems(cart, items);
+                    await toastSuccess(tStatic(locale, "account.reorderSuccess"));
+                    await nav(localePath(locale, "/cart"));
+                  } finally {
+                    reordering.value = false;
+                  }
+                }}
               >
-                {tStatic(locale, "account.printInvoice")}
-              </a>
-            ) : null}
+                {reordering.value
+                  ? tStatic(locale, "account.reordering")
+                  : tStatic(locale, "account.reorder")}
+              </button>
+              {printUrl.value ? (
+                <a
+                  href={printUrl.value}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-secondary"
+                >
+                  {tStatic(locale, "account.printInvoice")}
+                </a>
+              ) : null}
+            </div>
           </div>
           <div class="order-meta">
             <span>
