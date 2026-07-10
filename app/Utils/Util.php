@@ -715,11 +715,52 @@ class Util
                 $new_file_name = time().'_'.$request->$file_name->getClientOriginalName();
                 if ($request->$file_name->storeAs($dir_name, $new_file_name)) {
                     $uploaded_file_name = $new_file_name;
+                    // Host umask often creates 0700 dirs → web server 404s public uploads.
+                    $this->ensurePublicUploadPermissions($dir_name, $new_file_name);
                 }
             }
         }
 
         return $uploaded_file_name;
+    }
+
+    /**
+     * Make uploaded files under public/uploads readable by the web server (755/644).
+     *
+     * @param  bool  $chmodExistingFiles  When true and $fileName is null, chmod all files in the dir.
+     */
+    public function ensurePublicUploadPermissions(string $dirName, ?string $fileName = null, bool $chmodExistingFiles = false): void
+    {
+        $dir = public_path('uploads/'.trim($dirName, '/'));
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        if (is_dir($dir)) {
+            @chmod($dir, 0755);
+        }
+
+        if ($fileName !== null && $fileName !== '') {
+            $file = $dir.'/'.basename($fileName);
+            if (is_file($file)) {
+                @chmod($file, 0644);
+            }
+
+            return;
+        }
+
+        if (! $chmodExistingFiles || ! is_dir($dir)) {
+            return;
+        }
+
+        foreach (scandir($dir) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+            $path = $dir.'/'.$entry;
+            if (is_file($path)) {
+                @chmod($path, 0644);
+            }
+        }
     }
 
     public function serviceStaffDropdown($business_id, $location_id = null)

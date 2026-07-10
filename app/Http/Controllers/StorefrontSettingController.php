@@ -167,6 +167,9 @@ class StorefrontSettingController extends Controller
      */
     private function buildPaymentIconsPayload(Request $request, array $rows): array
     {
+        // Heal restrictive umask dirs (0700) so /uploads/storefront_payment_icons is web-readable.
+        $this->commonUtil->ensurePublicUploadPermissions('storefront_payment_icons', null, true);
+
         $icons = [];
 
         foreach ($rows as $index => $row) {
