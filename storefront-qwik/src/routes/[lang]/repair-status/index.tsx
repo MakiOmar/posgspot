@@ -28,7 +28,7 @@ export default component$(() => {
   const lookupByMobile = settings.value.repair?.lookup_by_mobile ?? true;
 
   const form = useStore({
-    search_type: "job_sheet_no" as RepairStatusSearchType,
+    search_type: "" as "" | RepairStatusSearchType,
     search_number: "",
     serial_no: "",
   });
@@ -37,6 +37,10 @@ export default component$(() => {
     event.preventDefault();
     if (!lookupEnabled) {
       await toastError(tStatic(locale, "repair.unavailable"));
+      return;
+    }
+    if (!form.search_type) {
+      await toastError(tStatic(locale, "repair.chooseSearchBy"));
       return;
     }
     const number = form.search_number.trim();
@@ -49,7 +53,7 @@ export default component$(() => {
       try {
         const { data } = await lookupRepairStatus(
           {
-            search_type: form.search_type,
+            search_type: form.search_type as RepairStatusSearchType,
             search_number: number,
             ...(form.serial_no.trim() ? { serial_no: form.serial_no.trim() } : {}),
           },
@@ -90,11 +94,15 @@ export default component$(() => {
             <label for="repair_search_type">{tStatic(locale, "repair.searchBy")}</label>
             <select
               id="repair_search_type"
+              required
               value={form.search_type}
               onChange$={(_, el) => {
-                form.search_type = el.value as RepairStatusSearchType;
+                form.search_type = el.value as "" | RepairStatusSearchType;
               }}
             >
+              <option value="" disabled>
+                {tStatic(locale, "repair.chooseSearchBy")}
+              </option>
               <option value="job_sheet_no">{tStatic(locale, "repair.jobSheetNo")}</option>
               <option value="invoice_no">{tStatic(locale, "repair.invoiceNo")}</option>
               {lookupByMobile ? (

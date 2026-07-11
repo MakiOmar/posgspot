@@ -519,6 +519,7 @@
     "title": "Repair status",
     "intro": "Enter your job sheet, invoice, or mobile number to check the latest repair updates.",
     "searchBy": "Search by",
+    "chooseSearchBy": "Choose…",
     "jobSheetNo": "Job sheet number",
     "invoiceNo": "Invoice number",
     "mobile": "Mobile number",
