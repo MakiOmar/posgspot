@@ -25,6 +25,7 @@ export const RecentlyViewed = component$<RecentlyViewedProps>((props) => {
   const items = useSignal<ProductSummary[]>([]);
   const ready = useSignal(false);
 
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => props.recordProduct?.id);
     track(() => props.excludeProductId);

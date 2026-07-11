@@ -16,6 +16,7 @@ export const CookieConsentBanner = component$(() => {
   const { locale } = useI18n();
   const visible = useSignal(false);
 
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     visible.value = loadCookieConsent() === null;
   });

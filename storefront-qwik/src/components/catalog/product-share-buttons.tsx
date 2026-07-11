@@ -27,6 +27,7 @@ export const ProductShareButtons = component$<ProductShareButtonsProps>(({ title
   const xHref = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
 
   // Detect Web Share API only in the browser (SSR has no navigator.share).
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     canNativeShare.value =
       typeof navigator !== "undefined" && typeof navigator.share === "function";

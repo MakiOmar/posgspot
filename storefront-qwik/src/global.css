@@ -1885,6 +1885,14 @@ img {
   margin-top: 0;
 }
 
+.checkout-summary__actions {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--gs-border);
+}
+
 @media (min-width: 960px) {
   .checkout-layout {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);

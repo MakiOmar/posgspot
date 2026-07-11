@@ -528,6 +528,7 @@ export default component$(() => {
 
       <div class="checkout-layout">
         <form
+          id="checkout-form"
           preventdefault:submit
           onSubmit$={(event) => submitOrder$(event.target as HTMLFormElement)}
           class="form-grid"
@@ -776,58 +777,9 @@ export default component$(() => {
           ) : (
             <p class="alert alert-error">{tStatic(locale, "checkout.noPaymentMethods")}</p>
           )}
-
-          {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 && stackWithRewardPoints.value ? (
-            <RewardPointsRedeem
-              token={auth.token}
-              balance={rewardBalance.value}
-              orderTotal={checkoutTotal}
-              currency={settings.value.currency}
-              pointsToRedeem={pointsToRedeem.value}
-              onPointsChange$={onRewardPointsChange$}
-            />
-          ) : auth.token && rewardBalance.value?.enabled ? (
-            <div class="reward-points-redeem reward-points-redeem--inactive">
-              <h3 class="reward-points-redeem__title">
-                {rewardBalance.value.name || tStatic(locale, "rewards.defaultName")}
-              </h3>
-              <p class="footer-muted">
-                {(rewardBalance.value.available ?? 0) < (rewardBalance.value.min_redeem_points ?? 1)
-                  ? (rewardBalance.value.available ?? 0) <= 0
-                    ? tStatic(locale, "rewards.noPoints")
-                    : tStatic(locale, "rewards.needMinPoints", {
-                        min: rewardBalance.value.min_redeem_points ?? 1,
-                        available: rewardBalance.value.available ?? 0,
-                      })
-                  : tStatic(locale, "rewards.cannotApply")}
-              </p>
-            </div>
-          ) : !auth.token && settings.value.reward_points.enabled ? (
-            <p class="footer-muted">
-              <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/checkout"))}`}>{tStatic(locale, "auth.login")}</Link> {tStatic(locale, "checkout.signInToRedeem")}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            class="btn btn-primary btn-block"
-            disabled={
-              submitting.value ||
-              validatingStock.value ||
-              Boolean(stockWarning.value) ||
-              !canCheckout ||
-              (pointsToRedeem.value > 0 && !redeemValid.value)
-            }
-          >
-            {submitting.value
-              ? tStatic(locale, "checkout.placingOrder")
-              : paymentMethod.value === "fawry"
-                ? tStatic(locale, "checkout.continueToPayment")
-                : tStatic(locale, "checkout.placeOrder")}
-          </button>
         </form>
 
-        <aside class="cart-summary">
+        <aside class="cart-summary checkout-summary">
           <h2 style={{ margin: "0 0 1rem", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.orderSummary")}</h2>
           {promoAtCheckout && auth.token ? (
             <CouponField
@@ -917,6 +869,61 @@ export default component$(() => {
           >
             <span>{tStatic(locale, "checkout.total")}</span>
             <span>{formatPrice(orderTotal, settings.value.currency)}</span>
+          </div>
+
+          <div class="checkout-summary__actions">
+            {auth.token && rewardBalance.value?.enabled && (rewardBalance.value.max_redeem_points ?? 0) > 0 && stackWithRewardPoints.value ? (
+              <RewardPointsRedeem
+                token={auth.token}
+                balance={rewardBalance.value}
+                orderTotal={checkoutTotal}
+                currency={settings.value.currency}
+                pointsToRedeem={pointsToRedeem.value}
+                onPointsChange$={onRewardPointsChange$}
+              />
+            ) : auth.token && rewardBalance.value?.enabled ? (
+              <div class="reward-points-redeem reward-points-redeem--inactive">
+                <h3 class="reward-points-redeem__title">
+                  {rewardBalance.value.name || tStatic(locale, "rewards.defaultName")}
+                </h3>
+                <p class="footer-muted">
+                  {(rewardBalance.value.available ?? 0) < (rewardBalance.value.min_redeem_points ?? 1)
+                    ? (rewardBalance.value.available ?? 0) <= 0
+                      ? tStatic(locale, "rewards.noPoints")
+                      : tStatic(locale, "rewards.needMinPoints", {
+                          min: rewardBalance.value.min_redeem_points ?? 1,
+                          available: rewardBalance.value.available ?? 0,
+                        })
+                    : tStatic(locale, "rewards.cannotApply")}
+                </p>
+              </div>
+            ) : !auth.token && settings.value.reward_points.enabled ? (
+              <p class="footer-muted">
+                <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/checkout"))}`}>
+                  {tStatic(locale, "auth.login")}
+                </Link>{" "}
+                {tStatic(locale, "checkout.signInToRedeem")}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              form="checkout-form"
+              class="btn btn-primary btn-block"
+              disabled={
+                submitting.value ||
+                validatingStock.value ||
+                Boolean(stockWarning.value) ||
+                !canCheckout ||
+                (pointsToRedeem.value > 0 && !redeemValid.value)
+              }
+            >
+              {submitting.value
+                ? tStatic(locale, "checkout.placingOrder")
+                : paymentMethod.value === "fawry"
+                  ? tStatic(locale, "checkout.continueToPayment")
+                  : tStatic(locale, "checkout.placeOrder")}
+            </button>
           </div>
         </aside>
       </div>

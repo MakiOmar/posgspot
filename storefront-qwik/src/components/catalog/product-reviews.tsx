@@ -51,6 +51,7 @@ export const ProductReviews = component$<ProductReviewsProps>((props) => {
     }
   });
 
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => auth.token);
     track(() => auth.ready);
