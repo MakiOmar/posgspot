@@ -153,6 +153,16 @@ class DigitalCatalogService
 
         $body = $result['body'] ?? [];
         $game = $body['data'] ?? $body;
+        if (is_object($game)) {
+            $game = (array) $game;
+        }
+        if (is_array($game)) {
+            foreach (['image_url', 'ps4_image_url', 'ps5_image_url'] as $imageKey) {
+                if (! empty($game[$imageKey])) {
+                    $game[$imageKey] = $this->absoluteAccountsUrl((string) $game[$imageKey]);
+                }
+            }
+        }
 
         return [
             'success' => true,
@@ -189,7 +199,9 @@ class DigitalCatalogService
                 'id' => (int) ($category['id'] ?? 0),
                 'name' => (string) ($category['name'] ?? ''),
                 'price' => $category['price'] ?? 0,
-                'poster_image' => $category['poster_image'] ?? null,
+                'poster_image' => $this->absoluteAccountsUrl(
+                    isset($category['poster_image']) ? (string) $category['poster_image'] : null
+                ),
             ];
         }
 
@@ -268,7 +280,9 @@ class DigitalCatalogService
             'id' => (int) ($game['id'] ?? 0),
             'title' => (string) ($game['title'] ?? ''),
             'code' => $game['code'] ?? null,
-            'image_url' => $game['image_url'] ?? null,
+            'image_url' => $this->absoluteAccountsUrl(
+                isset($game['image_url']) ? (string) $game['image_url'] : null
+            ),
             'primary_price' => $primary['price'] ?? ($game['primary_price'] ?? null),
             'secondary_price' => $secondary['price'] ?? ($game['secondary_price'] ?? null),
             'primary_status' => ($primary['available'] ?? false) || ($game['primary_status'] ?? false),
@@ -277,5 +291,33 @@ class DigitalCatalogService
             'total_secondary_stock' => $secondary['stock'] ?? ($game['total_secondary_stock'] ?? 0),
             'types' => $types,
         ];
+    }
+
+    /**
+     * Turn Accounts-relative asset paths into absolute URLs for the browser.
+     */
+    private function absoluteAccountsUrl(?string $path): ?string
+    {
+        if ($path === null) {
+            return null;
+        }
+        $path = trim($path);
+        if ($path === '') {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $path) === 1) {
+            return $path;
+        }
+
+        $base = $this->accounts->baseUrl();
+        if ($base === '') {
+            return $path;
+        }
+
+        // Encode path segments (Accounts paths often include spaces).
+        $trimmed = ltrim(str_replace('\\', '/', $path), '/');
+        $encoded = implode('/', array_map('rawurlencode', explode('/', $trimmed)));
+
+        return $base.'/'.$encoded;
     }
 }
