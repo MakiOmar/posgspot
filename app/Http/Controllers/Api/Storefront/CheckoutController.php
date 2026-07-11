@@ -31,6 +31,7 @@ class CheckoutController extends StorefrontController
             'items.*.digital.line_key' => 'nullable|string|max:191',
             'items.*.digital.title' => 'nullable|string|max:255',
             'items.*.digital.price' => 'nullable|numeric|min:0',
+            'items.*.unit_price' => 'nullable|numeric|min:0',
             'location_id' => 'required|integer',
             'payment_method' => 'required|in:cod,card,fawry,online',
             'customer' => 'nullable|array',

@@ -15,6 +15,7 @@ import {
   setCartQuantity,
   syncCartFromInspection,
   cartLineKey,
+  toCartApiItem,
 } from "~/lib/cart-actions";
 import { useAuth } from "~/lib/auth-context";
 import { useCart } from "~/lib/cart-context";
@@ -91,11 +92,7 @@ export default component$(() => {
       const { data } = await inspectCart(
         {
           ...couponPayload,
-          items: cart.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-            ...(line.digital ? { digital: line.digital } : {}),
-          })),
+          items: cart.items.map(toCartApiItem),
         },
         auth.token ?? undefined,
       );
@@ -155,11 +152,7 @@ export default component$(() => {
       const { data } = await inspectCart(
         {
           ...couponPayload,
-          items: cart.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-            ...(line.digital ? { digital: line.digital } : {}),
-          })),
+          items: cart.items.map(toCartApiItem),
         },
         auth.token ?? undefined,
       );

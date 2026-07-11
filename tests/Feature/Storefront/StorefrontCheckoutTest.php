@@ -199,4 +199,97 @@ class StorefrontCheckoutTest extends TestCase
             Transaction::where('storefront_order_id', $payload['idempotency_key'])->count()
         );
     }
+
+    public function test_digital_checkout_uses_catalog_price_not_pos_sku_price(): void
+    {
+        Mail::fake();
+
+        $location = BusinessLocation::where('business_id', $this->businessId)->where('is_active', 1)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No active business location in database.');
+        }
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->first();
+        if (empty($product)) {
+            $this->markTestSkipped('No sellable product in database.');
+        }
+
+        $variation = Variation::where('product_id', $product->id)->whereNull('deleted_at')->first();
+        if (empty($variation)) {
+            $this->markTestSkipped('No variation for product.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+            'default_fulfillment_location_id' => $location->id,
+            'cod_enabled' => true,
+        ]);
+        Cache::flush();
+
+        $originalDefault = $variation->default_sell_price;
+        $originalInc = $variation->sell_price_inc_tax;
+        $variation->default_sell_price = 0;
+        $variation->sell_price_inc_tax = 0;
+        $variation->save();
+
+        try {
+            $quotes = app(\App\Services\Storefront\Shipping\ShippingQuoteService::class);
+            $digitalItems = [[
+                'variation_id' => $variation->id,
+                'quantity' => 1,
+                'digital' => [
+                    'kind' => 'game',
+                    'game_id' => 99,
+                    'type' => 'secondary',
+                    'platform' => '5',
+                    'line_key' => 'ps5_secondary_stock|game:99',
+                    'title' => 'Catalog Game Title',
+                    'price' => 275,
+                ],
+            ]];
+            $quoted = $quotes->quote($this->businessId, 275, $digitalItems, [], null, $location->id, 'en', false);
+            $rateId = $quoted['available_rates'][0]['id'] ?? null;
+            if (empty($rateId)) {
+                $this->markTestSkipped('No digital shipping rate.');
+            }
+
+            $orderKey = 'SF-DIG-PRICE-'.uniqid();
+            $response = $this->postJson('/api/storefront/v1/checkout', [
+                'idempotency_key' => $orderKey,
+                'location_id' => $location->id,
+                'payment_method' => 'cod',
+                'items' => $digitalItems,
+                'customer' => [
+                    'first_name' => 'Digital',
+                    'last_name' => 'Price',
+                    'email' => 'digital_price_'.uniqid().'@example.com',
+                    'mobile' => '201011122233',
+                ],
+                'shipping_address' => [
+                    'country' => 'EG',
+                    'address_line_1' => 'Digital delivery',
+                ],
+                'shipping_rate_id' => $rateId,
+            ]);
+
+            $response->assertCreated()->assertJsonPath('success', true);
+
+            $transaction = Transaction::where('storefront_order_id', $orderKey)->first();
+            $this->assertNotNull($transaction);
+            $this->assertEqualsWithDelta(275.0, (float) $transaction->final_total, 0.0001);
+            $this->assertEqualsWithDelta(275.0, (float) $transaction->total_before_tax, 0.0001);
+
+            $line = $transaction->sell_lines()->first();
+            $this->assertNotNull($line);
+            $this->assertEqualsWithDelta(275.0, (float) $line->unit_price_inc_tax, 0.0001);
+            $this->assertSame('Catalog Game Title', (string) $line->sell_line_note);
+        } finally {
+            $variation->default_sell_price = $originalDefault;
+            $variation->sell_price_inc_tax = $originalInc;
+            $variation->save();
+        }
+    }
 }

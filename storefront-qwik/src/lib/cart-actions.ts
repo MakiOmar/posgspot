@@ -124,7 +124,14 @@ export const parseStoredCart = (raw: string | null): CartItem[] => {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isCartItem).map((line) => ({ ...line }));
+    return parsed.filter(isCartItem).map((line) => {
+      const next = { ...line };
+      // Backfill digital.price from line price when older carts omitted it.
+      if (next.digital?.kind && (next.digital.price == null || !Number.isFinite(Number(next.digital.price)))) {
+        next.digital = { ...next.digital, price: next.price };
+      }
+      return next;
+    });
   } catch {
     return [];
   }
@@ -136,6 +143,26 @@ export const cartLineKey = (item: CartItem): string => {
     return `d:${item.digital.line_key}`;
   }
   return `v:${item.variationId}`;
+};
+
+/**
+ * Payload line for cart validate / checkout.
+ * Always re-attach digital.price from the cart line so POS SKU price (often 0) is not used.
+ */
+export const toCartApiItem = (line: CartItem): Record<string, unknown> => {
+  const item: Record<string, unknown> = {
+    variation_id: line.variationId,
+    quantity: line.quantity,
+  };
+  if (line.digital?.kind) {
+    const price = Number(line.digital.price ?? line.price);
+    item.digital = {
+      ...line.digital,
+      price: Number.isFinite(price) ? price : line.price,
+    };
+    item.unit_price = Number.isFinite(price) ? price : line.price;
+  }
+  return item;
 };
 
 /** Merge two carts, summing quantity for the same line key. */

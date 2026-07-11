@@ -6,7 +6,7 @@ import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial
 import { SearchableSelect } from "~/components/forms/searchable-select";
 import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart, type BostaDistrict } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storeFawryPaymentSession } from "~/lib/fawry-pay";
 import { formatPrice } from "~/lib/format";
@@ -252,11 +252,7 @@ export default component$(() => {
           {
             location_id: locationId.value,
             ...couponPayload,
-            items: cart.items.map((line) => ({
-              variation_id: line.variationId,
-              quantity: line.quantity,
-              ...(line.digital ? { digital: line.digital } : {}),
-            })),
+            items: cart.items.map(toCartApiItem),
             destination,
             shipping_rate_id: shippingRateId.value || undefined,
           },
@@ -441,11 +437,7 @@ export default component$(() => {
       const formData = new FormData(form);
       const selectedPayment = String(formData.get("payment_method") || paymentMethod.value);
       const resolvedPayment = selectedPayment === "fawry" && onlinePaymentsEnabled ? "fawry" : "cod";
-      const items = cart.items.map((line) => ({
-        variation_id: line.variationId,
-        quantity: line.quantity,
-        ...(line.digital ? { digital: line.digital } : {}),
-      }));
+      const items = cart.items.map(toCartApiItem);
       const selectedRate =
         availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
       const pickupSelected = selectedRate?.method_type === "local_pickup";

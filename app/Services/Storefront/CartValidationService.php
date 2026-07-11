@@ -73,8 +73,13 @@ class CartValidationService
             $pricing = $this->storefrontPricing->resolve($variation);
             $unitPrice = $pricing['price'];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
-            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
-                $unitPrice = (float) $digital['price'];
+            if ($digital && ! empty($digital['kind'])) {
+                $unitPrice = $this->resolveDigitalUnitPrice($item, $unitPrice);
+                if ($unitPrice <= 0) {
+                    throw ValidationException::withMessages([
+                        "items.$index.digital.price" => ['Digital item price is required.'],
+                    ]);
+                }
             }
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
@@ -108,7 +113,7 @@ class CartValidationService
             $lines[] = $line;
 
             $exclusive = (float) $variation->default_sell_price;
-            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
+            if ($digital && ! empty($digital['kind'])) {
                 $exclusive = $unitPrice;
             } elseif ($exclusive <= 0) {
                 $exclusive = $unitPrice;
@@ -124,6 +129,9 @@ class CartValidationService
                 'tax_id' => $product->tax,
                 'enable_stock' => $product->enable_stock,
             ];
+            if ($digital && ! empty($digital['title'])) {
+                $productLine['sell_line_note'] = (string) $digital['title'];
+            }
 
             if ($product->type === 'combo') {
                 $productLine['product_type'] = 'combo';
@@ -202,6 +210,24 @@ class CartValidationService
         );
     }
 
+    /**
+     * Prefer Accounts catalog price on the digital meta, then explicit line overrides,
+     * then the POS variation price (often 0 for placeholder SKUs).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function resolveDigitalUnitPrice(array $item, float $fallback): float
+    {
+        $digital = is_array($item['digital'] ?? null) ? $item['digital'] : [];
+        foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
+            if ($candidate !== null && $candidate !== '' && is_numeric($candidate)) {
+                return (float) $candidate;
+            }
+        }
+
+        return $fallback;
+    }
+
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
     {
         if (! $product->enable_stock) {
@@ -274,8 +300,8 @@ class CartValidationService
             $pricing = $this->storefrontPricing->resolve($variation);
             $unitPrice = $pricing['price'];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
-            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
-                $unitPrice = (float) $digital['price'];
+            if ($digital && ! empty($digital['kind'])) {
+                $unitPrice = $this->resolveDigitalUnitPrice($item, $unitPrice);
             }
             $status['name'] = $product->name;
             $status['variation_name'] = $variation->name;
