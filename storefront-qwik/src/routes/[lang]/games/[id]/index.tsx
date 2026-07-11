@@ -72,6 +72,8 @@ export default component$(() => {
   const secondaryStock = num(
     game[`ps${platform}_secondary_stock`] ?? game.total_secondary_stock ?? game.ps4_secondary_stock,
   );
+  const primaryInStock = primaryOk && primaryPrice > 0 && primaryStock > 0;
+  const secondaryInStock = secondaryOk && secondaryPrice > 0 && secondaryStock > 0;
 
   const addOffer$ = $(async (offer: GameOffer) => {
     const sku: DigitalPosSku | null =
@@ -81,18 +83,30 @@ export default component$(() => {
       return;
     }
     const price = offer === "primary" ? primaryPrice : secondaryPrice;
-    if (price <= 0) {
+    const stock = offer === "primary" ? primaryStock : secondaryStock;
+    const offerEnabled = offer === "primary" ? primaryOk : secondaryOk;
+    if (!offerEnabled || price <= 0) {
       await toastError(tStatic(lang, "digital.unavailable"));
+      return;
+    }
+    if (stock <= 0) {
+      await toastError(tStatic(lang, "digital.outOfStock"));
       return;
     }
 
     pending.value = offer;
     try {
-      await checkDigitalGameStock({
+      const stockCheck = await checkDigitalGameStock({
         game_id: Number(game.id),
         type: offer,
         platform,
       });
+      const stockData = stockCheck.data as { is_available?: boolean; stock?: number | string };
+      const liveStock = Number(stockData?.stock ?? 0);
+      if (stockData?.is_available === false || (Number.isFinite(liveStock) && liveStock <= 0)) {
+        await toastError(tStatic(lang, "digital.outOfStock"));
+        return;
+      }
       const digital: CartItemDigital = {
         kind: "game",
         game_id: Number(game.id),
@@ -154,19 +168,25 @@ export default component$(() => {
                 <p>
                   <strong>{tStatic(lang, "digital.primary")}</strong> —{" "}
                   {formatPrice(primaryPrice, settings.value.currency, lang)}
-                  {primaryStock > 0 ? (
-                    <span class="footer-muted"> · {tStatic(lang, "digital.inStock")}</span>
-                  ) : null}
+                  <span class="footer-muted">
+                    {" "}
+                    ·{" "}
+                    {primaryInStock
+                      ? tStatic(lang, "digital.inStock")
+                      : tStatic(lang, "digital.outOfStock")}
+                  </span>
                 </p>
                 <button
                   type="button"
                   class="btn btn-primary"
-                  disabled={pending.value !== null}
+                  disabled={!primaryInStock || pending.value !== null}
                   onClick$={() => addOffer$("primary")}
                 >
                   {pending.value === "primary"
                     ? tStatic(lang, "digital.adding")
-                    : tStatic(lang, "digital.addPrimary")}
+                    : primaryInStock
+                      ? tStatic(lang, "digital.addPrimary")
+                      : tStatic(lang, "digital.outOfStock")}
                 </button>
               </div>
             ) : null}
@@ -176,19 +196,25 @@ export default component$(() => {
                 <p>
                   <strong>{tStatic(lang, "digital.secondary")}</strong> —{" "}
                   {formatPrice(secondaryPrice, settings.value.currency, lang)}
-                  {secondaryStock > 0 ? (
-                    <span class="footer-muted"> · {tStatic(lang, "digital.inStock")}</span>
-                  ) : null}
+                  <span class="footer-muted">
+                    {" "}
+                    ·{" "}
+                    {secondaryInStock
+                      ? tStatic(lang, "digital.inStock")
+                      : tStatic(lang, "digital.outOfStock")}
+                  </span>
                 </p>
                 <button
                   type="button"
                   class="btn btn-secondary"
-                  disabled={pending.value !== null}
+                  disabled={!secondaryInStock || pending.value !== null}
                   onClick$={() => addOffer$("secondary")}
                 >
                   {pending.value === "secondary"
                     ? tStatic(lang, "digital.adding")
-                    : tStatic(lang, "digital.addSecondary")}
+                    : secondaryInStock
+                      ? tStatic(lang, "digital.addSecondary")
+                      : tStatic(lang, "digital.outOfStock")}
                 </button>
               </div>
             ) : null}

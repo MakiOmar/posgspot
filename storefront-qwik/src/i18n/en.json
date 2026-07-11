@@ -39,6 +39,7 @@
     "skuMissing": "Digital products are not configured. Please contact the store.",
     "stockFailed": "Could not confirm stock. Try again.",
     "inStock": "In stock",
+    "outOfStock": "Out of stock",
     "platformLabel": "PlayStation {platform}",
     "giftCard": "Gift card",
     "gameDetailDescription": "Buy {title} as a digital PlayStation account.",

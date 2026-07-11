@@ -39,6 +39,7 @@
     "skuMissing": "المنتجات الرقمية غير مُعدّة. يرجى التواصل مع المتجر.",
     "stockFailed": "تعذر التحقق من المخزون. حاول مرة أخرى.",
     "inStock": "متوفر",
+    "outOfStock": "غير متوفر",
     "platformLabel": "بلايستيشن {platform}",
     "giftCard": "بطاقة هدية",
     "gameDetailDescription": "اشترِ {title} كحساب بلايستيشن رقمي.",

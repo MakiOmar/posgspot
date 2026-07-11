@@ -110,7 +110,13 @@ class DigitalCatalogController extends StorefrontController
             return $this->jsonError($result['error'] ?? 'Stock check failed', (int) ($result['status'] ?: 422));
         }
 
-        return $this->jsonSuccess($result['body'] ?? ['available' => true]);
+        $body = is_array($result['body'] ?? null) ? $result['body'] : [];
+        $available = ! empty($body['is_available']) || ((float) ($body['stock'] ?? 0) > 0);
+        if (! $available) {
+            return $this->jsonError('This offer is out of stock.', 422);
+        }
+
+        return $this->jsonSuccess($body);
     }
 
     public function checkCardStock(Request $request)
