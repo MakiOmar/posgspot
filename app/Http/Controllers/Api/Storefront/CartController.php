@@ -42,6 +42,21 @@ class CartController extends StorefrontController
             'destination.zip_code' => 'nullable|string|max:32',
         ]);
 
+        foreach ($request->input('items', []) as $index => $rawItem) {
+            if (! is_array($rawItem) || ! isset($data['items'][$index])) {
+                continue;
+            }
+            if (is_array($rawItem['digital'] ?? null)) {
+                $data['items'][$index]['digital'] = array_merge(
+                    $data['items'][$index]['digital'] ?? [],
+                    $rawItem['digital']
+                );
+            }
+            if (isset($rawItem['unit_price']) && is_numeric($rawItem['unit_price'])) {
+                $data['items'][$index]['unit_price'] = (float) $rawItem['unit_price'];
+            }
+        }
+
         $contact = Auth::guard('sanctum')->user();
         $locale = StorefrontLocale::fromRequest($request);
         $destination = $data['destination'] ?? null;

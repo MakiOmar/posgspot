@@ -76,15 +76,31 @@ export default component$(() => {
   const secondaryInStock = secondaryOk && secondaryPrice > 0 && secondaryStock > 0;
 
   const addOffer$ = $(async (offer: GameOffer) => {
+    const gameData = detail.value.game;
+    const plat = detail.value.platform;
     const sku: DigitalPosSku | null =
       offer === "primary" ? detail.value.skus.primary : detail.value.skus.secondary;
     if (!sku) {
       await toastError(tStatic(lang, "digital.skuMissing"));
       return;
     }
-    const price = offer === "primary" ? primaryPrice : secondaryPrice;
-    const stock = offer === "primary" ? primaryStock : secondaryStock;
-    const offerEnabled = offer === "primary" ? primaryOk : secondaryOk;
+    const price = num(
+      offer === "primary"
+        ? (gameData[`ps${plat}_primary_price`] ?? gameData.primary_price ?? gameData.ps4_primary_price)
+        : (gameData[`ps${plat}_secondary_price`] ?? gameData.secondary_price ?? gameData.ps4_secondary_price),
+    );
+    const stock = num(
+      offer === "primary"
+        ? (gameData[`ps${plat}_primary_stock`] ?? gameData.total_primary_stock ?? gameData.ps4_primary_stock)
+        : (gameData[`ps${plat}_secondary_stock`] ??
+          gameData.total_secondary_stock ??
+          gameData.ps4_secondary_stock),
+    );
+    const offerEnabled = boolish(
+      offer === "primary"
+        ? (gameData[`ps${plat}_primary_status`] ?? gameData.primary_status)
+        : (gameData[`ps${plat}_secondary_status`] ?? gameData.secondary_status),
+    );
     if (!offerEnabled || price <= 0) {
       await toastError(tStatic(lang, "digital.unavailable"));
       return;
@@ -94,12 +110,18 @@ export default component$(() => {
       return;
     }
 
+    const gameTitle = String(gameData.title ?? title);
+    const gameImage =
+      plat === "5"
+        ? String(gameData.ps5_image_url ?? gameData.image_url ?? image)
+        : String(gameData.ps4_image_url ?? gameData.image_url ?? image);
+
     pending.value = offer;
     try {
       const stockCheck = await checkDigitalGameStock({
-        game_id: Number(game.id),
+        game_id: Number(gameData.id),
         type: offer,
-        platform,
+        platform: plat,
       });
       const stockData = stockCheck.data as { is_available?: boolean; stock?: number | string };
       const liveStock = Number(stockData?.stock ?? 0);
@@ -109,22 +131,22 @@ export default component$(() => {
       }
       const digital: CartItemDigital = {
         kind: "game",
-        game_id: Number(game.id),
+        game_id: Number(gameData.id),
         type: offer,
-        platform,
-        line_key: `ps${platform}_${offer}_stock|game:${game.id}`,
-        title: `${title} (${offer === "primary" ? "Primary" : "Secondary"} · PS${platform})`,
+        platform: plat,
+        line_key: `ps${plat}_${offer}_stock|game:${gameData.id}`,
+        title: `${gameTitle} (${offer === "primary" ? "Primary" : "Secondary"} · PS${plat})`,
         price,
       };
       await addCartItem(cart, {
         productId: sku.product_id,
         variationId: sku.variation_id,
         slug: null,
-        name: digital.title || title,
+        name: digital.title || gameTitle,
         variationName: offer === "primary" ? "Primary" : "Secondary",
         price,
         quantity: 1,
-        imageUrl: image || sku.image_url,
+        imageUrl: gameImage || sku.image_url,
         digital,
       });
       await toastSuccess(tStatic(lang, "digital.addedToCart"));

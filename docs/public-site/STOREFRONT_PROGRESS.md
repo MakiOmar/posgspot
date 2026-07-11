@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Harden digital checkout pricing: merge raw digital.price, force products_payload/sell lines, repair zero-price sales via `storefront:repair-digital-prices`. |
 | 2026-07-12 | Fix digital checkout $0 totals: persist Accounts catalog price (not POS SKU); reject missing digital price; Qwik always sends `digital.price`. |
 | 2026-07-12 | Digital-only carts: free `digital` shipping rate (no address/Bosta); Qwik checkout skips address; cart validate returns `digital_only`. |
 | 2026-07-11 | Digital fulfillment: paid-only Accounts allocate, trip ledger, catalog proxy + Qwik `/games` + `/gift-cards`, secrets on paid email / account order / invoice notes. |

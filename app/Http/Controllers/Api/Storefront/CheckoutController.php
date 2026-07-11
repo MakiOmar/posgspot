@@ -50,6 +50,22 @@ class CheckoutController extends StorefrontController
             'coupon_codes.*' => 'string|max:64',
         ]);
 
+        // Re-merge raw digital/unit_price so nested catalog prices are never dropped.
+        foreach ($request->input('items', []) as $index => $rawItem) {
+            if (! is_array($rawItem) || ! isset($data['items'][$index])) {
+                continue;
+            }
+            if (is_array($rawItem['digital'] ?? null)) {
+                $data['items'][$index]['digital'] = array_merge(
+                    $data['items'][$index]['digital'] ?? [],
+                    $rawItem['digital']
+                );
+            }
+            if (isset($rawItem['unit_price']) && is_numeric($rawItem['unit_price'])) {
+                $data['items'][$index]['unit_price'] = (float) $rawItem['unit_price'];
+            }
+        }
+
         $data['storefront_order_id'] = $data['idempotency_key'];
         $data['locale'] = $request->header('X-Content-Locale', 'en');
         /** @var Contact|null $contact */

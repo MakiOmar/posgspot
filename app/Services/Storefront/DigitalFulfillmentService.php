@@ -45,7 +45,111 @@ class DigitalFulfillmentService
                     'request_meta' => $item,
                 ]
             );
+            $this->repairSellLinePriceFromItem($transaction, $item);
         }
+
+        $this->refreshTransactionTotalsFromSellLines($transaction);
+    }
+
+    /**
+     * Fix zero-price digital sell lines using catalog price stored on the line item / meta.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function repairSellLinePriceFromItem(Transaction $transaction, array $item): void
+    {
+        $price = null;
+        foreach ([$item['price'] ?? null, $item['unit_price'] ?? null] as $candidate) {
+            if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                $price = (float) $candidate;
+                break;
+            }
+        }
+        if ($price === null) {
+            return;
+        }
+
+        $line = null;
+        if (! empty($item['sell_line_id'])) {
+            $line = TransactionSellLine::find($item['sell_line_id']);
+        }
+        if (! $line && ! empty($item['variation_id'])) {
+            $line = TransactionSellLine::where('transaction_id', $transaction->id)
+                ->where('variation_id', (int) $item['variation_id'])
+                ->whereNull('parent_sell_line_id')
+                ->first();
+        }
+        if (! $line) {
+            return;
+        }
+        if ((float) $line->unit_price_inc_tax > 0 && abs((float) $line->unit_price_inc_tax - $price) < 0.0001) {
+            return;
+        }
+
+        $line->unit_price_before_discount = $price;
+        $line->unit_price = $price;
+        $line->unit_price_inc_tax = $price;
+        $line->item_tax = 0;
+        if (! empty($item['title']) && trim((string) $line->sell_line_note) === '') {
+            $line->sell_line_note = (string) $item['title'];
+        }
+        $line->save();
+    }
+
+    private function refreshTransactionTotalsFromSellLines(Transaction $transaction): void
+    {
+        $transaction->load('sell_lines');
+        $subtotal = 0.0;
+        foreach ($transaction->sell_lines as $line) {
+            if (! empty($line->parent_sell_line_id)) {
+                continue;
+            }
+            $subtotal += (float) $line->unit_price_inc_tax * (float) $line->quantity;
+        }
+        $shipping = (float) $transaction->shipping_charges;
+        $discount = (float) ($transaction->discount_amount ?? 0);
+        $rp = (float) ($transaction->rp_redeemed_amount ?? 0);
+        $final = max(0, round($subtotal + $shipping - $discount - $rp, 4));
+        if (abs((float) $transaction->final_total - $final) < 0.0001
+            && abs((float) $transaction->total_before_tax - $subtotal) < 0.0001) {
+            return;
+        }
+        $transaction->total_before_tax = round($subtotal, 4);
+        $transaction->final_total = $final;
+        $transaction->save();
+    }
+
+    /**
+     * Repair existing digital orders that saved with L.E. 0.00 sell lines.
+     */
+    public function repairZeroPriceDigitalOrders(?int $transactionId = null): int
+    {
+        $query = StorefrontDigitalFulfillment::query()->orderBy('id');
+        if ($transactionId) {
+            $query->where('transaction_id', $transactionId);
+        }
+        $fixed = 0;
+        $seenTx = [];
+        foreach ($query->get() as $row) {
+            $meta = is_array($row->request_meta) ? $row->request_meta : [];
+            $meta['sell_line_id'] = $row->sell_line_id;
+            $tx = Transaction::find($row->transaction_id);
+            if (! $tx) {
+                continue;
+            }
+            $before = (float) $tx->final_total;
+            $this->repairSellLinePriceFromItem($tx, $meta);
+            $this->refreshTransactionTotalsFromSellLines($tx);
+            $tx->refresh();
+            if (abs((float) $tx->final_total - $before) > 0.0001 || ! isset($seenTx[$tx->id])) {
+                if ((float) $tx->final_total > $before) {
+                    $fixed++;
+                }
+                $seenTx[$tx->id] = true;
+            }
+        }
+
+        return $fixed;
     }
 
     public function fulfillPaidTransaction(Transaction $transaction): void

@@ -74,6 +74,7 @@ class CheckoutService
             (string) ($payload['locale'] ?? 'en'),
             true
         );
+        $validated = $this->forceDigitalPricesOnValidated($validated, $payload['items'] ?? []);
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
 
@@ -205,6 +206,8 @@ class CheckoutService
             $transaction->save();
 
             $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $locationId, false, null, [], false);
+
+            $this->syncDigitalSellLinePrices($transaction, $payload['items'] ?? [], $couponDiscount, $rpRedeemedAmount);
 
             $this->queueDigitalFulfillments($transaction, $payload['items'] ?? []);
 
@@ -588,6 +591,152 @@ class CheckoutService
         $lang = $locale === 'ar' ? 'ar' : 'en';
 
         return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
+    }
+
+    /**
+     * Ensure products_payload / totals use Accounts catalog prices for digital lines.
+     *
+     * @param  array<string, mixed>  $validated
+     * @param  list<array<string, mixed>>  $items
+     * @return array<string, mixed>
+     */
+    private function forceDigitalPricesOnValidated(array $validated, array $items): array
+    {
+        $priceByVariation = [];
+        foreach ($items as $index => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if (! $digital || empty($digital['kind'])) {
+                continue;
+            }
+            $price = null;
+            foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
+                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                    $price = (float) $candidate;
+                    break;
+                }
+            }
+            if ($price === null) {
+                throw ValidationException::withMessages([
+                    "items.$index.digital.price" => ['Digital item price is required.'],
+                ]);
+            }
+            $variationId = (int) ($item['variation_id'] ?? 0);
+            if ($variationId > 0) {
+                $priceByVariation[$variationId] = $price;
+            }
+        }
+
+        if ($priceByVariation === []) {
+            return $validated;
+        }
+
+        $subtotal = 0.0;
+        foreach ($validated['products_payload'] as $i => $product) {
+            $variationId = (int) ($product['variation_id'] ?? 0);
+            if (! isset($priceByVariation[$variationId])) {
+                $subtotal += (float) ($product['unit_price_inc_tax'] ?? 0) * (float) ($product['quantity'] ?? 0);
+                continue;
+            }
+            $price = $priceByVariation[$variationId];
+            $qty = (float) ($product['quantity'] ?? 0);
+            $validated['products_payload'][$i]['unit_price'] = $price;
+            $validated['products_payload'][$i]['unit_price_inc_tax'] = $price;
+            $validated['products_payload'][$i]['item_tax'] = 0;
+            $subtotal += $price * $qty;
+        }
+
+        foreach ($validated['lines'] as $i => $line) {
+            $variationId = (int) ($line['variation_id'] ?? 0);
+            if (! isset($priceByVariation[$variationId])) {
+                continue;
+            }
+            $price = $priceByVariation[$variationId];
+            $qty = (float) ($line['quantity'] ?? 0);
+            $validated['lines'][$i]['unit_price'] = $price;
+            $validated['lines'][$i]['line_total'] = $price * $qty;
+        }
+
+        $shipping = (float) ($validated['shipping'] ?? 0);
+        $couponDiscount = (float) ($validated['coupon_discount'] ?? 0);
+        $validated['subtotal'] = round($subtotal, 4);
+        $validated['total'] = round(max(0, $subtotal + $shipping - $couponDiscount), 4);
+
+        return $validated;
+    }
+
+    /**
+     * Patch sell lines + transaction totals when digital catalog prices were not persisted.
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    private function syncDigitalSellLinePrices(
+        Transaction $transaction,
+        array $items,
+        float $couponDiscount,
+        float $rpRedeemedAmount
+    ): void {
+        $transaction->load('sell_lines');
+        $linesByVariation = $transaction->sell_lines->keyBy('variation_id');
+        $changed = false;
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if (! $digital || empty($digital['kind'])) {
+                continue;
+            }
+            $price = null;
+            foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
+                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                    $price = (float) $candidate;
+                    break;
+                }
+            }
+            if ($price === null) {
+                continue;
+            }
+            $variationId = (int) ($item['variation_id'] ?? 0);
+            $line = $variationId > 0 ? $linesByVariation->get($variationId) : null;
+            if (! $line) {
+                continue;
+            }
+            if (abs((float) $line->unit_price_inc_tax - $price) < 0.0001
+                && abs((float) $line->unit_price - $price) < 0.0001) {
+                continue;
+            }
+            $line->unit_price_before_discount = $price;
+            $line->unit_price = $price;
+            $line->unit_price_inc_tax = $price;
+            $line->item_tax = 0;
+            if (! empty($digital['title']) && trim((string) $line->sell_line_note) === '') {
+                $line->sell_line_note = (string) $digital['title'];
+            }
+            $line->save();
+            $changed = true;
+        }
+
+        if (! $changed && (float) $transaction->final_total > 0) {
+            return;
+        }
+
+        $transaction->load('sell_lines');
+        $subtotal = 0.0;
+        foreach ($transaction->sell_lines as $line) {
+            if (! empty($line->parent_sell_line_id)) {
+                continue;
+            }
+            $subtotal += (float) $line->unit_price_inc_tax * (float) $line->quantity;
+        }
+        $shipping = (float) $transaction->shipping_charges;
+        $finalTotal = max(0, round($subtotal + $shipping - $couponDiscount - $rpRedeemedAmount, 4));
+        $transaction->total_before_tax = round($subtotal, 4);
+        $transaction->final_total = $finalTotal;
+        $transaction->save();
     }
 
     /**
