@@ -94,43 +94,46 @@ export default component$(() => {
   });
 
   return (
-    <section>
+    <section class="digital-catalog">
       <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
         <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
         <span aria-hidden="true"> / </span>
         <span>{tStatic(lang, "nav.giftCards")}</span>
       </nav>
 
-      <h1 class="page-title">{tStatic(lang, "digital.giftCardsTitle")}</h1>
-      <p class="footer-muted">{tStatic(lang, "digital.giftCardsLead")}</p>
+      <header class="digital-catalog__header">
+        <h1 class="page-title digital-catalog__title">{tStatic(lang, "digital.giftCardsTitle")}</h1>
+        <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.giftCardsLead")}</p>
+      </header>
 
       {list.value.categories.length === 0 ? (
         <div class="empty-state">{tStatic(lang, "digital.noGiftCards")}</div>
       ) : (
-        <div class="product-grid">
+        <div class="product-grid digital-catalog__grid">
           {list.value.categories.map((category) => (
-            <article key={category.id} class="product-card">
-              <div class="product-card__media">
+            <article key={category.id} class="product-card digital-game-card">
+              <div class="product-card__media digital-game-card__media">
                 {category.poster_image ? (
                   <img
+                    class="product-card__image digital-game-card__image"
                     src={category.poster_image}
-                    alt=""
+                    alt={category.name}
                     width={320}
                     height={320}
                     loading="lazy"
                   />
                 ) : (
-                  <span class="product-card__placeholder" aria-hidden="true" />
+                  <div class="product-card__image digital-game-card__image" aria-hidden="true" />
                 )}
               </div>
-              <div class="product-card__body">
-                <h2 class="product-card__title">{category.name}</h2>
-                <p class="product-card__price">
+              <div class="product-card__body digital-game-card__body">
+                <h2 class="product-card__name digital-game-card__title">{category.name}</h2>
+                <p class="product-card__price digital-game-card__price">
                   {formatPrice(Number(category.price), settings.value.currency, lang)}
                 </p>
                 <button
                   type="button"
-                  class="btn btn-primary"
+                  class="btn btn-primary digital-game-card__cta"
                   disabled={pendingId.value !== null}
                   onClick$={() =>
                     addCard$(

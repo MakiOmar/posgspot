@@ -26,6 +26,8 @@
     "giftCardsSeoDescription": "اشترِ بطاقات هدايا رقمية من {businessName}.",
     "noGames": "لا توجد ألعاب متاحة لهذه المنصة حالياً.",
     "noGiftCards": "لا توجد بطاقات هدايا متاحة حالياً.",
+    "platformFilter": "منصة بلايستيشن",
+    "gamesCount": "{count} لعبة · {platform}",
     "primary": "حساب أساسي",
     "secondary": "حساب ثانوي",
     "addPrimary": "أضف الأساسي للسلة",

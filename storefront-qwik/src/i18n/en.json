@@ -26,6 +26,8 @@
     "giftCardsSeoDescription": "Buy digital gift cards at {businessName}.",
     "noGames": "No games available for this platform right now.",
     "noGiftCards": "No gift cards available right now.",
+    "platformFilter": "PlayStation platform",
+    "gamesCount": "{count} games · {platform}",
     "primary": "Primary account",
     "secondary": "Secondary account",
     "addPrimary": "Add primary to cart",

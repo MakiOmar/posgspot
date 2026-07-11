@@ -1363,6 +1363,161 @@ button.header-nav-dropdown__trigger {
   width: 100%;
 }
 
+/* Digital games / gift cards catalog layout */
+.digital-catalog {
+  padding-bottom: 2.5rem;
+}
+
+.digital-catalog__header {
+  margin-bottom: 1.25rem;
+}
+
+.digital-catalog__title {
+  margin-bottom: 0.4rem;
+}
+
+.digital-catalog__lead {
+  margin: 0 0 1.1rem;
+  max-width: 36rem;
+  line-height: 1.45;
+}
+
+.digital-catalog__platforms {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0 0 0.85rem;
+  padding: 0.25rem;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: 999px;
+}
+
+.digital-catalog__platform {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.25rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  color: var(--gs-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.digital-catalog__platform:hover {
+  color: var(--gs-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.digital-catalog__platform.is-active {
+  background: var(--gs-accent);
+  color: #041510;
+}
+
+.digital-catalog__count {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.digital-catalog__grid {
+  align-items: stretch;
+}
+
+.digital-game-card {
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+}
+
+.digital-game-card__media {
+  background: #090b10;
+}
+
+.digital-game-card__image {
+  aspect-ratio: 1;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: #090b10;
+  display: block;
+}
+
+.digital-game-card__body {
+  min-height: 5.75rem;
+  gap: 0.45rem;
+}
+
+.digital-game-card__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.3em * 2);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--gs-text);
+}
+
+.digital-game-card:hover .digital-game-card__title {
+  color: var(--gs-accent);
+}
+
+.digital-game-card__price {
+  margin: 0;
+  margin-top: auto;
+  padding-top: 0.15rem;
+}
+
+.digital-game-card__cta {
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.digital-catalog__pagination {
+  margin-top: 1.75rem;
+}
+
+.digital-catalog__debug {
+  margin-top: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px dashed var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+}
+
+.digital-catalog__debug h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+.digital-catalog__debug-reason {
+  margin: 0 0 0.75rem;
+  color: var(--gs-accent);
+}
+
+.digital-catalog__debug dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.digital-catalog__debug dt {
+  color: var(--gs-muted);
+}
+
+.digital-catalog__debug dd {
+  margin: 0.15rem 0 0;
+  word-break: break-all;
+}
+
 .product-card__body {
   padding: 0.75rem;
   display: flex;

@@ -102,58 +102,83 @@ export default component$(() => {
   const showDebug = list.value.games.length === 0;
 
   return (
-    <section>
+    <section class="digital-catalog">
       <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
         <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
         <span aria-hidden="true"> / </span>
         <span>{tStatic(lang, "nav.games")}</span>
       </nav>
 
-      <h1 class="page-title">{tStatic(lang, "digital.gamesTitle")}</h1>
-      <p class="footer-muted">{tStatic(lang, "digital.gamesLead")}</p>
+      <header class="digital-catalog__header">
+        <h1 class="page-title digital-catalog__title">{tStatic(lang, "digital.gamesTitle")}</h1>
+        <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.gamesLead")}</p>
 
-      <div class="product-list-toolbar" style={{ marginBottom: "1.25rem" }}>
-        <Link
-          href={buildUrl("4")}
-          class={list.value.platform === "4" ? "btn btn-primary" : "btn btn-secondary"}
-        >
-          PS4
-        </Link>
-        <Link
-          href={buildUrl("5")}
-          class={list.value.platform === "5" ? "btn btn-primary" : "btn btn-secondary"}
-          style={{ marginInlineStart: "0.5rem" }}
-        >
-          PS5
-        </Link>
-      </div>
+        <div class="digital-catalog__platforms" role="tablist" aria-label={tStatic(lang, "digital.platformFilter")}>
+          <Link
+            href={buildUrl("4")}
+            role="tab"
+            aria-selected={list.value.platform === "4"}
+            class={`digital-catalog__platform${list.value.platform === "4" ? " is-active" : ""}`}
+          >
+            PS4
+          </Link>
+          <Link
+            href={buildUrl("5")}
+            role="tab"
+            aria-selected={list.value.platform === "5"}
+            class={`digital-catalog__platform${list.value.platform === "5" ? " is-active" : ""}`}
+          >
+            PS5
+          </Link>
+        </div>
+
+        {list.value.games.length > 0 ? (
+          <p class="footer-muted digital-catalog__count">
+            {tStatic(lang, "digital.gamesCount", {
+              count: String(list.value.meta.total ?? list.value.games.length),
+              platform: `PS${list.value.platform}`,
+            })}
+          </p>
+        ) : null}
+      </header>
 
       {list.value.games.length === 0 ? (
         <div class="empty-state">{tStatic(lang, "digital.noGames")}</div>
       ) : (
-        <div class="product-grid">
+        <div class="product-grid digital-catalog__grid">
           {list.value.games.map((game) => {
             const price = Number(game.primary_price ?? game.secondary_price ?? 0);
             return (
               <Link
                 key={game.id}
                 href={localePath(lang, `/games/${game.id}?platform=${list.value.platform}`)}
-                class="product-card"
+                class="product-card digital-game-card"
               >
-                <div class="product-card__media">
+                <div class="product-card__media digital-game-card__media">
                   {game.image_url ? (
-                    <img src={game.image_url} alt="" width={320} height={320} loading="lazy" />
+                    <img
+                      class="product-card__image digital-game-card__image"
+                      src={game.image_url}
+                      alt={game.title}
+                      width={320}
+                      height={320}
+                      loading="lazy"
+                    />
                   ) : (
-                    <span class="product-card__placeholder" aria-hidden="true" />
+                    <div class="product-card__image digital-game-card__image" aria-hidden="true" />
                   )}
                 </div>
-                <div class="product-card__body">
-                  <h2 class="product-card__title">{game.title}</h2>
+                <div class="product-card__body digital-game-card__body">
+                  <h2 class="product-card__name digital-game-card__title">{game.title}</h2>
                   {price > 0 ? (
-                    <p class="product-card__price">
+                    <p class="product-card__price digital-game-card__price">
                       {formatPrice(price, settings.value.currency, lang)}
                     </p>
-                  ) : null}
+                  ) : (
+                    <p class="footer-muted digital-game-card__price">
+                      {tStatic(lang, "digital.unavailable")}
+                    </p>
+                  )}
                 </div>
               </Link>
             );
@@ -162,67 +187,64 @@ export default component$(() => {
       )}
 
       {showDebug && debug ? (
-        <aside
-          class="account-summary"
-          style={{ marginTop: "1.5rem", fontFamily: "ui-monospace, monospace", fontSize: "0.8125rem" }}
-        >
-          <h2 style={{ fontSize: "1rem" }}>Digital catalog debug</h2>
-          <p style={{ margin: "0.5rem 0", color: "var(--gs-accent)" }}>
+        <aside class="digital-catalog__debug" aria-label="Digital catalog debug">
+          <h2>Digital catalog debug</h2>
+          <p class="digital-catalog__debug-reason">
             <strong>Reason:</strong> {debug.reason || "unknown"}
           </p>
-          <dl style={{ display: "grid", gap: "0.35rem", margin: 0 }}>
+          <dl>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Storefront request</dt>
-              <dd style={{ margin: 0 }}>{debug.storefront_request_url}</dd>
+              <dt>Storefront request</dt>
+              <dd>{debug.storefront_request_url}</dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Accounts base</dt>
-              <dd style={{ margin: 0 }}>{debug.accounts_base ?? "—"}</dd>
+              <dt>Accounts base</dt>
+              <dd>{debug.accounts_base ?? "—"}</dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Accounts request</dt>
-              <dd style={{ margin: 0 }}>
+              <dt>Accounts request</dt>
+              <dd>
                 {debug.request_method || "GET"} {debug.request_url || debug.request_path || "—"}
               </dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Platform / page</dt>
-              <dd style={{ margin: 0 }}>
+              <dt>Platform / page</dt>
+              <dd>
                 PS{debug.platform ?? list.value.platform} · page {debug.page ?? list.value.page}
               </dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Accounts HTTP</dt>
-              <dd style={{ margin: 0 }}>
+              <dt>Accounts HTTP</dt>
+              <dd>
                 {debug.http_status ?? "—"} · ok={String(debug.accounts_ok ?? false)}
               </dd>
             </div>
             {debug.error ? (
               <div>
-                <dt style={{ color: "var(--gs-muted)" }}>Accounts error</dt>
-                <dd style={{ margin: 0 }}>{debug.error}</dd>
+                <dt>Accounts error</dt>
+                <dd>{debug.error}</dd>
               </div>
             ) : null}
             {debug.client_error ? (
               <div>
-                <dt style={{ color: "var(--gs-muted)" }}>Client error</dt>
-                <dd style={{ margin: 0 }}>{debug.client_error}</dd>
+                <dt>Client error</dt>
+                <dd>{debug.client_error}</dd>
               </div>
             ) : null}
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Response body keys</dt>
-              <dd style={{ margin: 0 }}>{(debug.body_keys ?? []).join(", ") || "—"}</dd>
+              <dt>Response body keys</dt>
+              <dd>{(debug.body_keys ?? []).join(", ") || "—"}</dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>Item counts</dt>
-              <dd style={{ margin: 0 }}>
+              <dt>Item counts</dt>
+              <dd>
                 raw={debug.raw_item_count ?? "—"} · normalized={debug.normalized_count ?? "—"} ·
                 total={debug.paginator_total ?? list.value.meta.total ?? "—"}
               </dd>
             </div>
             <div>
-              <dt style={{ color: "var(--gs-muted)" }}>POS digital variation IDs</dt>
-              <dd style={{ margin: 0 }}>
+              <dt>POS digital variation IDs</dt>
+              <dd>
                 primary={debug.skus?.primary ?? list.value.skus.primary?.variation_id ?? "null"} ·
                 secondary=
                 {debug.skus?.secondary ?? list.value.skus.secondary?.variation_id ?? "null"}
@@ -233,7 +255,7 @@ export default component$(() => {
       ) : null}
 
       {list.value.meta.last_page > 1 ? (
-        <nav class="pagination" aria-label={tStatic(lang, "a11y.pagination")}>
+        <nav class="pagination digital-catalog__pagination" aria-label={tStatic(lang, "a11y.pagination")}>
           {list.value.meta.current_page > 1 ? (
             <Link href={buildUrl(list.value.platform, list.value.meta.current_page - 1)}>
               {tStatic(lang, "common.prev")}
