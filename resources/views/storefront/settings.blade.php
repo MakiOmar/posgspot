@@ -156,8 +156,8 @@
                                     </div>
                                     <div class="form-group">
                                         <label for="sf_zone_states">Governorates (Egypt)</label>
-                                        <select id="sf_zone_states" class="form-control" multiple size="10" style="height:auto;"></select>
-                                        <p class="help-block">Hold Ctrl/Cmd to select multiple. Empty = whole country. City-level matching is not used.</p>
+                                        <select id="sf_zone_states" class="form-control select2" multiple style="width:100%;" data-placeholder="Search governorates…"></select>
+                                        <p class="help-block">Search and multi-select. Empty = whole country. City-level matching is not used.</p>
                                     </div>
                                 </div>
                             </div>
@@ -235,7 +235,7 @@
                                     <p class="help-block">Pickup uses locations with “Enable pickup”. Leave empty to allow all pickup-enabled branches.</p>
                                     <div class="form-group">
                                         <label for="sf_method_pickup_locations">Pickup locations (optional)</label>
-                                        <select id="sf_method_pickup_locations" class="form-control" multiple size="6"></select>
+                                        <select id="sf_method_pickup_locations" class="form-control select2" multiple style="width:100%;" data-placeholder="Search locations…"></select>
                                     </div>
                                     <div class="form-group">
                                         <label for="sf_method_pickup_cost">Pickup fee</label>
@@ -953,22 +953,38 @@
 
         function fillEgyptStatesSelect($select, selectedCodes) {
             selectedCodes = selectedCodes || [];
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.select2('destroy');
+            }
             var html = '';
             sfEgyptStates.forEach(function (st) {
                 var sel = selectedCodes.indexOf(String(st.code)) !== -1 ? ' selected' : '';
                 html += '<option value="' + escapeHtml(st.code) + '"' + sel + '>' + escapeHtml(st.name) + ' (' + escapeHtml(st.code) + ')</option>';
             });
             $select.html(html);
+            $select.select2({
+                width: '100%',
+                placeholder: $select.data('placeholder') || 'Search…',
+                allowClear: true
+            });
         }
 
         function fillPickupLocationsSelect($select, selectedIds) {
             selectedIds = (selectedIds || []).map(Number);
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.select2('destroy');
+            }
             var html = '';
             sfPickupLocations.forEach(function (loc) {
                 var sel = selectedIds.indexOf(Number(loc.id)) !== -1 ? ' selected' : '';
                 html += '<option value="' + loc.id + '"' + sel + '>' + escapeHtml(loc.name) + '</option>';
             });
             $select.html(html);
+            $select.select2({
+                width: '100%',
+                placeholder: $select.data('placeholder') || 'Search…',
+                allowClear: true
+            });
         }
 
         function locationLabel(zone) {

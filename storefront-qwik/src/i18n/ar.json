@@ -227,6 +227,7 @@
     "shippingMethod": "طريقة الشحن",
     "shippingRatesHint": "أدخل المحافظة لعرض خيارات التوصيل. قد يتوفر الاستلام من الفرع.",
     "selectShipping": "يرجى اختيار طريقة الشحن.",
+    "loadingStates": "جاري تحميل المناطق…",
     "pickupLocation": "فرع الاستلام",
     "pickupAddressHint": "اخترت الاستلام من الفرع — عنوان التوصيل غير مطلوب.",
     "orderSummary": "ملخص الطلب",

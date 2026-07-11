@@ -3,7 +3,8 @@ import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
-import { ApiError, checkout, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
+import { SearchableSelect } from "~/components/forms/searchable-select";
+import { ApiError, checkout, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -16,6 +17,12 @@ import type { AppliedCouponInfo, CheckoutOrder, RewardPointsBalance, ShippingRat
 import { parseFullPhone, validatePhone, type GeoState } from "~/lib/phone-validation";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
+
+function normalizeCheckoutCountry(code: string | null | undefined): string {
+  const c = (code || "").trim().toUpperCase();
+  if (!c || c === "EGYPT" || c === "EGY") return "EG";
+  return c;
+}
 
 export const useCheckoutLocations = routeLoader$(async () => {
   try {
@@ -35,12 +42,22 @@ export const useCheckoutPhoneCountries = routeLoader$(async () => {
   }
 });
 
+export const useCheckoutGeoCountries = routeLoader$(async () => {
+  try {
+    const { data } = await fetchGeoCountries();
+    return data;
+  } catch {
+    return [];
+  }
+});
+
 export default component$(() => {
   const settings = useSiteSettings();
   const { locale } = useI18n();
   const nav = useNavigate();
   const locations = useCheckoutLocations();
   const phoneCountries = useCheckoutPhoneCountries();
+  const geoCountries = useCheckoutGeoCountries();
   const cart = useCart();
   const auth = useAuth();
   const pending = usePendingState();
@@ -73,6 +90,7 @@ export default component$(() => {
   const shipState = useSignal("");
   const shipCity = useSignal("");
   const geoStates = useSignal<GeoState[]>([]);
+  const geoStatesLoading = useSignal(false);
   const appliedCoupons = useSignal<AppliedCouponInfo[]>([]);
   const couponDiscount = useSignal(0);
   const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
@@ -103,13 +121,48 @@ export default component$(() => {
     phoneReady.value = true;
   });
 
-  // Load Egypt governorates for zone matching.
-  useVisibleTask$(async () => {
+  // Seed country/state from profile once auth is ready.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => auth.contact?.country);
+    track(() => auth.contact?.state);
+    track(() => auth.contact?.city);
+    if (auth.contact?.country) {
+      shipCountry.value = normalizeCheckoutCountry(auth.contact.country);
+    }
+    if (auth.contact?.state && !shipState.value) {
+      shipState.value = auth.contact.state;
+    }
+    if (auth.contact?.city && !shipCity.value) {
+      shipCity.value = auth.contact.city;
+    }
+  });
+
+  // Load governorates/states when country changes.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async ({ track }) => {
+    track(() => shipCountry.value);
+    const country = normalizeCheckoutCountry(shipCountry.value);
+    shipCountry.value = country;
+    if (!country) {
+      geoStates.value = [];
+      shipState.value = "";
+      return;
+    }
+    geoStatesLoading.value = true;
     try {
-      const { data } = await fetchGeoStates("EG");
+      const { data } = await fetchGeoStates(country);
       geoStates.value = data;
+      if (data.length > 0 && !data.some((s) => s.code === shipState.value)) {
+        shipState.value = "";
+        shippingRateId.value = "";
+      }
     } catch {
       geoStates.value = [];
+      shipState.value = "";
+      shippingRateId.value = "";
+    } finally {
+      geoStatesLoading.value = false;
     }
   });
 
@@ -231,6 +284,25 @@ export default component$(() => {
     pickupLocationIds.length > 0
       ? sellingLocations.filter((loc) => pickupLocationIds.includes(loc.id))
       : sellingLocations.filter((loc) => loc.enable_pickup);
+
+  const countryOptions = geoCountries.value.map((c) => ({
+    value: c.code,
+    label: c.name,
+    searchText: `${c.name} ${c.code}`,
+  }));
+  const selectedCountry = geoCountries.value.find((c) => c.code === shipCountry.value);
+  const stateOptions = geoStates.value.map((s) => ({
+    value: s.code,
+    label: s.name,
+    searchText: `${s.name} ${s.code}`,
+  }));
+  const locationOptions = (
+    isPickup && pickupLocations.length > 0 ? pickupLocations : sellingLocations
+  ).map((loc) => ({
+    value: String(loc.id),
+    label: loc.name,
+    searchText: loc.name,
+  }));
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => auth.token);
@@ -341,7 +413,7 @@ export default component$(() => {
         },
         shipping_address: pickupSelected
           ? {
-              country: "EG",
+              country: normalizeCheckoutCountry(shipCountry.value),
               city: String(formData.get("city") || ""),
               state: String(formData.get("state") || ""),
               address_line_1: String(formData.get("address_line_1") || "Store pickup"),
@@ -350,7 +422,9 @@ export default component$(() => {
               address_line_1: String(formData.get("address_line_1") || ""),
               city: String(formData.get("city") || shipCity.value || ""),
               state: String(formData.get("state") || shipState.value || ""),
-              country: "EG",
+              country: normalizeCheckoutCountry(
+                String(formData.get("country") || shipCountry.value),
+              ),
             },
         shipping_rate_id: shippingRateId.value,
         order_note: String(formData.get("order_note") || ""),
@@ -452,7 +526,7 @@ export default component$(() => {
         <p class="footer-muted">{tStatic(locale, "checkout.checkingStock")}</p>
       ) : null}
 
-      <div style={{ display: "grid", gap: "2rem" }}>
+      <div class="checkout-layout">
         <form
           preventdefault:submit
           onSubmit$={(event) => submitOrder$(event.target as HTMLFormElement)}
@@ -497,8 +571,51 @@ export default component$(() => {
           {!isPickup ? (
             <>
               <div>
-                <label for="address_line_1">{tStatic(locale, "forms.address")}</label>
-                <input id="address_line_1" name="address_line_1" required defaultValue={auth.contact?.address_line_1 || ""} />
+                <label for="country">{tStatic(locale, "forms.country")}</label>
+                <input type="hidden" name="country" value={shipCountry.value} />
+                <SearchableSelect
+                  id="country"
+                  options={countryOptions}
+                  value={shipCountry.value}
+                  displayLabel={selectedCountry?.name}
+                  placeholder={tStatic(locale, "forms.searchCountries")}
+                  required
+                  onChange$={(code) => {
+                    shipCountry.value = normalizeCheckoutCountry(code);
+                    shipState.value = "";
+                    shippingRateId.value = "";
+                  }}
+                />
+              </div>
+              <div>
+                <label for="state">{tStatic(locale, "forms.state")}</label>
+                <input type="hidden" name="state" value={shipState.value} />
+                {geoStatesLoading.value ? (
+                  <p class="footer-muted">{tStatic(locale, "checkout.loadingStates")}</p>
+                ) : geoStates.value.length > 0 ? (
+                  <SearchableSelect
+                    id="state"
+                    options={stateOptions}
+                    value={shipState.value}
+                    placeholder={tStatic(locale, "forms.searchStates")}
+                    required
+                    onChange$={(code) => {
+                      shipState.value = code;
+                      shippingRateId.value = "";
+                    }}
+                  />
+                ) : (
+                  <input
+                    id="state"
+                    required
+                    value={shipState.value}
+                    placeholder={tStatic(locale, "forms.state")}
+                    onInput$={(_, el) => {
+                      shipState.value = el.value;
+                      shippingRateId.value = "";
+                    }}
+                  />
+                )}
               </div>
               <div class="two-col">
                 <div>
@@ -514,50 +631,14 @@ export default component$(() => {
                   />
                 </div>
                 <div>
-                  <label for="state">{tStatic(locale, "forms.state")}</label>
-                  {geoStates.value.length > 0 ? (
-                    <select
-                      id="state"
-                      name="state"
-                      required
-                      value={shipState.value}
-                      onChange$={(event) => {
-                        shipState.value = (event.target as HTMLSelectElement).value;
-                        shippingRateId.value = "";
-                      }}
-                    >
-                      <option value="">{tStatic(locale, "forms.select")}</option>
-                      {geoStates.value.map((st) => (
-                        <option key={st.code} value={st.code}>
-                          {st.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      id="state"
-                      name="state"
-                      required
-                      defaultValue={auth.contact?.state || ""}
-                      onInput$={(_, el) => {
-                        shipState.value = el.value;
-                        shippingRateId.value = "";
-                      }}
-                    />
-                  )}
+                  <label for="address_line_1">{tStatic(locale, "forms.address")}</label>
+                  <input
+                    id="address_line_1"
+                    name="address_line_1"
+                    required
+                    defaultValue={auth.contact?.address_line_1 || ""}
+                  />
                 </div>
-              </div>
-              <div>
-                <label for="country">{tStatic(locale, "forms.country")}</label>
-                <input
-                  id="country"
-                  name="country"
-                  defaultValue={auth.contact?.country || "EG"}
-                  onInput$={(_, el) => {
-                    shipCountry.value = el.value || "EG";
-                    shippingRateId.value = "";
-                  }}
-                />
               </div>
             </>
           ) : (
@@ -597,23 +678,18 @@ export default component$(() => {
                   ? tStatic(locale, "checkout.pickupLocation")
                   : tStatic(locale, "checkout.fulfillmentLocation")}
               </label>
-              <select
+              <input type="hidden" name="location_id" value={String(locationId.value)} />
+              <SearchableSelect
                 id="location_id"
-                name="location_id"
+                options={locationOptions}
+                value={String(locationId.value || "")}
+                placeholder={tStatic(locale, "forms.select")}
                 required
-                onChange$={(event) => {
-                  locationId.value = Number((event.target as HTMLSelectElement).value);
+                onChange$={(value) => {
+                  locationId.value = Number(value);
                   stockWarning.value = null;
                 }}
-              >
-                {(isPickup && pickupLocations.length > 0 ? pickupLocations : sellingLocations).map(
-                  (loc) => (
-                    <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
-                      {loc.name}
-                    </option>
-                  ),
-                )}
-              </select>
+              />
             </div>
           ) : null}
 

@@ -1875,6 +1875,28 @@ img {
   margin-top: 1.5rem;
 }
 
+.checkout-layout {
+  display: grid;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.checkout-layout > .cart-summary {
+  margin-top: 0;
+}
+
+@media (min-width: 960px) {
+  .checkout-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 2rem;
+  }
+
+  .checkout-layout > .cart-summary {
+    position: sticky;
+    top: 1.25rem;
+  }
+}
+
 .cart-stock-issues {
   margin: 0;
   padding-inline-start: 1.15rem;
