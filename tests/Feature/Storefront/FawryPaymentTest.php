@@ -42,6 +42,7 @@ class FawryPaymentTest extends TestCase
         Cache::flush();
 
         $orderKey = 'SF-FAWRY-'.uniqid();
+        $shippingRateId = $this->firstShippingRateId($variation->id, $location->id);
 
         $response = $this->postJson('/api/storefront/v1/checkout', [
             'idempotency_key' => $orderKey,
@@ -59,8 +60,10 @@ class FawryPaymentTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => 'Test address',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $shippingRateId,
         ], [
             'X-Content-Locale' => 'en',
         ]);
@@ -126,8 +129,10 @@ class FawryPaymentTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => 'Test address',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $this->firstShippingRateId($variation->id, $location->id),
         ])->assertCreated();
 
         $transaction = Transaction::where('storefront_order_id', $orderKey)->firstOrFail();
@@ -182,6 +187,30 @@ class FawryPaymentTest extends TestCase
             ->assertJsonPath('data.online_payments.enabled', true)
             ->assertJsonPath('data.online_payments.provider', 'fawry')
             ->assertJsonPath('data.online_payments.label', 'FawryPay');
+    }
+
+    private function firstShippingRateId(int $variationId, int $locationId): string
+    {
+        app(\App\Services\Storefront\Shipping\ShippingLegacyMigrator::class)
+            ->ensureDefaultZones($this->businessId);
+
+        $quoted = app(\App\Services\Storefront\Shipping\ShippingQuoteService::class)->quote(
+            $this->businessId,
+            100,
+            [['variation_id' => $variationId, 'quantity' => 1]],
+            ['country' => 'EG', 'state' => 'C'],
+            null,
+            $locationId,
+            'en',
+            false
+        );
+
+        $rate = $quoted['available_rates'][0] ?? null;
+        if (empty($rate['id'])) {
+            $this->markTestSkipped('No shipping rates available for test.');
+        }
+
+        return $rate['id'];
     }
 
     /**

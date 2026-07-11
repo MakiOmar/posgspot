@@ -254,11 +254,24 @@ export interface CouponApplyResult {
   stack_with_reward_points: boolean;
 }
 
+export interface ShippingRate {
+  id: string;
+  method_type: string;
+  title: string;
+  amount: number;
+  eta_label?: string | null;
+  meta?: Record<string, unknown>;
+}
+
 export interface CartValidation {
   lines: CartLine[];
   subtotal: number;
   shipping: number;
   total: number;
+  available_rates?: ShippingRate[];
+  shipping_rate?: ShippingRate | null;
+  matched_zone_id?: number | null;
+  hide_rates_until_address?: boolean;
   coupon?: AppliedCouponInfo | null;
   coupons?: AppliedCouponInfo[];
   coupon_discount?: number;
@@ -283,6 +296,9 @@ export interface CartInspection {
   subtotal: number;
   shipping: number;
   total: number;
+  available_rates?: ShippingRate[];
+  shipping_rate?: ShippingRate | null;
+  matched_zone_id?: number | null;
   coupon?: AppliedCouponInfo | null;
   coupons?: AppliedCouponInfo[];
   coupon_discount?: number;
@@ -420,6 +436,10 @@ export interface AccountOrderDetail extends AccountOrder {
   discount_type?: string | null;
   shipping_charges?: number;
   coupon_code?: string | null;
+  shipping_method?: string | null;
+  shipping_carrier?: string | null;
+  shipping_tracking_number?: string | null;
+  shipping_tracking_url?: string | null;
 }
 
 export interface RewardPointsBalance {

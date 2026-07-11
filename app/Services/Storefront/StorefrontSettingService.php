@@ -33,6 +33,14 @@ class StorefrontSettingService
             'shipping' => [
                 'flat_rate' => 0,
                 'free_shipping_threshold' => 0,
+                'hide_rates_until_address' => true,
+            ],
+            'couriers' => [
+                'bosta' => [
+                    'enabled' => false,
+                    'api_key' => null,
+                    'staging' => true,
+                ],
             ],
             'contact' => [
                 'phone' => '',
@@ -180,6 +188,13 @@ class StorefrontSettingService
         } else {
             $existing = $existing ?? $this->getRaw($businessId);
             $merged['turnstile']['secret_key'] = $existing['turnstile']['secret_key'] ?? null;
+        }
+
+        if (! empty($settings['couriers']['bosta']['api_key'])) {
+            $merged['couriers']['bosta']['api_key'] = Crypt::encryptString($settings['couriers']['bosta']['api_key']);
+        } else {
+            $existing = $existing ?? $this->getRaw($businessId);
+            $merged['couriers']['bosta']['api_key'] = $existing['couriers']['bosta']['api_key'] ?? null;
         }
 
         $existing = $existing ?? $this->getRaw($businessId);

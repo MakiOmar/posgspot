@@ -96,18 +96,51 @@
                 </div>
 
                 <hr>
-                <h4>Shipping</h4>
+                <h4>Shipping zones</h4>
+                <p class="help-block">
+                    Rates are managed by zone (country / governorate), similar to WooCommerce.
+                    Legacy flat rate / free threshold were imported into a default Egypt zone on first load.
+                </p>
+                <div class="checkbox" style="margin-bottom: 1rem;">
+                    <label>
+                        {!! Form::checkbox('shipping_hide_rates_until_address', 1, $settings['shipping']['hide_rates_until_address'] ?? true) !!}
+                        Hide delivery rates until country and governorate are entered at checkout
+                    </label>
+                </div>
+                <div id="storefront_shipping_zones_app">
+                    <p class="text-muted">Loading zones…</p>
+                </div>
+                <div class="btn-group" style="margin-top: 0.75rem;">
+                    <button type="button" class="btn btn-default btn-sm" id="sf_shipping_reload_zones">Reload zones</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="sf_shipping_add_zone">Add zone</button>
+                </div>
+
+                <h5 style="margin-top: 1.5rem;">Shipping classes</h5>
+                <p class="help-block">Assign classes on products; optional per-class costs on flat-rate methods (<code>class_costs</code>).</p>
+                <div id="storefront_shipping_classes_app"><p class="text-muted">Loading…</p></div>
+                <button type="button" class="btn btn-default btn-sm" id="sf_shipping_add_class">Add shipping class</button>
+
+                <hr>
+                <h4>Couriers (optional)</h4>
                 <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {!! Form::label('shipping_flat_rate', 'Flat shipping rate') !!}
-                            {!! Form::number('shipping_flat_rate', $settings['shipping']['flat_rate'] ?? 0, ['class' => 'form-control', 'step' => '0.01', 'min' => '0']) !!}
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('courier_bosta_enabled', 1, $settings['couriers']['bosta']['enabled'] ?? false) !!} Enable Bosta
+                            </label>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
-                            {!! Form::label('shipping_free_threshold', 'Free shipping above') !!}
-                            {!! Form::number('shipping_free_threshold', $settings['shipping']['free_shipping_threshold'] ?? 0, ['class' => 'form-control', 'step' => '0.01', 'min' => '0']) !!}
+                            {!! Form::label('courier_bosta_api_key', 'Bosta API key') !!}
+                            {!! Form::password('courier_bosta_api_key', ['class' => 'form-control', 'placeholder' => !empty($settings['couriers']['bosta']['api_key']) ? '••••••••' : '', 'autocomplete' => 'new-password']) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('courier_bosta_staging', 1, $settings['couriers']['bosta']['staging'] ?? true) !!} Bosta staging
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -769,6 +802,159 @@
 
         $('#banners_tbody').on('change', '.banner-placement', function () {
             syncBannerCategorySlug($(this).closest('tr'));
+        });
+
+        // ---- Shipping zones manager ----
+        var zonesUrl = @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'index']));
+        var csrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+        function renderZones(payload) {
+            var zones = (payload && payload.zones) ? payload.zones : [];
+            if (!zones.length) {
+                $('#storefront_shipping_zones_app').html('<p class="text-muted">No zones yet.</p>');
+                return;
+            }
+            var html = '<div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr>' +
+                '<th>Priority</th><th>Name</th><th>Locations</th><th>Methods</th><th></th></tr></thead><tbody>';
+            zones.forEach(function (zone) {
+                var locs = (zone.locations || []).map(function (l) { return l.type + ':' + l.code; }).join(', ') || (zone.is_catch_all ? 'Catch-all' : '—');
+                var methods = (zone.methods || []).map(function (m) {
+                    return m.type + ' — ' + m.title + (m.is_enabled ? '' : ' (off)');
+                }).join('<br>') || '—';
+                html += '<tr data-zone-id="' + zone.id + '">' +
+                    '<td>' + zone.priority + '</td>' +
+                    '<td>' + $('<div>').text(zone.name).html() + (zone.is_enabled ? '' : ' <em>(disabled)</em>') + '</td>' +
+                    '<td><small>' + $('<div>').text(locs).html() + '</small></td>' +
+                    '<td><small>' + methods + '</small></td>' +
+                    '<td class="text-nowrap">' +
+                    '<button type="button" class="btn btn-xs btn-default sf-add-method" data-zone-id="' + zone.id + '">+ Method</button> ' +
+                    '<button type="button" class="btn btn-xs btn-danger sf-del-zone" data-zone-id="' + zone.id + '">Delete</button>' +
+                    '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+            $('#storefront_shipping_zones_app').html(html);
+        }
+
+        function loadZones() {
+            $('#storefront_shipping_zones_app').html('<p class="text-muted">Loading zones…</p>');
+            $.getJSON(zonesUrl).done(function (res) {
+                renderZones(res.data || {});
+            }).fail(function () {
+                $('#storefront_shipping_zones_app').html('<p class="text-danger">Could not load zones.</p>');
+            });
+        }
+
+        $('#sf_shipping_reload_zones').on('click', loadZones);
+        loadZones();
+
+        $('#sf_shipping_add_zone').on('click', function () {
+            var name = prompt('Zone name (e.g. Greater Cairo)');
+            if (!name) return;
+            var code = prompt('Country code (e.g. EG) — leave empty for catch-all', 'EG');
+            var states = code
+                ? prompt('Governorate codes comma-separated (optional, e.g. C,GZ). Empty = whole country.', '')
+                : '';
+            var locations = [];
+            if (code) {
+                locations.push({ type: 'country', code: code });
+                if (states) {
+                    states.split(',').forEach(function (s) {
+                        s = (s || '').trim();
+                        if (s) locations.push({ type: 'state', code: s });
+                    });
+                }
+            }
+            var payload = {
+                name: name,
+                priority: 50,
+                is_catch_all: !code,
+                is_enabled: true,
+                locations: locations
+            };
+            $.ajax({
+                url: @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])),
+                method: 'POST',
+                data: JSON.stringify(payload),
+                contentType: 'application/json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadZones).fail(function () { toastr.error('Could not create zone'); });
+        });
+
+        $('#storefront_shipping_zones_app').on('click', '.sf-del-zone', function () {
+            if (!confirm('Delete this zone and its methods?')) return;
+            var id = $(this).data('zone-id');
+            $.ajax({
+                url: '/storefront/shipping/zones/' + id,
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadZones);
+        });
+
+        $('#storefront_shipping_zones_app').on('click', '.sf-add-method', function () {
+            var zoneId = $(this).data('zone-id');
+            var type = prompt('Method type: flat_rate, free_shipping, or local_pickup', 'flat_rate');
+            if (!type) return;
+            var title = prompt('Title', 'Standard delivery');
+            if (!title) return;
+            var cost = type === 'flat_rate' ? parseFloat(prompt('Cost', '50') || '0') : 0;
+            var perKg = type === 'flat_rate' ? parseFloat(prompt('Extra cost per kg (0 to skip)', '0') || '0') : 0;
+            var minAmount = type === 'free_shipping' ? parseFloat(prompt('Min order for free shipping', '1500') || '0') : 0;
+            var settings = type === 'flat_rate'
+                ? { cost: cost, cost_per_item: 0, cost_per_kg: perKg, eta_min_days: 2, eta_max_days: 5, class_costs: {} }
+                : (type === 'free_shipping'
+                    ? { requires: 'min_amount', min_amount: minAmount }
+                    : { cost: 0, location_ids: [] });
+            $.ajax({
+                url: '/storefront/shipping/zones/' + zoneId + '/methods',
+                method: 'POST',
+                data: JSON.stringify({ type: type, title: title, settings: settings }),
+                contentType: 'application/json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadZones).fail(function () { toastr.error('Could not add method'); });
+        });
+
+        // Shipping classes
+        var classesUrl = @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'classesIndex']));
+        function renderClasses(payload) {
+            var classes = (payload && payload.classes) ? payload.classes : [];
+            if (!classes.length) {
+                $('#storefront_shipping_classes_app').html('<p class="text-muted">No shipping classes yet.</p>');
+                return;
+            }
+            var html = '<ul class="list-unstyled">';
+            classes.forEach(function (c) {
+                html += '<li style="margin-bottom:4px;">' +
+                    $('<div>').text(c.name + (c.slug ? ' (' + c.slug + ')' : '')).html() +
+                    ' <button type="button" class="btn btn-xs btn-danger sf-del-class" data-id="' + c.id + '">Delete</button></li>';
+            });
+            html += '</ul>';
+            $('#storefront_shipping_classes_app').html(html);
+        }
+        function loadClasses() {
+            $.getJSON(classesUrl).done(function (res) {
+                renderClasses(res.data || {});
+            });
+        }
+        loadClasses();
+        $('#sf_shipping_add_class').on('click', function () {
+            var name = prompt('Shipping class name (e.g. Bulky)');
+            if (!name) return;
+            $.ajax({
+                url: @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'storeClass'])),
+                method: 'POST',
+                data: JSON.stringify({ name: name }),
+                contentType: 'application/json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadClasses).fail(function () { toastr.error('Could not create class'); });
+        });
+        $('#storefront_shipping_classes_app').on('click', '.sf-del-class', function () {
+            if (!confirm('Delete this shipping class?')) return;
+            var id = $(this).data('id');
+            $.ajax({
+                url: '/storefront/shipping/classes/' + id,
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadClasses);
         });
     });
 </script>

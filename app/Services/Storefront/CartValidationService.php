@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Product;
 use App\Contact;
+use App\Services\Storefront\Shipping\ShippingQuoteService;
 use App\Utils\ProductUtil;
 use App\Variation;
 use Illuminate\Validation\ValidationException;
@@ -17,17 +18,25 @@ class CartValidationService
         private StorefrontSettingService $storefrontSettings,
         private ProductUtil $productUtil,
         private StorefrontPricing $storefrontPricing,
-        private CouponService $couponService
+        private CouponService $couponService,
+        private ShippingQuoteService $shippingQuotes
     ) {
     }
 
+    /**
+     * @param  array{country?:?string,state?:?string,city?:?string}|null  $destination
+     */
     public function validate(
         int $businessId,
         array $items,
         ?int $locationId = null,
         ?string $couponCode = null,
         ?Contact $contact = null,
-        ?array $couponCodes = null
+        ?array $couponCodes = null,
+        ?array $destination = null,
+        ?string $shippingRateId = null,
+        string $locale = 'en',
+        bool $requireShippingSelection = false
     ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
@@ -113,7 +122,48 @@ class CartValidationService
             $productsPayload[] = $productLine;
         }
 
-        $shipping = $this->calculateShipping($settings, $subtotal);
+        $shippingQuote = $this->shippingQuotes->quote(
+            $businessId,
+            $subtotal,
+            $items,
+            $destination ?? [],
+            $shippingRateId,
+            $locationId,
+            $locale,
+            false
+        );
+
+        if ($requireShippingSelection) {
+            $resolved = $this->shippingQuotes->resolveSelectedRate(
+                $businessId,
+                $subtotal,
+                $items,
+                $destination ?? [],
+                $shippingRateId,
+                $locationId,
+                $locale,
+                false
+            );
+            if (! $resolved['ok']) {
+                throw ValidationException::withMessages([
+                    'shipping_rate_id' => [$resolved['message'] ?? 'Please select a shipping method.'],
+                ]);
+            }
+            $shippingQuote['shipping'] = $resolved['shipping'];
+            $shippingQuote['shipping_rate'] = $resolved['rate'];
+            $shippingQuote['available_rates'] = $resolved['available_rates'];
+        }
+
+        // Address validation (Phase 2): delivery destination with no rates.
+        $hideUntilAddress = (bool) ($settings['shipping']['hide_rates_until_address'] ?? true);
+        $hasAddress = ! empty($destination['country']) || ! empty($destination['state']);
+        if ($hasAddress && empty($shippingQuote['available_rates'])) {
+            throw ValidationException::withMessages([
+                'shipping_address' => ['We do not deliver to this address. Please choose pickup or another region.'],
+            ]);
+        }
+
+        $shipping = (float) $shippingQuote['shipping'];
         $total = $subtotal + $shipping;
 
         $result = [
@@ -122,6 +172,10 @@ class CartValidationService
             'subtotal' => round($subtotal, 4),
             'shipping' => round($shipping, 4),
             'total' => round($total, 4),
+            'available_rates' => $shippingQuote['available_rates'],
+            'shipping_rate' => $shippingQuote['shipping_rate'],
+            'matched_zone_id' => $shippingQuote['matched_zone_id'],
+            'hide_rates_until_address' => $hideUntilAddress,
         ];
 
         return $this->mergeCouponTotals(
@@ -155,7 +209,10 @@ class CartValidationService
         ?int $locationId = null,
         ?string $couponCode = null,
         ?Contact $contact = null,
-        ?array $couponCodes = null
+        ?array $couponCodes = null,
+        ?array $destination = null,
+        ?string $shippingRateId = null,
+        string $locale = 'en'
     ): array {
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
         if (empty($locationIds)) {
@@ -243,7 +300,17 @@ class CartValidationService
             }
         }
 
-        $shipping = $this->calculateShipping($settings, $subtotal);
+        $shippingQuote = $this->shippingQuotes->quote(
+            $businessId,
+            $subtotal,
+            $items,
+            $destination ?? [],
+            $shippingRateId,
+            $locationId,
+            $locale,
+            false
+        );
+        $shipping = (float) $shippingQuote['shipping'];
         $total = $subtotal + $shipping;
 
         $result = [
@@ -252,6 +319,9 @@ class CartValidationService
             'subtotal' => round($subtotal, 4),
             'shipping' => round($shipping, 4),
             'total' => round($total, 4),
+            'available_rates' => $shippingQuote['available_rates'],
+            'shipping_rate' => $shippingQuote['shipping_rate'],
+            'matched_zone_id' => $shippingQuote['matched_zone_id'],
         ];
 
         return $this->mergeCouponTotals(
@@ -301,7 +371,9 @@ class CartValidationService
             $couponLines,
             (float) $result['subtotal'],
             $settings,
-            $contact
+            $contact,
+            \App\Coupon::CHANNEL_STOREFRONT,
+            (float) $result['shipping']
         );
 
         $result['coupon'] = $applied['coupon'];
@@ -316,18 +388,20 @@ class CartValidationService
         $result['coupon_codes'] = $applied['coupon_codes'] ?? [];
         $result['stack_with_reward_points'] = $applied['stack_with_reward_points'];
 
-        return $result;
-    }
+        // Zero delivery rates visually when free-shipping coupon applies.
+        if (! empty($applied['free_shipping']) && ! empty($result['available_rates'])) {
+            $result['available_rates'] = array_map(function (array $rate) {
+                if (($rate['method_type'] ?? '') !== 'local_pickup') {
+                    $rate['amount'] = 0.0;
+                }
 
-    private function calculateShipping(array $settings, float $subtotal): float
-    {
-        $flat = (float) ($settings['shipping']['flat_rate'] ?? 0);
-        $threshold = (float) ($settings['shipping']['free_shipping_threshold'] ?? 0);
-
-        if ($threshold > 0 && $subtotal >= $threshold) {
-            return 0;
+                return $rate;
+            }, $result['available_rates']);
+            if (! empty($result['shipping_rate']) && ($result['shipping_rate']['method_type'] ?? '') !== 'local_pickup') {
+                $result['shipping_rate']['amount'] = 0.0;
+            }
         }
 
-        return $flat;
+        return $result;
     }
 }

@@ -28,6 +28,7 @@ class Transaction extends Model
         'export_custom_fields_info' => 'array',
         'purchase_requisition_ids' => 'array',
         'storefront_payment_meta' => 'array',
+        'storefront_shipping_meta' => 'array',
     ];
 
     /**

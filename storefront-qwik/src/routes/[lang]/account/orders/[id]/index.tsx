@@ -201,6 +201,30 @@ export default component$(() => {
                 {order.fulfillment_location}
               </span>
             ) : null}
+            {order.shipping_method ? (
+              <span>
+                <strong>{tStatic(locale, "account.shippingMethodLabel")}</strong>{" "}
+                {order.shipping_method}
+              </span>
+            ) : null}
+            {order.shipping_tracking_number || order.shipping_tracking_url ? (
+              <span>
+                <strong>{tStatic(locale, "account.trackingLabel")}</strong>{" "}
+                {order.shipping_carrier ? `${order.shipping_carrier}: ` : ""}
+                {order.shipping_tracking_url ? (
+                  <a
+                    href={order.shipping_tracking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="link-accent"
+                  >
+                    {order.shipping_tracking_number || tStatic(locale, "account.trackShipment")}
+                  </a>
+                ) : (
+                  order.shipping_tracking_number
+                )}
+              </span>
+            ) : null}
           </div>
 
           {order.shipping_address ? (

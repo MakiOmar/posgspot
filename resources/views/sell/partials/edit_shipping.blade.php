@@ -40,6 +40,25 @@
 						{!! Form::select('delivery_person',$users, !empty($transaction->delivery_person) ? $transaction->delivery_person : null, ['class' => 'form-control select2','placeholder' => __('messages.please_select')]); !!}
 			        </div>
 			    </div>
+			    <div class="col-md-4">
+			        <div class="form-group">
+			            {!! Form::label('shipping_carrier', 'Carrier') !!}
+			            {!! Form::text('shipping_carrier', $transaction->shipping_carrier ?? null, ['class' => 'form-control', 'placeholder' => 'Bosta / Aramex / …']); !!}
+			        </div>
+			    </div>
+			    <div class="col-md-4">
+			        <div class="form-group">
+			            {!! Form::label('shipping_tracking_number', 'Tracking number') !!}
+			            {!! Form::text('shipping_tracking_number', $transaction->shipping_tracking_number ?? null, ['class' => 'form-control']); !!}
+			        </div>
+			    </div>
+			    <div class="col-md-4">
+			        <div class="form-group">
+			            {!! Form::label('shipping_tracking_url', 'Tracking URL') !!}
+			            {!! Form::text('shipping_tracking_url', $transaction->shipping_tracking_url ?? null, ['class' => 'form-control', 'placeholder' => 'https://…']); !!}
+			        </div>
+			    </div>
+
 			    @php
 			        $custom_labels = json_decode(session('business.custom_labels'), true);
 

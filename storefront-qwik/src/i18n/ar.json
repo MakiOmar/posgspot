@@ -164,7 +164,9 @@
     "removedOutOfStock": "تمت إزالة {count} منتج/منتجات غير متوفرة من سلتك.",
     "stockQuantityIssuesTitle": "عدّل الكميات قبل إتمام الشراء:",
     "stockQuantityIssue": "{name}: المتاح {max} فقط (لديك {requested}).",
-    "checkingCheckout": "جاري التحقق من التوفر…"
+    "checkingCheckout": "جاري التحقق من التوفر…",
+    "shippingEstimate": "الشحن",
+    "shippingAtCheckout": "يُحسب عند إتمام الشراء"
   },
   "coupon": {
     "label": "رمز الخصم",
@@ -222,6 +224,11 @@
     "checkingStock": "جاري التحقق من المخزون…",
     "contact": "بيانات التواصل",
     "shipping": "الشحن",
+    "shippingMethod": "طريقة الشحن",
+    "shippingRatesHint": "أدخل المحافظة لعرض خيارات التوصيل. قد يتوفر الاستلام من الفرع.",
+    "selectShipping": "يرجى اختيار طريقة الشحن.",
+    "pickupLocation": "فرع الاستلام",
+    "pickupAddressHint": "اخترت الاستلام من الفرع — عنوان التوصيل غير مطلوب.",
     "orderSummary": "ملخص الطلب",
     "orderNote": "ملاحظة الطلب (اختياري)",
     "fulfillmentLocation": "فرع التجهيز",
@@ -394,6 +401,9 @@
     "paymentLabel": "الدفع:",
     "totalLabel": "الإجمالي:",
     "fulfilledFrom": "تم التجهيز من:",
+    "shippingMethodLabel": "طريقة الشحن:",
+    "trackingLabel": "التتبع:",
+    "trackShipment": "تتبع الشحنة",
     "shipTo": "الشحن إلى",
     "item": "المنتج",
     "qty": "الكمية",

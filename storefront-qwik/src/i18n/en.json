@@ -164,7 +164,9 @@
     "removedOutOfStock": "Removed {count} out-of-stock item(s) from your cart.",
     "stockQuantityIssuesTitle": "Adjust quantities before checkout:",
     "stockQuantityIssue": "{name}: only {max} available (you have {requested}).",
-    "checkingCheckout": "Checking availability…"
+    "checkingCheckout": "Checking availability…",
+    "shippingEstimate": "Shipping",
+    "shippingAtCheckout": "Calculated at checkout"
   },
   "coupon": {
     "label": "Promo code",
@@ -222,6 +224,11 @@
     "checkingStock": "Checking stock availability…",
     "contact": "Contact",
     "shipping": "Shipping",
+    "shippingMethod": "Shipping method",
+    "shippingRatesHint": "Enter your governorate to see delivery options. Pickup may still be available.",
+    "selectShipping": "Please select a shipping method.",
+    "pickupLocation": "Pickup store",
+    "pickupAddressHint": "You selected store pickup — delivery address is not required.",
     "orderSummary": "Order summary",
     "orderNote": "Order note (optional)",
     "fulfillmentLocation": "Fulfillment location",
@@ -394,6 +401,9 @@
     "paymentLabel": "Payment:",
     "totalLabel": "Total:",
     "fulfilledFrom": "Fulfilled from:",
+    "shippingMethodLabel": "Shipping method:",
+    "trackingLabel": "Tracking:",
+    "trackShipment": "Track shipment",
     "shipTo": "Ship to",
     "item": "Item",
     "qty": "Qty",

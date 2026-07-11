@@ -350,10 +350,14 @@ export default component$(() => {
             <span>-{formatPrice(couponDiscount.value, settings.value.currency, locale)}</span>
           </div>
         ) : null}
-        {validatedShipping.value > 0 ? (
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-            <span>{tStatic(locale, "checkout.shipping")}</span>
-            <span>{formatPrice(validatedShipping.value, settings.value.currency, locale)}</span>
+        {validatedTotal.value !== null ? (
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+            <span>{tStatic(locale, "cart.shippingEstimate")}</span>
+            <span>
+              {validatedShipping.value > 0
+                ? formatPrice(validatedShipping.value, settings.value.currency, locale)
+                : tStatic(locale, "cart.shippingAtCheckout")}
+            </span>
           </div>
         ) : null}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontWeight: 700 }}>

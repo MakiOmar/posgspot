@@ -106,8 +106,8 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | POST | `/newsletter/subscribe` | Footer newsletter signup — body `{ "email", optional "turnstile_token" }`. Requires newsletter enabled + provider credentials in Storefront Settings. Providers: Mailchimp, MailerLite, AWeber. Returns `{ status, message }` (`subscribed` / `pending` / `already_subscribed`). |
 | POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id", optional "coupon_codes[]" (already applied when stacking) }`. **Requires storefront customer auth** (Bearer token). Respects storefront settings `promo_codes.enabled_at_checkout` and `allow_stacking`. Returns `coupon`, `coupons[]`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
 | POST | `/coupons/available` | List promo codes the signed-in customer can apply to the current cart — body `{ "items[]", optional "exclude_codes[]" (already applied when stacking) }`. **Requires auth.** Returns `{ coupons[] }` with `code`, `name`, `label`, `total_savings`, `discount_amount`, `free_shipping`, etc. Empty when checkout promos disabled or none eligible. |
-| POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. |
-| POST | `/checkout` | Create order (idempotent). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. |
+| POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. **Shipping (zone engine):** optional `destination` (`country`, `state`/governorate, `city`) + optional `shipping_rate_id`. Response includes `shipping`, `shipping_rate`, `available_rates[]` (`id`, `method_type`, `title`, `amount`, `eta_label`), and `hide_rates_until_address`. Rate ids are signed; checkout re-quotes and rejects stale/tampered ids. Free-shipping coupons force delivery rate amounts to `0`. |
+| POST | `/checkout` | Create order (idempotent). **Requires `shipping_rate_id`** (from cart validate). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. Pickup rates (`local_pickup`) use `location_id` for branch stock; delivery persists method title + `storefront_shipping_meta`. |
 | POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
 | POST | `/payments/{provider}/return` | Verify customer return URL payload after hosted checkout |
 | POST | `/payments/{provider}/session` | Rebuild signed payment session for an existing pending order (`storefront_order_id`, optional `locale`) |
@@ -130,7 +130,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | PUT | `/account/profile` | Update profile |
 | PUT | `/account/address` | Update address |
 | GET | `/account/orders` | Order history |
-| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). |
+| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 
 ## Wishlist (auth required)
@@ -165,7 +165,9 @@ Limits (configurable via `config/storefront.php` / env):
 Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 - Select selling locations (catalog is empty when none selected)
-- COD, shipping, announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
+- COD, **shipping zones** (governorate matching, flat / free / pickup methods), announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
+- **Shipping classes** + optional product `shipping_class_id` / weight for per-class and per-kg flat costs
+- **Couriers** (optional Bosta API key, staging) — create shipment when marking shipped with carrier `bosta`
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
@@ -178,7 +180,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 ### Checkout totals order
 
-Sale price → **coupon** → shipping (free-shipping threshold uses **pre-coupon** subtotal) → reward points → payment. Coupon + reward points stacking is controlled per coupon (`stack_with_reward_points`, default allowed).
+Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros delivery rates; free-shipping method min amount uses cart subtotal) → reward points → payment. Coupon + reward points stacking is controlled per coupon (`stack_with_reward_points`, default allowed).
 
 ## Notes
 

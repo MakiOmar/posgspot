@@ -3,7 +3,7 @@ import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
-import { ApiError, checkout, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
+import { ApiError, checkout, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -12,9 +12,9 @@ import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { usePendingState } from "~/lib/pending-context";
-import type { AppliedCouponInfo, CheckoutOrder, RewardPointsBalance } from "~/lib/types";
+import type { AppliedCouponInfo, CheckoutOrder, RewardPointsBalance, ShippingRate } from "~/lib/types";
+import { parseFullPhone, validatePhone, type GeoState } from "~/lib/phone-validation";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { parseFullPhone, validatePhone } from "~/lib/phone-validation";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useCheckoutLocations = routeLoader$(async () => {
@@ -67,6 +67,12 @@ export default component$(() => {
   const validatedSubtotal = useSignal(0);
   const validatedShipping = useSignal(0);
   const validatedTotal = useSignal(0);
+  const availableRates = useSignal<ShippingRate[]>([]);
+  const shippingRateId = useSignal("");
+  const shipCountry = useSignal("EG");
+  const shipState = useSignal("");
+  const shipCity = useSignal("");
+  const geoStates = useSignal<GeoState[]>([]);
   const appliedCoupons = useSignal<AppliedCouponInfo[]>([]);
   const couponDiscount = useSignal(0);
   const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
@@ -97,13 +103,26 @@ export default component$(() => {
     phoneReady.value = true;
   });
 
+  // Load Egypt governorates for zone matching.
+  useVisibleTask$(async () => {
+    try {
+      const { data } = await fetchGeoStates("EG");
+      geoStates.value = data;
+    } catch {
+      geoStates.value = [];
+    }
+  });
+
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(async ({ track }) => {
+  useVisibleTask$(({ track, cleanup }) => {
     track(() => locationId.value);
     track(() => cartItemsKey);
     track(() => couponCodesKey);
     track(() => auth.token);
     track(() => promoAtCheckout);
+    track(() => shipCountry.value);
+    track(() => shipState.value);
+    track(() => shippingRateId.value);
 
     if (!auth.token || !promoAtCheckout) {
       couponCodes.value = [];
@@ -117,58 +136,83 @@ export default component$(() => {
       validatedSubtotal.value = 0;
       validatedShipping.value = 0;
       validatedTotal.value = 0;
+      availableRates.value = [];
       appliedCoupons.value = [];
       couponDiscount.value = 0;
       return;
     }
 
-    validatingStock.value = true;
-    try {
-      const couponPayload =
-        auth.token && promoAtCheckout
-          ? couponRequestPayload(couponCodes.value, allowCouponStacking)
-          : {};
-      const { data } = await validateCart(
-        {
-          location_id: locationId.value,
-          ...couponPayload,
-          items: cart.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-          })),
-        },
-        auth.token ?? undefined,
-      );
-      validatedSubtotal.value = data.subtotal;
-      validatedShipping.value = data.shipping;
-      validatedTotal.value = data.total;
-      appliedCoupons.value = data.coupons?.length
-        ? data.coupons
-        : data.coupon
-          ? [data.coupon]
-          : [];
-      couponDiscount.value = data.coupon_discount ?? 0;
-      stackWithRewardPoints.value = data.stack_with_reward_points ?? true;
-      couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
-      if (appliedCoupons.value.length === 0) {
-        clearAppliedCoupon();
-      } else {
-        persistAppliedCoupons(
-          appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+    const timer = setTimeout(async () => {
+      validatingStock.value = true;
+      try {
+        const couponPayload =
+          auth.token && promoAtCheckout
+            ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+            : {};
+        const destination =
+          shipCountry.value || shipState.value
+            ? {
+                country: shipCountry.value || "EG",
+                state: shipState.value || undefined,
+                city: shipCity.value || undefined,
+              }
+            : undefined;
+        const { data } = await validateCart(
+          {
+            location_id: locationId.value,
+            ...couponPayload,
+            items: cart.items.map((line) => ({
+              variation_id: line.variationId,
+              quantity: line.quantity,
+            })),
+            destination,
+            shipping_rate_id: shippingRateId.value || undefined,
+          },
+          auth.token ?? undefined,
         );
+        validatedSubtotal.value = data.subtotal;
+        validatedShipping.value = data.shipping;
+        validatedTotal.value = data.total;
+        availableRates.value = data.available_rates ?? [];
+        if (data.shipping_rate?.id && !shippingRateId.value) {
+          shippingRateId.value = data.shipping_rate.id;
+        } else if (
+          shippingRateId.value &&
+          !(data.available_rates ?? []).some((r) => r.id === shippingRateId.value) &&
+          data.shipping_rate?.id
+        ) {
+          shippingRateId.value = data.shipping_rate.id;
+        }
+        appliedCoupons.value = data.coupons?.length
+          ? data.coupons
+          : data.coupon
+            ? [data.coupon]
+            : [];
+        couponDiscount.value = data.coupon_discount ?? 0;
+        stackWithRewardPoints.value = data.stack_with_reward_points ?? true;
+        couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
+        if (appliedCoupons.value.length === 0) {
+          clearAppliedCoupon();
+        } else {
+          persistAppliedCoupons(
+            appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+          );
+        }
+        stockWarning.value = null;
+      } catch (err) {
+        if (err instanceof ApiError) {
+          const messages = Object.values(err.errors).flat();
+          stockWarning.value = messages.length ? messages.join(" ") : err.message;
+        } else {
+          stockWarning.value =
+            err instanceof Error ? err.message : tStatic(locale, "checkout.stockUnavailable");
+        }
+      } finally {
+        validatingStock.value = false;
       }
-      stockWarning.value = null;
-    } catch (err) {
-      if (err instanceof ApiError) {
-        const messages = Object.values(err.errors).flat();
-        stockWarning.value = messages.length ? messages.join(" ") : err.message;
-      } else {
-        stockWarning.value =
-          err instanceof Error ? err.message : tStatic(locale, "checkout.stockUnavailable");
-      }
-    } finally {
-      validatingStock.value = false;
-    }
+    }, 350);
+
+    cleanup(() => clearTimeout(timer));
   });
 
   const subtotal = validatedTotal.value > 0
@@ -177,6 +221,16 @@ export default component$(() => {
 
   const checkoutTotal = validatedTotal.value > 0 ? validatedTotal.value : subtotal;
   const orderTotal = Math.max(0, checkoutTotal - redeemAmount.value);
+  const selectedShippingRate =
+    availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
+  const isPickup = selectedShippingRate?.method_type === "local_pickup";
+  const pickupLocationIds = Array.isArray(selectedShippingRate?.meta?.location_ids)
+    ? (selectedShippingRate!.meta!.location_ids as number[])
+    : [];
+  const pickupLocations =
+    pickupLocationIds.length > 0
+      ? sellingLocations.filter((loc) => pickupLocationIds.includes(loc.id))
+      : sellingLocations.filter((loc) => loc.enable_pickup);
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
     track(() => auth.token);
@@ -271,6 +325,9 @@ export default component$(() => {
         variation_id: line.variationId,
         quantity: line.quantity,
       }));
+      const selectedRate =
+        availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
+      const pickupSelected = selectedRate?.method_type === "local_pickup";
       const payload: Record<string, unknown> = {
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         location_id: locationId.value,
@@ -282,13 +339,27 @@ export default component$(() => {
           email: String(formData.get("email") || ""),
           mobile: phoneCheck.fullPhone,
         },
-        shipping_address: {
-          address_line_1: String(formData.get("address_line_1") || ""),
-          city: String(formData.get("city") || ""),
-          country: String(formData.get("country") || tStatic(locale, "checkout.defaultCountry")),
-        },
+        shipping_address: pickupSelected
+          ? {
+              country: "EG",
+              city: String(formData.get("city") || ""),
+              state: String(formData.get("state") || ""),
+              address_line_1: String(formData.get("address_line_1") || "Store pickup"),
+            }
+          : {
+              address_line_1: String(formData.get("address_line_1") || ""),
+              city: String(formData.get("city") || shipCity.value || ""),
+              state: String(formData.get("state") || shipState.value || ""),
+              country: "EG",
+            },
+        shipping_rate_id: shippingRateId.value,
         order_note: String(formData.get("order_note") || ""),
       };
+
+      if (!shippingRateId.value) {
+        error.value = tStatic(locale, "checkout.selectShipping");
+        return;
+      }
 
       if (pointsToRedeem.value > 0) {
         payload.reward_points = pointsToRedeem.value;
@@ -306,6 +377,12 @@ export default component$(() => {
               ? couponRequestPayload(couponCodes.value, allowCouponStacking)
               : {}),
             items,
+            destination: payload.shipping_address as {
+              country?: string;
+              state?: string;
+              city?: string;
+            },
+            shipping_rate_id: shippingRateId.value,
           },
           auth.token ?? undefined,
         );
@@ -417,24 +494,109 @@ export default component$(() => {
           </div>
 
           <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.shipping")}</h2>
-          <div>
-            <label for="address_line_1">{tStatic(locale, "forms.address")}</label>
-            <input id="address_line_1" name="address_line_1" required defaultValue={auth.contact?.address_line_1 || ""} />
-          </div>
-          <div class="two-col">
-            <div>
-              <label for="city">{tStatic(locale, "forms.city")}</label>
-              <input id="city" name="city" required defaultValue={auth.contact?.city || tStatic(locale, "checkout.defaultCity")} />
-            </div>
-            <div>
-              <label for="country">{tStatic(locale, "forms.country")}</label>
-              <input id="country" name="country" defaultValue={auth.contact?.country || tStatic(locale, "checkout.defaultCountry")} />
-            </div>
-          </div>
+          {!isPickup ? (
+            <>
+              <div>
+                <label for="address_line_1">{tStatic(locale, "forms.address")}</label>
+                <input id="address_line_1" name="address_line_1" required defaultValue={auth.contact?.address_line_1 || ""} />
+              </div>
+              <div class="two-col">
+                <div>
+                  <label for="city">{tStatic(locale, "forms.city")}</label>
+                  <input
+                    id="city"
+                    name="city"
+                    required
+                    defaultValue={auth.contact?.city || tStatic(locale, "checkout.defaultCity")}
+                    onInput$={(_, el) => {
+                      shipCity.value = el.value;
+                    }}
+                  />
+                </div>
+                <div>
+                  <label for="state">{tStatic(locale, "forms.state")}</label>
+                  {geoStates.value.length > 0 ? (
+                    <select
+                      id="state"
+                      name="state"
+                      required
+                      value={shipState.value}
+                      onChange$={(event) => {
+                        shipState.value = (event.target as HTMLSelectElement).value;
+                        shippingRateId.value = "";
+                      }}
+                    >
+                      <option value="">{tStatic(locale, "forms.select")}</option>
+                      {geoStates.value.map((st) => (
+                        <option key={st.code} value={st.code}>
+                          {st.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      id="state"
+                      name="state"
+                      required
+                      defaultValue={auth.contact?.state || ""}
+                      onInput$={(_, el) => {
+                        shipState.value = el.value;
+                        shippingRateId.value = "";
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+              <div>
+                <label for="country">{tStatic(locale, "forms.country")}</label>
+                <input
+                  id="country"
+                  name="country"
+                  defaultValue={auth.contact?.country || "EG"}
+                  onInput$={(_, el) => {
+                    shipCountry.value = el.value || "EG";
+                    shippingRateId.value = "";
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <p class="footer-muted">{tStatic(locale, "checkout.pickupAddressHint")}</p>
+          )}
 
-          {showLocationPicker ? (
+          {availableRates.value.length > 0 ? (
+            <fieldset class="checkout-payment-methods">
+              <legend>{tStatic(locale, "checkout.shippingMethod")}</legend>
+              {availableRates.value.map((rate) => (
+                <label key={rate.id} class="checkout-payment-methods__option">
+                  <input
+                    type="radio"
+                    name="shipping_rate_id"
+                    value={rate.id}
+                    checked={shippingRateId.value === rate.id}
+                    onChange$={() => {
+                      shippingRateId.value = rate.id;
+                    }}
+                  />
+                  <span>
+                    {rate.title}
+                    {rate.eta_label ? ` · ${rate.eta_label}` : ""} —{" "}
+                    {formatPrice(rate.amount, settings.value.currency, locale)}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <p class="footer-muted">{tStatic(locale, "checkout.shippingRatesHint")}</p>
+          )}
+
+          {isPickup || showLocationPicker ? (
             <div>
-              <label for="location_id">{tStatic(locale, "checkout.fulfillmentLocation")}</label>
+              <label for="location_id">
+                {isPickup
+                  ? tStatic(locale, "checkout.pickupLocation")
+                  : tStatic(locale, "checkout.fulfillmentLocation")}
+              </label>
               <select
                 id="location_id"
                 name="location_id"
@@ -444,11 +606,13 @@ export default component$(() => {
                   stockWarning.value = null;
                 }}
               >
-                {sellingLocations.map((loc) => (
-                  <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
-                    {loc.name}
-                  </option>
-                ))}
+                {(isPickup && pickupLocations.length > 0 ? pickupLocations : sellingLocations).map(
+                  (loc) => (
+                    <option key={loc.id} value={loc.id} selected={loc.id === locationId.value}>
+                      {loc.name}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
           ) : null}

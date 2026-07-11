@@ -68,7 +68,11 @@ class CheckoutService
             $locationId,
             $couponCode,
             $authContact,
-            $payload['coupon_codes'] ?? null
+            $payload['coupon_codes'] ?? null,
+            $payload['shipping_address'] ?? [],
+            $payload['shipping_rate_id'] ?? null,
+            (string) ($payload['locale'] ?? 'en'),
+            true
         );
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
@@ -159,10 +163,16 @@ class CheckoutService
                 'products' => $validated['products_payload'],
                 'source' => 'storefront',
                 'sale_note' => $payload['order_note'] ?? null,
-                'shipping_details' => $payload['shipping_method'] ?? 'Delivery',
+                'shipping_details' => $validated['shipping_rate']['title']
+                    ?? ($payload['shipping_method'] ?? 'Delivery'),
                 'shipping_charges' => $shipping,
                 'shipping_address' => $shippingAddress,
                 'shipping_status' => 'ordered',
+                'storefront_shipping_meta' => [
+                    'rate_id' => $payload['shipping_rate_id'] ?? null,
+                    'rate' => $validated['shipping_rate'] ?? null,
+                    'matched_zone_id' => $validated['matched_zone_id'] ?? null,
+                ],
                 'order_addresses' => $orderAddresses,
                 'is_created_from_api' => 1,
                 'rp_redeemed' => $rpRedeemed,
@@ -387,6 +397,15 @@ class CheckoutService
         $data['discount_type'] = $transaction->discount_type;
         $data['shipping_charges'] = (float) $transaction->shipping_charges;
         $data['coupon_code'] = $transaction->storefront_coupon_code;
+        $data['shipping_method'] = $transaction->shipping_details;
+        $data['shipping_carrier'] = $transaction->shipping_carrier;
+        $data['shipping_tracking_number'] = $transaction->shipping_tracking_number;
+        $data['shipping_tracking_url'] = $transaction->shipping_tracking_url;
+        $meta = $transaction->storefront_shipping_meta;
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true);
+        }
+        $data['shipping_meta'] = is_array($meta) ? $meta : null;
         $data['lines'] = $transaction->sell_lines->map(fn ($line) => [
             'product_id' => $line->product_id,
             'variation_id' => $line->variation_id,

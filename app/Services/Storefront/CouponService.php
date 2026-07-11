@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Contact;
 use App\Coupon;
 use App\CouponRedemption;
+use App\Services\Storefront\Shipping\ShippingQuoteService;
 use App\Transaction;
 use Illuminate\Validation\ValidationException;
 
@@ -98,10 +99,11 @@ class CouponService
         float $subtotal,
         array $settings,
         ?Contact $contact = null,
-        string $channel = Coupon::CHANNEL_STOREFRONT
+        string $channel = Coupon::CHANNEL_STOREFRONT,
+        ?float $baseShipping = null
     ): array {
         $codes = $this->normalizeCodes(null, $codes);
-        $baseShipping = $this->calculateShipping($settings, $subtotal);
+        $baseShipping = $baseShipping ?? $this->calculateShipping($settings, $subtotal);
         $empty = [
             'coupon' => null,
             'coupons' => [],
@@ -136,7 +138,8 @@ class CouponService
                 $subtotal,
                 $settings,
                 $contact,
-                $channel
+                $channel,
+                $baseShipping
             );
 
             $appliedCoupons = [];
@@ -388,9 +391,10 @@ class CouponService
         float $subtotal,
         array $settings,
         ?Contact $contact = null,
-        string $channel = Coupon::CHANNEL_STOREFRONT
+        string $channel = Coupon::CHANNEL_STOREFRONT,
+        ?float $baseShipping = null
     ): array {
-        $baseShipping = $this->calculateShipping($settings, $subtotal);
+        $baseShipping = $baseShipping ?? $this->calculateShipping($settings, $subtotal);
         $empty = [
             'coupon' => null,
             'coupon_id' => null,
@@ -605,14 +609,28 @@ class CouponService
 
     private function calculateShipping(array $settings, float $subtotal): float
     {
-        $flat = (float) ($settings['shipping']['flat_rate'] ?? 0);
-        $threshold = (float) ($settings['shipping']['free_shipping_threshold'] ?? 0);
+        // Zone engine only — callers that already quoted should pass $baseShipping.
+        try {
+            $businessId = (int) (session('user.business_id') ?? 0);
+            if ($businessId > 0) {
+                $quoted = app(ShippingQuoteService::class)->quote(
+                    $businessId,
+                    $subtotal,
+                    [],
+                    ['country' => 'EG'],
+                    null,
+                    null,
+                    'en',
+                    false
+                );
 
-        if ($threshold > 0 && $subtotal >= $threshold) {
-            return 0.0;
+                return (float) $quoted['shipping'];
+            }
+        } catch (\Throwable $e) {
+            // No zones yet / quote failure — treat as zero until settings migrate.
         }
 
-        return $flat;
+        return 0.0;
     }
 
     private function contactHasPriorStorefrontOrder(int $contactId): bool

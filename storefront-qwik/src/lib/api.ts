@@ -247,6 +247,13 @@ export function validateCart(
     coupon_code?: string;
     coupon_codes?: string[];
     items: { variation_id: number; quantity: number }[];
+    shipping_rate_id?: string;
+    destination?: {
+      country?: string;
+      state?: string;
+      city?: string;
+      zip_code?: string;
+    };
   },
   token?: string,
 ) {
@@ -268,6 +275,13 @@ export function inspectCart(
     coupon_code?: string;
     coupon_codes?: string[];
     items: { variation_id: number; quantity: number }[];
+    shipping_rate_id?: string;
+    destination?: {
+      country?: string;
+      state?: string;
+      city?: string;
+      zip_code?: string;
+    };
   },
   token?: string,
 ) {

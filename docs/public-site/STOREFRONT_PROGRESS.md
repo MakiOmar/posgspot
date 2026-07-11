@@ -37,8 +37,11 @@
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` migration; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
-| Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check |
-| Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth |
+| Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check; destination + `shipping_rate_id` → `available_rates[]` |
+| Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth; requires `shipping_rate_id` |
+| Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; legacy flat/threshold migrated; `ShippingQuoteService` |
+| Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
+| Courier adapters (Bosta) | ✅ | `ShippingCarrierInterface`; POS create on mark shipped when carrier=`bosta` |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
@@ -71,8 +74,8 @@
 | `/[lang]/brands` | ✅ | Brand index (sellable brands with slug) |
 | `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews, share; brand links to `/brands/{slug}` |
-| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, promo picker + manual code, reward redeem |
+| `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, shipping estimate hint, i18n |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
@@ -140,7 +143,7 @@
 | Item | Status | Path |
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
-| Selling locations, COD, shipping, maintenance | ✅ | |
+| Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + optional Bosta courier settings |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
@@ -184,7 +187,8 @@
 | Add-customer + geo + phone | ✅ |
 | Reward points | ✅ |
 | Invoice print URL (unit) | ✅ |
-| Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` |
+| Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` (requires `shipping_rate_id`) |
+| Shipping zones / rate id | ✅ | `ShippingZonesApiTest` |
 | Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
 | Wishlist API | ✅ | `WishlistTest` |
 | Product reviews API | ✅ | `ProductReviewTest` |
@@ -197,8 +201,8 @@
 
 ## Recommended next (priority order)
 
-1. Shipment tracking on account order detail (carrier + tracking URL when set in POS)
-2. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
+1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
+2. Second courier adapter (Aramex) / Bosta webhooks when live volume needs it
 
 ---
 
@@ -206,6 +210,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Shipping management: zones/methods (flat, free, pickup), cart validate quote path, checkout rate picker, tracking + shipped email, Bosta adapter, shipping classes/weight, docs/tests. |
 | 2026-07-11 | Brand slug on POS create/update; account reorder → cart (price/stock refreshed on cart). |
 | 2026-07-11 | Deferred returns/cancel; next: brand slug on save, shipment tracking, reorder. |
 | 2026-07-11 | PDP share buttons: native Web Share, copy link, WhatsApp / Facebook / X. |

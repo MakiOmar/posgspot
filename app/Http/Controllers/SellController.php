@@ -1633,7 +1633,9 @@ class SellController extends Controller
         try {
             $input = $request->only([
                 'shipping_details', 'shipping_address',
-                'shipping_status', 'delivered_to', 'delivery_person', 'shipping_custom_field_1', 'shipping_custom_field_2', 'shipping_custom_field_3', 'shipping_custom_field_4', 'shipping_custom_field_5',
+                'shipping_status', 'delivered_to', 'delivery_person',
+                'shipping_tracking_number', 'shipping_carrier', 'shipping_tracking_url',
+                'shipping_custom_field_1', 'shipping_custom_field_2', 'shipping_custom_field_3', 'shipping_custom_field_4', 'shipping_custom_field_5',
             ]);
 
 
@@ -1643,11 +1645,40 @@ class SellController extends Controller
                                 ->findOrFail($id);
 
             $transaction_before = $transaction->replicate();
+            $wasShipped = ($transaction_before->shipping_status ?? '') === 'shipped';
 
             $transaction->update($input);
 
             $activity_property = ['update_note' => $request->input('shipping_note', '')];
             $this->transactionUtil->activityLog($transaction, 'shipping_edited', $transaction_before, $activity_property);
+
+            // Notify customer when status first becomes shipped (storefront orders with email).
+            if (! $wasShipped && ($transaction->shipping_status ?? '') === 'shipped') {
+                try {
+                    app(\App\Services\Storefront\StorefrontMailService::class)
+                        ->sendShippedNotification($transaction->fresh(['contact']));
+                } catch (\Throwable $e) {
+                    \Log::warning('Storefront shipped mail failed: '.$e->getMessage());
+                }
+            }
+
+            // Optional Bosta create when carrier is bosta and no tracking yet.
+            if (($input['shipping_carrier'] ?? '') === 'bosta'
+                && empty($transaction_before->shipping_tracking_number)
+                && empty($input['shipping_tracking_number'])) {
+                try {
+                    $created = app(\App\Services\Storefront\Shipping\Carriers\ShippingCarrierManager::class)
+                        ->createForTransaction((int) $business_id, $transaction->fresh());
+                    if ($created) {
+                        $transaction->shipping_tracking_number = $created['tracking_number'] ?? $transaction->shipping_tracking_number;
+                        $transaction->shipping_tracking_url = $created['tracking_url'] ?? $transaction->shipping_tracking_url;
+                        $transaction->shipping_carrier = 'bosta';
+                        $transaction->save();
+                    }
+                } catch (\Throwable $e) {
+                    \Log::warning('Bosta shipment create failed: '.$e->getMessage());
+                }
+            }
 
             $output = ['success' => 1,
                 'msg' => trans('lang_v1.updated_success'),

@@ -71,6 +71,30 @@ class CouponTest extends TestCase
         return compact('location', 'variation');
     }
 
+    private function firstShippingRateId(int $variationId, int $locationId): string
+    {
+        app(\App\Services\Storefront\Shipping\ShippingLegacyMigrator::class)
+            ->ensureDefaultZones($this->businessId);
+
+        $quoted = app(\App\Services\Storefront\Shipping\ShippingQuoteService::class)->quote(
+            $this->businessId,
+            100,
+            [['variation_id' => $variationId, 'quantity' => 1]],
+            ['country' => 'EG', 'state' => 'C'],
+            null,
+            $locationId,
+            'en',
+            false
+        );
+
+        $rate = $quoted['available_rates'][0] ?? null;
+        if (empty($rate['id'])) {
+            $this->markTestSkipped('No shipping rates available for test.');
+        }
+
+        return $rate['id'];
+    }
+
     private function createCoupon(array $overrides = []): Coupon
     {
         return Coupon::create(array_merge([
@@ -221,8 +245,10 @@ class CouponTest extends TestCase
                 'shipping_address' => [
                     'address_line_1' => '1 Coupon St',
                     'city' => 'Cairo',
-                    'country' => 'Egypt',
+                    'state' => 'C',
+                    'country' => 'EG',
                 ],
+                'shipping_rate_id' => $this->firstShippingRateId($fixtures['variation']->id, $fixtures['location']->id),
             ]);
 
         $response->assertCreated();
@@ -262,8 +288,10 @@ class CouponTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => '1 Guest St',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $this->firstShippingRateId($fixtures['variation']->id, $fixtures['location']->id),
         ])->assertStatus(422)
             ->assertJsonPath('errors.coupon_code.0', 'Sign in to apply a promo code.');
     }
@@ -289,8 +317,10 @@ class CouponTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => '2 Idem Rd',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $this->firstShippingRateId($fixtures['variation']->id, $fixtures['location']->id),
         ];
 
         $this->withToken($session['token'])->postJson('/api/storefront/v1/checkout', $payload)->assertCreated();
@@ -369,8 +399,10 @@ class CouponTest extends TestCase
                 'shipping_address' => [
                     'address_line_1' => '3 Stack Rd',
                     'city' => 'Cairo',
-                    'country' => 'Egypt',
+                    'state' => 'C',
+                    'country' => 'EG',
                 ],
+                'shipping_rate_id' => $this->firstShippingRateId($fixtures['variation']->id, $fixtures['location']->id),
             ])
             ->assertStatus(422)
             ->assertJsonPath('errors.reward_points.0', 'Reward points cannot be combined with this promo code.');

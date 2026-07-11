@@ -20,6 +20,30 @@ class StorefrontCheckoutTest extends TestCase
 {
     protected int $businessId = 1;
 
+    private function firstShippingRateId(int $variationId, int $locationId): string
+    {
+        app(\App\Services\Storefront\Shipping\ShippingLegacyMigrator::class)
+            ->ensureDefaultZones($this->businessId);
+
+        $quoted = app(\App\Services\Storefront\Shipping\ShippingQuoteService::class)->quote(
+            $this->businessId,
+            100,
+            [['variation_id' => $variationId, 'quantity' => 1]],
+            ['country' => 'EG', 'state' => 'C'],
+            null,
+            $locationId,
+            'en',
+            false
+        );
+
+        $rate = $quoted['available_rates'][0] ?? null;
+        if (empty($rate['id'])) {
+            $this->markTestSkipped('No shipping rates available for test.');
+        }
+
+        return $rate['id'];
+    }
+
     public function test_cod_checkout_creates_storefront_transaction(): void
     {
         Mail::fake();
@@ -67,6 +91,7 @@ class StorefrontCheckoutTest extends TestCase
         );
 
         $orderKey = 'SF-TEST-'.uniqid();
+        $shippingRateId = $this->firstShippingRateId($variation->id, $location->id);
 
         $response = $this->postJson('/api/storefront/v1/checkout', [
             'idempotency_key' => $orderKey,
@@ -84,8 +109,10 @@ class StorefrontCheckoutTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => '12 Test Street',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $shippingRateId,
         ]);
 
         $response->assertCreated()
@@ -153,8 +180,10 @@ class StorefrontCheckoutTest extends TestCase
             'shipping_address' => [
                 'address_line_1' => '1 Idempotent Rd',
                 'city' => 'Cairo',
-                'country' => 'Egypt',
+                'state' => 'C',
+                'country' => 'EG',
             ],
+            'shipping_rate_id' => $this->firstShippingRateId($variation->id, $location->id),
         ];
 
         $first = $this->postJson('/api/storefront/v1/checkout', $payload);

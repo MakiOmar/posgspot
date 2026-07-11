@@ -259,6 +259,12 @@
                 {!! Form::text('weight', !empty($duplicate_product->weight) ? $duplicate_product->weight : null, ['class' => 'form-control', 'placeholder' => __('lang_v1.weight')]); !!}
             </div>
         </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                {!! Form::label('shipping_class_id', 'Shipping class:') !!}
+                {!! Form::select('shipping_class_id', $shipping_classes ?? ['' => __('messages.please_select')], !empty($duplicate_product->shipping_class_id) ? $duplicate_product->shipping_class_id : null, ['class' => 'form-control select2']); !!}
+            </div>
+        </div>
         @php
         $custom_labels = json_decode(session('business.custom_labels'), true);
         $product_custom_fields = !empty($custom_labels['product']) ? $custom_labels['product'] : [];

@@ -151,6 +151,16 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/business/settings', [BusinessController::class, 'getBusinessSettings'])->name('business.getBusinessSettings');
     Route::get('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'edit'])->name('storefront.settings.edit');
     Route::post('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'update'])->name('storefront.settings.update');
+    Route::get('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'index'])->name('storefront.shipping.zones.index');
+    Route::post('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])->name('storefront.shipping.zones.store');
+    Route::put('/storefront/shipping/zones/{id}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'update'])->name('storefront.shipping.zones.update');
+    Route::delete('/storefront/shipping/zones/{id}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'destroy'])->name('storefront.shipping.zones.destroy');
+    Route::post('/storefront/shipping/zones/{zoneId}/methods', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'storeMethod'])->name('storefront.shipping.methods.store');
+    Route::put('/storefront/shipping/methods/{methodId}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'updateMethod'])->name('storefront.shipping.methods.update');
+    Route::delete('/storefront/shipping/methods/{methodId}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'destroyMethod'])->name('storefront.shipping.methods.destroy');
+    Route::get('/storefront/shipping/classes', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'classesIndex'])->name('storefront.shipping.classes.index');
+    Route::post('/storefront/shipping/classes', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'storeClass'])->name('storefront.shipping.classes.store');
+    Route::delete('/storefront/shipping/classes/{id}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'destroyClass'])->name('storefront.shipping.classes.destroy');
     Route::get('/storefront/translations/products', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsIndex'])->name('storefront.translations.products');
     Route::get('/storefront/translations/products/{id}/edit', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsEdit'])->name('storefront.translations.products.edit');
     Route::post('/storefront/translations/products/{id}', [\App\Http\Controllers\Storefront\StorefrontTranslationController::class, 'productsUpdate'])->name('storefront.translations.products.update');

@@ -3,8 +3,11 @@
 namespace App\Services\Storefront;
 
 use App\Business;
+use App\Mail\StorefrontOrderShipped;
+use App\Transaction;
 use App\Utils\BusinessUtil;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Applies business SMTP settings and resolves a valid From header for storefront mail.
@@ -102,6 +105,32 @@ class StorefrontMailService
         }
 
         return $this->resolveFrom($businessId, $emailSettings, $business)['address'];
+    }
+
+    /**
+     * Email customer when a storefront order is marked shipped.
+     */
+    public function sendShippedNotification(Transaction $transaction): void
+    {
+        $email = $transaction->contact->email ?? null;
+        if (empty($email) || empty($transaction->source) || $transaction->source !== 'storefront') {
+            // Also allow POS sells with contact email.
+            if (empty($email)) {
+                return;
+            }
+        }
+
+        $this->applyForBusiness((int) $transaction->business_id);
+
+        $order = [
+            'invoice_no' => $transaction->invoice_no,
+            'storefront_order_id' => $transaction->storefront_order_id,
+            'shipping_carrier' => $transaction->shipping_carrier,
+            'shipping_tracking_number' => $transaction->shipping_tracking_number,
+            'shipping_tracking_url' => $transaction->shipping_tracking_url,
+        ];
+
+        Mail::to($email)->queue(new StorefrontOrderShipped($order));
     }
 
     private function emailSettingsForBusiness(?Business $business): array

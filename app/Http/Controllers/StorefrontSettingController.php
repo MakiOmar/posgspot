@@ -50,6 +50,10 @@ class StorefrontSettingController extends Controller
             'maintenance_mode' => 'nullable|boolean',
             'shipping_flat_rate' => 'nullable|numeric|min:0',
             'shipping_free_threshold' => 'nullable|numeric|min:0',
+            'shipping_hide_rates_until_address' => 'nullable|boolean',
+            'courier_bosta_enabled' => 'nullable|boolean',
+            'courier_bosta_api_key' => 'nullable|string|max:500',
+            'courier_bosta_staging' => 'nullable|boolean',
             'contact_phone' => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:191',
             'contact_whatsapp' => 'nullable|string|max:50',
@@ -111,8 +115,16 @@ class StorefrontSettingController extends Controller
             'cod_enabled' => $request->boolean('cod_enabled'),
             'maintenance_mode' => $request->boolean('maintenance_mode'),
             'shipping' => [
-                'flat_rate' => (float) ($validated['shipping_flat_rate'] ?? 0),
-                'free_shipping_threshold' => (float) ($validated['shipping_free_threshold'] ?? 0),
+                'flat_rate' => (float) ($validated['shipping_flat_rate'] ?? ($this->settings->get($business_id)['shipping']['flat_rate'] ?? 0)),
+                'free_shipping_threshold' => (float) ($validated['shipping_free_threshold'] ?? ($this->settings->get($business_id)['shipping']['free_shipping_threshold'] ?? 0)),
+                'hide_rates_until_address' => $request->boolean('shipping_hide_rates_until_address'),
+            ],
+            'couriers' => [
+                'bosta' => [
+                    'enabled' => $request->boolean('courier_bosta_enabled'),
+                    'api_key' => $validated['courier_bosta_api_key'] ?? null,
+                    'staging' => $request->boolean('courier_bosta_staging'),
+                ],
             ],
             'contact' => [
                 'phone' => $validated['contact_phone'] ?? '',

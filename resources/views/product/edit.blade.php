@@ -280,6 +280,12 @@
             {!! Form::text('weight', $product->weight, ['class' => 'form-control', 'placeholder' => __('lang_v1.weight')]); !!}
           </div>
         </div>
+        <div class="col-sm-4">
+          <div class="form-group">
+            {!! Form::label('shipping_class_id', 'Shipping class:') !!}
+            {!! Form::select('shipping_class_id', $shipping_classes ?? ['' => __('messages.please_select')], $product->shipping_class_id ?? null, ['class' => 'form-control select2']); !!}
+          </div>
+        </div>
         <div class="clearfix"></div>
         
         @php
