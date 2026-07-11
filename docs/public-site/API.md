@@ -50,6 +50,7 @@ Public `GET /settings` also exposes:
 
 - `cod_enabled`
 - `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
+- `couriers.bosta.enabled` — true when Bosta is enabled **and** an API key is stored (no key exposed); checkout uses this to collect Bosta `district_id`
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
@@ -89,8 +90,11 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `couriers.bosta.enabled`) |
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
+| GET | `/geo/countries` | Country list for address forms |
+| GET | `/geo/states/{countryCode}` | States / governorates for a country |
+| GET | `/geo/bosta-districts?state=` | Bosta districts for a governorate (`state` code) when Bosta is enabled+keyed; otherwise `{ city_code, city_name, districts: [] }`. Labels follow `X-Content-Locale`. |
 | GET | `/categories` | Category tree |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
 | GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`). Locale-filtered: AR requires a brand translation row. |
@@ -107,7 +111,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id", optional "coupon_codes[]" (already applied when stacking) }`. **Requires storefront customer auth** (Bearer token). Respects storefront settings `promo_codes.enabled_at_checkout` and `allow_stacking`. Returns `coupon`, `coupons[]`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
 | POST | `/coupons/available` | List promo codes the signed-in customer can apply to the current cart — body `{ "items[]", optional "exclude_codes[]" (already applied when stacking) }`. **Requires auth.** Returns `{ coupons[] }` with `code`, `name`, `label`, `total_savings`, `discount_amount`, `free_shipping`, etc. Empty when checkout promos disabled or none eligible. |
 | POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. **Shipping (zone engine):** optional `destination` (`country`, `state`/governorate, `city`) + optional `shipping_rate_id`. Response includes `shipping`, `shipping_rate`, `available_rates[]` (`id`, `method_type`, `title`, `amount`, `eta_label`), and `hide_rates_until_address`. Rate ids are signed; checkout re-quotes and rejects stale/tampered ids. Free-shipping coupons force delivery rate amounts to `0`. |
-| POST | `/checkout` | Create order (idempotent). **Requires `shipping_rate_id`** (from cart validate). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. Pickup rates (`local_pickup`) use `location_id` for branch stock; delivery persists method title + `storefront_shipping_meta`. |
+| POST | `/checkout` | Create order (idempotent). **Requires `shipping_rate_id`** (from cart validate). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. Pickup rates (`local_pickup`) use `location_id` for branch stock; delivery persists method title + `storefront_shipping_meta`. For Bosta fulfillment, include `shipping_address.district_id` (and optional `district_label`) from `GET /geo/bosta-districts`. |
 | POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
 | POST | `/payments/{provider}/return` | Verify customer return URL payload after hosted checkout |
 | POST | `/payments/{provider}/session` | Rebuild signed payment session for an existing pending order (`storefront_order_id`, optional `locale`) |
@@ -167,7 +171,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Select selling locations (catalog is empty when none selected)
 - COD, **shipping zones** (governorate matching, flat / free / pickup methods), announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
 - **Shipping classes** + optional product `shipping_class_id` / weight for per-class and per-kg flat costs
-- **Couriers** (optional Bosta API key, staging) — create shipment when marking shipped with carrier `bosta`
+- **Couriers** (optional Bosta API key; staging defaults **off** / production) — create shipment via `POST /deliveries/bulk` when marking shipped with carrier `bosta`; requires checkout `district_id`; public settings expose `couriers.bosta.enabled` only
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only

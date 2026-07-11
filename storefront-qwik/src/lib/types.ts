@@ -72,6 +72,12 @@ export interface StoreSettings {
     enabled: boolean;
     site_key: string | null;
   };
+  /** Courier integrations available at checkout (public flags only). */
+  couriers: {
+    bosta: {
+      enabled: boolean;
+    };
+  };
   locales: string[];
 }
 
@@ -422,6 +428,8 @@ export interface OrderShippingAddress {
   state: string | null;
   country: string | null;
   zip_code: string | null;
+  district_id?: string | null;
+  district_label?: string | null;
   formatted: string | null;
 }
 

@@ -39,7 +39,7 @@ class StorefrontSettingService
                 'bosta' => [
                     'enabled' => false,
                     'api_key' => null,
-                    'staging' => true,
+                    'staging' => false,
                 ],
             ],
             'contact' => [
@@ -211,6 +211,14 @@ class StorefrontSettingService
 
         $this->syncSellingLocations($businessId, $merged['selling_location_ids'] ?? []);
         Cache::forget(self::CACHE_KEY.$businessId);
+
+        // Zoning tree depends on API key / staging — refresh on courier save.
+        try {
+            app(\App\Services\Storefront\Shipping\Carriers\BostaApiClient::class)
+                ->flushZoningCache($businessId);
+        } catch (\Throwable $e) {
+            // Ignore if container cannot resolve during early boot/tests.
+        }
 
         return $row;
     }

@@ -1243,6 +1243,7 @@ return [
     'indian' => 'Indian',
     'word_format_help' => 'In international format big numbers are represented in million, billion and trillion where as in indian format it is represented in lakhs and crores',
     'shipping_edited' => 'Shipping edited',
+    'bosta_shipment_create_failed' => 'Bosta shipment was not created. Check the order address (district required) and Bosta settings, then try again.',
     'payment_edited' => 'Payment edited',
     'notification_sent' => 'Notification Sent',
     'imported' => 'Imported',

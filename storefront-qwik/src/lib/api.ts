@@ -530,6 +530,28 @@ export function fetchGeoStates(countryCode: string) {
   );
 }
 
+export type BostaDistrict = {
+  id: string;
+  label: string;
+  zone: string | null;
+};
+
+export type BostaDistrictsResponse = {
+  city_code: string | null;
+  city_name: string | null;
+  districts: BostaDistrict[];
+};
+
+/** Bosta districts for a governorate when courier is enabled. */
+export function fetchBostaDistricts(stateCode: string, locale?: string) {
+  const qs = new URLSearchParams({ state: stateCode });
+  return storefrontFetch<BostaDistrictsResponse>(
+    `/geo/bosta-districts?${qs.toString()}`,
+    {},
+    locale,
+  );
+}
+
 export type AddCustomerPayload = {
   first_name: string;
   last_name: string;

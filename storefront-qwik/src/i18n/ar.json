@@ -228,6 +228,7 @@
     "shippingRatesHint": "أدخل المحافظة لعرض خيارات التوصيل. قد يتوفر الاستلام من الفرع.",
     "selectShipping": "يرجى اختيار طريقة الشحن.",
     "loadingStates": "جاري تحميل المناطق…",
+    "districtRequired": "يرجى اختيار الحي للتوصيل.",
     "pickupLocation": "فرع الاستلام",
     "pickupAddressHint": "اخترت الاستلام من الفرع — عنوان التوصيل غير مطلوب.",
     "orderSummary": "ملخص الطلب",
@@ -315,7 +316,10 @@
     "dialCode": "رمز الدولة",
     "searchCountries": "ابحث عن الدول…",
     "searchStates": "ابحث عن المحافظات…",
-    "loadingStates": "جاري تحميل المحافظات…"
+    "loadingStates": "جاري تحميل المحافظات…",
+    "district": "الحي / المنطقة",
+    "searchDistricts": "ابحث عن الأحياء…",
+    "loadingDistricts": "جاري تحميل الأحياء…"
   },
   "auth": {
     "login": "تسجيل الدخول",

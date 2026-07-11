@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Storefront\AccountController;
 use App\Http\Controllers\Api\Storefront\AuthController;
 use App\Http\Controllers\Api\Storefront\AvailabilityController;
+use App\Http\Controllers\Api\Storefront\BostaDistrictController;
 use App\Http\Controllers\Api\Storefront\BrandController;
 use App\Http\Controllers\Api\Storefront\CartController;
 use App\Http\Controllers\Api\Storefront\CategoryController;
@@ -39,6 +40,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/phone-countries', [PhoneCountryController::class, 'index']);
     Route::get('/geo/countries', [GeoController::class, 'countries']);
     Route::get('/geo/states/{countryCode}', [GeoController::class, 'states']);
+    Route::get('/geo/bosta-districts', [BostaDistrictController::class, 'index']);
     Route::post('/customers/add', [CustomerRegistrationController::class, 'store']);
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);

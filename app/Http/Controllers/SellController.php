@@ -1663,6 +1663,7 @@ class SellController extends Controller
             }
 
             // Optional Bosta create when carrier is bosta and no tracking yet.
+            $bostaCreateFailed = false;
             if (($input['shipping_carrier'] ?? '') === 'bosta'
                 && empty($transaction_before->shipping_tracking_number)
                 && empty($input['shipping_tracking_number'])) {
@@ -1674,14 +1675,22 @@ class SellController extends Controller
                         $transaction->shipping_tracking_url = $created['tracking_url'] ?? $transaction->shipping_tracking_url;
                         $transaction->shipping_carrier = 'bosta';
                         $transaction->save();
+                    } else {
+                        $bostaCreateFailed = true;
                     }
                 } catch (\Throwable $e) {
+                    $bostaCreateFailed = true;
                     \Log::warning('Bosta shipment create failed: '.$e->getMessage());
                 }
             }
 
+            $msg = trans('lang_v1.updated_success');
+            if ($bostaCreateFailed) {
+                $msg .= ' '.trans('lang_v1.bosta_shipment_create_failed');
+            }
+
             $output = ['success' => 1,
-                'msg' => trans('lang_v1.updated_success'),
+                'msg' => $msg,
             ];
         } catch (\Exception $e) {
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());

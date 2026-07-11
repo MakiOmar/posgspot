@@ -4,7 +4,7 @@ import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { SearchableSelect } from "~/components/forms/searchable-select";
-import { ApiError, checkout, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart } from "~/lib/api";
+import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart, type BostaDistrict } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -89,8 +89,12 @@ export default component$(() => {
   const shipCountry = useSignal("EG");
   const shipState = useSignal("");
   const shipCity = useSignal("");
+  const shipDistrictId = useSignal("");
+  const shipDistrictLabel = useSignal("");
   const geoStates = useSignal<GeoState[]>([]);
   const geoStatesLoading = useSignal(false);
+  const bostaDistricts = useSignal<BostaDistrict[]>([]);
+  const bostaDistrictsLoading = useSignal(false);
   const appliedCoupons = useSignal<AppliedCouponInfo[]>([]);
   const couponDiscount = useSignal(0);
   const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
@@ -102,6 +106,7 @@ export default component$(() => {
   const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
   const allowCouponStacking = settings.value.promo_codes?.allow_stacking ?? false;
   const couponCodesKey = couponCodes.value.join("|");
+  const bostaEnabled = settings.value.couriers?.bosta?.enabled ?? false;
 
   const onlinePaymentsEnabled =
     settings.value.online_payments.enabled && settings.value.online_payments.provider === "fawry";
@@ -163,6 +168,31 @@ export default component$(() => {
       shippingRateId.value = "";
     } finally {
       geoStatesLoading.value = false;
+    }
+  });
+
+  // Load Bosta districts when governorate changes (courier enabled).
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async ({ track }) => {
+    track(() => shipState.value);
+    track(() => bostaEnabled);
+    shipDistrictId.value = "";
+    shipDistrictLabel.value = "";
+    if (!bostaEnabled || !shipState.value) {
+      bostaDistricts.value = [];
+      return;
+    }
+    bostaDistrictsLoading.value = true;
+    try {
+      const { data } = await fetchBostaDistricts(shipState.value, locale);
+      bostaDistricts.value = data.districts ?? [];
+      if (data.city_name && !shipCity.value) {
+        shipCity.value = data.city_name;
+      }
+    } catch {
+      bostaDistricts.value = [];
+    } finally {
+      bostaDistrictsLoading.value = false;
     }
   });
 
@@ -296,6 +326,11 @@ export default component$(() => {
     label: s.name,
     searchText: `${s.name} ${s.code}`,
   }));
+  const districtOptions = bostaDistricts.value.map((d) => ({
+    value: d.id,
+    label: d.label,
+    searchText: `${d.label} ${d.zone ?? ""} ${d.id}`,
+  }));
   const locationOptions = (
     isPickup && pickupLocations.length > 0 ? pickupLocations : sellingLocations
   ).map((loc) => ({
@@ -425,6 +460,14 @@ export default component$(() => {
               country: normalizeCheckoutCountry(
                 String(formData.get("country") || shipCountry.value),
               ),
+              ...(bostaEnabled && shipDistrictId.value
+                ? {
+                    district_id: shipDistrictId.value,
+                    district_label:
+                      shipDistrictLabel.value ||
+                      String(formData.get("district_label") || ""),
+                  }
+                : {}),
             },
         shipping_rate_id: shippingRateId.value,
         order_note: String(formData.get("order_note") || ""),
@@ -432,6 +475,16 @@ export default component$(() => {
 
       if (!shippingRateId.value) {
         error.value = tStatic(locale, "checkout.selectShipping");
+        return;
+      }
+
+      if (
+        !pickupSelected &&
+        bostaEnabled &&
+        bostaDistricts.value.length > 0 &&
+        !shipDistrictId.value
+      ) {
+        error.value = tStatic(locale, "checkout.districtRequired");
         return;
       }
 
@@ -584,6 +637,8 @@ export default component$(() => {
                   onChange$={(code) => {
                     shipCountry.value = normalizeCheckoutCountry(code);
                     shipState.value = "";
+                    shipDistrictId.value = "";
+                    shipDistrictLabel.value = "";
                     shippingRateId.value = "";
                   }}
                 />
@@ -602,6 +657,8 @@ export default component$(() => {
                     required
                     onChange$={(code) => {
                       shipState.value = code;
+                      shipDistrictId.value = "";
+                      shipDistrictLabel.value = "";
                       shippingRateId.value = "";
                     }}
                   />
@@ -613,11 +670,38 @@ export default component$(() => {
                     placeholder={tStatic(locale, "forms.state")}
                     onInput$={(_, el) => {
                       shipState.value = el.value;
+                      shipDistrictId.value = "";
+                      shipDistrictLabel.value = "";
                       shippingRateId.value = "";
                     }}
                   />
                 )}
               </div>
+              {bostaEnabled ? (
+                <div>
+                  <label for="district_id">{tStatic(locale, "forms.district")}</label>
+                  <input type="hidden" name="district_id" value={shipDistrictId.value} />
+                  <input type="hidden" name="district_label" value={shipDistrictLabel.value} />
+                  {bostaDistrictsLoading.value ? (
+                    <p class="footer-muted">{tStatic(locale, "forms.loadingDistricts")}</p>
+                  ) : bostaDistricts.value.length > 0 ? (
+                    <SearchableSelect
+                      id="district_id"
+                      options={districtOptions}
+                      value={shipDistrictId.value}
+                      placeholder={tStatic(locale, "forms.searchDistricts")}
+                      required
+                      onChange$={(id) => {
+                        shipDistrictId.value = id;
+                        const match = bostaDistricts.value.find((d) => d.id === id);
+                        shipDistrictLabel.value = match?.label ?? "";
+                      }}
+                    />
+                  ) : shipState.value ? (
+                    <p class="footer-muted">{tStatic(locale, "forms.noMatches")}</p>
+                  ) : null}
+                </div>
+              ) : null}
               <div class="two-col">
                 <div>
                   <label for="city">{tStatic(locale, "forms.city")}</label>

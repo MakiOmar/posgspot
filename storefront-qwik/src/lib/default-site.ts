@@ -20,6 +20,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   banners: [],
   newsletter: { enabled: false },
   turnstile: { enabled: false, site_key: null },
+  couriers: { bosta: { enabled: false } },
   locales: ["en"],
 };
 

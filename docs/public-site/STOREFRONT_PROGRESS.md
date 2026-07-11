@@ -41,7 +41,7 @@
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth; requires `shipping_rate_id` |
 | Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; legacy flat/threshold migrated; `ShippingQuoteService` |
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
-| Courier adapters (Bosta) | ✅ | `ShippingCarrierInterface`; POS create on mark shipped when carrier=`bosta` |
+| Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
@@ -49,7 +49,7 @@
 | Contact form API | ✅ | Emails business SMTP user |
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
-| Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController` |
+| Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
 | Order confirmation email | ✅ | `StorefrontMailService` |
 | CORS / `STOREFRONT_URL` | ✅ | Documented in `API.md` |
@@ -75,7 +75,7 @@
 | `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews, share; brand links to `/brands/{slug}` |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, shipping estimate hint, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, promo picker + manual code, reward redeem |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, Bosta district when courier on, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
@@ -143,7 +143,7 @@
 | Item | Status | Path |
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
-| Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + optional Bosta courier settings |
+| Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
@@ -202,7 +202,7 @@
 ## Recommended next (priority order)
 
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
-2. Second courier adapter (Aramex) / Bosta webhooks when live volume needs it
+2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
 
 ---
 
@@ -210,6 +210,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Bosta aligned with WC plugin: bulk create, zoning districts API, checkout district field, COD, staging default off. |
 | 2026-07-11 | Shipping management: zones/methods (flat, free, pickup), cart validate quote path, checkout rate picker, tracking + shipped email, Bosta adapter, shipping classes/weight, docs/tests. |
 | 2026-07-11 | Brand slug on POS create/update; account reorder → cart (price/stock refreshed on cart). |
 | 2026-07-11 | Deferred returns/cancel; next: brand slug on save, shipment tracking, reorder. |

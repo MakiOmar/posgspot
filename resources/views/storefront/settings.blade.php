@@ -275,8 +275,9 @@
                     <div class="col-md-4">
                         <div class="checkbox">
                             <label>
-                                {!! Form::checkbox('courier_bosta_staging', 1, $settings['couriers']['bosta']['staging'] ?? true) !!} Bosta staging
+                                {!! Form::checkbox('courier_bosta_staging', 1, $settings['couriers']['bosta']['staging'] ?? false) !!} Bosta staging (optional; production is default)
                             </label>
+                            <p class="help-block">Official WooCommerce plugin uses production only. Enable staging only when testing against Bosta’s staging API.</p>
                         </div>
                     </div>
                 </div>

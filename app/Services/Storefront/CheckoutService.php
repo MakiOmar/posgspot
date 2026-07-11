@@ -355,6 +355,8 @@ class CheckoutService
             'state' => $raw['state'] ?? $raw['shipping_state'] ?? null,
             'country' => $raw['country'] ?? $raw['shipping_country'] ?? null,
             'zip_code' => $raw['zip_code'] ?? $raw['shipping_zip_code'] ?? null,
+            'district_id' => $raw['district_id'] ?? $raw['districtId'] ?? null,
+            'district_label' => $raw['district_label'] ?? null,
         ];
 
         $formatted = $this->formatAddressString($normalized);

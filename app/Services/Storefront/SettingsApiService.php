@@ -63,6 +63,13 @@ class SettingsApiService
             'cod_enabled' => (bool) ($settings['cod_enabled'] ?? false),
             'maintenance_mode' => (bool) ($settings['maintenance_mode'] ?? false),
             'online_payments' => $this->onlinePaymentsPayload($settings),
+            // Public flag only — never expose API key.
+            'couriers' => [
+                'bosta' => [
+                    'enabled' => ! empty($settings['couriers']['bosta']['enabled'])
+                        && ! empty($settings['couriers']['bosta']['api_key']),
+                ],
+            ],
             'reward_points' => [
                 'enabled' => (int) ($business->enable_rp ?? 0) === 1,
                 'name' => $this->presenter->localizedSetting($rewardName, $locale, $business->rp_name ?? 'Reward Points'),

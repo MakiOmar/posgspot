@@ -228,6 +228,7 @@
     "shippingRatesHint": "Enter your governorate to see delivery options. Pickup may still be available.",
     "selectShipping": "Please select a shipping method.",
     "loadingStates": "Loading regions…",
+    "districtRequired": "Please select a delivery district.",
     "pickupLocation": "Pickup store",
     "pickupAddressHint": "You selected store pickup — delivery address is not required.",
     "orderSummary": "Order summary",
@@ -315,7 +316,10 @@
     "dialCode": "Dial code",
     "searchCountries": "Search countries…",
     "searchStates": "Search states…",
-    "loadingStates": "Loading states…"
+    "loadingStates": "Loading states…",
+    "district": "District / Area",
+    "searchDistricts": "Search districts…",
+    "loadingDistricts": "Loading districts…"
   },
   "auth": {
     "login": "Sign in",
