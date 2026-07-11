@@ -33,8 +33,7 @@ export default component$(() => {
     serial_no: "",
   });
 
-  const submit$ = $(async (event: Event) => {
-    event.preventDefault();
+  const submit$ = $(async () => {
     if (!lookupEnabled) {
       await toastError(tStatic(locale, "repair.unavailable"));
       return;
