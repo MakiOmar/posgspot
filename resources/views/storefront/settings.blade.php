@@ -98,8 +98,10 @@
                 <hr>
                 <h4>Shipping zones</h4>
                 <p class="help-block">
-                    Rates are managed by zone (country / governorate), similar to WooCommerce.
-                    Legacy flat rate / free threshold were imported into a default Egypt zone on first load.
+                    Checkout matches the customer’s <strong>country + governorate</strong> (not city) to the first zone by priority.
+                    Example: create “Greater Cairo” with selected governorates (Cairo, Giza, …) at priority 10,
+                    then keep “Egypt” (whole country, no governorates) or “Everywhere else” for the rest.
+                    Leave governorates empty on a country zone to cover the whole country.
                 </p>
                 <div class="checkbox" style="margin-bottom: 1rem;">
                     <label>
@@ -113,6 +115,140 @@
                 <div class="btn-group" style="margin-top: 0.75rem;">
                     <button type="button" class="btn btn-default btn-sm" id="sf_shipping_reload_zones">Reload zones</button>
                     <button type="button" class="btn btn-primary btn-sm" id="sf_shipping_add_zone">Add zone</button>
+                </div>
+
+                {{-- Edit zone modal --}}
+                <div class="modal fade" id="sf_zone_modal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                <h4 class="modal-title" id="sf_zone_modal_title">Edit zone</h4>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="sf_zone_id" value="">
+                                <div class="form-group">
+                                    <label for="sf_zone_name">Name</label>
+                                    <input type="text" class="form-control" id="sf_zone_name" maxlength="191">
+                                </div>
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <div class="form-group">
+                                            <label for="sf_zone_priority">Priority (lower = first match)</label>
+                                            <input type="number" class="form-control" id="sf_zone_priority" min="0" value="50">
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="checkbox" style="margin-top: 28px;">
+                                            <label><input type="checkbox" id="sf_zone_enabled" checked> Enabled</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <div class="checkbox" style="margin-top: 28px;">
+                                            <label><input type="checkbox" id="sf_zone_catch_all"> Catch-all (rest of world)</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="sf_zone_locations_wrap">
+                                    <div class="form-group">
+                                        <label for="sf_zone_country">Country</label>
+                                        <input type="text" class="form-control" id="sf_zone_country" value="EG" maxlength="8" placeholder="EG">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sf_zone_states">Governorates (Egypt)</label>
+                                        <select id="sf_zone_states" class="form-control" multiple size="10" style="height:auto;"></select>
+                                        <p class="help-block">Hold Ctrl/Cmd to select multiple. Empty = whole country. City-level matching is not used.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="sf_zone_save">Save zone</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Edit method modal --}}
+                <div class="modal fade" id="sf_method_modal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                                <h4 class="modal-title" id="sf_method_modal_title">Edit method</h4>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" id="sf_method_id" value="">
+                                <input type="hidden" id="sf_method_zone_id" value="">
+                                <div class="form-group" id="sf_method_type_wrap">
+                                    <label for="sf_method_type">Type</label>
+                                    <select id="sf_method_type" class="form-control">
+                                        <option value="flat_rate">Flat rate</option>
+                                        <option value="free_shipping">Free shipping</option>
+                                        <option value="local_pickup">Local pickup</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sf_method_title_en">Title (EN)</label>
+                                    <input type="text" class="form-control" id="sf_method_title_en" maxlength="191">
+                                </div>
+                                <div class="form-group">
+                                    <label for="sf_method_title_ar">Title (AR)</label>
+                                    <input type="text" class="form-control" id="sf_method_title_ar" maxlength="191" dir="rtl">
+                                </div>
+                                <div class="checkbox">
+                                    <label><input type="checkbox" id="sf_method_enabled" checked> Enabled</label>
+                                </div>
+                                <div id="sf_method_flat_fields">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label for="sf_method_cost">Cost</label>
+                                                <input type="number" step="0.01" min="0" class="form-control" id="sf_method_cost" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label for="sf_method_eta_min">ETA min days</label>
+                                                <input type="number" min="0" class="form-control" id="sf_method_eta_min" value="2">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label for="sf_method_eta_max">ETA max days</label>
+                                                <input type="number" min="0" class="form-control" id="sf_method_eta_max" value="5">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sf_method_per_kg">Extra per kg (optional)</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" id="sf_method_per_kg" value="0">
+                                    </div>
+                                </div>
+                                <div id="sf_method_free_fields" style="display:none;">
+                                    <div class="form-group">
+                                        <label for="sf_method_min_amount">Min order amount for free shipping</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" id="sf_method_min_amount" value="1500">
+                                    </div>
+                                </div>
+                                <div id="sf_method_pickup_fields" style="display:none;">
+                                    <p class="help-block">Pickup uses locations with “Enable pickup”. Leave empty to allow all pickup-enabled branches.</p>
+                                    <div class="form-group">
+                                        <label for="sf_method_pickup_locations">Pickup locations (optional)</label>
+                                        <select id="sf_method_pickup_locations" class="form-control" multiple size="6"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sf_method_pickup_cost">Pickup fee</label>
+                                        <input type="number" step="0.01" min="0" class="form-control" id="sf_method_pickup_cost" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" id="sf_method_save">Save method</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <h5 style="margin-top: 1.5rem;">Shipping classes</h5>
@@ -807,26 +943,76 @@
         // ---- Shipping zones manager ----
         var zonesUrl = @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'index']));
         var csrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+        var sfZonesCache = [];
+        var sfEgyptStates = [];
+        var sfPickupLocations = [];
+
+        function escapeHtml(str) {
+            return $('<div>').text(str == null ? '' : String(str)).html();
+        }
+
+        function fillEgyptStatesSelect($select, selectedCodes) {
+            selectedCodes = selectedCodes || [];
+            var html = '';
+            sfEgyptStates.forEach(function (st) {
+                var sel = selectedCodes.indexOf(String(st.code)) !== -1 ? ' selected' : '';
+                html += '<option value="' + escapeHtml(st.code) + '"' + sel + '>' + escapeHtml(st.name) + ' (' + escapeHtml(st.code) + ')</option>';
+            });
+            $select.html(html);
+        }
+
+        function fillPickupLocationsSelect($select, selectedIds) {
+            selectedIds = (selectedIds || []).map(Number);
+            var html = '';
+            sfPickupLocations.forEach(function (loc) {
+                var sel = selectedIds.indexOf(Number(loc.id)) !== -1 ? ' selected' : '';
+                html += '<option value="' + loc.id + '"' + sel + '>' + escapeHtml(loc.name) + '</option>';
+            });
+            $select.html(html);
+        }
+
+        function locationLabel(zone) {
+            if (zone.is_catch_all) return 'Catch-all';
+            var locs = zone.locations || [];
+            var states = locs.filter(function (l) { return l.type === 'state'; }).map(function (l) { return l.code; });
+            var countries = locs.filter(function (l) { return l.type === 'country'; }).map(function (l) { return l.code; });
+            if (states.length) {
+                var names = states.map(function (code) {
+                    var found = sfEgyptStates.find(function (s) { return String(s.code) === String(code); });
+                    return found ? found.name : code;
+                });
+                return (countries[0] || 'EG') + ': ' + names.join(', ');
+            }
+            if (countries.length) return countries.join(', ') + ' (whole country)';
+            return '—';
+        }
 
         function renderZones(payload) {
-            var zones = (payload && payload.zones) ? payload.zones : [];
-            if (!zones.length) {
+            sfZonesCache = (payload && payload.zones) ? payload.zones : [];
+            sfEgyptStates = (payload && payload.egypt_states) ? payload.egypt_states : sfEgyptStates;
+            sfPickupLocations = (payload && payload.pickup_locations) ? payload.pickup_locations : sfPickupLocations;
+
+            if (!sfZonesCache.length) {
                 $('#storefront_shipping_zones_app').html('<p class="text-muted">No zones yet.</p>');
                 return;
             }
             var html = '<div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr>' +
                 '<th>Priority</th><th>Name</th><th>Locations</th><th>Methods</th><th></th></tr></thead><tbody>';
-            zones.forEach(function (zone) {
-                var locs = (zone.locations || []).map(function (l) { return l.type + ':' + l.code; }).join(', ') || (zone.is_catch_all ? 'Catch-all' : '—');
-                var methods = (zone.methods || []).map(function (m) {
-                    return m.type + ' — ' + m.title + (m.is_enabled ? '' : ' (off)');
-                }).join('<br>') || '—';
+            sfZonesCache.forEach(function (zone) {
+                var methodsHtml = (zone.methods || []).map(function (m) {
+                    return '<div style="margin-bottom:4px;">' +
+                        escapeHtml(m.type) + ' — ' + escapeHtml(m.title) + (m.is_enabled ? '' : ' <em>(off)</em>') +
+                        ' <button type="button" class="btn btn-xs btn-default sf-edit-method" data-method-id="' + m.id + '" data-zone-id="' + zone.id + '">Edit</button>' +
+                        ' <button type="button" class="btn btn-xs btn-danger sf-del-method" data-method-id="' + m.id + '">×</button>' +
+                        '</div>';
+                }).join('') || '—';
                 html += '<tr data-zone-id="' + zone.id + '">' +
                     '<td>' + zone.priority + '</td>' +
-                    '<td>' + $('<div>').text(zone.name).html() + (zone.is_enabled ? '' : ' <em>(disabled)</em>') + '</td>' +
-                    '<td><small>' + $('<div>').text(locs).html() + '</small></td>' +
-                    '<td><small>' + methods + '</small></td>' +
+                    '<td>' + escapeHtml(zone.name) + (zone.is_enabled ? '' : ' <em>(disabled)</em>') + '</td>' +
+                    '<td><small>' + escapeHtml(locationLabel(zone)) + '</small></td>' +
+                    '<td><small>' + methodsHtml + '</small></td>' +
                     '<td class="text-nowrap">' +
+                    '<button type="button" class="btn btn-xs btn-primary sf-edit-zone" data-zone-id="' + zone.id + '">Edit zone</button> ' +
                     '<button type="button" class="btn btn-xs btn-default sf-add-method" data-zone-id="' + zone.id + '">+ Method</button> ' +
                     '<button type="button" class="btn btn-xs btn-danger sf-del-zone" data-zone-id="' + zone.id + '">Delete</button>' +
                     '</td></tr>';
@@ -844,40 +1030,164 @@
             });
         }
 
+        function toggleCatchAllUi() {
+            var catchAll = $('#sf_zone_catch_all').is(':checked');
+            $('#sf_zone_locations_wrap').toggle(!catchAll);
+        }
+
+        function openZoneModal(zone) {
+            if (zone) {
+                $('#sf_zone_modal_title').text('Edit zone');
+                $('#sf_zone_id').val(zone.id);
+                $('#sf_zone_name').val(zone.name);
+                $('#sf_zone_priority').val(zone.priority);
+                $('#sf_zone_enabled').prop('checked', !!zone.is_enabled);
+                $('#sf_zone_catch_all').prop('checked', !!zone.is_catch_all);
+                var country = 'EG';
+                var stateCodes = [];
+                (zone.locations || []).forEach(function (l) {
+                    if (l.type === 'country') country = l.code;
+                    if (l.type === 'state') stateCodes.push(String(l.code));
+                });
+                $('#sf_zone_country').val(country);
+                fillEgyptStatesSelect($('#sf_zone_states'), stateCodes);
+            } else {
+                $('#sf_zone_modal_title').text('Add zone');
+                $('#sf_zone_id').val('');
+                $('#sf_zone_name').val('');
+                $('#sf_zone_priority').val(50);
+                $('#sf_zone_enabled').prop('checked', true);
+                $('#sf_zone_catch_all').prop('checked', false);
+                $('#sf_zone_country').val('EG');
+                fillEgyptStatesSelect($('#sf_zone_states'), []);
+            }
+            toggleCatchAllUi();
+            $('#sf_zone_modal').modal('show');
+        }
+
+        function syncMethodTypeFields() {
+            var type = $('#sf_method_type').val();
+            $('#sf_method_flat_fields').toggle(type === 'flat_rate');
+            $('#sf_method_free_fields').toggle(type === 'free_shipping');
+            $('#sf_method_pickup_fields').toggle(type === 'local_pickup');
+        }
+
+        function openMethodModal(zoneId, method) {
+            $('#sf_method_zone_id').val(zoneId);
+            fillPickupLocationsSelect($('#sf_method_pickup_locations'), []);
+            if (method) {
+                $('#sf_method_modal_title').text('Edit method');
+                $('#sf_method_id').val(method.id);
+                $('#sf_method_type_wrap').hide();
+                $('#sf_method_type').val(method.type);
+                var i18n = method.title_i18n || {};
+                $('#sf_method_title_en').val(i18n.en || method.title || '');
+                $('#sf_method_title_ar').val(i18n.ar || '');
+                $('#sf_method_enabled').prop('checked', !!method.is_enabled);
+                var s = method.settings || {};
+                $('#sf_method_cost').val(s.cost != null ? s.cost : 0);
+                $('#sf_method_eta_min').val(s.eta_min_days != null ? s.eta_min_days : 2);
+                $('#sf_method_eta_max').val(s.eta_max_days != null ? s.eta_max_days : 5);
+                $('#sf_method_per_kg').val(s.cost_per_kg != null ? s.cost_per_kg : 0);
+                $('#sf_method_min_amount').val(s.min_amount != null ? s.min_amount : 1500);
+                $('#sf_method_pickup_cost').val(s.cost != null ? s.cost : 0);
+                fillPickupLocationsSelect($('#sf_method_pickup_locations'), s.location_ids || []);
+            } else {
+                $('#sf_method_modal_title').text('Add method');
+                $('#sf_method_id').val('');
+                $('#sf_method_type_wrap').show();
+                $('#sf_method_type').val('flat_rate');
+                $('#sf_method_title_en').val('Standard delivery');
+                $('#sf_method_title_ar').val('');
+                $('#sf_method_enabled').prop('checked', true);
+                $('#sf_method_cost').val(50);
+                $('#sf_method_eta_min').val(2);
+                $('#sf_method_eta_max').val(5);
+                $('#sf_method_per_kg').val(0);
+                $('#sf_method_min_amount').val(1500);
+                $('#sf_method_pickup_cost').val(0);
+            }
+            syncMethodTypeFields();
+            $('#sf_method_modal').modal('show');
+        }
+
+        function buildMethodSettings(type) {
+            if (type === 'flat_rate') {
+                return {
+                    cost: parseFloat($('#sf_method_cost').val() || '0'),
+                    cost_per_item: 0,
+                    cost_per_kg: parseFloat($('#sf_method_per_kg').val() || '0'),
+                    eta_min_days: parseInt($('#sf_method_eta_min').val() || '0', 10),
+                    eta_max_days: parseInt($('#sf_method_eta_max').val() || '0', 10),
+                    class_costs: {}
+                };
+            }
+            if (type === 'free_shipping') {
+                return {
+                    requires: 'min_amount',
+                    min_amount: parseFloat($('#sf_method_min_amount').val() || '0')
+                };
+            }
+            var ids = ($('#sf_method_pickup_locations').val() || []).map(function (v) { return parseInt(v, 10); });
+            return {
+                cost: parseFloat($('#sf_method_pickup_cost').val() || '0'),
+                location_ids: ids
+            };
+        }
+
         $('#sf_shipping_reload_zones').on('click', loadZones);
         loadZones();
 
+        $('#sf_zone_catch_all').on('change', toggleCatchAllUi);
+        $('#sf_method_type').on('change', syncMethodTypeFields);
+
         $('#sf_shipping_add_zone').on('click', function () {
-            var name = prompt('Zone name (e.g. Greater Cairo)');
-            if (!name) return;
-            var code = prompt('Country code (e.g. EG) — leave empty for catch-all', 'EG');
-            var states = code
-                ? prompt('Governorate codes comma-separated (optional, e.g. C,GZ). Empty = whole country.', '')
-                : '';
+            openZoneModal(null);
+        });
+
+        $('#storefront_shipping_zones_app').on('click', '.sf-edit-zone', function () {
+            var id = Number($(this).data('zone-id'));
+            var zone = sfZonesCache.find(function (z) { return Number(z.id) === id; });
+            if (zone) openZoneModal(zone);
+        });
+
+        $('#sf_zone_save').on('click', function () {
+            var id = $('#sf_zone_id').val();
+            var catchAll = $('#sf_zone_catch_all').is(':checked');
             var locations = [];
-            if (code) {
-                locations.push({ type: 'country', code: code });
-                if (states) {
-                    states.split(',').forEach(function (s) {
-                        s = (s || '').trim();
-                        if (s) locations.push({ type: 'state', code: s });
-                    });
-                }
+            if (!catchAll) {
+                var country = ($('#sf_zone_country').val() || 'EG').trim().toUpperCase();
+                locations.push({ type: 'country', code: country });
+                var states = $('#sf_zone_states').val() || [];
+                states.forEach(function (code) {
+                    locations.push({ type: 'state', code: code });
+                });
             }
             var payload = {
-                name: name,
-                priority: 50,
-                is_catch_all: !code,
-                is_enabled: true,
+                name: ($('#sf_zone_name').val() || '').trim(),
+                priority: parseInt($('#sf_zone_priority').val() || '50', 10),
+                is_enabled: $('#sf_zone_enabled').is(':checked'),
+                is_catch_all: catchAll,
                 locations: locations
             };
+            if (!payload.name) {
+                toastr.error('Zone name is required');
+                return;
+            }
+            var req = id
+                ? { url: '/storefront/shipping/zones/' + id, method: 'PUT' }
+                : { url: @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])), method: 'POST' };
             $.ajax({
-                url: @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])),
-                method: 'POST',
+                url: req.url,
+                method: req.method,
                 data: JSON.stringify(payload),
                 contentType: 'application/json',
                 headers: { 'X-CSRF-TOKEN': csrfToken },
-            }).done(loadZones).fail(function () { toastr.error('Could not create zone'); });
+            }).done(function () {
+                $('#sf_zone_modal').modal('hide');
+                loadZones();
+                toastr.success('Zone saved');
+            }).fail(function () { toastr.error('Could not save zone'); });
         });
 
         $('#storefront_shipping_zones_app').on('click', '.sf-del-zone', function () {
@@ -891,26 +1201,64 @@
         });
 
         $('#storefront_shipping_zones_app').on('click', '.sf-add-method', function () {
-            var zoneId = $(this).data('zone-id');
-            var type = prompt('Method type: flat_rate, free_shipping, or local_pickup', 'flat_rate');
-            if (!type) return;
-            var title = prompt('Title', 'Standard delivery');
-            if (!title) return;
-            var cost = type === 'flat_rate' ? parseFloat(prompt('Cost', '50') || '0') : 0;
-            var perKg = type === 'flat_rate' ? parseFloat(prompt('Extra cost per kg (0 to skip)', '0') || '0') : 0;
-            var minAmount = type === 'free_shipping' ? parseFloat(prompt('Min order for free shipping', '1500') || '0') : 0;
-            var settings = type === 'flat_rate'
-                ? { cost: cost, cost_per_item: 0, cost_per_kg: perKg, eta_min_days: 2, eta_max_days: 5, class_costs: {} }
-                : (type === 'free_shipping'
-                    ? { requires: 'min_amount', min_amount: minAmount }
-                    : { cost: 0, location_ids: [] });
+            openMethodModal($(this).data('zone-id'), null);
+        });
+
+        $('#storefront_shipping_zones_app').on('click', '.sf-edit-method', function () {
+            var zoneId = Number($(this).data('zone-id'));
+            var methodId = Number($(this).data('method-id'));
+            var zone = sfZonesCache.find(function (z) { return Number(z.id) === zoneId; });
+            var method = zone && (zone.methods || []).find(function (m) { return Number(m.id) === methodId; });
+            if (method) openMethodModal(zoneId, method);
+        });
+
+        $('#storefront_shipping_zones_app').on('click', '.sf-del-method', function () {
+            if (!confirm('Delete this shipping method?')) return;
+            var id = $(this).data('method-id');
             $.ajax({
-                url: '/storefront/shipping/zones/' + zoneId + '/methods',
-                method: 'POST',
-                data: JSON.stringify({ type: type, title: title, settings: settings }),
+                url: '/storefront/shipping/methods/' + id,
+                method: 'DELETE',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(loadZones);
+        });
+
+        $('#sf_method_save').on('click', function () {
+            var methodId = $('#sf_method_id').val();
+            var zoneId = $('#sf_method_zone_id').val();
+            var type = $('#sf_method_type').val();
+            var titleEn = ($('#sf_method_title_en').val() || '').trim();
+            var titleAr = ($('#sf_method_title_ar').val() || '').trim();
+            if (!titleEn) {
+                toastr.error('Title (EN) is required');
+                return;
+            }
+            var payload = {
+                title: titleEn,
+                title_en: titleEn,
+                title_ar: titleAr || titleEn,
+                is_enabled: $('#sf_method_enabled').is(':checked'),
+                settings: buildMethodSettings(methodId ? ($('#sf_method_type').val()) : type)
+            };
+            if (!methodId) {
+                payload.type = type;
+            } else {
+                // Keep settings type fields based on existing type select (hidden when editing).
+                payload.settings = buildMethodSettings($('#sf_method_type').val());
+            }
+            var req = methodId
+                ? { url: '/storefront/shipping/methods/' + methodId, method: 'PUT' }
+                : { url: '/storefront/shipping/zones/' + zoneId + '/methods', method: 'POST' };
+            $.ajax({
+                url: req.url,
+                method: req.method,
+                data: JSON.stringify(payload),
                 contentType: 'application/json',
                 headers: { 'X-CSRF-TOKEN': csrfToken },
-            }).done(loadZones).fail(function () { toastr.error('Could not add method'); });
+            }).done(function () {
+                $('#sf_method_modal').modal('hide');
+                loadZones();
+                toastr.success('Method saved');
+            }).fail(function () { toastr.error('Could not save method'); });
         });
 
         // Shipping classes
@@ -924,7 +1272,7 @@
             var html = '<ul class="list-unstyled">';
             classes.forEach(function (c) {
                 html += '<li style="margin-bottom:4px;">' +
-                    $('<div>').text(c.name + (c.slug ? ' (' + c.slug + ')' : '')).html() +
+                    escapeHtml(c.name + (c.slug ? ' (' + c.slug + ')' : '')) +
                     ' <button type="button" class="btn btn-xs btn-danger sf-del-class" data-id="' + c.id + '">Delete</button></li>';
             });
             html += '</ul>';

@@ -18,7 +18,8 @@ class StorefrontShippingZoneController extends Controller
 {
     public function __construct(
         private ShippingZoneRepository $zones,
-        private ShippingLegacyMigrator $migrator
+        private ShippingLegacyMigrator $migrator,
+        private \App\Services\Storefront\GeoDataService $geo
     ) {
     }
 
@@ -48,6 +49,7 @@ class StorefrontShippingZoneController extends Controller
             'data' => [
                 'zones' => $zones,
                 'pickup_locations' => $pickupLocations,
+                'egypt_states' => $this->geo->getStates('EG'),
             ],
         ]);
     }
