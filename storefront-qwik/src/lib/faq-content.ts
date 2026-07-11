@@ -17,7 +17,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   {
     question: "How do I track my repair?",
     answer:
-      "Use Track my repairs in the main menu and enter your job sheet number, invoice number, or mobile number. You will see the current repair status and updates from our service team.",
+      "Open Track my repairs from the main menu (or visit the Repair status page) and enter your job sheet number, invoice number, or mobile number. You will see the current repair status and updates from our service team.",
   },
   {
     question: "How do I track my console service online?",

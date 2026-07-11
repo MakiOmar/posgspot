@@ -22,7 +22,7 @@ export const HEADER_STYLE: HeaderStyle = parseHeaderStyle(
     (import.meta.env.VITE_HEADER_STYLE as string | undefined),
 );
 
-/** Laravel POS web origin (repair status, etc.). Defaults to PUBLIC_API_BASE. */
+/** Laravel POS web origin for remaining external POS links. Defaults to PUBLIC_API_BASE. */
 export const POS_WEB_BASE: string = (
   (import.meta.env.PUBLIC_POS_WEB_BASE as string | undefined) ??
     (import.meta.env.PUBLIC_API_BASE as string | undefined) ??
@@ -30,7 +30,5 @@ export const POS_WEB_BASE: string = (
 )
   .replace(/\/api\/?$/i, "")
   .replace(/\/$/, "");
-
-export const REPAIR_STATUS_URL = `${POS_WEB_BASE}/repair-status`;
 
 export const TRACK_CONSOLE_URL = "https://accounts.gamesspoteg.com/device/track";

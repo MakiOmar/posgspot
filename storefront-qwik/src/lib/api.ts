@@ -509,6 +509,46 @@ export function submitContactForm(payload: ContactFormPayload) {
   });
 }
 
+export type RepairStatusSearchType = "job_sheet_no" | "invoice_no" | "mobile_num";
+
+export type RepairStatusActivity = {
+  date: string | null;
+  date_label: string | null;
+  action: string;
+  by: string;
+  note: string | null;
+};
+
+export type RepairStatusItem = {
+  job_sheet_no: string;
+  brand: string | null;
+  device: string | null;
+  model: string | null;
+  serial_no: string | null;
+  status: string | null;
+  status_color: string | null;
+  due_date: string | null;
+  due_date_label: string | null;
+  activities: RepairStatusActivity[];
+};
+
+export type RepairStatusLookupPayload = {
+  search_type: RepairStatusSearchType;
+  search_number: string;
+  serial_no?: string;
+};
+
+export function lookupRepairStatus(payload: RepairStatusLookupPayload, locale?: string) {
+  return storefrontFetch<{ repairs: RepairStatusItem[] }>(
+    "/repair/status",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    locale,
+  );
+}
+
 export function subscribeNewsletter(payload: { email: string; turnstile_token?: string }) {
   return storefrontFetch<{ status: string; message: string }>("/newsletter/subscribe", {
     method: "POST",

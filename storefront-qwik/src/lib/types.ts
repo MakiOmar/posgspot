@@ -78,6 +78,11 @@ export interface StoreSettings {
       enabled: boolean;
     };
   };
+  /** Public repair status lookup flags. */
+  repair: {
+    lookup_enabled: boolean;
+    lookup_by_mobile: boolean;
+  };
   locales: string[];
 }
 

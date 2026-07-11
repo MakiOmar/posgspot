@@ -84,6 +84,7 @@ class SettingsApiService
             'newsletter' => [
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
             ],
+            'repair' => $this->repairPayload($businessId),
             'locales' => ['en', 'ar'],
         ];
     }
@@ -277,5 +278,18 @@ class SettingsApiService
         }
 
         return $out;
+    }
+
+    /**
+     * @return array{lookup_enabled: bool, lookup_by_mobile: bool}
+     */
+    private function repairPayload(int $businessId): array
+    {
+        $lookup = app(RepairStatusLookupService::class);
+
+        return [
+            'lookup_enabled' => $lookup->isAvailable($businessId),
+            'lookup_by_mobile' => $lookup->lookupByMobileEnabled(),
+        ];
     }
 }

@@ -4348,3 +4348,128 @@ html:not([dir="rtl"]) .home-all-products-link::after {
   left: auto;
   right: calc(100% - 0.35rem);
 }
+
+/* Repair status lookup page */
+.repair-status-page .content-lead {
+  margin: 0 0 1.5rem;
+  color: var(--gs-muted);
+  max-width: 40rem;
+}
+
+.repair-status-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 28rem;
+  margin-bottom: 2rem;
+}
+
+.repair-status-form label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.repair-status-form input,
+.repair-status-form select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  color: inherit;
+}
+
+.repair-status-results {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.repair-status-card {
+  padding: 1.25rem;
+  border: 1px solid var(--gs-border);
+  border-radius: calc(var(--gs-radius) + 2px);
+  background: var(--gs-surface);
+}
+
+.repair-status-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.repair-status-card__head h2 {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.repair-status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: var(--gs-accent);
+}
+
+.repair-status-meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0 0 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.repair-status-meta dt {
+  color: var(--gs-muted);
+  font-weight: 600;
+}
+
+.repair-status-meta dd {
+  margin: 0;
+}
+
+.repair-status-activities-title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}
+
+.repair-status-activities {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.repair-status-activities li {
+  padding: 0.75rem;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: color-mix(in srgb, var(--gs-surface) 88%, transparent);
+}
+
+.repair-status-activity__when {
+  font-size: 0.8125rem;
+  color: var(--gs-muted);
+}
+
+.repair-status-activity__action {
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+.repair-status-activity__by,
+.repair-status-activity__note {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  color: var(--gs-muted);
+}
+
+.repair-status-empty {
+  margin-top: 0.5rem;
+}

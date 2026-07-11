@@ -21,6 +21,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   newsletter: { enabled: false },
   turnstile: { enabled: false, site_key: null },
   couriers: { bosta: { enabled: false } },
+  repair: { lookup_enabled: true, lookup_by_mobile: true },
   locales: ["en"],
 };
 

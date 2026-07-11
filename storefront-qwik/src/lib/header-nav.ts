@@ -1,4 +1,4 @@
-import { REPAIR_STATUS_URL, TRACK_CONSOLE_URL } from "~/lib/config";
+import { TRACK_CONSOLE_URL } from "~/lib/config";
 import { localePath } from "~/lib/i18n/paths";
 import { tStatic } from "~/lib/i18n/context";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
@@ -14,7 +14,7 @@ const NAV_DEFS: HeaderNavLink[] = [
   { labelKey: "nav.shop", path: "/products" },
   { labelKey: "nav.brands", path: "/brands" },
   { labelKey: "nav.stores", path: "/stores" },
-  { labelKey: "nav.trackRepairs", path: REPAIR_STATUS_URL, external: true },
+  { labelKey: "nav.trackRepairs", path: "/repair-status" },
   { labelKey: "nav.trackConsole", path: TRACK_CONSOLE_URL, external: true },
   { labelKey: "nav.contact", path: "/contact" },
   { labelKey: "nav.faq", path: "/faq" },

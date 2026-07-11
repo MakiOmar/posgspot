@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Storefront\PaymentWebhookController;
 use App\Http\Controllers\Api\Storefront\PingController;
 use App\Http\Controllers\Api\Storefront\ProductController;
 use App\Http\Controllers\Api\Storefront\ProductReviewController;
+use App\Http\Controllers\Api\Storefront\RepairStatusController;
 use App\Http\Controllers\Api\Storefront\SearchController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
 use App\Http\Controllers\Api\Storefront\WishlistController;
@@ -55,6 +56,7 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
+    Route::post('/repair/status', [RepairStatusController::class, 'store']);
 
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/coupons/available', [CouponController::class, 'available']);

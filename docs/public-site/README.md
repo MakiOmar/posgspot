@@ -380,7 +380,7 @@ Returns an array of `{ location_id, name, address, phone, in_stock, qty_availabl
 | **Store credit / wallet** | If enabled in POS ledger. | Contact ledger | Could |
 | **Notifications preferences** | Email/SMS marketing opt-in. | — | Should |
 | **Support tickets / escalations** | Submit and track complaints (CRM escalation system). | CRM module | Should |
-| **Repair status lookup** | Link to existing public repair status flow. | Repair module | Could |
+| **Repair status lookup** | Public in-site repair status page (job sheet / invoice / mobile). | Repair module | Should |
 
 > **Existing partial API:** Reward validate/redeem and contact lookup already exist under Passport (`routes/api.php`). Account features should extend these patterns.
 

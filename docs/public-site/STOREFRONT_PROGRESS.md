@@ -47,6 +47,7 @@
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
+| Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
@@ -83,6 +84,7 @@
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
+| `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); replaces POS external link |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
@@ -210,6 +212,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Repair status: storefront page + `POST /repair/status` API (nav/footer/sitemap); no longer external POS link. |
 | 2026-07-11 | Bosta aligned with WC plugin: bulk create, zoning districts API, checkout district field, COD, staging default off. |
 | 2026-07-11 | Shipping management: zones/methods (flat, free, pickup), cart validate quote path, checkout rate picker, tracking + shipped email, Bosta adapter, shipping classes/weight, docs/tests. |
 | 2026-07-11 | Brand slug on POS create/update; account reorder → cart (price/stock refreshed on cart). |

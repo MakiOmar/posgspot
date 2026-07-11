@@ -407,7 +407,7 @@ Background: dark brand color or neutral dark gray; light text. Sufficient contra
 | Shipping & delivery | الشحن والتوصيل | `/shipping-policy` |
 | Returns & refunds | الإرجاع والاسترداد | `/return-policy` |
 | Track your order | تتبع طلبك | `/track-order` |
-| Check repair status | حالة الصيانة | `/repair-status` (links to existing POS repair lookup) |
+| Check repair status | حالة الصيانة | `/repair-status` (storefront page) |
 
 ### Column 3 — Company
 
