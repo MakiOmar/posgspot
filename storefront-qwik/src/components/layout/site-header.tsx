@@ -30,7 +30,9 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
   const auth = useAuth();
   const signedIn = isAuthenticated(auth);
   const isStyleOne = HEADER_STYLE === "one";
-  const navLinks = buildMainNavLinks(locale);
+  const navLinks = buildMainNavLinks(locale, {
+    digitalEnabled: settings.digital?.enabled !== false,
+  });
 
   const phone = settings.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");

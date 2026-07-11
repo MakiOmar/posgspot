@@ -40,19 +40,61 @@ class DigitalCatalogService
 
     public function listGames(int $businessId, string $platform, int $page = 1): array
     {
-        $result = $this->accounts->getGamesByPlatform($platform, $page);
-        if (! $result['success']) {
-            return ['success' => false, 'error' => $result['error'] ?? 'Failed to load games', 'status' => $result['status']];
-        }
-
-        $body = $result['body'] ?? [];
+        $path = 'api/games/platform/'.$platform;
+        $accountsBase = $this->accounts->baseUrl();
+        $requestUrl = ($accountsBase !== '' ? $accountsBase.'/' : '').$path.'?page='.$page;
         $skus = $this->posSkuMap($businessId);
+
+        $result = $this->accounts->getGamesByPlatform($platform, $page);
+        $body = is_array($result['body'] ?? null) ? $result['body'] : [];
         $rawGames = $body['data'] ?? [];
         if (! is_array($rawGames)) {
             $rawGames = [];
         }
 
-        $games = array_map(fn ($game) => $this->normalizeGameListItem($game), $rawGames);
+        $games = $result['success']
+            ? array_map(fn ($game) => $this->normalizeGameListItem($game), $rawGames)
+            : [];
+
+        $reason = $this->emptyGamesReason(
+            $accountsBase,
+            $result['success'],
+            (int) ($result['status'] ?? 0),
+            $result['error'] ?? null,
+            count($rawGames),
+            count($games),
+            $skus
+        );
+
+        $debug = [
+            'accounts_base' => $accountsBase !== '' ? $accountsBase : '(empty — set ACCOUNTS_BASE_URL)',
+            'request_method' => 'GET',
+            'request_path' => $path,
+            'request_url' => $requestUrl,
+            'platform' => $platform,
+            'page' => $page,
+            'http_status' => (int) ($result['status'] ?? 0),
+            'accounts_ok' => (bool) $result['success'],
+            'error' => $result['error'] ?? null,
+            'body_keys' => array_values(array_map('strval', array_keys($body))),
+            'raw_item_count' => count($rawGames),
+            'normalized_count' => count($games),
+            'paginator_total' => $body['total'] ?? null,
+            'skus' => [
+                'primary' => $skus['primary']['variation_id'] ?? null,
+                'secondary' => $skus['secondary']['variation_id'] ?? null,
+            ],
+            'reason' => $reason,
+        ];
+
+        if (! $result['success']) {
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Failed to load games',
+                'status' => $result['status'] ?: 502,
+                'debug' => $debug,
+            ];
+        }
 
         return [
             'success' => true,
@@ -66,8 +108,40 @@ class DigitalCatalogService
                     'per_page' => $body['per_page'] ?? 20,
                     'total' => $body['total'] ?? count($games),
                 ],
+                'debug' => $debug,
             ],
         ];
+    }
+
+    /**
+     * @param  array{primary:?array,secondary:?array,gift_card:?array}  $skus
+     */
+    private function emptyGamesReason(
+        string $accountsBase,
+        bool $ok,
+        int $httpStatus,
+        ?string $error,
+        int $rawCount,
+        int $normalizedCount,
+        array $skus
+    ): string {
+        if ($accountsBase === '') {
+            return 'ACCOUNTS_BASE_URL is empty — POS cannot reach the Accounts API.';
+        }
+        if (! $ok) {
+            return 'Accounts request failed (HTTP '.$httpStatus.'): '.($error ?: 'unknown error');
+        }
+        if ($rawCount === 0) {
+            return 'Accounts returned an empty list for this platform/page (no stocked games, or wrong Accounts base URL).';
+        }
+        if ($normalizedCount === 0) {
+            return 'Accounts returned items but none could be normalized for the storefront.';
+        }
+        if (empty($skus['primary']) && empty($skus['secondary'])) {
+            return 'Games listed, but POS digital product IDs are not configured (add-to-cart will fail).';
+        }
+
+        return 'ok';
     }
 
     public function getGame(int $businessId, int $gameId): array

@@ -672,6 +672,7 @@ export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string
     skus: import("./types").DigitalSkus;
     games: import("./types").DigitalGameSummary[];
     meta: { current_page: number; last_page: number; per_page: number; total: number | null };
+    debug?: Record<string, unknown>;
   }>(`/digital/games?platform=${platform}&page=${page}`, {}, locale);
 }
 

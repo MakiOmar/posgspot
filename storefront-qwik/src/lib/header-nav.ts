@@ -3,36 +3,66 @@ import { localePath } from "~/lib/i18n/paths";
 import { tStatic } from "~/lib/i18n/context";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
 
-export interface HeaderNavLink {
-  labelKey: string;
-  path: string;
-  external?: boolean;
-}
-
-const NAV_DEFS: HeaderNavLink[] = [
-  { labelKey: "nav.home", path: "/" },
-  { labelKey: "nav.shop", path: "/products" },
-  { labelKey: "nav.games", path: "/games" },
-  { labelKey: "nav.giftCards", path: "/gift-cards" },
-  { labelKey: "nav.brands", path: "/brands" },
-  { labelKey: "nav.stores", path: "/stores" },
-  { labelKey: "nav.trackRepairs", path: "/repair-status" },
-  { labelKey: "nav.trackConsole", path: TRACK_CONSOLE_URL, external: true },
-  { labelKey: "nav.contact", path: "/contact" },
-  { labelKey: "nav.faq", path: "/faq" },
-  { labelKey: "nav.about", path: "/about" },
-];
-
-export interface ResolvedNavLink {
+export interface ResolvedNavChild {
   label: string;
   href: string;
-  external?: boolean;
 }
 
-export function buildMainNavLinks(lang: StoreLocaleCode): ResolvedNavLink[] {
-  return NAV_DEFS.map((item) => ({
-    label: tStatic(lang, item.labelKey),
-    href: item.external ? item.path : localePath(lang, item.path),
-    external: item.external,
-  }));
+export interface ResolvedNavItem {
+  label: string;
+  /** Flat link when set; omit for dropdown-only parents. */
+  href?: string;
+  external?: boolean;
+  children?: ResolvedNavChild[];
+}
+
+/**
+ * Build header nav items. Digital games is a platform dropdown (not a single page link).
+ */
+export function buildMainNavLinks(
+  lang: StoreLocaleCode,
+  options?: { digitalEnabled?: boolean },
+): ResolvedNavItem[] {
+  const digitalEnabled = options?.digitalEnabled !== false;
+
+  const items: ResolvedNavItem[] = [
+    { label: tStatic(lang, "nav.home"), href: localePath(lang, "/") },
+    { label: tStatic(lang, "nav.shop"), href: localePath(lang, "/products") },
+  ];
+
+  if (digitalEnabled) {
+    items.push({
+      label: tStatic(lang, "nav.games"),
+      children: [
+        {
+          label: tStatic(lang, "nav.gamesPs4"),
+          href: localePath(lang, "/games?platform=4"),
+        },
+        {
+          label: tStatic(lang, "nav.gamesPs5"),
+          href: localePath(lang, "/games?platform=5"),
+        },
+      ],
+    });
+    items.push({
+      label: tStatic(lang, "nav.giftCards"),
+      href: localePath(lang, "/gift-cards"),
+    });
+  }
+
+  items.push(
+    { label: tStatic(lang, "nav.brands"), href: localePath(lang, "/brands") },
+    { label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") },
+    { label: tStatic(lang, "nav.trackRepairs"), href: localePath(lang, "/repair-status") },
+    {
+      label: tStatic(lang, "nav.trackConsole"),
+      href: TRACK_CONSOLE_URL,
+      external: true,
+    },
+    { label: tStatic(lang, "nav.contact"), href: localePath(lang, "/contact") },
+    { label: tStatic(lang, "nav.faq"), href: localePath(lang, "/faq") },
+    { label: tStatic(lang, "nav.about"), href: localePath(lang, "/about") },
+  );
+
+  return items;
 }
