@@ -145,22 +145,31 @@ export const cartLineKey = (item: CartItem): string => {
   return `v:${item.variationId}`;
 };
 
+/** Cart/checkout API line — variation + qty, optional digital meta + unit price override. */
+export interface CartApiItem {
+  variation_id: number;
+  quantity: number;
+  unit_price?: number;
+  digital?: CartItem["digital"];
+}
+
 /**
  * Payload line for cart validate / checkout.
  * Always re-attach digital.price from the cart line so POS SKU price (often 0) is not used.
  */
-export const toCartApiItem = (line: CartItem): Record<string, unknown> => {
-  const item: Record<string, unknown> = {
+export const toCartApiItem = (line: CartItem): CartApiItem => {
+  const item: CartApiItem = {
     variation_id: line.variationId,
     quantity: line.quantity,
   };
   if (line.digital?.kind) {
     const price = Number(line.digital.price ?? line.price);
+    const resolved = Number.isFinite(price) ? price : line.price;
     item.digital = {
       ...line.digital,
-      price: Number.isFinite(price) ? price : line.price,
+      price: resolved,
     };
-    item.unit_price = Number.isFinite(price) ? price : line.price;
+    item.unit_price = resolved;
   }
   return item;
 };

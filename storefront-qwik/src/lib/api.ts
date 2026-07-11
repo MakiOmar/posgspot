@@ -32,6 +32,7 @@ import type {
   StoreSettings,
   WishlistPayload,
 } from "./types";
+import type { CartApiItem } from "./cart-actions";
 
 export const API_BASE: string =
   (import.meta.env.PUBLIC_API_BASE as string | undefined)?.replace(/\/$/, "") ||
@@ -246,7 +247,7 @@ export function validateCart(
     location_id?: number;
     coupon_code?: string;
     coupon_codes?: string[];
-    items: { variation_id: number; quantity: number }[];
+    items: CartApiItem[];
     shipping_rate_id?: string;
     destination?: {
       country?: string;
@@ -274,7 +275,7 @@ export function inspectCart(
     location_id?: number;
     coupon_code?: string;
     coupon_codes?: string[];
-    items: { variation_id: number; quantity: number }[];
+    items: CartApiItem[];
     shipping_rate_id?: string;
     destination?: {
       country?: string;
@@ -300,7 +301,7 @@ export function validateCoupon(payload: {
   code: string;
   coupon_codes?: string[];
   location_id?: number;
-  items: { variation_id: number; quantity: number }[];
+  items: CartApiItem[];
 }, token?: string) {
   const headers: Record<string, string> = {};
   if (token) {
@@ -315,7 +316,7 @@ export function validateCoupon(payload: {
 
 export function fetchAvailableCoupons(
   payload: {
-    items: { variation_id: number; quantity: number }[];
+    items: CartApiItem[];
     exclude_codes?: string[];
   },
   token?: string,
