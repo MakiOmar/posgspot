@@ -12,6 +12,8 @@ export interface HeaderNavLink {
 const NAV_DEFS: HeaderNavLink[] = [
   { labelKey: "nav.home", path: "/" },
   { labelKey: "nav.shop", path: "/products" },
+  { labelKey: "nav.games", path: "/games" },
+  { labelKey: "nav.giftCards", path: "/gift-cards" },
   { labelKey: "nav.brands", path: "/brands" },
   { labelKey: "nav.stores", path: "/stores" },
   { labelKey: "nav.trackRepairs", path: "/repair-status" },

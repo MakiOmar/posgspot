@@ -1,7 +1,7 @@
 import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { CartIcon, CloseIcon, TrashIcon } from "~/components/icons";
-import { cartSubtotal, removeCartItem, totalCartItems } from "~/lib/cart-actions";
+import { cartLineKey, cartSubtotal, removeCartItem, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -93,7 +93,7 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
             <>
               <ul class="mini-cart__list">
                 {cart.items.map((line) => (
-                  <li key={line.variationId} class="mini-cart__line">
+                  <li key={cartLineKey(line)} class="mini-cart__line">
                     <div class="mini-cart__thumb-wrap">
                       {line.imageUrl ? (
                         <img
@@ -128,7 +128,7 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
                         type="button"
                         class="mini-cart__remove"
                         aria-label={tStatic(locale, "a11y.removeItem")}
-                        onClick$={() => removeCartItem(cart, line.variationId)}
+                        onClick$={() => removeCartItem(cart, cartLineKey(line))}
                       >
                         <TrashIcon size={14} />
                       </button>

@@ -85,6 +85,9 @@ class SettingsApiService
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
             ],
             'repair' => $this->repairPayload($businessId),
+            'digital' => [
+                'enabled' => ! empty($settings['digital']['enabled']),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }

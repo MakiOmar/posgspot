@@ -42,6 +42,13 @@ class StorefrontSettingService
                     'staging' => false,
                 ],
             ],
+            'digital' => [
+                'enabled' => true,
+                'accounts_store_profile_id' => 17,
+                'primary_product_id' => null,
+                'secondary_product_id' => null,
+                'gift_card_product_id' => null,
+            ],
             'contact' => [
                 'phone' => '',
                 'email' => '',

@@ -83,6 +83,10 @@ export interface StoreSettings {
     lookup_enabled: boolean;
     lookup_by_mobile: boolean;
   };
+  /** Digital games / gift cards catalog (Accounts-backed). */
+  digital?: {
+    enabled: boolean;
+  };
   locales: string[];
 }
 
@@ -371,6 +375,17 @@ export interface PaymentReturnResult {
   expiration_time: string | null;
 }
 
+export interface CartItemDigital {
+  kind: "game" | "card";
+  game_id?: number;
+  type?: "primary" | "secondary";
+  platform?: "4" | "5";
+  card_category_id?: number;
+  line_key: string;
+  title?: string;
+  price?: number;
+}
+
 export interface CartItem {
   productId: number;
   variationId: number;
@@ -380,6 +395,52 @@ export interface CartItem {
   price: number;
   quantity: number;
   imageUrl: string | null;
+  /** Accounts digital meta — preserved through checkout for paid allocation. */
+  digital?: CartItemDigital;
+}
+
+export interface DigitalDelivery {
+  kind: "game" | "card";
+  line_key: string;
+  title: string | null;
+  account_email: string | null;
+  account_password: string | null;
+  code: string | null;
+  allocated_at: string | null;
+}
+
+export interface DigitalPosSku {
+  product_id: number;
+  variation_id: number;
+  name: string;
+  image_url: string | null;
+}
+
+export interface DigitalSkus {
+  primary: DigitalPosSku | null;
+  secondary: DigitalPosSku | null;
+  gift_card: DigitalPosSku | null;
+}
+
+export interface DigitalGameSummary {
+  id: number;
+  title: string;
+  code?: string;
+  image_url?: string | null;
+  primary_price?: number | string | null;
+  secondary_price?: number | string | null;
+  primary_status?: boolean | number | null;
+  secondary_status?: boolean | number | null;
+  total_primary_stock?: number | string | null;
+  total_secondary_stock?: number | string | null;
+}
+
+export interface DigitalCardCategory {
+  id: number;
+  name: string;
+  price: number | string;
+  poster_image?: string | null;
+  cards?: unknown[];
 }
 
 export interface AuthContact {
@@ -453,6 +514,8 @@ export interface AccountOrderDetail extends AccountOrder {
   shipping_carrier?: string | null;
   shipping_tracking_number?: string | null;
   shipping_tracking_url?: string | null;
+  /** Paid + allocated digital secrets only. */
+  digital_deliveries?: DigitalDelivery[];
 }
 
 export interface RewardPointsBalance {

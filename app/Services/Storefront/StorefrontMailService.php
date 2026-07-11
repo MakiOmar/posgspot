@@ -133,6 +133,35 @@ class StorefrontMailService
         Mail::to($email)->queue(new StorefrontOrderShipped($order));
     }
 
+    /**
+     * Email digital secrets after paid allocation (Fawry or COD marked paid).
+     */
+    public function sendPaidDigitalConfirmation(Transaction $transaction): void
+    {
+        $email = $transaction->contact->email ?? null;
+        if (empty($email) || ($transaction->source ?? '') !== 'storefront') {
+            return;
+        }
+
+        $deliveries = app(DigitalFulfillmentService::class)
+            ->customerDeliveriesForTransaction($transaction);
+        if ($deliveries === []) {
+            return;
+        }
+
+        $this->applyForBusiness((int) $transaction->business_id);
+
+        $order = [
+            'invoice_no' => $transaction->invoice_no,
+            'storefront_order_id' => $transaction->storefront_order_id,
+            'final_total' => $transaction->final_total,
+            'payment_status' => $transaction->payment_status,
+            'digital_deliveries' => $deliveries,
+        ];
+
+        Mail::to($email)->queue(new \App\Mail\StorefrontOrderConfirmation($order));
+    }
+
     private function emailSettingsForBusiness(?Business $business): array
     {
         if (empty($business) || empty($business->email_settings)) {

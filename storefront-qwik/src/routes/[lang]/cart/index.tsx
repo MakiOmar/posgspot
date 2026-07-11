@@ -14,6 +14,7 @@ import {
   removeCartItem,
   setCartQuantity,
   syncCartFromInspection,
+  cartLineKey,
 } from "~/lib/cart-actions";
 import { useAuth } from "~/lib/auth-context";
 import { useCart } from "~/lib/cart-context";
@@ -93,6 +94,7 @@ export default component$(() => {
           items: cart.items.map((line) => ({
             variation_id: line.variationId,
             quantity: line.quantity,
+            ...(line.digital ? { digital: line.digital } : {}),
           })),
         },
         auth.token ?? undefined,
@@ -156,6 +158,7 @@ export default component$(() => {
           items: cart.items.map((line) => ({
             variation_id: line.variationId,
             quantity: line.quantity,
+            ...(line.digital ? { digital: line.digital } : {}),
           })),
         },
         auth.token ?? undefined,
@@ -282,7 +285,7 @@ export default component$(() => {
         </thead>
         <tbody>
           {cart.items.map((line) => (
-            <tr key={line.variationId}>
+            <tr key={cartLineKey(line)}>
               <td>
                 <strong>{line.name}</strong>
                 {line.variationName !== "DUMMY" ? (
@@ -291,11 +294,15 @@ export default component$(() => {
               </td>
               <td>{formatPrice(line.price, settings.value.currency, locale)}</td>
               <td>
-                <QuantityStepper
-                  value={line.quantity}
-                  label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
-                  onChange$={(next) => setCartQuantity(cart, line.variationId, next)}
-                />
+                {line.digital ? (
+                  <span>1</span>
+                ) : (
+                  <QuantityStepper
+                    value={line.quantity}
+                    label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
+                    onChange$={(next) => setCartQuantity(cart, cartLineKey(line), next)}
+                  />
+                )}
               </td>
               <td>{formatPrice(line.price * line.quantity, settings.value.currency, locale)}</td>
               <td>
@@ -303,7 +310,7 @@ export default component$(() => {
                   type="button"
                   class="btn btn-secondary footer-contact"
                   aria-label={tStatic(locale, "a11y.removeItem")}
-                  onClick$={() => removeCartItem(cart, line.variationId)}
+                  onClick$={() => removeCartItem(cart, cartLineKey(line))}
                 >
                   <TrashIcon size={16} />
                   {tStatic(locale, "cart.remove")}

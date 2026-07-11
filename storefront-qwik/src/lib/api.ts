@@ -665,4 +665,54 @@ export function mergeWishlist(token: string, productIds: number[], locale?: stri
   );
 }
 
+/** Digital games listing by PlayStation platform (4 or 5). */
+export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string) {
+  return storefrontFetch<{
+    platform: string;
+    skus: import("./types").DigitalSkus;
+    games: import("./types").DigitalGameSummary[];
+    meta: { current_page: number; last_page: number; per_page: number; total: number | null };
+  }>(`/digital/games?platform=${platform}&page=${page}`, {}, locale);
+}
+
+export function fetchDigitalGame(id: number, locale?: string) {
+  return storefrontFetch<{
+    game: Record<string, unknown>;
+    skus: import("./types").DigitalSkus;
+  }>(`/digital/games/${id}`, {}, locale);
+}
+
+export function fetchDigitalCardCategories(locale?: string) {
+  return storefrontFetch<{
+    categories: import("./types").DigitalCardCategory[];
+    skus: import("./types").DigitalSkus;
+  }>("/digital/card-categories", {}, locale);
+}
+
+export function checkDigitalGameStock(
+  payload: {
+    game_id: number;
+    type: "primary" | "secondary";
+    platform: "4" | "5";
+  },
+  locale?: string,
+) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/check-stock",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+export function checkDigitalCardStock(cardCategoryId: number, locale?: string) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/check-card-stock",
+    {
+      method: "POST",
+      body: JSON.stringify({ card_category_id: cardCategoryId }),
+    },
+    locale,
+  );
+}
+
 export type { AvailabilityLocation, ProductAvailability, ProductDetail, ProductSummary, StoreSettings };

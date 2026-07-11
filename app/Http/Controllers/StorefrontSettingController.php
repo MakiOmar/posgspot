@@ -107,6 +107,11 @@ class StorefrontSettingController extends Controller
             'newsletter_aweber_access_token' => 'nullable|string|max:2000',
             'newsletter_aweber_account_id' => 'nullable|string|max:191',
             'newsletter_aweber_list_id' => 'nullable|string|max:191',
+            'digital_enabled' => 'nullable|boolean',
+            'digital_accounts_store_profile_id' => 'nullable|integer|min:1',
+            'digital_primary_product_id' => 'nullable|integer|min:1',
+            'digital_secondary_product_id' => 'nullable|integer|min:1',
+            'digital_gift_card_product_id' => 'nullable|integer|min:1',
         ]);
 
         $payload = [
@@ -125,6 +130,19 @@ class StorefrontSettingController extends Controller
                     'api_key' => $validated['courier_bosta_api_key'] ?? null,
                     'staging' => $request->boolean('courier_bosta_staging'),
                 ],
+            ],
+            'digital' => [
+                'enabled' => $request->boolean('digital_enabled'),
+                'accounts_store_profile_id' => (int) ($validated['digital_accounts_store_profile_id'] ?? 17),
+                'primary_product_id' => isset($validated['digital_primary_product_id'])
+                    ? (int) $validated['digital_primary_product_id']
+                    : null,
+                'secondary_product_id' => isset($validated['digital_secondary_product_id'])
+                    ? (int) $validated['digital_secondary_product_id']
+                    : null,
+                'gift_card_product_id' => isset($validated['digital_gift_card_product_id'])
+                    ? (int) $validated['digital_gift_card_product_id']
+                    : null,
             ],
             'contact' => [
                 'phone' => $validated['contact_phone'] ?? '',

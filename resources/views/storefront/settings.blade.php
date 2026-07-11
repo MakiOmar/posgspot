@@ -281,6 +281,45 @@
                         </div>
                     </div>
                 </div>
+
+                <hr>
+                <h4>Digital catalog (games accounts / gift cards)</h4>
+                <p class="help-block">Maps Accounts catalog lines to POS products. Secrets allocate only after payment.</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('digital_enabled', 1, $settings['digital']['enabled'] ?? true) !!} Enable digital catalog
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('digital_accounts_store_profile_id', 'Accounts store profile ID') !!}
+                            {!! Form::number('digital_accounts_store_profile_id', $settings['digital']['accounts_store_profile_id'] ?? 17, ['class' => 'form-control', 'min' => 1]) !!}
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('digital_primary_product_id', 'Primary account POS product ID') !!}
+                            {!! Form::number('digital_primary_product_id', $settings['digital']['primary_product_id'] ?? null, ['class' => 'form-control', 'min' => 1]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('digital_secondary_product_id', 'Secondary account POS product ID') !!}
+                            {!! Form::number('digital_secondary_product_id', $settings['digital']['secondary_product_id'] ?? null, ['class' => 'form-control', 'min' => 1]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('digital_gift_card_product_id', 'Gift card POS product ID') !!}
+                            {!! Form::number('digital_gift_card_product_id', $settings['digital']['gift_card_product_id'] ?? null, ['class' => 'form-control', 'min' => 1]) !!}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Appearance: theme, sale badge, catalog cards, announcement --}}

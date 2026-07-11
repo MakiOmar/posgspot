@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Storefront\CheckoutController;
 use App\Http\Controllers\Api\Storefront\ContactController;
 use App\Http\Controllers\Api\Storefront\CouponController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
+use App\Http\Controllers\Api\Storefront\DigitalCatalogController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\LocationController;
 use App\Http\Controllers\Api\Storefront\PhoneCountryController;
@@ -57,6 +58,12 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
     Route::post('/repair/status', [RepairStatusController::class, 'store']);
+
+    Route::get('/digital/games', [DigitalCatalogController::class, 'games']);
+    Route::get('/digital/games/{id}', [DigitalCatalogController::class, 'game'])->whereNumber('id');
+    Route::get('/digital/card-categories', [DigitalCatalogController::class, 'cardCategories']);
+    Route::post('/digital/check-stock', [DigitalCatalogController::class, 'checkGameStock']);
+    Route::post('/digital/check-card-stock', [DigitalCatalogController::class, 'checkCardStock']);
 
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/coupons/available', [CouponController::class, 'available']);

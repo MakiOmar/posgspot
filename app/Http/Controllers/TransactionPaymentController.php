@@ -137,6 +137,20 @@ class TransactionPaymentController extends Controller
                 $this->transactionUtil->activityLog($transaction, 'payment_edited', $transaction_before);
 
                 DB::commit();
+
+                // Storefront COD/manual pay: allocate digital secrets when fully paid.
+                if ($payment_status === 'paid'
+                    && ($transaction->source ?? '') === 'storefront'
+                    && ! empty($transaction->storefront_order_id)) {
+                    try {
+                        app(\App\Services\Storefront\DigitalFulfillmentService::class)
+                            ->fulfillPaidTransaction($transaction->fresh(['contact', 'sell_lines']));
+                        app(\App\Services\Storefront\StorefrontMailService::class)
+                            ->sendPaidDigitalConfirmation($transaction->fresh(['contact', 'sell_lines']));
+                    } catch (\Throwable $e) {
+                        \Log::warning('Storefront digital fulfill after POS payment failed: '.$e->getMessage());
+                    }
+                }
             }
 
             $output = ['success' => true,

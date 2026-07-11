@@ -48,6 +48,7 @@
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
 | Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate; ledger `storefront_digital_fulfillments`; `digital_deliveries` on account orders |
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
@@ -85,6 +86,8 @@
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
 | `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); replaces POS external link |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
+| `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
@@ -129,7 +132,7 @@
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
-| Main nav (shop, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
+| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
@@ -146,6 +149,7 @@
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
 | Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
+| Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Couriers section; `digital.*` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
@@ -212,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-11 | Digital fulfillment: paid-only Accounts allocate, trip ledger, catalog proxy + Qwik `/games` + `/gift-cards`, secrets on paid email / account order / invoice notes. |
 | 2026-07-11 | Repair status: storefront page + `POST /repair/status` API (nav/footer/sitemap); no longer external POS link. |
 | 2026-07-11 | Bosta aligned with WC plugin: bulk create, zoning districts API, checkout district field, COD, staging default off. |
 | 2026-07-11 | Shipping management: zones/methods (flat, free, pickup), cart validate quote path, checkout rate picker, tracking + shipped email, Bosta adapter, shipping classes/weight, docs/tests. |

@@ -39,6 +39,8 @@ export function buildRobotsTxt(origin: string): string {
 const STATIC_SITEMAP_SUFFIXES = [
   "/",
   "/products",
+  "/games",
+  "/gift-cards",
   "/brands",
   "/stores",
   "/contact",

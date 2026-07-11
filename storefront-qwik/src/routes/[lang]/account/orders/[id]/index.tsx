@@ -246,6 +246,43 @@ export default component$(() => {
             </div>
           ) : null}
 
+          {order.digital_deliveries && order.digital_deliveries.length > 0 ? (
+            <div class="account-summary" style={{ marginTop: "1.5rem" }}>
+              <h2>{tStatic(locale, "digital.deliveriesTitle")}</h2>
+              <p class="footer-muted">{tStatic(locale, "digital.deliveriesLead")}</p>
+              <ul style={{ listStyle: "none", padding: 0, margin: "1rem 0 0" }}>
+                {order.digital_deliveries.map((delivery, idx) => (
+                  <li
+                    key={delivery.line_key || idx}
+                    style={{
+                      marginBottom: "1rem",
+                      padding: "0.75rem 1rem",
+                      border: "1px solid var(--gs-border, #ddd)",
+                    }}
+                  >
+                    {delivery.title ? <p style={{ margin: "0 0 0.5rem" }}><strong>{delivery.title}</strong></p> : null}
+                    {delivery.kind === "card" ? (
+                      <p style={{ margin: 0 }}>
+                        <strong>{tStatic(locale, "digital.code")}:</strong> {delivery.code}
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{ margin: "0 0 0.35rem" }}>
+                          <strong>{tStatic(locale, "digital.accountEmail")}:</strong>{" "}
+                          {delivery.account_email}
+                        </p>
+                        <p style={{ margin: 0 }}>
+                          <strong>{tStatic(locale, "digital.accountPassword")}:</strong>{" "}
+                          {delivery.account_password}
+                        </p>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div class="table-wrap" style={{ marginTop: "1.5rem" }}>
             <table class="account-table">
               <thead>

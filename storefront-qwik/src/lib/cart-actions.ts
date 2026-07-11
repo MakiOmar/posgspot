@@ -130,19 +130,29 @@ export const parseStoredCart = (raw: string | null): CartItem[] => {
   }
 };
 
-/** Merge two carts, summing quantity for the same variation. */
+/** Stable cart line identity (digital lines share POS SKUs but must not merge). */
+export const cartLineKey = (item: CartItem): string => {
+  if (item.digital?.line_key) {
+    return `d:${item.digital.line_key}`;
+  }
+  return `v:${item.variationId}`;
+};
+
+/** Merge two carts, summing quantity for the same line key. */
 export const mergeCartItems = (left: CartItem[], right: CartItem[]): CartItem[] => {
-  const merged = new Map<number, CartItem>();
+  const merged = new Map<string, CartItem>();
   for (const line of [...left, ...right]) {
-    const existing = merged.get(line.variationId);
+    const key = cartLineKey(line);
+    const existing = merged.get(key);
     if (existing) {
-      merged.set(line.variationId, {
+      merged.set(key, {
         ...existing,
         ...line,
+        digital: line.digital ?? existing.digital,
         quantity: existing.quantity + line.quantity,
       });
     } else {
-      merged.set(line.variationId, { ...line });
+      merged.set(key, { ...line });
     }
   }
   return Array.from(merged.values());
@@ -210,14 +220,15 @@ export const applyCartValidation = (cart: CartState, lines: CartLine[]): boolean
     if (!validated) {
       continue;
     }
-    if (item.price !== validated.unit_price) {
+    // Keep Accounts catalog price for digital lines.
+    if (!item.digital && item.price !== validated.unit_price) {
       item.price = validated.unit_price;
       pricesChanged = true;
     }
-    if (item.name !== validated.name) {
+    if (!item.digital && item.name !== validated.name) {
       item.name = validated.name;
     }
-    if (item.variationName !== validated.variation_name) {
+    if (!item.digital && item.variationName !== validated.variation_name) {
       item.variationName = validated.variation_name;
     }
   }
@@ -264,6 +275,9 @@ export const syncCartFromInspection = (
     if (!status) {
       continue;
     }
+    if (item.digital) {
+      continue;
+    }
     if (item.name !== status.name) {
       item.name = status.name;
     }
@@ -287,40 +301,70 @@ export const formatMaxCartQuantity = (max: number): string => {
 };
 
 export const addCartItem = $((cart: CartState, item: CartItem) => {
-  const existing = cart.items.find((line) => line.variationId === item.variationId);
+  const key = cartLineKey(item);
+  const existing = cart.items.find((line) => cartLineKey(line) === key);
   if (existing) {
+    // Digital secrets are one-per-line; keep quantity at 1.
+    if (item.digital) {
+      existing.quantity = 1;
+      existing.digital = item.digital;
+      existing.price = item.price;
+      existing.name = item.name;
+      return;
+    }
     existing.quantity += item.quantity;
   } else {
-    cart.items.push({ ...item });
+    cart.items.push({
+      ...item,
+      quantity: item.digital ? 1 : item.quantity,
+    });
   }
 });
 
-/** Add multiple lines (e.g. reorder); merges quantities for matching variations. */
+/** Add multiple lines (e.g. reorder); merges quantities for matching line keys. */
 export const addCartItems = $((cart: CartState, items: CartItem[]) => {
   for (const item of items) {
     if (!item.variationId || item.quantity <= 0) {
       continue;
     }
-    const existing = cart.items.find((line) => line.variationId === item.variationId);
+    const key = cartLineKey(item);
+    const existing = cart.items.find((line) => cartLineKey(line) === key);
     if (existing) {
-      existing.quantity += item.quantity;
+      if (item.digital) {
+        existing.quantity = 1;
+        existing.digital = item.digital;
+        existing.price = item.price;
+        existing.name = item.name;
+      } else {
+        existing.quantity += item.quantity;
+      }
     } else {
-      cart.items.push({ ...item });
+      cart.items.push({
+        ...item,
+        quantity: item.digital ? 1 : item.quantity,
+      });
     }
   }
 });
 
-export const removeCartItem = $((cart: CartState, variationId: number) => {
-  cart.items = cart.items.filter((line) => line.variationId !== variationId);
+export const removeCartItem = $((cart: CartState, lineKey: string) => {
+  cart.items = cart.items.filter((line) => cartLineKey(line) !== lineKey);
 });
 
-export const setCartQuantity = $((cart: CartState, variationId: number, quantity: number) => {
-  const line = cart.items.find((entry) => entry.variationId === variationId);
+export const setCartQuantity = $((cart: CartState, lineKey: string, quantity: number) => {
+  const line = cart.items.find((entry) => cartLineKey(entry) === lineKey);
   if (!line) {
     return;
   }
+  if (line.digital) {
+    // Digital deliveries are always quantity 1.
+    if (quantity <= 0) {
+      cart.items = cart.items.filter((entry) => cartLineKey(entry) !== lineKey);
+    }
+    return;
+  }
   if (quantity <= 0) {
-    cart.items = cart.items.filter((entry) => entry.variationId !== variationId);
+    cart.items = cart.items.filter((entry) => cartLineKey(entry) !== lineKey);
   } else {
     line.quantity = quantity;
   }

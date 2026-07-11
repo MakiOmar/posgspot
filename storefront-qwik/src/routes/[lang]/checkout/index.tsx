@@ -247,6 +247,7 @@ export default component$(() => {
             items: cart.items.map((line) => ({
               variation_id: line.variationId,
               quantity: line.quantity,
+              ...(line.digital ? { digital: line.digital } : {}),
             })),
             destination,
             shipping_rate_id: shippingRateId.value || undefined,
@@ -431,6 +432,7 @@ export default component$(() => {
       const items = cart.items.map((line) => ({
         variation_id: line.variationId,
         quantity: line.quantity,
+        ...(line.digital ? { digital: line.digital } : {}),
       }));
       const selectedRate =
         availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;

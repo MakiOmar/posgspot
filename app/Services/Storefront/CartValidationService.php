@@ -72,11 +72,20 @@ class CartValidationService
 
             $pricing = $this->storefrontPricing->resolve($variation);
             $unitPrice = $pricing['price'];
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
+                $unitPrice = (float) $digital['price'];
+            }
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
 
-            $stockLocationIds = $locationId ? [$locationId] : $locationIds;
-            $inStock = $this->checkStock($product, $variation, $qty, $stockLocationIds);
+            // Digital inventory lives in Accounts; skip POS stock when meta is present.
+            if ($digital && ! empty($digital['kind'])) {
+                $inStock = true;
+            } else {
+                $stockLocationIds = $locationId ? [$locationId] : $locationIds;
+                $inStock = $this->checkStock($product, $variation, $qty, $stockLocationIds);
+            }
             if (! $inStock) {
                 $message = $locationId
                     ? 'Insufficient stock at the selected store.'
@@ -99,7 +108,9 @@ class CartValidationService
             $lines[] = $line;
 
             $exclusive = (float) $variation->default_sell_price;
-            if ($exclusive <= 0) {
+            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
+                $exclusive = $unitPrice;
+            } elseif ($exclusive <= 0) {
                 $exclusive = $unitPrice;
             }
             $productLine = [
@@ -258,6 +269,10 @@ class CartValidationService
             $product = $variation->product;
             $pricing = $this->storefrontPricing->resolve($variation);
             $unitPrice = $pricing['price'];
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if ($digital && isset($digital['price']) && is_numeric($digital['price'])) {
+                $unitPrice = (float) $digital['price'];
+            }
             $status['name'] = $product->name;
             $status['variation_name'] = $variation->name;
             $status['unit_price'] = $unitPrice;
@@ -268,7 +283,11 @@ class CartValidationService
                 continue;
             }
 
-            if (! $product->enable_stock) {
+            if ($digital && ! empty($digital['kind'])) {
+                $status['stock_tracked'] = false;
+                $status['max_quantity'] = null;
+                $status['available'] = true;
+            } elseif (! $product->enable_stock) {
                 $status['stock_tracked'] = false;
                 $status['max_quantity'] = null;
                 $status['available'] = true;

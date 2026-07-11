@@ -206,6 +206,8 @@ class CheckoutService
 
             $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $locationId, false, null, [], false);
 
+            $this->queueDigitalFulfillments($transaction, $payload['items'] ?? []);
+
             if ($paymentMethod !== 'cod') {
                 $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], $businessId, $userId, false);
             }
@@ -420,6 +422,8 @@ class CheckoutService
             'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,
         ])->values()->all();
         $data['invoice_print_url'] = $this->invoicePrintUrl($businessId, $transaction);
+        $data['digital_deliveries'] = app(DigitalFulfillmentService::class)
+            ->customerDeliveriesForTransaction($transaction);
 
         return $data;
     }
@@ -584,5 +588,50 @@ class CheckoutService
         $lang = $locale === 'ar' ? 'ar' : 'en';
 
         return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
+    }
+
+    /**
+     * Queue digital game/card allocation rows (secrets allocated only after paid).
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    private function queueDigitalFulfillments(Transaction $transaction, array $items): void
+    {
+        $digitalItems = [];
+        $transaction->loadMissing('sell_lines');
+        $linesByVariation = $transaction->sell_lines->keyBy('variation_id');
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $digital = $item['digital'] ?? null;
+            if (! is_array($digital) || empty($digital['kind'])) {
+                continue;
+            }
+            $kind = ($digital['kind'] ?? '') === 'card' ? 'card' : 'game';
+            $variationId = (int) ($item['variation_id'] ?? 0);
+            $sellLine = $variationId > 0 ? $linesByVariation->get($variationId) : null;
+            $lineKey = (string) ($digital['line_key'] ?? '');
+            if ($lineKey === '') {
+                $lineKey = $kind === 'card'
+                    ? 'card|category:'.($digital['card_category_id'] ?? '0')
+                    : 'ps'.($digital['platform'] ?? '4').'_'.($digital['type'] ?? 'primary').'_stock|game:'.($digital['game_id'] ?? '0');
+            }
+            $digitalItems[] = array_merge($digital, [
+                'kind' => $kind,
+                'line_key' => $lineKey,
+                'sell_line_id' => $sellLine?->id,
+                'variation_id' => $variationId,
+                'price' => $digital['price'] ?? null,
+                'title' => $digital['title'] ?? null,
+            ]);
+        }
+
+        if ($digitalItems === []) {
+            return;
+        }
+
+        app(DigitalFulfillmentService::class)->queuePending($transaction, $digitalItems);
     }
 }
