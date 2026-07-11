@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-11 |
+| **Last updated** | 2026-07-12 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -39,7 +39,7 @@
 | Per-store availability | ✅ | All active locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check; destination + `shipping_rate_id` → `available_rates[]` |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth; requires `shipping_rate_id` |
-| Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; legacy flat/threshold migrated; `ShippingQuoteService` |
+| Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; digital-only free rate (`method_type: digital`); legacy flat/threshold migrated; `ShippingQuoteService` |
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
@@ -77,7 +77,7 @@
 | `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews, share; brand links to `/brands/{slug}` |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, shipping estimate hint, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, Bosta district when courier on, promo picker + manual code, reward redeem |
+| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, digital-only skips address/Bosta, Bosta district when courier on, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Digital-only carts: free `digital` shipping rate (no address/Bosta); Qwik checkout skips address; cart validate returns `digital_only`. |
 | 2026-07-11 | Digital fulfillment: paid-only Accounts allocate, trip ledger, catalog proxy + Qwik `/games` + `/gift-cards`, secrets on paid email / account order / invoice notes. |
 | 2026-07-11 | Repair status: storefront page + `POST /repair/status` API (nav/footer/sitemap); no longer external POS link. |
 | 2026-07-11 | Bosta aligned with WC plugin: bulk create, zoning districts API, checkout district field, COD, staging default off. |

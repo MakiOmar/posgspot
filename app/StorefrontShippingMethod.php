@@ -23,6 +23,12 @@ class StorefrontShippingMethod extends Model
 
     public const TYPE_LOCAL_PICKUP = 'local_pickup';
 
+    /** Synthetic storefront-only rate (not stored in DB). */
+    public const TYPE_DIGITAL = 'digital';
+
+    /** Signed rate ids use method_id 0 for digital delivery. */
+    public const DIGITAL_METHOD_ID = 0;
+
     public function zone()
     {
         return $this->belongsTo(StorefrontShippingZone::class, 'zone_id');

@@ -86,6 +86,7 @@ export default component$(() => {
   const validatedTotal = useSignal(0);
   const availableRates = useSignal<ShippingRate[]>([]);
   const shippingRateId = useSignal("");
+  const digitalOnly = useSignal(false);
   const shipCountry = useSignal("EG");
   const shipState = useSignal("");
   const shipCity = useSignal("");
@@ -220,10 +221,15 @@ export default component$(() => {
       validatedShipping.value = 0;
       validatedTotal.value = 0;
       availableRates.value = [];
+      digitalOnly.value = false;
       appliedCoupons.value = [];
       couponDiscount.value = 0;
       return;
     }
+
+    const cartIsDigitalOnly =
+      cart.items.length > 0 && cart.items.every((line) => Boolean(line.digital?.kind));
+    digitalOnly.value = cartIsDigitalOnly;
 
     const timer = setTimeout(async () => {
       validatingStock.value = true;
@@ -233,13 +239,15 @@ export default component$(() => {
             ? couponRequestPayload(couponCodes.value, allowCouponStacking)
             : {};
         const destination =
-          shipCountry.value || shipState.value
-            ? {
-                country: shipCountry.value || "EG",
-                state: shipState.value || undefined,
-                city: shipCity.value || undefined,
-              }
-            : undefined;
+          cartIsDigitalOnly
+            ? undefined
+            : shipCountry.value || shipState.value
+              ? {
+                  country: shipCountry.value || "EG",
+                  state: shipState.value || undefined,
+                  city: shipCity.value || undefined,
+                }
+              : undefined;
         const { data } = await validateCart(
           {
             location_id: locationId.value,
@@ -258,6 +266,7 @@ export default component$(() => {
         validatedShipping.value = data.shipping;
         validatedTotal.value = data.total;
         availableRates.value = data.available_rates ?? [];
+        digitalOnly.value = Boolean(data.digital_only ?? cartIsDigitalOnly);
         if (data.shipping_rate?.id && !shippingRateId.value) {
           shippingRateId.value = data.shipping_rate.id;
         } else if (
@@ -265,6 +274,8 @@ export default component$(() => {
           !(data.available_rates ?? []).some((r) => r.id === shippingRateId.value) &&
           data.shipping_rate?.id
         ) {
+          shippingRateId.value = data.shipping_rate.id;
+        } else if (digitalOnly.value && data.shipping_rate?.id) {
           shippingRateId.value = data.shipping_rate.id;
         }
         appliedCoupons.value = data.coupons?.length
@@ -307,6 +318,7 @@ export default component$(() => {
   const orderTotal = Math.max(0, checkoutTotal - redeemAmount.value);
   const selectedShippingRate =
     availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
+  const isDigitalCheckout = digitalOnly.value || selectedShippingRate?.method_type === "digital";
   const isPickup = selectedShippingRate?.method_type === "local_pickup";
   const pickupLocationIds = Array.isArray(selectedShippingRate?.meta?.location_ids)
     ? (selectedShippingRate!.meta!.location_ids as number[])
@@ -437,6 +449,8 @@ export default component$(() => {
       const selectedRate =
         availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
       const pickupSelected = selectedRate?.method_type === "local_pickup";
+      const digitalSelected =
+        digitalOnly.value || selectedRate?.method_type === "digital";
       const payload: Record<string, unknown> = {
         idempotency_key: `web-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         location_id: locationId.value,
@@ -448,29 +462,36 @@ export default component$(() => {
           email: String(formData.get("email") || ""),
           mobile: phoneCheck.fullPhone,
         },
-        shipping_address: pickupSelected
+        shipping_address: digitalSelected
           ? {
-              country: normalizeCheckoutCountry(shipCountry.value),
-              city: String(formData.get("city") || ""),
-              state: String(formData.get("state") || ""),
-              address_line_1: String(formData.get("address_line_1") || "Store pickup"),
+              country: "EG",
+              city: "",
+              state: "",
+              address_line_1: "Digital delivery",
             }
-          : {
-              address_line_1: String(formData.get("address_line_1") || ""),
-              city: String(formData.get("city") || shipCity.value || ""),
-              state: String(formData.get("state") || shipState.value || ""),
-              country: normalizeCheckoutCountry(
-                String(formData.get("country") || shipCountry.value),
-              ),
-              ...(bostaEnabled && shipDistrictId.value
-                ? {
-                    district_id: shipDistrictId.value,
-                    district_label:
-                      shipDistrictLabel.value ||
-                      String(formData.get("district_label") || ""),
-                  }
-                : {}),
-            },
+          : pickupSelected
+            ? {
+                country: normalizeCheckoutCountry(shipCountry.value),
+                city: String(formData.get("city") || ""),
+                state: String(formData.get("state") || ""),
+                address_line_1: String(formData.get("address_line_1") || "Store pickup"),
+              }
+            : {
+                address_line_1: String(formData.get("address_line_1") || ""),
+                city: String(formData.get("city") || shipCity.value || ""),
+                state: String(formData.get("state") || shipState.value || ""),
+                country: normalizeCheckoutCountry(
+                  String(formData.get("country") || shipCountry.value),
+                ),
+                ...(bostaEnabled && shipDistrictId.value
+                  ? {
+                      district_id: shipDistrictId.value,
+                      district_label:
+                        shipDistrictLabel.value ||
+                        String(formData.get("district_label") || ""),
+                    }
+                  : {}),
+              },
         shipping_rate_id: shippingRateId.value,
         order_note: String(formData.get("order_note") || ""),
       };
@@ -481,6 +502,7 @@ export default component$(() => {
       }
 
       if (
+        !digitalSelected &&
         !pickupSelected &&
         bostaEnabled &&
         bostaDistricts.value.length > 0 &&
@@ -623,8 +645,14 @@ export default component$(() => {
             </div>
           </div>
 
-          <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.125rem" }}>{tStatic(locale, "checkout.shipping")}</h2>
-          {!isPickup ? (
+          <h2 style={{ margin: "0.5rem 0 0", fontSize: "1.125rem" }}>
+            {isDigitalCheckout
+              ? tStatic(locale, "checkout.delivery")
+              : tStatic(locale, "checkout.shipping")}
+          </h2>
+          {isDigitalCheckout ? (
+            <p class="footer-muted">{tStatic(locale, "checkout.digitalDeliveryHint")}</p>
+          ) : !isPickup ? (
             <>
               <div>
                 <label for="country">{tStatic(locale, "forms.country")}</label>
@@ -736,7 +764,11 @@ export default component$(() => {
             <fieldset
               class={`checkout-choice-group${availableRates.value.length === 1 ? " checkout-choice-group--solo" : ""}`}
             >
-              <legend>{tStatic(locale, "checkout.shippingMethod")}</legend>
+              <legend>
+                {isDigitalCheckout
+                  ? tStatic(locale, "checkout.deliveryMethod")
+                  : tStatic(locale, "checkout.shippingMethod")}
+              </legend>
               <div class="checkout-choice-group__list">
                 {availableRates.value.map((rate) => {
                   const selected = shippingRateId.value === rate.id;
@@ -775,7 +807,7 @@ export default component$(() => {
             <p class="footer-muted">{tStatic(locale, "checkout.shippingRatesHint")}</p>
           )}
 
-          {isPickup || showLocationPicker ? (
+          {isDigitalCheckout || isPickup || showLocationPicker ? (
             <div>
               <label for="location_id">
                 {isPickup
@@ -904,7 +936,7 @@ export default component$(() => {
               </li>
             ))}
           </ul>
-          {validatedShipping.value > 0 ? (
+          {validatedShipping.value > 0 || isDigitalCheckout ? (
             <div
               style={{
                 display: "flex",
@@ -913,8 +945,14 @@ export default component$(() => {
                 fontSize: "0.875rem",
               }}
             >
-              <span>{tStatic(locale, "checkout.shipping")}</span>
-              <span>{formatPrice(validatedShipping.value, settings.value.currency)}</span>
+              <span>
+                {isDigitalCheckout
+                  ? tStatic(locale, "checkout.delivery")
+                  : tStatic(locale, "checkout.shipping")}
+              </span>
+              <span>
+                {formatPrice(validatedShipping.value, settings.value.currency, locale)}
+              </span>
             </div>
           ) : null}
           {couponDiscount.value > 0 ? (

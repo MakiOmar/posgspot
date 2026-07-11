@@ -48,6 +48,19 @@ class ShippingQuoteService
     ): array {
         $this->migrator->ensureDefaultZones($businessId);
 
+        if ($this->isDigitalOnlyCart($items)) {
+            $digitalRate = $this->digitalDeliveryRate($locale);
+            $selected = $this->selectRate([$digitalRate], $shippingRateId) ?? $digitalRate;
+
+            return [
+                'available_rates' => [$this->publicRate($digitalRate)],
+                'shipping' => 0.0,
+                'shipping_rate' => $this->publicRate($selected),
+                'matched_zone_id' => null,
+                'digital_only' => true,
+            ];
+        }
+
         $context = $this->buildContext($businessId, $subtotal, $items, $destination, $pickupLocationId, $locale);
         $zone = $this->matchZone($businessId, $destination, $pickupLocationId);
 
@@ -110,6 +123,7 @@ class ShippingQuoteService
             'shipping' => $selected ? (float) $selected['amount'] : 0.0,
             'shipping_rate' => $selected ? $this->publicRate($selected) : null,
             'matched_zone_id' => $zone?->id,
+            'digital_only' => false,
         ];
     }
 
@@ -140,12 +154,25 @@ class ShippingQuoteService
         );
 
         if (empty($shippingRateId)) {
+            // Digital-only carts always have exactly one free rate — auto-accept it.
+            if (! empty($quoted['digital_only']) && ! empty($quoted['shipping_rate'])) {
+                return [
+                    'ok' => true,
+                    'rate' => $quoted['shipping_rate'],
+                    'shipping' => 0.0,
+                    'available_rates' => $quoted['available_rates'],
+                    'message' => null,
+                    'digital_only' => true,
+                ];
+            }
+
             return [
                 'ok' => false,
                 'rate' => null,
                 'shipping' => 0.0,
                 'available_rates' => $quoted['available_rates'],
                 'message' => 'Please select a shipping method.',
+                'digital_only' => false,
             ];
         }
 
@@ -157,6 +184,7 @@ class ShippingQuoteService
                 'shipping' => 0.0,
                 'available_rates' => $quoted['available_rates'],
                 'message' => 'Invalid shipping rate.',
+                'digital_only' => ! empty($quoted['digital_only']),
             ];
         }
 
@@ -182,6 +210,7 @@ class ShippingQuoteService
                         'shipping' => 0.0,
                         'available_rates' => $quoted['available_rates'],
                         'message' => 'Shipping rates changed. Please select a method again.',
+                        'digital_only' => ! empty($quoted['digital_only']),
                     ];
                 }
             }
@@ -192,6 +221,7 @@ class ShippingQuoteService
                 'shipping' => 0.0,
                 'available_rates' => $quoted['available_rates'],
                 'message' => 'Selected shipping method is not available for this address.',
+                'digital_only' => ! empty($quoted['digital_only']),
             ];
         }
 
@@ -201,6 +231,7 @@ class ShippingQuoteService
             'shipping' => (float) $match['amount'],
             'available_rates' => $quoted['available_rates'],
             'message' => null,
+            'digital_only' => ! empty($quoted['digital_only']),
         ];
     }
 
@@ -310,6 +341,10 @@ class ShippingQuoteService
         $classIds = [];
 
         foreach ($items as $item) {
+            // Digital lines do not contribute to physical shipping weight/qty.
+            if (is_array($item['digital'] ?? null) && ! empty($item['digital']['kind'])) {
+                continue;
+            }
             $qty = (float) ($item['quantity'] ?? 0);
             $itemCount += $qty;
             $variationId = (int) ($item['variation_id'] ?? 0);
@@ -410,6 +445,47 @@ class ShippingQuoteService
         }
 
         return $rates[0];
+    }
+
+    /**
+     * True when every cart line is a digital game/gift-card (no physical shipping).
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    public function isDigitalOnlyCart(array $items): bool
+    {
+        if ($items === []) {
+            return false;
+        }
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                return false;
+            }
+            $digital = $item['digital'] ?? null;
+            if (! is_array($digital) || empty($digital['kind'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array{id:string,method_id:int,method_type:string,title:string,amount:float,eta_label:?string,meta:array}
+     */
+    private function digitalDeliveryRate(string $locale): array
+    {
+        $title = $locale === 'ar' ? 'تسليم رقمي (مجاني)' : 'Digital delivery (free)';
+
+        return [
+            'id' => ShippingRateId::encode(StorefrontShippingMethod::DIGITAL_METHOD_ID, 0.0),
+            'method_id' => StorefrontShippingMethod::DIGITAL_METHOD_ID,
+            'method_type' => StorefrontShippingMethod::TYPE_DIGITAL,
+            'title' => $title,
+            'amount' => 0.0,
+            'eta_label' => $locale === 'ar' ? 'فوري بعد الدفع' : 'Instant after payment',
+            'meta' => ['digital' => true],
+        ];
     }
 
     private function publicRate(array $rate): array

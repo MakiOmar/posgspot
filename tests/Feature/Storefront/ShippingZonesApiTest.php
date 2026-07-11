@@ -85,4 +85,69 @@ class ShippingZonesApiTest extends TestCase
         $this->assertArrayHasKey('available_rates', $quoted);
         $this->assertNotEmpty($quoted['available_rates']);
     }
+
+    public function test_digital_only_cart_gets_free_digital_rate(): void
+    {
+        $quotes = app(ShippingQuoteService::class);
+        $items = [
+            [
+                'variation_id' => 1,
+                'quantity' => 1,
+                'digital' => ['kind' => 'game', 'game_id' => 10, 'type' => 'primary', 'platform' => '5'],
+            ],
+        ];
+
+        $this->assertTrue($quotes->isDigitalOnlyCart($items));
+
+        $quoted = $quotes->quote(
+            $this->businessId,
+            199,
+            $items,
+            [],
+            null,
+            null,
+            'en',
+            false
+        );
+
+        $this->assertTrue($quoted['digital_only']);
+        $this->assertCount(1, $quoted['available_rates']);
+        $this->assertSame('digital', $quoted['available_rates'][0]['method_type']);
+        $this->assertEqualsWithDelta(0.0, (float) $quoted['available_rates'][0]['amount'], 0.0001);
+        $this->assertEqualsWithDelta(0.0, (float) $quoted['shipping'], 0.0001);
+        $this->assertNotNull($quoted['shipping_rate']);
+
+        $resolved = $quotes->resolveSelectedRate(
+            $this->businessId,
+            199,
+            $items,
+            [],
+            null,
+            null,
+            'en',
+            false
+        );
+
+        $this->assertTrue($resolved['ok']);
+        $this->assertTrue($resolved['digital_only']);
+        $this->assertSame('digital', $resolved['rate']['method_type'] ?? null);
+    }
+
+    public function test_mixed_cart_is_not_digital_only(): void
+    {
+        $quotes = app(ShippingQuoteService::class);
+        $items = [
+            [
+                'variation_id' => 1,
+                'quantity' => 1,
+                'digital' => ['kind' => 'card', 'card_category_id' => 3],
+            ],
+            [
+                'variation_id' => 2,
+                'quantity' => 1,
+            ],
+        ];
+
+        $this->assertFalse($quotes->isDigitalOnlyCart($items));
+    }
 }
