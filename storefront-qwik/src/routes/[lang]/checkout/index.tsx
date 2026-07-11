@@ -646,26 +646,43 @@ export default component$(() => {
           )}
 
           {availableRates.value.length > 0 ? (
-            <fieldset class="checkout-payment-methods">
+            <fieldset
+              class={`checkout-choice-group${availableRates.value.length === 1 ? " checkout-choice-group--solo" : ""}`}
+            >
               <legend>{tStatic(locale, "checkout.shippingMethod")}</legend>
-              {availableRates.value.map((rate) => (
-                <label key={rate.id} class="checkout-payment-methods__option">
-                  <input
-                    type="radio"
-                    name="shipping_rate_id"
-                    value={rate.id}
-                    checked={shippingRateId.value === rate.id}
-                    onChange$={() => {
-                      shippingRateId.value = rate.id;
-                    }}
-                  />
-                  <span>
-                    {rate.title}
-                    {rate.eta_label ? ` · ${rate.eta_label}` : ""} —{" "}
-                    {formatPrice(rate.amount, settings.value.currency, locale)}
-                  </span>
-                </label>
-              ))}
+              <div class="checkout-choice-group__list">
+                {availableRates.value.map((rate) => {
+                  const selected = shippingRateId.value === rate.id;
+                  const solo = availableRates.value.length === 1;
+                  return (
+                    <label
+                      key={rate.id}
+                      class={`checkout-choice${selected ? " checkout-choice--selected" : ""}${solo ? " checkout-choice--solo" : ""}`}
+                    >
+                      <input
+                        type="radio"
+                        name="shipping_rate_id"
+                        value={rate.id}
+                        class="checkout-choice__input"
+                        checked={selected}
+                        onChange$={() => {
+                          shippingRateId.value = rate.id;
+                        }}
+                      />
+                      {!solo ? <span class="checkout-choice__mark" aria-hidden="true" /> : null}
+                      <span class="checkout-choice__body">
+                        <span class="checkout-choice__title">{rate.title}</span>
+                        {rate.eta_label ? (
+                          <span class="checkout-choice__meta">{rate.eta_label}</span>
+                        ) : null}
+                      </span>
+                      <span class="checkout-choice__price">
+                        {formatPrice(rate.amount, settings.value.currency, locale)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
             </fieldset>
           ) : (
             <p class="footer-muted">{tStatic(locale, "checkout.shippingRatesHint")}</p>
@@ -699,40 +716,62 @@ export default component$(() => {
           </div>
 
           {settings.value.cod_enabled || onlinePaymentsEnabled ? (
-            <fieldset class="checkout-payment-methods">
+            <fieldset
+              class={`checkout-choice-group${(settings.value.cod_enabled ? 1 : 0) + (onlinePaymentsEnabled ? 1 : 0) === 1 ? " checkout-choice-group--solo" : ""}`}
+            >
               <legend>{tStatic(locale, "checkout.paymentMethod")}</legend>
-              {settings.value.cod_enabled ? (
-                <label class="checkout-payment-methods__option">
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="cod"
-                    checked={paymentMethod.value === "cod"}
-                    onChange$={() => {
-                      paymentMethod.value = "cod";
-                    }}
-                  />
-                  <span>{tStatic(locale, "checkout.paymentMethodCod")}</span>
-                </label>
-              ) : null}
-              {onlinePaymentsEnabled ? (
-                <label class="checkout-payment-methods__option">
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value="fawry"
-                    checked={paymentMethod.value === "fawry"}
-                    onChange$={() => {
-                      paymentMethod.value = "fawry";
-                    }}
-                  />
-                  <span>
-                    {tStatic(locale, "checkout.paymentMethodOnline", {
-                      provider: settings.value.online_payments.label || "FawryPay",
-                    })}
-                  </span>
-                </label>
-              ) : null}
+              <div class="checkout-choice-group__list">
+                {settings.value.cod_enabled ? (
+                  <label
+                    class={`checkout-choice${paymentMethod.value === "cod" ? " checkout-choice--selected" : ""}${!onlinePaymentsEnabled ? " checkout-choice--solo" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cod"
+                      class="checkout-choice__input"
+                      checked={paymentMethod.value === "cod"}
+                      onChange$={() => {
+                        paymentMethod.value = "cod";
+                      }}
+                    />
+                    {onlinePaymentsEnabled ? (
+                      <span class="checkout-choice__mark" aria-hidden="true" />
+                    ) : null}
+                    <span class="checkout-choice__body">
+                      <span class="checkout-choice__title">
+                        {tStatic(locale, "checkout.paymentMethodCod")}
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+                {onlinePaymentsEnabled ? (
+                  <label
+                    class={`checkout-choice${paymentMethod.value === "fawry" ? " checkout-choice--selected" : ""}${!settings.value.cod_enabled ? " checkout-choice--solo" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="fawry"
+                      class="checkout-choice__input"
+                      checked={paymentMethod.value === "fawry"}
+                      onChange$={() => {
+                        paymentMethod.value = "fawry";
+                      }}
+                    />
+                    {settings.value.cod_enabled ? (
+                      <span class="checkout-choice__mark" aria-hidden="true" />
+                    ) : null}
+                    <span class="checkout-choice__body">
+                      <span class="checkout-choice__title">
+                        {tStatic(locale, "checkout.paymentMethodOnline", {
+                          provider: settings.value.online_payments.label || "FawryPay",
+                        })}
+                      </span>
+                    </span>
+                  </label>
+                ) : null}
+              </div>
             </fieldset>
           ) : (
             <p class="alert alert-error">{tStatic(locale, "checkout.noPaymentMethods")}</p>
