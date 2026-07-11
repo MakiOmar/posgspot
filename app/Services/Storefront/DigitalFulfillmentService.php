@@ -65,6 +65,12 @@ class DigitalFulfillmentService
                 break;
             }
         }
+        if ($price === null && ! empty($item['kind'])) {
+            $price = app(DigitalCatalogService::class)->resolveOfferPrice(
+                (int) $transaction->business_id,
+                $item
+            );
+        }
         if ($price === null) {
             return;
         }

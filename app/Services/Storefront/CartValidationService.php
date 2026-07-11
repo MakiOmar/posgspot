@@ -19,7 +19,8 @@ class CartValidationService
         private ProductUtil $productUtil,
         private StorefrontPricing $storefrontPricing,
         private CouponService $couponService,
-        private ShippingQuoteService $shippingQuotes
+        private ShippingQuoteService $shippingQuotes,
+        private DigitalCatalogService $digitalCatalog
     ) {
     }
 
@@ -74,12 +75,15 @@ class CartValidationService
             $unitPrice = $pricing['price'];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
             if ($digital && ! empty($digital['kind'])) {
-                $unitPrice = $this->resolveDigitalUnitPrice($item, $unitPrice);
+                $unitPrice = $this->resolveDigitalUnitPrice($businessId, $item, $unitPrice);
                 if ($unitPrice <= 0) {
                     throw ValidationException::withMessages([
                         "items.$index.digital.price" => ['Digital item price is required.'],
                     ]);
                 }
+                // Keep resolved catalog price on the item for checkout / fulfillment (Accounts send-to-POS style).
+                $items[$index]['digital']['price'] = $unitPrice;
+                $digital = $items[$index]['digital'];
             }
             $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
@@ -112,25 +116,38 @@ class CartValidationService
             ];
             $lines[] = $line;
 
-            $exclusive = (float) $variation->default_sell_price;
+            // Mirror AccountsApi::formatOrderToSale — unit_price from line total / qty (catalog), not POS SKU.
             if ($digital && ! empty($digital['kind'])) {
-                $exclusive = $unitPrice;
-            } elseif ($exclusive <= 0) {
-                $exclusive = $unitPrice;
-            }
-            $productLine = [
-                'product_id' => $product->id,
-                'variation_id' => $variation->id,
-                'quantity' => $qty,
-                'unit_price' => $exclusive,
-                'unit_price_inc_tax' => $unitPrice,
-                // Per-unit tax; createOrUpdateSellLines stores this as unit tax.
-                'item_tax' => max(0, $unitPrice - $exclusive),
-                'tax_id' => $product->tax,
-                'enable_stock' => $product->enable_stock,
-            ];
-            if ($digital && ! empty($digital['title'])) {
-                $productLine['sell_line_note'] = (string) $digital['title'];
+                $accountsUnitPrice = $qty > 0 ? ($lineTotal / $qty) : $unitPrice;
+                $productLine = [
+                    'product_id' => $product->id,
+                    'variation_id' => $variation->id,
+                    'quantity' => $qty,
+                    'unit_price' => $accountsUnitPrice,
+                    'unit_price_inc_tax' => $accountsUnitPrice,
+                    'item_tax' => 0,
+                    'tax_id' => null,
+                    'enable_stock' => $product->enable_stock,
+                ];
+                if (! empty($digital['title'])) {
+                    $productLine['sell_line_note'] = (string) $digital['title'];
+                }
+            } else {
+                $exclusive = (float) $variation->default_sell_price;
+                if ($exclusive <= 0) {
+                    $exclusive = $unitPrice;
+                }
+                $productLine = [
+                    'product_id' => $product->id,
+                    'variation_id' => $variation->id,
+                    'quantity' => $qty,
+                    'unit_price' => $exclusive,
+                    'unit_price_inc_tax' => $unitPrice,
+                    // Per-unit tax; createOrUpdateSellLines stores this as unit tax.
+                    'item_tax' => max(0, $unitPrice - $exclusive),
+                    'tax_id' => $product->tax,
+                    'enable_stock' => $product->enable_stock,
+                ];
             }
 
             if ($product->type === 'combo') {
@@ -191,6 +208,8 @@ class CartValidationService
         $result = [
             'lines' => $lines,
             'products_payload' => $productsPayload,
+            // Items with digital.price resolved from Accounts when the client omitted it.
+            'items' => $items,
             'subtotal' => round($subtotal, 4),
             'shipping' => round($shipping, 4),
             'total' => round($total, 4),
@@ -211,21 +230,26 @@ class CartValidationService
     }
 
     /**
-     * Prefer Accounts catalog price on the digital meta, then explicit line overrides,
-     * then the POS variation price (often 0 for placeholder SKUs).
+     * Prefer client catalog price, then Accounts API lookup (send-to-POS source of truth),
+     * then explicit line overrides, then POS variation price (often 0 for placeholder SKUs).
      *
      * @param  array<string, mixed>  $item
      */
-    private function resolveDigitalUnitPrice(array $item, float $fallback): float
+    private function resolveDigitalUnitPrice(int $businessId, array $item, float $fallback): float
     {
         $digital = is_array($item['digital'] ?? null) ? $item['digital'] : [];
         foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
-            if ($candidate !== null && $candidate !== '' && is_numeric($candidate)) {
+            if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
                 return (float) $candidate;
             }
         }
 
-        return $fallback;
+        $catalogPrice = $this->digitalCatalog->resolveOfferPrice($businessId, $digital);
+        if ($catalogPrice !== null && $catalogPrice > 0) {
+            return $catalogPrice;
+        }
+
+        return $fallback > 0 ? $fallback : 0.0;
     }
 
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
@@ -301,7 +325,7 @@ class CartValidationService
             $unitPrice = $pricing['price'];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
             if ($digital && ! empty($digital['kind'])) {
-                $unitPrice = $this->resolveDigitalUnitPrice($item, $unitPrice);
+                $unitPrice = $this->resolveDigitalUnitPrice($businessId, $item, $unitPrice);
             }
             $status['name'] = $product->name;
             $status['variation_name'] = $variation->name;

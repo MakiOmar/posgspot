@@ -74,7 +74,11 @@ class CheckoutService
             (string) ($payload['locale'] ?? 'en'),
             true
         );
-        $validated = $this->forceDigitalPricesOnValidated($validated, $payload['items'] ?? []);
+        // Prefer validator-enriched items (Accounts catalog price backfilled like send-to-POS).
+        $checkoutItems = is_array($validated['items'] ?? null) && $validated['items'] !== []
+            ? $validated['items']
+            : ($payload['items'] ?? []);
+        $validated = $this->forceDigitalPricesOnValidated($validated, $checkoutItems);
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
 
@@ -164,6 +168,8 @@ class CheckoutService
                 'products' => $validated['products_payload'],
                 'source' => 'storefront',
                 'sale_note' => $payload['order_note'] ?? null,
+                // Same pattern as AccountsApi::formatOrderToSale (game details on staff_note).
+                'staff_note' => $this->digitalStaffNote($checkoutItems),
                 'shipping_details' => $validated['shipping_rate']['title']
                     ?? ($payload['shipping_method'] ?? 'Delivery'),
                 'shipping_charges' => $shipping,
@@ -207,9 +213,9 @@ class CheckoutService
 
             $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $locationId, false, null, [], false);
 
-            $this->syncDigitalSellLinePrices($transaction, $payload['items'] ?? [], $couponDiscount, $rpRedeemedAmount);
+            $this->syncDigitalSellLinePrices($transaction, $checkoutItems, $input['products'], $couponDiscount, $rpRedeemedAmount);
 
-            $this->queueDigitalFulfillments($transaction, $payload['items'] ?? []);
+            $this->queueDigitalFulfillments($transaction, $checkoutItems);
 
             if ($paymentMethod !== 'cod') {
                 $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], $businessId, $userId, false);
@@ -594,7 +600,8 @@ class CheckoutService
     }
 
     /**
-     * Ensure products_payload / totals use Accounts catalog prices for digital lines.
+     * Ensure products_payload / totals use Accounts catalog prices for digital lines
+     * (same idea as AccountsApi: unit_price = line_total / quantity).
      *
      * @param  array<string, mixed>  $validated
      * @param  list<array<string, mixed>>  $items
@@ -602,58 +609,55 @@ class CheckoutService
      */
     private function forceDigitalPricesOnValidated(array $validated, array $items): array
     {
-        $priceByVariation = [];
-        foreach ($items as $index => $item) {
-            if (! is_array($item)) {
-                continue;
+        $hasDigital = false;
+        $subtotal = 0.0;
+
+        foreach ($validated['products_payload'] as $i => $product) {
+            $item = is_array($items[$i] ?? null) ? $items[$i] : [];
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            $qty = (float) ($product['quantity'] ?? 0);
+
+            if ($digital && ! empty($digital['kind'])) {
+                $hasDigital = true;
+                $price = null;
+                foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null, $product['unit_price_inc_tax'] ?? null] as $candidate) {
+                    if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                        $price = (float) $candidate;
+                        break;
+                    }
+                }
+                if ($price === null) {
+                    throw ValidationException::withMessages([
+                        "items.$i.digital.price" => ['Digital item price is required.'],
+                    ]);
+                }
+                // AccountsApi: $unit_price = $product_line->total / $product_line->quantity
+                $lineTotal = $price * max($qty, 1);
+                $unitPrice = $qty > 0 ? ($lineTotal / $qty) : $price;
+                $validated['products_payload'][$i]['unit_price'] = $unitPrice;
+                $validated['products_payload'][$i]['unit_price_inc_tax'] = $unitPrice;
+                $validated['products_payload'][$i]['item_tax'] = 0;
+                $validated['products_payload'][$i]['tax_id'] = null;
+                if (! empty($digital['title']) && empty($validated['products_payload'][$i]['sell_line_note'])) {
+                    $validated['products_payload'][$i]['sell_line_note'] = (string) $digital['title'];
+                }
+                $subtotal += $unitPrice * $qty;
+            } else {
+                $subtotal += (float) ($product['unit_price_inc_tax'] ?? 0) * $qty;
             }
+        }
+
+        if (! $hasDigital) {
+            return $validated;
+        }
+
+        foreach ($validated['lines'] as $i => $line) {
+            $item = is_array($items[$i] ?? null) ? $items[$i] : [];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
             if (! $digital || empty($digital['kind'])) {
                 continue;
             }
-            $price = null;
-            foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
-                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
-                    $price = (float) $candidate;
-                    break;
-                }
-            }
-            if ($price === null) {
-                throw ValidationException::withMessages([
-                    "items.$index.digital.price" => ['Digital item price is required.'],
-                ]);
-            }
-            $variationId = (int) ($item['variation_id'] ?? 0);
-            if ($variationId > 0) {
-                $priceByVariation[$variationId] = $price;
-            }
-        }
-
-        if ($priceByVariation === []) {
-            return $validated;
-        }
-
-        $subtotal = 0.0;
-        foreach ($validated['products_payload'] as $i => $product) {
-            $variationId = (int) ($product['variation_id'] ?? 0);
-            if (! isset($priceByVariation[$variationId])) {
-                $subtotal += (float) ($product['unit_price_inc_tax'] ?? 0) * (float) ($product['quantity'] ?? 0);
-                continue;
-            }
-            $price = $priceByVariation[$variationId];
-            $qty = (float) ($product['quantity'] ?? 0);
-            $validated['products_payload'][$i]['unit_price'] = $price;
-            $validated['products_payload'][$i]['unit_price_inc_tax'] = $price;
-            $validated['products_payload'][$i]['item_tax'] = 0;
-            $subtotal += $price * $qty;
-        }
-
-        foreach ($validated['lines'] as $i => $line) {
-            $variationId = (int) ($line['variation_id'] ?? 0);
-            if (! isset($priceByVariation[$variationId])) {
-                continue;
-            }
-            $price = $priceByVariation[$variationId];
+            $price = (float) ($validated['products_payload'][$i]['unit_price_inc_tax'] ?? 0);
             $qty = (float) ($line['quantity'] ?? 0);
             $validated['lines'][$i]['unit_price'] = $price;
             $validated['lines'][$i]['line_total'] = $price * $qty;
@@ -664,60 +668,78 @@ class CheckoutService
         $validated['subtotal'] = round($subtotal, 4);
         $validated['total'] = round(max(0, $subtotal + $shipping - $couponDiscount), 4);
 
+        if ($validated['subtotal'] <= 0) {
+            throw ValidationException::withMessages([
+                'items' => ['Digital order total cannot be zero. Catalog price is missing.'],
+            ]);
+        }
+
         return $validated;
     }
 
     /**
-     * Patch sell lines + transaction totals when digital catalog prices were not persisted.
+     * Patch sell lines + transaction totals using checkout item index
+     * (Accounts send-to-POS style — never trust POS placeholder SKU price).
      *
      * @param  list<array<string, mixed>>  $items
+     * @param  list<array<string, mixed>>  $products
      */
     private function syncDigitalSellLinePrices(
         Transaction $transaction,
         array $items,
+        array $products,
         float $couponDiscount,
         float $rpRedeemedAmount
     ): void {
-        $transaction->load('sell_lines');
-        $linesByVariation = $transaction->sell_lines->keyBy('variation_id');
-        $changed = false;
+        $sellLines = $transaction->sell_lines()
+            ->whereNull('parent_sell_line_id')
+            ->orderBy('id')
+            ->get()
+            ->values();
 
-        foreach ($items as $item) {
-            if (! is_array($item)) {
-                continue;
-            }
+        $changed = false;
+        $hasDigital = false;
+
+        foreach ($products as $i => $product) {
+            $item = is_array($items[$i] ?? null) ? $items[$i] : [];
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
             if (! $digital || empty($digital['kind'])) {
                 continue;
             }
-            $price = null;
-            foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
-                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
-                    $price = (float) $candidate;
-                    break;
+            $hasDigital = true;
+            $price = (float) ($product['unit_price_inc_tax'] ?? $product['unit_price'] ?? 0);
+            if ($price <= 0) {
+                foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
+                    if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                        $price = (float) $candidate;
+                        break;
+                    }
                 }
             }
-            if ($price === null) {
+            if ($price <= 0) {
                 continue;
             }
-            $variationId = (int) ($item['variation_id'] ?? 0);
-            $line = $variationId > 0 ? $linesByVariation->get($variationId) : null;
+
+            $line = $sellLines->get($i);
             if (! $line) {
                 continue;
             }
-            if (abs((float) $line->unit_price_inc_tax - $price) < 0.0001
-                && abs((float) $line->unit_price - $price) < 0.0001) {
-                continue;
-            }
-            $line->unit_price_before_discount = $price;
-            $line->unit_price = $price;
-            $line->unit_price_inc_tax = $price;
-            $line->item_tax = 0;
-            if (! empty($digital['title']) && trim((string) $line->sell_line_note) === '') {
-                $line->sell_line_note = (string) $digital['title'];
-            }
-            $line->save();
+
+            DB::table('transaction_sell_lines')->where('id', $line->id)->update([
+                'unit_price_before_discount' => $price,
+                'unit_price' => $price,
+                'unit_price_inc_tax' => $price,
+                'item_tax' => 0,
+                'tax_id' => null,
+                'sell_line_note' => ! empty($digital['title'])
+                    ? (string) $digital['title']
+                    : (string) ($line->sell_line_note ?? ''),
+            ]);
             $changed = true;
+        }
+
+        if (! $hasDigital) {
+            return;
         }
 
         if (! $changed && (float) $transaction->final_total > 0) {
@@ -737,6 +759,40 @@ class CheckoutService
         $transaction->total_before_tax = round($subtotal, 4);
         $transaction->final_total = $finalTotal;
         $transaction->save();
+
+        if ($finalTotal <= 0) {
+            throw ValidationException::withMessages([
+                'items' => ['Digital order total cannot be zero after POS insert.'],
+            ]);
+        }
+    }
+
+    /**
+     * Staff note block matching AccountsApi game meta summary.
+     *
+     * @param  list<array<string, mixed>>  $items
+     */
+    private function digitalStaffNote(array $items): ?string
+    {
+        $blocks = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if (! $digital || empty($digital['kind'])) {
+                continue;
+            }
+            $title = (string) ($digital['title'] ?? 'N/A');
+            $type = (string) ($digital['type'] ?? ($digital['kind'] === 'card' ? 'card' : 'N/A'));
+            $blocks[] = 'Game Title: '.$title."\nType: ".$type."\nAccount: N/A\nPassword: N/A<br>----------------------<br>";
+        }
+
+        if ($blocks === []) {
+            return null;
+        }
+
+        return implode("\n", $blocks);
     }
 
     /**
@@ -747,10 +803,13 @@ class CheckoutService
     private function queueDigitalFulfillments(Transaction $transaction, array $items): void
     {
         $digitalItems = [];
-        $transaction->loadMissing('sell_lines');
-        $linesByVariation = $transaction->sell_lines->keyBy('variation_id');
+        $sellLines = $transaction->sell_lines()
+            ->whereNull('parent_sell_line_id')
+            ->orderBy('id')
+            ->get()
+            ->values();
 
-        foreach ($items as $item) {
+        foreach ($items as $index => $item) {
             if (! is_array($item)) {
                 continue;
             }
@@ -760,7 +819,7 @@ class CheckoutService
             }
             $kind = ($digital['kind'] ?? '') === 'card' ? 'card' : 'game';
             $variationId = (int) ($item['variation_id'] ?? 0);
-            $sellLine = $variationId > 0 ? $linesByVariation->get($variationId) : null;
+            $sellLine = $sellLines->get($index);
             $lineKey = (string) ($digital['line_key'] ?? '');
             if ($lineKey === '') {
                 $lineKey = $kind === 'card'

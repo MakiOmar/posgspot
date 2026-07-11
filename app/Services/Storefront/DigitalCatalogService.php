@@ -173,6 +173,72 @@ class DigitalCatalogService
         ];
     }
 
+    /**
+     * Resolve Accounts catalog unit price for a digital cart line (same source as send-to-POS order.price).
+     *
+     * @param  array<string, mixed>  $digital
+     */
+    public function resolveOfferPrice(int $businessId, array $digital): ?float
+    {
+        $kind = (string) ($digital['kind'] ?? '');
+        if ($kind === 'game') {
+            $gameId = (int) ($digital['game_id'] ?? 0);
+            if ($gameId <= 0) {
+                return null;
+            }
+            $type = (string) ($digital['type'] ?? 'primary');
+            $platform = (string) ($digital['platform'] ?? '4');
+            if (! in_array($type, ['primary', 'secondary'], true)) {
+                $type = 'primary';
+            }
+            if (! in_array($platform, ['4', '5'], true)) {
+                $platform = '4';
+            }
+
+            $result = $this->getGame($businessId, $gameId);
+            if (! $result['success']) {
+                return null;
+            }
+            $game = is_array($result['data']['game'] ?? null) ? $result['data']['game'] : [];
+            $priceKey = "ps{$platform}_{$type}_price";
+            $fallbackKey = $type === 'primary' ? 'primary_price' : 'secondary_price';
+            $ps4Key = $type === 'primary' ? 'ps4_primary_price' : 'ps4_secondary_price';
+            foreach ([$game[$priceKey] ?? null, $game[$fallbackKey] ?? null, $game[$ps4Key] ?? null] as $candidate) {
+                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                    return (float) $candidate;
+                }
+            }
+
+            return null;
+        }
+
+        if ($kind === 'card') {
+            $categoryId = (int) ($digital['card_category_id'] ?? 0);
+            if ($categoryId <= 0) {
+                return null;
+            }
+            $result = $this->listCardCategories($businessId);
+            if (! $result['success']) {
+                return null;
+            }
+            $categories = is_array($result['data']['categories'] ?? null) ? $result['data']['categories'] : [];
+            foreach ($categories as $category) {
+                if (! is_array($category)) {
+                    continue;
+                }
+                if ((int) ($category['id'] ?? 0) !== $categoryId) {
+                    continue;
+                }
+                $price = $category['price'] ?? null;
+                if ($price !== null && $price !== '' && is_numeric($price) && (float) $price > 0) {
+                    return (float) $price;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function listCardCategories(int $businessId): array
     {
         $result = $this->accounts->getCardCategories();
