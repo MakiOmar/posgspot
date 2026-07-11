@@ -440,7 +440,6 @@ export interface DigitalCardCategory {
   name: string;
   price: number | string;
   poster_image?: string | null;
-  cards?: unknown[];
 }
 
 export interface AuthContact {

@@ -98,11 +98,31 @@ class DigitalCatalogService
 
         $body = $result['body'] ?? [];
         $categories = $body['data'] ?? $body;
+        if (! is_array($categories)) {
+            $categories = [];
+        }
+
+        // Public payload: omit nested card stock rows (browser never needs them).
+        $normalized = [];
+        foreach ($categories as $category) {
+            if (is_object($category)) {
+                $category = (array) $category;
+            }
+            if (! is_array($category)) {
+                continue;
+            }
+            $normalized[] = [
+                'id' => (int) ($category['id'] ?? 0),
+                'name' => (string) ($category['name'] ?? ''),
+                'price' => $category['price'] ?? 0,
+                'poster_image' => $category['poster_image'] ?? null,
+            ];
+        }
 
         return [
             'success' => true,
             'data' => [
-                'categories' => is_array($categories) ? $categories : [],
+                'categories' => $normalized,
                 'skus' => $this->posSkuMap($businessId),
             ],
         ];

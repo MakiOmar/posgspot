@@ -17,8 +17,15 @@ export const useGiftCards = routeLoader$(async ({ params, redirect }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
     const { data } = await fetchDigitalCardCategories(locale);
+    // Strip nested Accounts fields (e.g. cards[]) so Qwik can serialize across $.
+    const categories: DigitalCardCategory[] = (data.categories ?? []).map((row) => ({
+      id: Number(row.id),
+      name: String(row.name ?? ""),
+      price: row.price,
+      poster_image: row.poster_image ?? null,
+    }));
     return {
-      categories: (data.categories ?? []) as DigitalCardCategory[],
+      categories,
       skus: data.skus,
     };
   } catch (e: unknown) {
@@ -42,37 +49,37 @@ export default component$(() => {
   const lang = (loc.params.lang || "en") as "en" | "ar";
   const pendingId = useSignal<number | null>(null);
 
-  const addCard$ = $(async (category: DigitalCardCategory) => {
+  const addCard$ = $(async (categoryId: number, name: string, priceRaw: number | string, posterImage: string | null) => {
     const sku = list.value.skus.gift_card;
     if (!sku) {
       await toastError(tStatic(lang, "digital.skuMissing"));
       return;
     }
-    const price = Number(category.price);
+    const price = Number(priceRaw);
     if (!Number.isFinite(price) || price <= 0) {
       await toastError(tStatic(lang, "digital.unavailable"));
       return;
     }
 
-    pendingId.value = category.id;
+    pendingId.value = categoryId;
     try {
-      await checkDigitalCardStock(category.id);
+      await checkDigitalCardStock(categoryId);
       const digital: CartItemDigital = {
         kind: "card",
-        card_category_id: category.id,
-        line_key: `card|category:${category.id}`,
-        title: category.name,
+        card_category_id: categoryId,
+        line_key: `card|category:${categoryId}`,
+        title: name,
         price,
       };
       await addCartItem(cart, {
         productId: sku.product_id,
         variationId: sku.variation_id,
         slug: null,
-        name: category.name,
+        name,
         variationName: tStatic(lang, "digital.giftCard"),
         price,
         quantity: 1,
-        imageUrl: category.poster_image || sku.image_url,
+        imageUrl: posterImage || sku.image_url,
         digital,
       });
       await toastSuccess(tStatic(lang, "digital.addedToCart"));
@@ -125,7 +132,14 @@ export default component$(() => {
                   type="button"
                   class="btn btn-primary"
                   disabled={pendingId.value !== null}
-                  onClick$={() => addCard$(category)}
+                  onClick$={() =>
+                    addCard$(
+                      category.id,
+                      category.name,
+                      category.price,
+                      category.poster_image ?? null,
+                    )
+                  }
                 >
                   {pendingId.value === category.id
                     ? tStatic(lang, "digital.adding")
