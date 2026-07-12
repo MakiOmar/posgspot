@@ -48,7 +48,7 @@
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
 | Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id` |
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Sent-to-POS: allocate sets `pos_order_id` (one call); stamp fallback uses Accounts `order_id` + clearer already-synced vs not-found. |
 | 2026-07-12 | After allocate, stamp Accounts `pos_order_id` via `/api/pos/receive-order` so the order shows as sent to POS. |
 | 2026-07-12 | Staff note: robust replace of `Account: N/A` / `Password: N/A` after allocate; `storefront:fulfill-digital` also syncs notes from secrets. |
 | 2026-07-12 | Digital allocate sends `wc_order_id` = POS transaction id (Accounts still requires the field name). |

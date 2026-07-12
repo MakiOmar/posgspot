@@ -63,7 +63,7 @@ class AccountsApiClient
             $pending = Http::withHeaders($headers)->timeout(30)->acceptJson();
             $response = match (strtoupper($method)) {
                 'GET' => $pending->get($url, $body ?? []),
-                'POST' => $pending->post($url, $body ?? []),
+                'POST' => $pending->asJson()->post($url, $body ?? []),
                 default => throw new \InvalidArgumentException('Unsupported method '.$method),
             };
 
@@ -74,7 +74,7 @@ class AccountsApiClient
                     $pending = Http::withHeaders($headers)->timeout(30)->acceptJson();
                     $response = strtoupper($method) === 'GET'
                         ? $pending->get($url, $body ?? [])
-                        : $pending->post($url, $body ?? []);
+                        : $pending->asJson()->post($url, $body ?? []);
                 }
             }
 
@@ -145,11 +145,20 @@ class AccountsApiClient
         return $this->request('POST', 'api/orders/receive', $payload, true);
     }
 
-    public function stampPosOrder(string $storefrontOrderId, int $posTransactionId): array
+    public function stampPosOrder(string $storefrontOrderId, int $posTransactionId, ?int $accountsOrderId = null): array
     {
-        return $this->request('POST', 'api/pos/receive-order', [
-            'storefront_order_id' => $storefrontOrderId,
+        $payload = [
+            'woocommerce_order_id' => $posTransactionId,
             'created' => $posTransactionId,
-        ], true);
+        ];
+        $storefrontOrderId = trim($storefrontOrderId);
+        if ($storefrontOrderId !== '') {
+            $payload['storefront_order_id'] = $storefrontOrderId;
+        }
+        if ($accountsOrderId !== null && $accountsOrderId > 0) {
+            $payload['order_id'] = $accountsOrderId;
+        }
+
+        return $this->request('POST', 'api/pos/receive-order', $payload, true);
     }
 }

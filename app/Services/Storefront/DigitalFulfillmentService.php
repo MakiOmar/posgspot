@@ -376,27 +376,49 @@ class DigitalFulfillmentService
 
         $this->appendSecretsToSellLineNote($row, $secrets);
         $this->appendSecretsToStaffNote($transaction, $row, $secrets);
-        $this->stampAccountsOrderAsSentToPos($transaction);
+        $accountsOrderId = isset($body['order_id']) ? (int) $body['order_id'] : (int) ($row->accounts_order_id ?? 0);
+        $this->stampAccountsOrderAsSentToPos(
+            $transaction,
+            $accountsOrderId > 0 ? $accountsOrderId : null
+        );
     }
 
     /**
      * Mark Accounts order(s) as sent to POS (sets pos_order_id → green POS badge).
+     *
+     * Prefer a single allocate call that already sets pos_order_id; this stamp is the safety net.
      */
-    public function stampAccountsOrderAsSentToPos(Transaction $transaction): bool
+    public function stampAccountsOrderAsSentToPos(Transaction $transaction, ?int $accountsOrderId = null): bool
     {
         $storefrontOrderId = trim((string) ($transaction->storefront_order_id ?? ''));
-        if ($storefrontOrderId === '') {
-            StorefrontDigitalFulfillDebug::log('stamp_pos.skip_no_storefront_id', [
-                'transaction_id' => $transaction->id,
+
+        if ($accountsOrderId === null || $accountsOrderId <= 0) {
+            $accountsOrderId = (int) StorefrontDigitalFulfillment::query()
+                ->where('transaction_id', $transaction->id)
+                ->whereNotNull('accounts_order_id')
+                ->value('accounts_order_id');
+            if ($accountsOrderId <= 0) {
+                $accountsOrderId = null;
+            }
+        }
+
+        if ($storefrontOrderId === '' && ($accountsOrderId === null || $accountsOrderId <= 0) && empty($transaction->id)) {
+            StorefrontDigitalFulfillDebug::log('stamp_pos.skip_no_ids', [
+                'transaction_id' => $transaction->id ?? null,
             ]);
 
             return false;
         }
 
-        $response = $this->accounts->stampPosOrder($storefrontOrderId, (int) $transaction->id);
+        $response = $this->accounts->stampPosOrder(
+            $storefrontOrderId,
+            (int) $transaction->id,
+            $accountsOrderId
+        );
         StorefrontDigitalFulfillDebug::log('stamp_pos.response', [
             'transaction_id' => $transaction->id,
             'storefront_order_id' => $storefrontOrderId,
+            'accounts_order_id' => $accountsOrderId,
             'pos_transaction_id' => $transaction->id,
             'success' => $response['success'] ?? false,
             'status' => $response['status'] ?? null,
@@ -404,12 +426,7 @@ class DigitalFulfillmentService
             'body' => $response['body'] ?? null,
         ]);
 
-        // 404 "already synced" is OK — pos_order_id was set at allocate time.
         if (! empty($response['success'])) {
-            return true;
-        }
-        $message = strtolower((string) ($response['error'] ?? ''));
-        if (($response['status'] ?? 0) === 404 && str_contains($message, 'already')) {
             return true;
         }
 
