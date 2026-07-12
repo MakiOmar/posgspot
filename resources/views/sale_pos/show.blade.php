@@ -197,6 +197,27 @@
       @endif
     </div>
     <br>
+    @if(!empty($priceDebug) && (\App\Services\Storefront\StorefrontPriceDebug::enabled() || !empty($priceDebug['any_line_zero']) || !empty($priceDebug['view_will_show_zero'])))
+      {{-- Temporary storefront digital pricing diagnostics --}}
+      <div class="row no-print" style="margin-bottom: 1rem;">
+        <div class="col-sm-12">
+          <div class="alert alert-warning" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;">
+            <strong>Storefront price debug</strong>
+            (source={{ $sell->source ?? 'n/a' }}, invoice={{ $sell->invoice_no }}, tx={{ $sell->id }})
+            <br>
+            DB final_total={{ $priceDebug['transaction']['final_total'] ?? 'n/a' }}
+            · total_before_tax={{ $priceDebug['transaction']['total_before_tax'] ?? 'n/a' }}
+            · any_line_zero={{ !empty($priceDebug['any_line_zero']) ? 'YES' : 'no' }}
+            · view_will_show_zero={{ !empty($priceDebug['view_will_show_zero']) ? 'YES' : 'no' }}
+            <hr style="margin: 8px 0;">
+            <strong>sell_lines (DB)</strong>
+            <pre style="margin:0; max-height: 240px; overflow:auto;">{{ json_encode($priceDebug['sell_lines_db'] ?? [], JSON_PRETTY_PRINT) }}</pre>
+            <strong>sell_lines (Eloquent → view)</strong>
+            <pre style="margin:0; max-height: 240px; overflow:auto;">{{ json_encode($priceDebug['eloquent_sell_lines'] ?? [], JSON_PRETTY_PRINT) }}</pre>
+          </div>
+        </div>
+      </div>
+    @endif
     <div class="row">
       <div class="col-sm-12 col-xs-12">
         <h4>{{ __('sale.products') }}:</h4>

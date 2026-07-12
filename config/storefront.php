@@ -48,4 +48,10 @@ return [
     */
     'url' => rtrim((string) env('STOREFRONT_URL', env('APP_URL', 'http://localhost:5173')), '/'),
 
+    /**
+     * Extra digital pricing diagnostics (checkout API `_price_debug`, sell-details panel).
+     * Logs for digital checkouts always write to laravel.log; set true to also force the UI panel.
+     */
+    'price_debug' => filter_var(env('STOREFRONT_PRICE_DEBUG', false), FILTER_VALIDATE_BOOLEAN),
+
 ];

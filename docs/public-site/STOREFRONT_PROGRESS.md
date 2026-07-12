@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Digital price debug: `StorefrontPriceDebug` logs on checkout create + sell show; yellow panel on Sell Details when zero / `STOREFRONT_PRICE_DEBUG` / `?sf_debug=1`. |
 | 2026-07-12 | Digital POS insert aligned with Accounts send-to-POS: catalog `total/qty` unit price, server Accounts price lookup, index-matched sell-line hard-write, staff_note; repair can re-fetch catalog price. |
 | 2026-07-12 | Harden digital checkout pricing: merge raw digital.price, force products_payload/sell lines, repair zero-price sales via `storefront:repair-digital-prices`. |
 | 2026-07-12 | Fix digital checkout $0 totals: persist Accounts catalog price (not POS SKU); reject missing digital price; Qwik always sends `digital.price`. |
