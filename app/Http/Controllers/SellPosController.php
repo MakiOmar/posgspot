@@ -1545,31 +1545,20 @@ class SellPosController extends Controller
     }
 
     /**
-     * Ensure storefront digital allocate runs after sell/payment commit (debug + reliability).
+     * Ensure storefront digital allocate runs after sell/payment commit.
      */
     private function fulfillStorefrontDigitalIfPaid(int $transactionId): void
     {
         try {
             $tx = Transaction::find($transactionId);
             if (! $tx) {
-                \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.tx_missing', [
-                    'transaction_id' => $transactionId,
-                ]);
-
                 return;
             }
-            \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.invoke', [
-                'transaction_id' => $tx->id,
-                'invoice_no' => $tx->invoice_no,
-                'payment_status' => $tx->payment_status,
-                'source' => $tx->source,
-            ]);
             app(\App\Services\Storefront\DigitalFulfillmentService::class)
                 ->handleStorefrontBecamePaid($tx);
         } catch (\Throwable $e) {
-            \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.exception', [
+            \Log::warning('Storefront digital post-commit fulfill failed: '.$e->getMessage(), [
                 'transaction_id' => $transactionId,
-                'message' => $e->getMessage(),
             ]);
         }
     }

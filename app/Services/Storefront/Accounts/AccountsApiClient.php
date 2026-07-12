@@ -80,7 +80,7 @@ class AccountsApiClient
 
             $json = $response->json();
 
-            $result = [
+            return [
                 'success' => $response->successful(),
                 'status' => $response->status(),
                 'body' => is_array($json) ? $json : null,
@@ -88,29 +88,7 @@ class AccountsApiClient
                     ? null
                     : (string) (is_array($json) ? ($json['message'] ?? $response->body()) : $response->body()),
             ];
-
-            if (str_contains($path, 'orders/receive') || str_contains($path, 'pos/receive-order')) {
-                Log::warning('storefront.digital.fulfill.accounts_http', [
-                    'method' => strtoupper($method),
-                    'path' => $path,
-                    'url' => $url,
-                    'http_status' => $result['status'],
-                    'success' => $result['success'],
-                    'error' => $result['error'],
-                    'request_keys' => is_array($body) ? array_keys($body) : null,
-                    'storefront_order_id' => is_array($body) ? ($body['storefront_order_id'] ?? null) : null,
-                ]);
-            }
-
-            return $result;
         } catch (\Throwable $e) {
-            if (str_contains($path, 'orders/receive') || str_contains($path, 'pos/receive-order')) {
-                Log::warning('storefront.digital.fulfill.accounts_http_exception', [
-                    'path' => $path,
-                    'message' => $e->getMessage(),
-                ]);
-            }
-
             return ['success' => false, 'status' => 0, 'body' => null, 'error' => $e->getMessage()];
         }
     }

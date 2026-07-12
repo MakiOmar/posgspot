@@ -48,16 +48,6 @@ class DigitalFulfillmentService
             $this->repairSellLinePriceFromItem($transaction, $item);
         }
 
-        StorefrontDigitalFulfillDebug::log('queue_pending.done', [
-            'transaction_id' => $transaction->id,
-            'storefront_order_id' => $orderId,
-            'item_count' => count($digitalItems),
-            'line_keys' => array_map(
-                fn ($item) => $item['line_key'] ?? null,
-                $digitalItems
-            ),
-        ]);
-
         $this->refreshTransactionTotalsFromSellLines($transaction);
     }
 
@@ -202,15 +192,8 @@ class DigitalFulfillmentService
     public function handleStorefrontBecamePaid(Transaction $transaction): void
     {
         $transaction->refresh();
-        $snap = StorefrontDigitalFulfillDebug::snapshot($transaction);
-        StorefrontDigitalFulfillDebug::log('became_paid.enter', $snap);
 
         if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
-            StorefrontDigitalFulfillDebug::log('became_paid.skip_not_paid', [
-                'transaction_id' => $transaction->id,
-                'payment_status' => $transaction->payment_status,
-            ]);
-
             return;
         }
 
@@ -218,16 +201,6 @@ class DigitalFulfillmentService
             ->whereIn('status', ['pending', 'failed'])
             ->exists();
         if (! $hasPending) {
-            StorefrontDigitalFulfillDebug::log('became_paid.skip_no_pending_rows', [
-                'transaction_id' => $transaction->id,
-                'source' => $transaction->source,
-                'storefront_order_id' => $transaction->storefront_order_id,
-                'fulfillment_count' => $snap['fulfillment_count'],
-                'hint' => $snap['fulfillment_count'] === 0
-                    ? 'No storefront_digital_fulfillments rows — checkout may not have queued digital lines.'
-                    : 'Rows exist but none are pending/failed (already allocated or other status).',
-            ]);
-
             return;
         }
 
@@ -235,21 +208,11 @@ class DigitalFulfillmentService
             $allocated = $this->fulfillPaidTransaction($transaction->fresh(['contact', 'sell_lines']));
             $this->syncStaffNotesFromSecrets($transaction->fresh());
             $this->stampAccountsOrderAsSentToPos($transaction->fresh());
-            StorefrontDigitalFulfillDebug::log('became_paid.after_fulfill', [
-                'transaction_id' => $transaction->id,
-                'allocated' => $allocated,
-                'snapshot' => StorefrontDigitalFulfillDebug::snapshot($transaction->fresh()),
-            ]);
             if ($allocated > 0) {
                 app(StorefrontMailService::class)
                     ->sendPaidDigitalConfirmation($transaction->fresh(['contact', 'sell_lines']));
             }
         } catch (\Throwable $e) {
-            StorefrontDigitalFulfillDebug::log('became_paid.exception', [
-                'transaction_id' => $transaction->id,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile().':'.$e->getLine(),
-            ]);
             Log::warning('Storefront digital fulfill after paid failed: '.$e->getMessage(), [
                 'transaction_id' => $transaction->id,
                 'invoice_no' => $transaction->invoice_no,
@@ -323,25 +286,7 @@ class DigitalFulfillmentService
         $row->attempts = (int) $row->attempts + 1;
         $row->save();
 
-        StorefrontDigitalFulfillDebug::log('allocate.request', [
-            'transaction_id' => $transaction->id,
-            'fulfillment_id' => $row->id,
-            'line_key' => $row->line_key,
-            'kind' => $row->kind,
-            'payload' => $payload,
-            'accounts_base' => $this->accounts->baseUrl(),
-        ]);
-
         $response = $this->accounts->receiveOrder($payload);
-        StorefrontDigitalFulfillDebug::log('allocate.response', [
-            'transaction_id' => $transaction->id,
-            'fulfillment_id' => $row->id,
-            'success' => $response['success'] ?? false,
-            'status' => $response['status'] ?? null,
-            'error' => $response['error'] ?? null,
-            'body_keys' => is_array($response['body'] ?? null) ? array_keys($response['body']) : null,
-            'order_id' => $response['body']['order_id'] ?? null,
-        ]);
         if (! $response['success']) {
             $row->status = 'failed';
             $row->last_error = $response['error'] ?? 'Accounts allocate failed';
@@ -403,10 +348,6 @@ class DigitalFulfillmentService
         }
 
         if ($storefrontOrderId === '' && ($accountsOrderId === null || $accountsOrderId <= 0) && empty($transaction->id)) {
-            StorefrontDigitalFulfillDebug::log('stamp_pos.skip_no_ids', [
-                'transaction_id' => $transaction->id ?? null,
-            ]);
-
             return false;
         }
 
@@ -415,22 +356,8 @@ class DigitalFulfillmentService
             (int) $transaction->id,
             $accountsOrderId
         );
-        StorefrontDigitalFulfillDebug::log('stamp_pos.response', [
-            'transaction_id' => $transaction->id,
-            'storefront_order_id' => $storefrontOrderId,
-            'accounts_order_id' => $accountsOrderId,
-            'pos_transaction_id' => $transaction->id,
-            'success' => $response['success'] ?? false,
-            'status' => $response['status'] ?? null,
-            'error' => $response['error'] ?? null,
-            'body' => $response['body'] ?? null,
-        ]);
 
-        if (! empty($response['success'])) {
-            return true;
-        }
-
-        return false;
+        return ! empty($response['success']);
     }
 
     /**

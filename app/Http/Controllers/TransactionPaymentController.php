@@ -142,9 +142,8 @@ class TransactionPaymentController extends Controller
                     app(\App\Services\Storefront\DigitalFulfillmentService::class)
                         ->handleStorefrontBecamePaid($transaction->fresh());
                 } catch (\Throwable $e) {
-                    \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('payment_controller.post_commit.exception', [
+                    \Log::warning('Storefront digital post-commit fulfill failed: '.$e->getMessage(), [
                         'transaction_id' => $transaction_id,
-                        'message' => $e->getMessage(),
                     ]);
                 }
             }

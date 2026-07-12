@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Remove temporary digital fulfill debug panel and `storefront.digital.fulfill.*` diagnostic logs. |
 | 2026-07-12 | Sent-to-POS: allocate sets `pos_order_id` (one call); stamp fallback uses Accounts `order_id` + clearer already-synced vs not-found. |
 | 2026-07-12 | After allocate, stamp Accounts `pos_order_id` via `/api/pos/receive-order` so the order shows as sent to POS. |
 | 2026-07-12 | Staff note: robust replace of `Account: N/A` / `Password: N/A` after allocate; `storefront:fulfill-digital` also syncs notes from secrets. |

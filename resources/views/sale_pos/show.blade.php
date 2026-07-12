@@ -197,29 +197,6 @@
       @endif
     </div>
     <br>
-    @if(!empty($digitalFulfillDebug))
-      {{-- Temporary digital fulfill diagnostics --}}
-      <div class="row no-print" style="margin-bottom: 1rem;">
-        <div class="col-sm-12">
-          <div class="alert alert-info" style="font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-word;">
-            <strong>Storefront digital fulfill debug</strong>
-            · invoice={{ $digitalFulfillDebug['invoice_no'] ?? '' }}
-            · payment={{ $digitalFulfillDebug['payment_status'] ?? '' }}
-            · source={{ $digitalFulfillDebug['source'] ?? '' }}
-            · storefront_order_id={{ $digitalFulfillDebug['storefront_order_id'] ?? 'null' }}
-            · rows={{ $digitalFulfillDebug['fulfillment_count'] ?? 0 }}
-            · pending_or_failed={{ $digitalFulfillDebug['pending_or_failed'] ?? 0 }}
-            · would_hook_run={{ !empty($digitalFulfillDebug['would_hook_run']) ? 'YES' : 'no' }}
-            <hr style="margin: 8px 0;">
-            <strong>staff_note preview</strong>
-            <pre style="margin:0; max-height: 120px; overflow:auto;">{{ $digitalFulfillDebug['staff_note_preview'] ?? '' }}</pre>
-            <strong>fulfillment rows</strong>
-            <pre style="margin:0; max-height: 280px; overflow:auto;">{{ json_encode($digitalFulfillDebug['rows'] ?? [], JSON_PRETTY_PRINT) }}</pre>
-            <p style="margin:8px 0 0;">Retry: <code>php artisan storefront:fulfill-digital --transaction={{ $sell->id }}</code></p>
-          </div>
-        </div>
-      </div>
-    @endif
     <div class="row">
       <div class="col-sm-12 col-xs-12">
         <h4>{{ __('sale.products') }}:</h4>
