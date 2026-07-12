@@ -216,6 +216,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | After allocate, stamp Accounts `pos_order_id` via `/api/pos/receive-order` so the order shows as sent to POS. |
+| 2026-07-12 | Staff note: robust replace of `Account: N/A` / `Password: N/A` after allocate; `storefront:fulfill-digital` also syncs notes from secrets. |
 | 2026-07-12 | Digital allocate sends `wc_order_id` = POS transaction id (Accounts still requires the field name). |
 | 2026-07-12 | Digital fulfill debug: Sell Details panel + `storefront.digital.fulfill.*` logs; explicit post-commit fulfill on sell edit. |
 | 2026-07-12 | Digital fulfill on any paid path (`updatePaymentStatus`): Accounts allocate + staff_note credentials; removed temporary price debug. |

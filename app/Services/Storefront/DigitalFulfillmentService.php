@@ -233,6 +233,8 @@ class DigitalFulfillmentService
 
         try {
             $allocated = $this->fulfillPaidTransaction($transaction->fresh(['contact', 'sell_lines']));
+            $this->syncStaffNotesFromSecrets($transaction->fresh());
+            $this->stampAccountsOrderAsSentToPos($transaction->fresh());
             StorefrontDigitalFulfillDebug::log('became_paid.after_fulfill', [
                 'transaction_id' => $transaction->id,
                 'allocated' => $allocated,
@@ -374,6 +376,44 @@ class DigitalFulfillmentService
 
         $this->appendSecretsToSellLineNote($row, $secrets);
         $this->appendSecretsToStaffNote($transaction, $row, $secrets);
+        $this->stampAccountsOrderAsSentToPos($transaction);
+    }
+
+    /**
+     * Mark Accounts order(s) as sent to POS (sets pos_order_id → green POS badge).
+     */
+    public function stampAccountsOrderAsSentToPos(Transaction $transaction): bool
+    {
+        $storefrontOrderId = trim((string) ($transaction->storefront_order_id ?? ''));
+        if ($storefrontOrderId === '') {
+            StorefrontDigitalFulfillDebug::log('stamp_pos.skip_no_storefront_id', [
+                'transaction_id' => $transaction->id,
+            ]);
+
+            return false;
+        }
+
+        $response = $this->accounts->stampPosOrder($storefrontOrderId, (int) $transaction->id);
+        StorefrontDigitalFulfillDebug::log('stamp_pos.response', [
+            'transaction_id' => $transaction->id,
+            'storefront_order_id' => $storefrontOrderId,
+            'pos_transaction_id' => $transaction->id,
+            'success' => $response['success'] ?? false,
+            'status' => $response['status'] ?? null,
+            'error' => $response['error'] ?? null,
+            'body' => $response['body'] ?? null,
+        ]);
+
+        // 404 "already synced" is OK — pos_order_id was set at allocate time.
+        if (! empty($response['success'])) {
+            return true;
+        }
+        $message = strtolower((string) ($response['error'] ?? ''));
+        if (($response['status'] ?? 0) === 404 && str_contains($message, 'already')) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -418,32 +458,66 @@ class DigitalFulfillmentService
         $title = (string) ($meta['title'] ?? 'N/A');
         $type = (string) ($meta['type'] ?? ($row->kind === 'card' ? 'card' : 'N/A'));
         $account = (string) ($secrets['email'] ?? ($secrets['code'] ?? 'N/A'));
-        $password = (string) ($secrets['password'] ?? ($row->kind === 'card' ? 'N/A' : 'N/A'));
+        $password = (string) ($secrets['password'] ?? 'N/A');
         if ($row->kind === 'card' && ! empty($secrets['code'])) {
             $account = (string) $secrets['code'];
             $password = 'N/A';
         }
 
-        $filled = 'Game Title: '.$title."\nType: ".$type."\nAccount: ".$account."\nPassword: ".$password.'<br>----------------------<br>';
-        $placeholder = 'Game Title: '.$title."\nType: ".$type."\nAccount: N/A\nPassword: N/A<br>----------------------<br>";
+        // Always reload — sell edit may have a stale in-memory staff_note.
+        $tx = Transaction::find($transaction->id);
+        if (! $tx) {
+            return;
+        }
+        $staff = (string) ($tx->staff_note ?? '');
+        $filledBlock = 'Game Title: '.$title."\nType: ".$type."\nAccount: ".$account."\nPassword: ".$password.'<br>----------------------<br>';
 
-        $staff = (string) ($transaction->staff_note ?? '');
-        if ($staff !== '' && str_contains($staff, $placeholder)) {
-            $staff = str_replace($placeholder, $filled, $staff);
-        } elseif ($staff !== '' && $title !== 'N/A' && str_contains($staff, 'Game Title: '.$title) && str_contains($staff, 'Account: N/A')) {
-            // Replace first N/A credential pair after this title.
-            $staff = preg_replace(
-                '/(Game Title:\s*'.preg_quote($title, '/').'\nType:\s*[^\n]+\n)Account:\s*N\/A\nPassword:\s*N\/A/u',
-                '$1Account: '.$account."\nPassword: ".$password,
-                $staff,
-                1
-            ) ?? $staff;
-        } else {
-            $staff = trim($staff) === '' ? $filled : rtrim($staff)."\n".$filled;
+        $count = 0;
+        // Replace the first pending credential pair (tolerate \r\n and optional <br>).
+        $updated = preg_replace(
+            '/Account:\s*N\/A\s*\r?\nPassword:\s*N\/A(?:<br\s*\/?>)?/u',
+            'Account: '.$account."\nPassword: ".$password,
+            $staff,
+            1,
+            $count
+        );
+
+        if ($count > 0 && is_string($updated)) {
+            $staff = $updated;
+        } elseif ($staff === '' || ! str_contains($staff, 'Account: '.$account)) {
+            $staff = trim($staff) === '' ? $filledBlock : rtrim($staff)."\n".$filledBlock;
         }
 
+        $tx->staff_note = $staff;
+        $tx->save();
         $transaction->staff_note = $staff;
-        $transaction->save();
+    }
+
+    /**
+     * Backfill Staff note credentials from already-allocated secrets (N/A placeholders).
+     */
+    public function syncStaffNotesFromSecrets(Transaction $transaction): int
+    {
+        $rows = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
+            ->where('status', 'allocated')
+            ->orderBy('id')
+            ->get();
+
+        $updated = 0;
+        foreach ($rows as $row) {
+            $secrets = $row->readSecrets();
+            if (! is_array($secrets) || $secrets === []) {
+                continue;
+            }
+            $before = (string) (Transaction::where('id', $transaction->id)->value('staff_note') ?? '');
+            $this->appendSecretsToStaffNote($transaction, $row, $secrets);
+            $after = (string) (Transaction::where('id', $transaction->id)->value('staff_note') ?? '');
+            if ($after !== $before) {
+                $updated++;
+            }
+        }
+
+        return $updated;
     }
 
     /**

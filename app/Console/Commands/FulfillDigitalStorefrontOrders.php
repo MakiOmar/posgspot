@@ -45,7 +45,38 @@ class FulfillDigitalStorefrontOrders extends Command
             }
         }
 
-        $this->info("Done. Newly allocated lines: {$done}.");
+        // Also refresh Staff note from secrets (covers allocated rows that still show N/A).
+        $syncQuery = StorefrontDigitalFulfillment::query()
+            ->where('status', 'allocated')
+            ->orderBy('id');
+        if ($txId !== null && $txId !== '') {
+            $syncQuery->where('transaction_id', (int) $txId);
+        }
+        $synced = 0;
+        $stamped = 0;
+        $syncSeen = [];
+        foreach ($syncQuery->get() as $row) {
+            $tid = (int) $row->transaction_id;
+            if (isset($syncSeen[$tid])) {
+                continue;
+            }
+            $syncSeen[$tid] = true;
+            $tx = Transaction::find($tid);
+            if (! $tx) {
+                continue;
+            }
+            $n = $fulfillment->syncStaffNotesFromSecrets($tx);
+            if ($n > 0) {
+                $synced += $n;
+                $this->info("Synced staff_note for invoice {$tx->invoice_no} (tx {$tx->id}).");
+            }
+            if ($fulfillment->stampAccountsOrderAsSentToPos($tx)) {
+                $stamped++;
+                $this->info("Stamped Accounts order as sent to POS for invoice {$tx->invoice_no} (tx {$tx->id}).");
+            }
+        }
+
+        $this->info("Done. Newly allocated lines: {$done}. Staff notes synced: {$synced}. POS stamps: {$stamped}.");
 
         return self::SUCCESS;
     }
