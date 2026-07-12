@@ -1282,6 +1282,8 @@ class SellPosController extends Controller
                     DB::beginTransaction();
                     $this->onlyUpdatePayment($transaction_before, $input);
                     DB::commit();
+                    // Belt-and-suspenders: afterCommit can miss in some POS paths.
+                    $this->fulfillStorefrontDigitalIfPaid((int) $transaction_before->id);
 
                     $can_print_invoice = auth()->user()->can('print_invoice');
                     $invoice_layout_id = $request->input('invoice_layout_id');
@@ -1425,6 +1427,7 @@ class SellPosController extends Controller
                 SellCreatedOrModified::dispatch($transaction);
 
                 DB::commit();
+                $this->fulfillStorefrontDigitalIfPaid((int) $transaction->id);
 
                 if ($request->input('is_save_and_print') == 1) {
                     $url = $this->transactionUtil->getInvoiceUrl($id, $business_id);
@@ -1539,6 +1542,36 @@ class SellPosController extends Controller
         }
 
         $this->transactionUtil->activityLog($transaction, 'payment_edited', $transaction_before);
+    }
+
+    /**
+     * Ensure storefront digital allocate runs after sell/payment commit (debug + reliability).
+     */
+    private function fulfillStorefrontDigitalIfPaid(int $transactionId): void
+    {
+        try {
+            $tx = Transaction::find($transactionId);
+            if (! $tx) {
+                \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.tx_missing', [
+                    'transaction_id' => $transactionId,
+                ]);
+
+                return;
+            }
+            \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.invoke', [
+                'transaction_id' => $tx->id,
+                'invoice_no' => $tx->invoice_no,
+                'payment_status' => $tx->payment_status,
+                'source' => $tx->source,
+            ]);
+            app(\App\Services\Storefront\DigitalFulfillmentService::class)
+                ->handleStorefrontBecamePaid($tx);
+        } catch (\Throwable $e) {
+            \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('pos_post_commit.exception', [
+                'transaction_id' => $transactionId,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

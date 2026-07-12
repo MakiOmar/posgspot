@@ -137,6 +137,16 @@ class TransactionPaymentController extends Controller
                 $this->transactionUtil->activityLog($transaction, 'payment_edited', $transaction_before);
 
                 DB::commit();
+
+                try {
+                    app(\App\Services\Storefront\DigitalFulfillmentService::class)
+                        ->handleStorefrontBecamePaid($transaction->fresh());
+                } catch (\Throwable $e) {
+                    \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('payment_controller.post_commit.exception', [
+                        'transaction_id' => $transaction_id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
 
             $output = ['success' => true,

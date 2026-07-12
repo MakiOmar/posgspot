@@ -867,6 +867,14 @@ class SellController extends Controller
 
         $sell = $query->firstOrFail();
 
+        $digitalFulfillDebug = null;
+        if (($sell->source ?? '') === 'storefront'
+            || request()->boolean('sf_debug')
+            || request()->header('X-Storefront-Debug') === '1') {
+            $digitalFulfillDebug = \App\Services\Storefront\StorefrontDigitalFulfillDebug::snapshot($sell);
+            \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('sell.show.view', $digitalFulfillDebug);
+        }
+
         $activities = Activity::forSubject($sell)
            ->with(['causer', 'subject'])
            ->latest()
@@ -928,7 +936,8 @@ class SellController extends Controller
                 'statuses',
                 'status_color_in_activity',
                 'sales_orders',
-                'line_taxes'
+                'line_taxes',
+                'digitalFulfillDebug'
             ));
     }
 

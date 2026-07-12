@@ -216,6 +216,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-12 | Digital fulfill debug: Sell Details panel + `storefront.digital.fulfill.*` logs; explicit post-commit fulfill on sell edit. |
 | 2026-07-12 | Digital fulfill on any paid path (`updatePaymentStatus`): Accounts allocate + staff_note credentials; removed temporary price debug. |
 | 2026-07-12 | Digital POS insert aligned with Accounts send-to-POS: catalog `total/qty` unit price, server Accounts price lookup, index-matched sell-line hard-write, staff_note; repair can re-fetch catalog price. |
 | 2026-07-12 | Harden digital checkout pricing: merge raw digital.price, force products_payload/sell lines, repair zero-price sales via `storefront:repair-digital-prices`. |

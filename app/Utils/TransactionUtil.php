@@ -3082,6 +3082,8 @@ class TransactionUtil extends Util
         $status = $this->calculatePaymentStatus($transaction_id, $final_amount);
 
         $transaction = Transaction::find($transaction_id);
+        $previousStatus = $transaction ? (string) ($transaction->payment_status ?? '') : '';
+
         $transaction->payment_status = $status;
         $transaction->save();
 
@@ -3089,25 +3091,55 @@ class TransactionUtil extends Util
 
         $moduleUtil->getModuleData('after_payment_status_updated', ['transaction' => $transaction]);
 
+        $txLevel = \Illuminate\Support\Facades\DB::transactionLevel();
+        \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('payment_status.updated', [
+            'transaction_id' => $transaction_id,
+            'invoice_no' => $transaction->invoice_no ?? null,
+            'source' => $transaction->source ?? null,
+            'storefront_order_id' => $transaction->storefront_order_id ?? null,
+            'previous_status' => $previousStatus,
+            'new_status' => $status,
+            'db_transaction_level' => $txLevel,
+            'will_schedule_hook' => $status === 'paid',
+            'schedule_via' => $status === 'paid'
+                ? ($txLevel > 0 ? 'afterCommit' : 'immediate')
+                : 'none',
+        ]);
+
         // Storefront digital: allocate Accounts credentials whenever status is paid
         // (covers sell edit + cash, payment modal, Fawry recorder, etc.).
         if ($status === 'paid') {
             $run = function () use ($transaction_id) {
+                \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('paid_hook.run_start', [
+                    'transaction_id' => $transaction_id,
+                ]);
                 try {
                     $tx = Transaction::find($transaction_id);
                     if (! $tx) {
+                        \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('paid_hook.tx_missing', [
+                            'transaction_id' => $transaction_id,
+                        ]);
+
                         return;
                     }
                     app(\App\Services\Storefront\DigitalFulfillmentService::class)
                         ->handleStorefrontBecamePaid($tx);
                 } catch (\Throwable $e) {
+                    \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('paid_hook.exception', [
+                        'transaction_id' => $transaction_id,
+                        'message' => $e->getMessage(),
+                        'file' => $e->getFile().':'.$e->getLine(),
+                    ]);
                     \Log::warning('Storefront digital paid hook failed: '.$e->getMessage(), [
                         'transaction_id' => $transaction_id,
                     ]);
                 }
             };
-            if (\Illuminate\Support\Facades\DB::transactionLevel() > 0) {
+            if ($txLevel > 0) {
                 \Illuminate\Support\Facades\DB::afterCommit($run);
+                \App\Services\Storefront\StorefrontDigitalFulfillDebug::log('paid_hook.scheduled_after_commit', [
+                    'transaction_id' => $transaction_id,
+                ]);
             } else {
                 $run();
             }
