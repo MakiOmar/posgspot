@@ -37,16 +37,7 @@ class StorefrontPaymentRecorder
         }
 
         $transaction->refresh();
-        if (strtolower(trim((string) $transaction->payment_status)) === 'paid') {
-            try {
-                app(\App\Services\Storefront\DigitalFulfillmentService::class)
-                    ->fulfillPaidTransaction($transaction);
-                app(\App\Services\Storefront\StorefrontMailService::class)
-                    ->sendPaidDigitalConfirmation($transaction->fresh(['contact', 'sell_lines']));
-            } catch (\Throwable $e) {
-                \Log::warning('Storefront digital fulfill/email after paid failed: '.$e->getMessage());
-            }
-        }
+        // Digital allocate + email runs from TransactionUtil::updatePaymentStatus when paid.
     }
 
     public function storePaymentMeta(Transaction $transaction, array $meta): void

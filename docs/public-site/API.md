@@ -200,7 +200,7 @@ Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros d
 - `storefront_order_id` on transactions for checkout idempotency
 - CORS: configure `CORS_ALLOWED_ORIGINS` in `.env`
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
-- Temporary digital pricing diagnostics: `STOREFRONT_PRICE_DEBUG=true` (or `?sf_debug=1` / header `X-Storefront-Debug: 1`) adds `_price_debug` on checkout and a yellow panel on POS Sell Details; digital checkouts also always log `storefront.digital.price.*` to `storage/logs/laravel.log`
+- Digital allocate when a sell becomes **paid** (any POS path via `updatePaymentStatus`): Accounts `receiveOrder`, credentials on Staff note + sell line. Retry: `php artisan storefront:fulfill-digital` (optional `--transaction=ID`)
 - Rate limit (`throttle:storefront`, per IP): reads (GET/HEAD) use `STOREFRONT_RATE_LIMIT_READ` (default **600**/min); writes use `STOREFRONT_RATE_LIMIT` (default **120**/min). The Qwik SSR process also caches settings/categories for ~30s so layout loaders do not hit Laravel on every navigation.
 - Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).

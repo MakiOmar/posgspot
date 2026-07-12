@@ -23,7 +23,6 @@ use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
 use App\Warranty;
-use App\Services\Storefront\StorefrontPriceDebug;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -868,9 +867,6 @@ class SellController extends Controller
 
         $sell = $query->firstOrFail();
 
-        $priceDebug = null;
-        $shouldPriceDebug = $sell->source === 'storefront' || StorefrontPriceDebug::enabled(request());
-
         $activities = Activity::forSubject($sell)
            ->with(['causer', 'subject'])
            ->latest()
@@ -890,17 +886,6 @@ class SellController extends Controller
                     $line_taxes[$taxes[$value->tax_id]] = ($value->item_tax * $value->quantity);
                 }
             }
-        }
-
-        // Capture after sub-unit recalculation so the panel matches what the blade renders.
-        if ($shouldPriceDebug) {
-            $priceDebug = StorefrontPriceDebug::viewPanelData($sell);
-            StorefrontPriceDebug::log('sell.show.view', [
-                'transaction_id' => $sell->id,
-                'invoice_no' => $sell->invoice_no,
-                'source' => $sell->source,
-                'debug' => $priceDebug,
-            ]);
         }
 
         $payment_types = $this->transactionUtil->payment_types($sell->location_id, true);
@@ -943,8 +928,7 @@ class SellController extends Controller
                 'statuses',
                 'status_color_in_activity',
                 'sales_orders',
-                'line_taxes',
-                'priceDebug'
+                'line_taxes'
             ));
     }
 

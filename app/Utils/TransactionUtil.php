@@ -3089,6 +3089,30 @@ class TransactionUtil extends Util
 
         $moduleUtil->getModuleData('after_payment_status_updated', ['transaction' => $transaction]);
 
+        // Storefront digital: allocate Accounts credentials whenever status is paid
+        // (covers sell edit + cash, payment modal, Fawry recorder, etc.).
+        if ($status === 'paid') {
+            $run = function () use ($transaction_id) {
+                try {
+                    $tx = Transaction::find($transaction_id);
+                    if (! $tx) {
+                        return;
+                    }
+                    app(\App\Services\Storefront\DigitalFulfillmentService::class)
+                        ->handleStorefrontBecamePaid($tx);
+                } catch (\Throwable $e) {
+                    \Log::warning('Storefront digital paid hook failed: '.$e->getMessage(), [
+                        'transaction_id' => $transaction_id,
+                    ]);
+                }
+            };
+            if (\Illuminate\Support\Facades\DB::transactionLevel() > 0) {
+                \Illuminate\Support\Facades\DB::afterCommit($run);
+            } else {
+                $run();
+            }
+        }
+
         return $status;
     }
 

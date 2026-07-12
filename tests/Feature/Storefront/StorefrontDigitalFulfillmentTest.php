@@ -77,6 +77,10 @@ class StorefrontDigitalFulfillmentTest extends TestCase
         $this->assertSame('allocated', $row->status);
         $this->assertSame(9001, (int) $row->accounts_order_id);
 
+        $transaction->refresh();
+        $this->assertStringContainsString('game@example.com', (string) $transaction->staff_note);
+        $this->assertStringContainsString('secret-pass', (string) $transaction->staff_note);
+
         $deliveries = app(DigitalFulfillmentService::class)
             ->customerDeliveriesForTransaction($transaction->fresh());
         $this->assertCount(1, $deliveries);

@@ -158,11 +158,11 @@ class DigitalFulfillmentService
         return $fixed;
     }
 
-    public function fulfillPaidTransaction(Transaction $transaction): void
+    public function fulfillPaidTransaction(Transaction $transaction): int
     {
         $transaction->loadMissing(['contact', 'sell_lines']);
         if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
-            return;
+            return 0;
         }
 
         $rows = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
@@ -170,11 +170,53 @@ class DigitalFulfillmentService
             ->get();
 
         if ($rows->isEmpty()) {
+            return 0;
+        }
+
+        $allocated = 0;
+        foreach ($rows as $row) {
+            $before = $row->status;
+            $this->allocateOne($transaction, $row);
+            $row->refresh();
+            if ($row->status === 'allocated' && $before !== 'allocated') {
+                $allocated++;
+            }
+        }
+
+        return $allocated;
+    }
+
+    /**
+     * Run after POS payment status becomes paid (edit sell + cash, payment modal, Fawry, etc.).
+     */
+    public function handleStorefrontBecamePaid(Transaction $transaction): void
+    {
+        $transaction->refresh();
+        if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
             return;
         }
 
-        foreach ($rows as $row) {
-            $this->allocateOne($transaction, $row);
+        $hasPending = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
+            ->whereIn('status', ['pending', 'failed'])
+            ->exists();
+        if (! $hasPending && ($transaction->source ?? '') !== 'storefront') {
+            return;
+        }
+        if (! $hasPending) {
+            return;
+        }
+
+        try {
+            $allocated = $this->fulfillPaidTransaction($transaction->fresh(['contact', 'sell_lines']));
+            if ($allocated > 0) {
+                app(StorefrontMailService::class)
+                    ->sendPaidDigitalConfirmation($transaction->fresh(['contact', 'sell_lines']));
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Storefront digital fulfill after paid failed: '.$e->getMessage(), [
+                'transaction_id' => $transaction->id,
+                'invoice_no' => $transaction->invoice_no,
+            ]);
         }
     }
 
@@ -276,6 +318,7 @@ class DigitalFulfillmentService
         $row->save();
 
         $this->appendSecretsToSellLineNote($row, $secrets);
+        $this->appendSecretsToStaffNote($transaction, $row, $secrets);
     }
 
     /**
@@ -307,6 +350,45 @@ class DigitalFulfillmentService
         $addition = implode(' | ', $parts);
         $line->sell_line_note = $note === '' ? $addition : $note."\n".$addition;
         $line->save();
+    }
+
+    /**
+     * Fill invoice Staff note like Accounts send-to-POS (game title + live credentials).
+     *
+     * @param  array<string, mixed>  $secrets
+     */
+    private function appendSecretsToStaffNote(Transaction $transaction, StorefrontDigitalFulfillment $row, array $secrets): void
+    {
+        $meta = is_array($row->request_meta) ? $row->request_meta : [];
+        $title = (string) ($meta['title'] ?? 'N/A');
+        $type = (string) ($meta['type'] ?? ($row->kind === 'card' ? 'card' : 'N/A'));
+        $account = (string) ($secrets['email'] ?? ($secrets['code'] ?? 'N/A'));
+        $password = (string) ($secrets['password'] ?? ($row->kind === 'card' ? 'N/A' : 'N/A'));
+        if ($row->kind === 'card' && ! empty($secrets['code'])) {
+            $account = (string) $secrets['code'];
+            $password = 'N/A';
+        }
+
+        $filled = 'Game Title: '.$title."\nType: ".$type."\nAccount: ".$account."\nPassword: ".$password.'<br>----------------------<br>';
+        $placeholder = 'Game Title: '.$title."\nType: ".$type."\nAccount: N/A\nPassword: N/A<br>----------------------<br>";
+
+        $staff = (string) ($transaction->staff_note ?? '');
+        if ($staff !== '' && str_contains($staff, $placeholder)) {
+            $staff = str_replace($placeholder, $filled, $staff);
+        } elseif ($staff !== '' && $title !== 'N/A' && str_contains($staff, 'Game Title: '.$title) && str_contains($staff, 'Account: N/A')) {
+            // Replace first N/A credential pair after this title.
+            $staff = preg_replace(
+                '/(Game Title:\s*'.preg_quote($title, '/').'\nType:\s*[^\n]+\n)Account:\s*N\/A\nPassword:\s*N\/A/u',
+                '$1Account: '.$account."\nPassword: ".$password,
+                $staff,
+                1
+            ) ?? $staff;
+        } else {
+            $staff = trim($staff) === '' ? $filled : rtrim($staff)."\n".$filled;
+        }
+
+        $transaction->staff_note = $staff;
+        $transaction->save();
     }
 
     /**

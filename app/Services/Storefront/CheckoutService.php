@@ -199,29 +199,6 @@ class CheckoutService
             }
 
             $userId = 1;
-
-            $hasDigitalCheckout = false;
-            foreach ($checkoutItems as $ci) {
-                if (is_array($ci) && ! empty(($ci['digital']['kind'] ?? null))) {
-                    $hasDigitalCheckout = true;
-                    break;
-                }
-            }
-            $priceDebugInput = StorefrontPriceDebug::snapshotCheckoutInput(
-                $checkoutItems,
-                $input['products'],
-                $subtotal,
-                $finalTotal
-            );
-            if ($hasDigitalCheckout || StorefrontPriceDebug::enabled()) {
-                StorefrontPriceDebug::log('checkout.before_create', array_merge($priceDebugInput, [
-                    'order_id' => $orderId,
-                    'location_id' => $locationId,
-                    'payment_method' => $paymentMethod,
-                    'has_digital' => $hasDigitalCheckout,
-                ]));
-            }
-
             $transaction = $this->transactionUtil->createSellTransaction($businessId, $input, $invoiceTotal, $userId, false);
             $transaction->storefront_order_id = $orderId;
             if (! empty($validated['coupon_ids'])) {
@@ -234,36 +211,9 @@ class CheckoutService
             }
             $transaction->save();
 
-            if ($hasDigitalCheckout || StorefrontPriceDebug::enabled()) {
-                StorefrontPriceDebug::log('checkout.after_transaction', [
-                    'transaction_id' => $transaction->id,
-                    'invoice_no' => $transaction->invoice_no,
-                    'total_before_tax' => $transaction->total_before_tax,
-                    'final_total' => $transaction->final_total,
-                ]);
-            }
-
             $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $locationId, false, null, [], false);
 
-            $afterLines = StorefrontPriceDebug::snapshotTransaction($transaction);
-            if ($hasDigitalCheckout || StorefrontPriceDebug::enabled()) {
-                StorefrontPriceDebug::log('checkout.after_sell_lines', $afterLines);
-            }
-
             $this->syncDigitalSellLinePrices($transaction, $checkoutItems, $input['products'], $couponDiscount, $rpRedeemedAmount);
-
-            $afterSync = StorefrontPriceDebug::snapshotTransaction($transaction);
-            if ($hasDigitalCheckout || StorefrontPriceDebug::enabled()) {
-                StorefrontPriceDebug::log('checkout.after_price_sync', $afterSync);
-            }
-            if (! empty($afterSync['any_line_zero'])) {
-                StorefrontPriceDebug::log('checkout.ZERO_PRICE_AFTER_SYNC', [
-                    'transaction_id' => $transaction->id,
-                    'invoice_no' => $transaction->invoice_no,
-                    'input' => $priceDebugInput,
-                    'db' => $afterSync,
-                ]);
-            }
 
             $this->queueDigitalFulfillments($transaction, $checkoutItems);
 
@@ -312,29 +262,10 @@ class CheckoutService
             DB::commit();
 
             $transaction = $transaction->fresh(['sell_lines', 'contact']);
-            $finalSnap = StorefrontPriceDebug::snapshotTransaction($transaction);
-            if ($hasDigitalCheckout || StorefrontPriceDebug::enabled()) {
-                StorefrontPriceDebug::log('checkout.after_commit', $finalSnap);
-            }
 
-            $response = $this->appendPaymentSession($businessId, $transaction, $payload);
-            if (StorefrontPriceDebug::enabled()) {
-                $response['_price_debug'] = [
-                    'input' => $priceDebugInput,
-                    'after_sell_lines' => $afterLines,
-                    'after_price_sync' => $afterSync,
-                    'after_commit' => $finalSnap,
-                ];
-            }
-
-            return $response;
+            return $this->appendPaymentSession($businessId, $transaction, $payload);
         } catch (\Throwable $e) {
             DB::rollBack();
-            StorefrontPriceDebug::log('checkout.exception', [
-                'order_id' => $orderId ?? null,
-                'message' => $e->getMessage(),
-                'file' => $e->getFile().':'.$e->getLine(),
-            ]);
             throw $e;
         }
     }
