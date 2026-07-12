@@ -305,6 +305,8 @@ class DigitalFulfillmentService
             'price' => (float) ($meta['price'] ?? $transaction->final_total),
             'storefront_order_id' => $transaction->storefront_order_id,
             'pos_transaction_id' => $transaction->id,
+            // Accounts legacy field (still required on some deploys); use POS transaction id.
+            'wc_order_id' => (int) $transaction->id,
             'storefront_line_key' => $row->line_key,
         ];
 

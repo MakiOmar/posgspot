@@ -54,6 +54,7 @@ class StorefrontDigitalFulfillmentTest extends TestCase
             ->with(Mockery::on(function (array $payload) use ($transaction) {
                 return ($payload['storefront_order_id'] ?? null) === $transaction->storefront_order_id
                     && (int) ($payload['pos_transaction_id'] ?? 0) === (int) $transaction->id
+                    && (int) ($payload['wc_order_id'] ?? 0) === (int) $transaction->id
                     && (int) ($payload['game_id'] ?? 0) === 42;
             }))
             ->andReturn([
