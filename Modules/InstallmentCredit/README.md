@@ -2,18 +2,35 @@
 
 First-party UltimatePOS module that replaces the Excel **Credit Analyses** workbook: installment companies owe Games Spot after BNPL sales.
 
-## Install
+## Install (after git pull)
 
-1. Module is enabled in `modules_statuses.json` (`InstallmentCredit: true`).
-2. Run migrations: `php artisan module:migrate InstallmentCredit --force`
-3. Or visit `/installment-credit/install` as superadmin (sets `installmentcredit_version` + seeds companies).
+1. Confirm `modules_statuses.json` has `"InstallmentCredit": true`.
+2. Run:
 
-Already applied on this environment if `system.installmentcredit_version` = `1.0`.
+```bash
+php artisan module:migrate InstallmentCredit --force
+```
+
+Migration `…_mark_installment_credit_installed` sets `installmentcredit_version` in the `system` table, seeds default companies, and grants Admin role permissions. **Without that row the sidebar menu will not appear.**
+
+3. Clear caches:
+
+```bash
+php artisan optimize:clear
+```
+
+4. Log out/in (or hard refresh). Sidebar: **Installment Credit**.
+
+### If the menu is still missing
+
+- Open as **superadmin**: `/installment-credit/install` then submit Install.
+- Or check DB: `SELECT * FROM system WHERE \`key\` = 'installmentcredit_version';`
+- Role must have `installment.view` (or be superadmin). Re-save the role under User Management → Roles if needed.
 
 ## Setup for cashiers
 
-1. **Installment Credit → Companies** — defaults: Value, Maylo, Tru, Aman, Forsa, Seven, Sohoula (each mapped to `custom_pay_1`…`7`).
-2. **Business Settings → Custom Labels** — set Custom Payment 1–7 labels to the company names.
+1. **Installment Credit → Companies** — defaults: Value, Maylo, Tru, Aman, Forsa, Seven, Sohoula (mapped to `custom_pay_1`…`7`).
+2. **Business Settings → Custom Labels** — set Custom Payment 1–7 to those names.
 3. **Business Location → Payment accounts** — enable those custom payment methods for POS.
 4. Grant role permissions: `installment.view`, `companies`, `settle`, `reports`, `import`.
 
@@ -21,10 +38,10 @@ Already applied on this environment if `system.installmentcredit_version` = `1.0
 
 | Action | Result |
 |--------|--------|
-| POS sale paid with mapped company method | Sale marked paid; **no** cashbook credit; pending receivable created |
-| Settle selected pending rows | Credits deposit account for **actual received**; posts **BNPL Fees** expense for fee |
+| POS sale paid with mapped company method | Sale paid; **no** cashbook credit; pending receivable created |
+| Settle pending rows | Credits deposit account for actual received; BNPL fee expense |
 | Delete/void BNPL payment | Pending receivable cancelled |
-| Import CSV | Open balances only (Excel pending rows) |
+| Import CSV | Open balances only |
 
 ## Menu
 
@@ -34,4 +51,3 @@ Already applied on this environment if `system.installmentcredit_version` = `1.0
 
 - Module: `Modules/InstallmentCredit/`
 - Skip cashbook on BNPL sale: `app/Listeners/AddAccountTransaction.php`
-- Domain docs: `d:\DevMaestro\Work\gamessspot\CREDIT_ANALYSES_README.md`
