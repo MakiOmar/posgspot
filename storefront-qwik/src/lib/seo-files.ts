@@ -1,4 +1,5 @@
 /** Paths that must not be indexed (account, checkout, auth, utilities). */
+import { ROBOTS_DISALLOW_ALL } from "~/lib/config";
 import { STORE_LOCALES } from "~/lib/i18n/config";
 import { localePath } from "~/lib/i18n/paths";
 
@@ -25,7 +26,15 @@ export function robotsDisallowPaths(): string[] {
   return paths;
 }
 
+/**
+ * Build robots.txt body.
+ * When `PUBLIC_ROBOTS_DISALLOW_ALL` is set, emit a full-site disallow and omit Sitemap.
+ */
 export function buildRobotsTxt(origin: string): string {
+  if (ROBOTS_DISALLOW_ALL) {
+    return ["User-agent: *", "Disallow: /", ""].join("\n");
+  }
+
   const lines = [
     "User-agent: *",
     ...robotsDisallowPaths().map((path) => `Disallow: ${path}`),

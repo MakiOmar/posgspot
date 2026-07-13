@@ -69,3 +69,21 @@ The production build will generate client and server modules by running both cli
 ```shell
 npm run build # or `yarn build`
 ```
+
+## Express Server
+
+This app has a minimal [Express server](https://expressjs.com/) adapter. After a full build, run the production server locally with:
+
+```shell
+npm run serve
+```
+
+Then visit [http://localhost:3000/](http://localhost:3000/) (or the port in `PORT`).
+
+For production deploy, set `ORIGIN` to your public site origin (CSRF checks), e.g.:
+
+```shell
+ORIGIN=https://example.com node server/entry.express
+```
+
+See [Qwik Node deployments](https://qwik.dev/docs/deployments/node/).

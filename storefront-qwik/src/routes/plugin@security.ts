@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { RequestHandler } from "@builder.io/qwik-city";
 import { isDev } from "@builder.io/qwik/build";
+import { ROBOTS_DISALLOW_ALL } from "~/lib/config";
 import {
   buildContentSecurityPolicy,
   cspReportOnly,
@@ -13,6 +14,11 @@ function createNonce(): string {
 
 /** Apply CSP and baseline security headers to HTML document responses. */
 export const onRequest: RequestHandler = ({ headers, sharedMap, url }) => {
+  // Staging / pre-launch: keep every response out of search indexes.
+  if (ROBOTS_DISALLOW_ALL) {
+    headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
   const path = url.pathname.toLowerCase();
   if (path.endsWith(".xml") || path.endsWith("/robots.txt")) {
     return;

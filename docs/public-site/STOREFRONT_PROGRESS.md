@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-12 |
+| **Last updated** | 2026-07-13 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -91,7 +91,7 @@
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
-| `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs |
+| `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
 | Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit |
 
 ---
@@ -171,7 +171,7 @@
 | `noindex` on cart, checkout, account, auth | ✅ | |
 | Canonical / hreflang | ✅ | Public pages; RouterHead skips default when route sets canonical |
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
-| `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes `robots.txt`, `sitemap.xml` (products + categories from API) |
+| `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes; staging `PUBLIC_ROBOTS_DISALLOW_ALL` → `Disallow: /` + empty sitemap + sitewide noindex / `X-Robots-Tag` |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
 | CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Cloudflare Turnstile allowed when enabled; skipped in dev |
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
@@ -217,6 +217,7 @@
 | Date | Change |
 |------|--------|
 | 2026-07-12 | Remove temporary digital fulfill debug panel and `storefront.digital.fulfill.*` diagnostic logs. |
+| 2026-07-13 | Staging crawl block: `PUBLIC_ROBOTS_DISALLOW_ALL` → robots `Disallow: /`, empty sitemap, RouterHead noindex, `X-Robots-Tag`. |
 | 2026-07-12 | Sent-to-POS: allocate sets `pos_order_id` (one call); stamp fallback uses Accounts `order_id` + clearer already-synced vs not-found. |
 | 2026-07-12 | After allocate, stamp Accounts `pos_order_id` via `/api/pos/receive-order` so the order shows as sent to POS. |
 | 2026-07-12 | Staff note: robust replace of `Account: N/A` / `Password: N/A` after allocate; `storefront:fulfill-digital` also syncs notes from secrets. |

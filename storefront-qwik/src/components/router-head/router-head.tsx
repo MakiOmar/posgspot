@@ -2,6 +2,7 @@ import { component$, useVisibleTask$ } from "@builder.io/qwik";
 import { useServerData } from "@builder.io/qwik";
 import { useDocumentHead, useLocation } from "@builder.io/qwik-city";
 import { setActiveContentLocale } from "~/lib/api";
+import { ROBOTS_DISALLOW_ALL } from "~/lib/config";
 import {
   arabicFontStylesheetHref,
   needsArabicFont,
@@ -33,6 +34,14 @@ export const RouterHead = component$(() => {
 
   const hasCanonical = head.links.some((link) => link.rel === "canonical");
 
+  // Staging: force a single noindex meta (overrides route-level robots).
+  const meta = ROBOTS_DISALLOW_ALL
+    ? [
+        { name: "robots", content: "noindex, nofollow", key: "robots-disallow-all" },
+        ...head.meta.filter((m) => m.name !== "robots"),
+      ]
+    : head.meta;
+
   return (
     <>
       <title>{head.title}</title>
@@ -53,7 +62,7 @@ export const RouterHead = component$(() => {
         <link rel="stylesheet" href={arabicFontStylesheetHref()} />
       ) : null}
 
-      {head.meta.map((m) => (
+      {meta.map((m) => (
         <meta key={m.key} {...m} />
       ))}
 

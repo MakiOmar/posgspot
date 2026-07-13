@@ -1,5 +1,6 @@
 import type { RequestHandler } from "@builder.io/qwik-city";
 import { fetchBrands, fetchCategories, fetchProductsPage } from "~/lib/api";
+import { ROBOTS_DISALLOW_ALL } from "~/lib/config";
 import { DEFAULT_CONTENT_LOCALE, STORE_LOCALES } from "~/lib/i18n/config";
 import { localePath } from "~/lib/i18n/paths";
 import { buildSitemapXml, staticSitemapPaths } from "~/lib/seo-files";
@@ -19,6 +20,14 @@ function collectCategoryPaths(categories: Category[], locale: string): string[] 
 }
 
 export const onGet: RequestHandler = async ({ url, headers, send }) => {
+  headers.set("Content-Type", "application/xml; charset=utf-8");
+
+  // Staging / pre-launch: do not advertise URLs to crawlers.
+  if (ROBOTS_DISALLOW_ALL) {
+    send(200, buildSitemapXml(url.origin, []));
+    return;
+  }
+
   const paths = new Set<string>(staticSitemapPaths());
 
   for (const loc of STORE_LOCALES) {
@@ -58,6 +67,5 @@ export const onGet: RequestHandler = async ({ url, headers, send }) => {
   // Ensure default locale home is always present.
   paths.add(localePath(DEFAULT_CONTENT_LOCALE, "/"));
 
-  headers.set("Content-Type", "application/xml; charset=utf-8");
   send(200, buildSitemapXml(url.origin, [...paths]));
 };
