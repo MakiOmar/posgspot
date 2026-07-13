@@ -29,10 +29,10 @@ php artisan optimize:clear
 
 ## Setup for cashiers
 
-1. **Installment Credit → Companies** — defaults: Value, Maylo, Tru, Aman, Forsa, Seven, Sohoula (mapped to `custom_pay_1`…`7`).
-2. **Business Settings → Custom Labels** — set Custom Payment 1–7 to those names.
-3. **Business Location → Payment accounts** — enable those custom payment methods for POS.
-4. Grant role permissions: `installment.view`, `companies`, `settle`, `reports`, `import`.
+1. **Installment Credit → Companies** — companies use **free** `custom_pay_*` slots only. Existing labels (InstaPay, Vodafone Cash, Wallet, …) are never overwritten.
+2. If companies were wrongly mapped onto 1–3, run migrate (remap migration) or click **Fix payment slot conflicts** on the companies page.
+3. **Business Location → Payment accounts** — enable the installment custom payment methods (e.g. Custom Payment 5–11) for POS.
+4. Grant role permissions as needed.
 
 ## Flows
 

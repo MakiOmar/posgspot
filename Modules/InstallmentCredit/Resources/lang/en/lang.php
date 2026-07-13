@@ -37,8 +37,11 @@ return [
     'import_result' => 'Imported :imported rows, skipped :skipped. Pending total imported: :total',
     'download_template' => 'Download CSV template',
     'seed_defaults' => 'Seed default companies',
-    'defaults_seeded' => 'Default installment companies created (Value, Maylo, Tru, …). Map each to a custom payment method and set matching labels under Business Settings.',
+    'defaults_seeded' => 'Default installment companies created/updated. Free custom payment slots were used (existing labels like InstaPay are left alone) and company names were written into Custom Labels.',
+    'remapped_slots' => 'Remapped :count company payment slot(s) off already-used custom payment labels.',
+    'remap_payments' => 'Fix payment slot conflicts',
     'installed_success' => 'Installment Credit module installed successfully.',
+    'map_payment_help' => 'Each company uses a free Custom Payment slot (custom_pay_N). Slots already labeled (e.g. InstaPay, Vodafone Cash, Wallet) are never reused. Enable those methods on each business location for POS.',
     'cannot_delete_company_with_pending' => 'Cannot delete a company with pending receivables.',
     'settle_one_company_only' => 'Select receivables from a single company to settle together.',
     'invalid_settlement_amount' => 'Invalid settlement amount for one or more receivables.',
@@ -59,5 +62,4 @@ return [
     'aging_gt120' => 'More than 120',
     'install_module' => 'Install Installment Credit Module',
     'install_help' => 'This first-party module does not require a Codecanyon license. Click install to run migrations and seed default companies.',
-    'map_payment_help' => 'Map each company to a Custom Payment method (custom_pay_N), then set the same label under Business Settings → Custom Labels so cashiers see Value / Maylo / etc. on POS.',
 ];

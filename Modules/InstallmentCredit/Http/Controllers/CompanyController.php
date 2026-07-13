@@ -161,10 +161,25 @@ class CompanyController extends Controller
     {
         $business_id = $this->assertModuleAllowed('installment.companies');
         InstallmentCompany::seedDefaultsForBusiness($business_id);
+        $moved = InstallmentCompany::remapConflictingPaymentMethods($business_id);
 
         return [
             'success' => true,
-            'msg' => __('installmentcredit::lang.defaults_seeded'),
+            'msg' => __('installmentcredit::lang.defaults_seeded').($moved ? ' '.__('installmentcredit::lang.remapped_slots', ['count' => $moved]) : ''),
+        ];
+    }
+
+    /**
+     * Remap companies away from custom payment slots already labeled for other methods.
+     */
+    public function remapPayments(Request $request)
+    {
+        $business_id = $this->assertModuleAllowed('installment.companies');
+        $moved = InstallmentCompany::remapConflictingPaymentMethods($business_id);
+
+        return [
+            'success' => true,
+            'msg' => __('installmentcredit::lang.remapped_slots', ['count' => $moved]),
         ];
     }
 }

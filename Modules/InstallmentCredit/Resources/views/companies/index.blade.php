@@ -18,6 +18,10 @@
                     data-href="{{ action([\Modules\InstallmentCredit\Http\Controllers\CompanyController::class, 'seedDefaults']) }}">
                     <i class="fa fa-magic"></i> @lang('installmentcredit::lang.seed_defaults')
                 </button>
+                <button type="button" class="tw-dw-btn tw-dw-btn-warning tw-text-white" id="remap_payments_btn"
+                    data-href="{{ action([\Modules\InstallmentCredit\Http\Controllers\CompanyController::class, 'remapPayments']) }}">
+                    <i class="fa fa-exchange-alt"></i> @lang('installmentcredit::lang.remap_payments')
+                </button>
             </div>
         @endslot
         <p class="help-block">@lang('installmentcredit::lang.map_payment_help')</p>
@@ -83,10 +87,10 @@ $(document).ready(function() {
         });
     });
 
-    $('#seed_defaults_btn').click(function() {
+    function postCompanyAction(url) {
         $.ajax({
             method: 'POST',
-            url: $(this).data('href'),
+            url: url,
             data: { _token: '{{ csrf_token() }}' },
             dataType: 'json',
             success: function(result) {
@@ -98,6 +102,14 @@ $(document).ready(function() {
                 }
             }
         });
+    }
+
+    $('#seed_defaults_btn').click(function() {
+        postCompanyAction($(this).data('href'));
+    });
+
+    $('#remap_payments_btn').click(function() {
+        postCompanyAction($(this).data('href'));
     });
 });
 </script>

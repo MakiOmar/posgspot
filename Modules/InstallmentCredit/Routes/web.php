@@ -18,6 +18,7 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('installment-credit.dashboard');
 
         Route::post('/companies/seed-defaults', [CompanyController::class, 'seedDefaults']);
+        Route::post('/companies/remap-payments', [CompanyController::class, 'remapPayments']);
         Route::resource('companies', CompanyController::class)->except(['show']);
 
         Route::get('/receivables', [ReceivableController::class, 'index']);
