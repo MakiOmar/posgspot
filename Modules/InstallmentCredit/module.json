@@ -1,0 +1,14 @@
+{
+    "name": "InstallmentCredit",
+    "alias": "installmentcredit",
+    "description": "Installment company receivables (BNPL settlements)",
+    "keywords": [],
+    "active": 1,
+    "order": 0,
+    "providers": [
+        "Modules\\InstallmentCredit\\Providers\\InstallmentCreditServiceProvider"
+    ],
+    "aliases": {},
+    "files": [],
+    "requires": []
+}

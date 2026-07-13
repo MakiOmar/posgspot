@@ -42,6 +42,17 @@ class AddAccountTransaction
             return true;
         }
 
+        // BNPL / installment company methods: cashbook is credited on company settlement, not at sale time
+        if ($this->moduleUtil->isModuleInstalled('InstallmentCredit')
+            && class_exists(\Modules\InstallmentCredit\Entities\InstallmentCompany::class)
+            && \Modules\InstallmentCredit\Entities\InstallmentCompany::findByPaymentMethod(
+                $event->transactionPayment->business_id,
+                $event->transactionPayment->method
+            )
+        ) {
+            return true;
+        }
+
         // //Create new account transaction
         if (! empty($event->formInput['account_id']) && $event->transactionPayment->method != 'advance') {
             $type = ! empty($event->transactionPayment->payment_type) ? $event->transactionPayment->payment_type : AccountTransaction::getAccountTransactionType($event->formInput['transaction_type']);

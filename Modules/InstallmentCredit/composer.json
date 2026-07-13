@@ -1,0 +1,21 @@
+{
+    "name": "nwidart/installmentcredit",
+    "description": "Installment company receivables module",
+    "authors": [
+        {
+            "name": "Games Spot",
+            "email": "info@gamesspoteg.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\InstallmentCredit\\": ""
+        }
+    }
+}
