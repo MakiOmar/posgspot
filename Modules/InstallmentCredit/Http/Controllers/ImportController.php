@@ -2,25 +2,27 @@
 
 namespace Modules\InstallmentCredit\Http\Controllers;
 
-use App\BusinessLocation;
-use App\Transaction;
 use App\Utils\ModuleUtil;
 use App\Utils\Util;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
-use Modules\InstallmentCredit\Entities\InstallmentCompany;
-use Modules\InstallmentCredit\Entities\InstallmentReceivable;
 use Modules\InstallmentCredit\Http\Controllers\Concerns\AuthorizesInstallmentModule;
+use Modules\InstallmentCredit\Utils\InstallmentCreditUtil;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ImportController extends Controller
 {
     use AuthorizesInstallmentModule;
 
-    public function __construct(protected ModuleUtil $moduleUtil, protected Util $commonUtil)
-    {
+    public function __construct(
+        protected ModuleUtil $moduleUtil,
+        protected Util $commonUtil,
+        protected InstallmentCreditUtil $installmentUtil
+    ) {
     }
 
     public function index()
@@ -30,24 +32,56 @@ class ImportController extends Controller
         return view('installmentcredit::import.index');
     }
 
+    /**
+     * CSV template (legacy / Excel-compatible).
+     */
     public function template()
     {
         $this->assertModuleAllowed('installment.import');
 
         return new StreamedResponse(function () {
             $h = fopen('php://output', 'w');
-            fputcsv($h, [
-                'invoice_date', 'due_date', 'invoice_no', 'branch', 'company_code',
-                'due_amount', 'notes',
-            ]);
-            fputcsv($h, [
-                '2026-05-01', '2026-05-21', '12345', 'Nasr City', 'value',
-                '10000', 'Open balance from Excel',
-            ]);
+            fputcsv($h, $this->templateHeaders());
+            fputcsv($h, $this->templateSampleRow());
             fclose($h);
         }, 200, [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => 'attachment; filename="installment-import-template.csv"',
+        ]);
+    }
+
+    /**
+     * Downloadable .xlsx sample for Excel users.
+     */
+    public function templateXlsx()
+    {
+        $this->assertModuleAllowed('installment.import');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Open Balances');
+
+        $sheet->fromArray([
+            $this->templateHeaders(),
+            $this->templateSampleRow(),
+            [
+                '2026-06-15', '2026-07-05', '24631', 'Water Way', 'maylo',
+                '27500', 'Sample Maylo pending',
+            ],
+        ], null, 'A1', true);
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        return new StreamedResponse(function () use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="installment-import-sample.xlsx"',
+            'Cache-Control' => 'max-age=0',
         ]);
     }
 
@@ -56,42 +90,26 @@ class ImportController extends Controller
         $business_id = $this->assertModuleAllowed('installment.import');
 
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt',
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls',
         ]);
 
-        $companies = InstallmentCompany::where('business_id', $business_id)->get()->keyBy(function ($c) {
-            return strtolower($c->code);
-        });
-        $companies_by_name = InstallmentCompany::where('business_id', $business_id)->get()->keyBy(function ($c) {
-            return strtolower(trim($c->name));
-        });
+        $path = $request->file('file')->getRealPath();
+        $ext = strtolower($request->file('file')->getClientOriginalExtension());
 
-        $locations = BusinessLocation::where('business_id', $business_id)->get();
-        $location_map = [];
-        foreach ($locations as $loc) {
-            $location_map[strtolower(trim($loc->name))] = $loc->id;
-            // Excel aliases
-            $aliases = [
-                'biverlly hills' => $loc->id,
-                'beverly hills' => $loc->id,
-                'el shourok' => $loc->id,
-                'el sherouk' => $loc->id,
-                'alex' => $loc->id,
-                'city stars' => $loc->id,
-            ];
-            foreach ($aliases as $alias => $id) {
-                if (str_contains(strtolower($loc->name), explode(' ', $alias)[0]) || strtolower(trim($loc->name)) === $alias) {
-                    $location_map[$alias] = $loc->id;
-                }
-            }
+        try {
+            $rows = in_array($ext, ['xlsx', 'xls'], true)
+                ? $this->readSpreadsheetRows($path)
+                : $this->readCsvRows($path);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => $e->getMessage(),
+            ]);
         }
 
-        $handle = fopen($request->file('file')->getRealPath(), 'r');
-        $header = fgetcsv($handle);
-        if (! $header) {
+        if (empty($rows)) {
             return redirect()->back()->with('status', ['success' => 0, 'msg' => 'Empty file']);
         }
-        $header = array_map(fn ($h) => strtolower(trim($h)), $header);
 
         $imported = 0;
         $skipped = 0;
@@ -100,114 +118,27 @@ class ImportController extends Controller
 
         DB::beginTransaction();
         try {
-            $row_num = 1;
-            while (($data = fgetcsv($handle)) !== false) {
-                $row_num++;
-                if (count(array_filter($data)) === 0) {
-                    continue;
-                }
-                $row = [];
-                foreach ($header as $i => $key) {
-                    $row[$key] = $data[$i] ?? null;
-                }
-
-                $company_code = strtolower(trim((string) ($row['company_code'] ?? $row['company'] ?? '')));
-                // Normalize Tru variants from Excel
-                if (in_array($company_code, ['true', 'tru', '1'], true)) {
-                    $company_code = 'tru';
-                }
-
-                $company = $companies->get($company_code) ?: $companies_by_name->get($company_code);
-                if (! $company) {
+            foreach ($rows as $row_num => $row) {
+                try {
+                    $recv = $this->installmentUtil->createManualPendingReceivable($business_id, [
+                        'company_code' => $row['company_code'] ?? $row['company'] ?? null,
+                        'branch' => $row['branch'] ?? $row['business_location'] ?? null,
+                        'invoice_no' => $row['invoice_no'] ?? $row['inv.no'] ?? $row['inv_no'] ?? null,
+                        'invoice_date' => $row['invoice_date'] ?? null,
+                        'due_date' => $row['due_date'] ?? null,
+                        'due_amount' => (float) str_replace(',', '', (string) ($row['due_amount'] ?? $row['total'] ?? 0)),
+                        'notes' => $row['notes'] ?? 'Imported from file',
+                    ], true);
+                    $imported++;
+                    $pending_total += (float) $recv->due_amount;
+                } catch (\Exception $e) {
                     $skipped++;
-                    $errors[] = "Row {$row_num}: unknown company '{$company_code}'";
-                    continue;
+                    $errors[] = 'Row '.($row_num + 2).': '.$e->getMessage();
                 }
-
-                $branch = strtolower(trim((string) ($row['branch'] ?? $row['business_location'] ?? '')));
-                $location_id = $location_map[$branch] ?? null;
-                if (! $location_id) {
-                    // fuzzy contains
-                    foreach ($location_map as $name => $id) {
-                        if ($branch !== '' && (str_contains($name, $branch) || str_contains($branch, $name))) {
-                            $location_id = $id;
-                            break;
-                        }
-                    }
-                }
-
-                $due_amount = (float) str_replace(',', '', (string) ($row['due_amount'] ?? $row['total'] ?? 0));
-                if ($due_amount <= 0) {
-                    $skipped++;
-                    continue;
-                }
-
-                $invoice_no = trim((string) ($row['invoice_no'] ?? $row['inv.no'] ?? $row['inv_no'] ?? ''));
-                $invoice_date = $this->parseDate($row['invoice_date'] ?? null);
-                $due_date = $this->parseDate($row['due_date'] ?? null);
-                if (! $due_date && $invoice_date) {
-                    $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
-                }
-
-                $transaction_id = null;
-                if ($invoice_no !== '') {
-                    $txn = Transaction::where('business_id', $business_id)
-                        ->where('type', 'sell')
-                        ->where('invoice_no', $invoice_no)
-                        ->first();
-                    $transaction_id = $txn->id ?? null;
-                    if ($txn && empty($location_id)) {
-                        $location_id = $txn->location_id;
-                    }
-                }
-
-                // Avoid duplicate open import for same invoice+company
-                $exists = InstallmentReceivable::where('business_id', $business_id)
-                    ->where('company_id', $company->id)
-                    ->where('status', 'pending')
-                    ->where(function ($q) use ($invoice_no, $transaction_id) {
-                        if ($transaction_id) {
-                            $q->where('transaction_id', $transaction_id);
-                        } elseif ($invoice_no !== '') {
-                            $q->where('invoice_no', $invoice_no);
-                        } else {
-                            $q->whereRaw('1=0');
-                        }
-                    })
-                    ->exists();
-
-                if ($exists) {
-                    $skipped++;
-                    $errors[] = "Row {$row_num}: duplicate pending for invoice {$invoice_no}";
-                    continue;
-                }
-
-                // Unique constraint requires transaction_id — for imports without match use null uniquely via notes key
-                // MySQL unique allows multiple NULLs in transaction_id
-                InstallmentReceivable::create([
-                    'business_id' => $business_id,
-                    'location_id' => $location_id,
-                    'company_id' => $company->id,
-                    'transaction_id' => $transaction_id,
-                    'invoice_no' => $invoice_no ?: null,
-                    'invoice_date' => $invoice_date,
-                    'due_date' => $due_date,
-                    'due_amount' => $due_amount,
-                    'booked_settled_amount' => 0,
-                    'actual_received_amount' => 0,
-                    'status' => 'pending',
-                    'notes' => $row['notes'] ?? 'Imported from Excel',
-                    'is_imported' => 1,
-                ]);
-
-                $imported++;
-                $pending_total += $due_amount;
             }
-            fclose($handle);
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            fclose($handle);
 
             return redirect()->back()->with('status', [
                 'success' => 0,
@@ -225,20 +156,79 @@ class ImportController extends Controller
         }
 
         return redirect('/installment-credit/receivables')->with('status', [
-            'success' => 1,
+            'success' => $imported > 0 ? 1 : 0,
             'msg' => $msg,
         ]);
     }
 
-    protected function parseDate($value)
+    protected function templateHeaders(): array
     {
-        if (empty($value)) {
-            return null;
+        return [
+            'invoice_date', 'due_date', 'invoice_no', 'branch', 'company_code',
+            'due_amount', 'notes',
+        ];
+    }
+
+    protected function templateSampleRow(): array
+    {
+        return [
+            '2026-05-01', '2026-05-21', '12345', 'Nasr City', 'value',
+            '10000', 'Open balance sample',
+        ];
+    }
+
+    protected function readCsvRows($path): array
+    {
+        $handle = fopen($path, 'r');
+        $header = fgetcsv($handle);
+        if (! $header) {
+            fclose($handle);
+
+            return [];
         }
-        try {
-            return Carbon::parse($value)->toDateString();
-        } catch (\Exception $e) {
-            return null;
+        $header = array_map(fn ($h) => strtolower(trim((string) $h)), $header);
+        $rows = [];
+        while (($data = fgetcsv($handle)) !== false) {
+            if (count(array_filter($data, fn ($v) => $v !== null && $v !== '')) === 0) {
+                continue;
+            }
+            $row = [];
+            foreach ($header as $i => $key) {
+                $row[$key] = $data[$i] ?? null;
+            }
+            $rows[] = $row;
         }
+        fclose($handle);
+
+        return $rows;
+    }
+
+    protected function readSpreadsheetRows($path): array
+    {
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+        $matrix = $sheet->toArray(null, true, true, false);
+        if (empty($matrix)) {
+            return [];
+        }
+
+        $header = array_map(fn ($h) => strtolower(trim((string) $h)), $matrix[0]);
+        $rows = [];
+        for ($r = 1; $r < count($matrix); $r++) {
+            $data = $matrix[$r];
+            if (count(array_filter($data, fn ($v) => $v !== null && $v !== '')) === 0) {
+                continue;
+            }
+            $row = [];
+            foreach ($header as $i => $key) {
+                if ($key === '') {
+                    continue;
+                }
+                $row[$key] = $data[$i] ?? null;
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
     }
 }

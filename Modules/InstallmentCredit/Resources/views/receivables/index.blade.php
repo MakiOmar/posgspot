@@ -37,6 +37,13 @@
     @component('components.widget', ['class' => 'box-primary'])
         @slot('tool')
             <div class="box-tools">
+                @if(!empty($can_add))
+                <button type="button" class="tw-dw-btn tw-dw-btn-primary tw-text-white btn-modal"
+                    data-href="{{ action([\Modules\InstallmentCredit\Http\Controllers\ReceivableController::class, 'create']) }}"
+                    data-container=".view_modal">
+                    <i class="fa fa-plus"></i> @lang('installmentcredit::lang.add_pending')
+                </button>
+                @endif
                 <button type="button" class="tw-dw-btn tw-dw-btn-success tw-text-white" id="btn_settle_selected">
                     <i class="fa fa-handshake"></i> @lang('installmentcredit::lang.settle')
                 </button>

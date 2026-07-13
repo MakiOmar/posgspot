@@ -36,6 +36,164 @@ class InstallmentCreditUtil
         return InstallmentCompany::findByPaymentMethod($business_id, $method) !== null;
     }
 
+    /**
+     * Manually create (or import) a pending receivable row.
+     *
+     * @param  array  $input  company_id|company_code, location_id|branch, invoice_no, invoice_date, due_date, due_amount, notes
+     * @return InstallmentReceivable
+     *
+     * @throws \Exception
+     */
+    public function createManualPendingReceivable($business_id, array $input, $mark_imported = false)
+    {
+        $company = null;
+        if (! empty($input['company_id'])) {
+            $company = InstallmentCompany::where('business_id', $business_id)->find($input['company_id']);
+        } elseif (! empty($input['company_code'])) {
+            $code = strtolower(trim((string) $input['company_code']));
+            if (in_array($code, ['true', 'tru', '1'], true)) {
+                $code = 'tru';
+            }
+            $company = InstallmentCompany::where('business_id', $business_id)
+                ->where(function ($q) use ($code) {
+                    $q->where('code', $code)->orWhereRaw('LOWER(name) = ?', [$code]);
+                })
+                ->first();
+        }
+
+        if (! $company) {
+            throw new \Exception(__('installmentcredit::lang.company_required'));
+        }
+
+        $due_amount = (float) ($input['due_amount'] ?? 0);
+        if ($due_amount <= 0) {
+            throw new \Exception(__('installmentcredit::lang.invalid_due_amount'));
+        }
+
+        $location_id = $input['location_id'] ?? null;
+        if (empty($location_id) && ! empty($input['branch'])) {
+            $location_id = $this->resolveLocationId($business_id, $input['branch']);
+        }
+
+        $invoice_no = trim((string) ($input['invoice_no'] ?? ''));
+        $invoice_date = $this->parseFlexibleDate($input['invoice_date'] ?? null);
+        $due_date = $this->parseFlexibleDate($input['due_date'] ?? null);
+        if (! $due_date && $invoice_date) {
+            $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
+        }
+        if (! $due_date) {
+            $due_date = Carbon::today()->addDays((int) $company->default_settlement_days)->toDateString();
+        }
+        if (! $invoice_date) {
+            $invoice_date = Carbon::today()->toDateString();
+        }
+
+        $transaction_id = null;
+        if ($invoice_no !== '') {
+            $txn = Transaction::where('business_id', $business_id)
+                ->where('type', 'sell')
+                ->where('invoice_no', $invoice_no)
+                ->first();
+            $transaction_id = $txn->id ?? null;
+            if ($txn && empty($location_id)) {
+                $location_id = $txn->location_id;
+            }
+        }
+
+        if ($invoice_no !== '' || $transaction_id) {
+            $exists = InstallmentReceivable::where('business_id', $business_id)
+                ->where('company_id', $company->id)
+                ->where('status', 'pending')
+                ->where(function ($q) use ($invoice_no, $transaction_id) {
+                    if ($transaction_id) {
+                        $q->where('transaction_id', $transaction_id);
+                    } elseif ($invoice_no !== '') {
+                        $q->where('invoice_no', $invoice_no);
+                    } else {
+                        $q->whereRaw('1=0');
+                    }
+                })
+                ->exists();
+
+            if ($exists) {
+                throw new \Exception(__('installmentcredit::lang.duplicate_pending_invoice', ['invoice' => $invoice_no]));
+            }
+        }
+
+        return InstallmentReceivable::create([
+            'business_id' => $business_id,
+            'location_id' => $location_id,
+            'company_id' => $company->id,
+            'transaction_id' => $transaction_id,
+            'invoice_no' => $invoice_no !== '' ? $invoice_no : null,
+            'invoice_date' => $invoice_date,
+            'due_date' => $due_date,
+            'due_amount' => $due_amount,
+            'booked_settled_amount' => 0,
+            'actual_received_amount' => 0,
+            'status' => 'pending',
+            'notes' => $input['notes'] ?? ($mark_imported ? 'Imported' : 'Manual entry'),
+            'is_imported' => $mark_imported ? 1 : 0,
+        ]);
+    }
+
+    public function resolveLocationId($business_id, $branch_name)
+    {
+        $branch = strtolower(trim((string) $branch_name));
+        if ($branch === '') {
+            return null;
+        }
+
+        $locations = \App\BusinessLocation::where('business_id', $business_id)->get();
+        $location_map = [];
+        foreach ($locations as $loc) {
+            $location_map[strtolower(trim($loc->name))] = $loc->id;
+            $aliases = [
+                'biverlly hills', 'beverly hills', 'el shourok', 'el sherouk', 'alex', 'city stars',
+            ];
+            foreach ($aliases as $alias) {
+                if (str_contains(strtolower($loc->name), explode(' ', $alias)[0]) || strtolower(trim($loc->name)) === $alias) {
+                    $location_map[$alias] = $loc->id;
+                }
+            }
+        }
+
+        if (isset($location_map[$branch])) {
+            return $location_map[$branch];
+        }
+
+        foreach ($location_map as $name => $id) {
+            if (str_contains($name, $branch) || str_contains($branch, $name)) {
+                return $id;
+            }
+        }
+
+        return null;
+    }
+
+    public function parseFlexibleDate($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance(\Carbon\Carbon::parse($value))->toDateString();
+        }
+        // Excel serial date
+        if (is_numeric($value) && (float) $value > 20000 && (float) $value < 80000) {
+            try {
+                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject((float) $value)->format('Y-m-d');
+            } catch (\Throwable $e) {
+                // fall through
+            }
+        }
+        try {
+            return Carbon::parse($value)->toDateString();
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
     public function createReceivableFromPayment($payment, $transaction = null)
     {
         if (! $this->isInstalled()) {

@@ -2,6 +2,8 @@
 
 First-party UltimatePOS module that replaces the Excel **Credit Analyses** workbook: installment companies owe Games Spot after BNPL sales.
 
+**Operators:** start with **[HOW_TO_USE.md](HOW_TO_USE.md)** (setup, POS, settlement, import, FAQ).
+
 ## Install (after git pull)
 
 1. Confirm `modules_statuses.json` has `"InstallmentCredit": true`.
@@ -29,9 +31,9 @@ php artisan optimize:clear
 
 ## Setup for cashiers
 
-1. **Installment Credit → Companies** — companies use **free** `custom_pay_*` slots only. Existing labels (InstaPay, Vodafone Cash, Wallet, …) are never overwritten.
-2. If companies were wrongly mapped onto 1–3, run migrate (remap migration) or click **Fix payment slot conflicts** on the companies page.
-3. **Business Location → Payment accounts** — enable the installment custom payment methods (e.g. Custom Payment 5–11) for POS.
+1. **Installment Credit → Installment Companies** — companies use **free** `custom_pay_*` slots only. Existing labels (InstaPay, Vodafone Cash, Wallet, …) are never overwritten.
+2. If companies were wrongly mapped onto used slots, run migrate (remap migration) or click **Fix payment slot conflicts** on **Installment Companies**.
+3. **Business Location → Payment accounts** — enable the installment custom payment methods for POS.
 4. Grant role permissions as needed.
 
 ## Flows
@@ -45,7 +47,14 @@ php artisan optimize:clear
 
 ## Menu
 
-`Installment Credit` → Dashboard, Pending, Companies, Settlements, Reports, Import.
+Sidebar **Installment Credit**:
+
+- Pending Receivables  
+- Installment Companies  
+- Settlements  
+- Reports  
+- Import Open Balances  
+- Dashboard  
 
 ## Key paths
 

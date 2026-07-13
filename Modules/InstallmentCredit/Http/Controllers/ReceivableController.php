@@ -88,8 +88,68 @@ class ReceivableController extends Controller
 
         $companies = InstallmentCompany::forDropdown($business_id, false);
         $locations = BusinessLocation::forDropdown($business_id);
+        $can_add = auth()->user()->can('superadmin')
+            || auth()->user()->can('installment.settle')
+            || auth()->user()->can('installment.import');
 
-        return view('installmentcredit::receivables.index', compact('companies', 'locations'));
+        return view('installmentcredit::receivables.index', compact('companies', 'locations', 'can_add'));
+    }
+
+    /**
+     * Modal form: add a pending receivable manually.
+     */
+    public function create()
+    {
+        $business_id = $this->assertModuleAllowedAny(['installment.settle', 'installment.import']);
+        $companies = InstallmentCompany::forDropdown($business_id, true);
+        $locations = BusinessLocation::forDropdown($business_id);
+
+        return view('installmentcredit::receivables.create', compact('companies', 'locations'));
+    }
+
+    public function store(Request $request)
+    {
+        $business_id = $this->assertModuleAllowedAny(['installment.settle', 'installment.import']);
+
+        try {
+            $request->validate([
+                'company_id' => 'required|integer',
+                'due_amount' => 'required',
+                'location_id' => 'nullable|integer',
+                'invoice_no' => 'nullable|string|max:191',
+                'invoice_date' => 'nullable',
+                'due_date' => 'nullable',
+                'notes' => 'nullable|string',
+            ]);
+
+            $recv = $this->installmentUtil->createManualPendingReceivable($business_id, [
+                'company_id' => (int) $request->company_id,
+                'location_id' => $request->location_id ?: null,
+                'invoice_no' => $request->invoice_no,
+                'invoice_date' => $request->filled('invoice_date') ? $this->commonUtil->uf_date($request->invoice_date) : null,
+                'due_date' => $request->filled('due_date') ? $this->commonUtil->uf_date($request->due_date) : null,
+                'due_amount' => $this->commonUtil->num_uf($request->due_amount),
+                'notes' => $request->notes ?: 'Manual entry',
+            ], false);
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.success'),
+                'id' => $recv->id,
+            ];
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().' Line:'.$e->getLine().' Message:'.$e->getMessage());
+            $output = [
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ];
+        }
+
+        if ($request->ajax()) {
+            return $output;
+        }
+
+        return redirect('/installment-credit/receivables')->with('status', $output);
     }
 
     public function createSettlement(Request $request)

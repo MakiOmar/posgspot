@@ -25,4 +25,30 @@ trait AuthorizesInstallmentModule
 
         return $business_id;
     }
+
+    /**
+     * @param  string|array  $permissions
+     */
+    protected function assertModuleAllowedAny($permissions)
+    {
+        $business_id = request()->session()->get('user.business_id');
+        $moduleUtil = $this->moduleUtil ?? new ModuleUtil();
+
+        if (! $moduleUtil->isModuleInstalled('InstallmentCredit')) {
+            abort(403, 'Installment Credit module is not installed.');
+        }
+
+        if (auth()->user()->can('superadmin')) {
+            return $business_id;
+        }
+
+        $permissions = (array) $permissions;
+        foreach ($permissions as $permission) {
+            if (auth()->user()->can($permission)) {
+                return $business_id;
+            }
+        }
+
+        abort(403, 'Unauthorized action.');
+    }
 }

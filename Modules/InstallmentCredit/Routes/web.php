@@ -22,6 +22,8 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::resource('companies', CompanyController::class)->except(['show']);
 
         Route::get('/receivables', [ReceivableController::class, 'index']);
+        Route::get('/receivables/create', [ReceivableController::class, 'create']);
+        Route::post('/receivables', [ReceivableController::class, 'store']);
         Route::get('/receivables/create-settlement', [ReceivableController::class, 'createSettlement']);
         Route::post('/receivables/settle', [ReceivableController::class, 'storeSettlement']);
 
@@ -36,4 +38,5 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::get('/import', [ImportController::class, 'index']);
         Route::post('/import', [ImportController::class, 'store']);
         Route::get('/import/template', [ImportController::class, 'template']);
+        Route::get('/import/template-xlsx', [ImportController::class, 'templateXlsx']);
     });
