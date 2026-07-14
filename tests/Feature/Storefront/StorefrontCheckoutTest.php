@@ -125,6 +125,98 @@ class StorefrontCheckoutTest extends TestCase
         $this->assertSame('final', $transaction->status);
     }
 
+    public function test_cod_checkout_as_quotation_when_setting_enabled(): void
+    {
+        Mail::fake();
+
+        $location = BusinessLocation::where('business_id', $this->businessId)
+            ->where('is_active', 1)
+            ->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No active business location in database.');
+        }
+
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->where('enable_stock', 1)
+            ->first();
+        if (empty($product)) {
+            $this->markTestSkipped('No stocked sellable product in database.');
+        }
+
+        $variation = Variation::where('product_id', $product->id)->whereNull('deleted_at')->first();
+        if (empty($variation)) {
+            $this->markTestSkipped('No variation for product.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+            'default_fulfillment_location_id' => $location->id,
+            'cod_enabled' => true,
+            'digital' => [
+                'pos_document_type' => 'quotation',
+            ],
+        ]);
+        Cache::flush();
+
+        VariationLocationDetails::updateOrCreate(
+            [
+                'variation_id' => $variation->id,
+                'location_id' => $location->id,
+            ],
+            [
+                'product_id' => $product->id,
+                'product_variation_id' => $variation->product_variation_id,
+                'qty_available' => 25,
+            ]
+        );
+
+        $stockBefore = (float) VariationLocationDetails::where('variation_id', $variation->id)
+            ->where('location_id', $location->id)
+            ->value('qty_available');
+
+        $orderKey = 'SF-QUOTE-'.uniqid();
+        $shippingRateId = $this->firstShippingRateId($variation->id, $location->id);
+
+        $response = $this->postJson('/api/storefront/v1/checkout', [
+            'idempotency_key' => $orderKey,
+            'location_id' => $location->id,
+            'payment_method' => 'cod',
+            'items' => [
+                ['variation_id' => $variation->id, 'quantity' => 1],
+            ],
+            'customer' => [
+                'first_name' => 'Quote',
+                'last_name' => 'Test',
+                'email' => 'quote_test_'.uniqid().'@example.com',
+                'mobile' => '201098765432',
+            ],
+            'shipping_address' => [
+                'address_line_1' => '12 Quote Street',
+                'city' => 'Cairo',
+                'state' => 'C',
+                'country' => 'EG',
+            ],
+            'shipping_rate_id' => $shippingRateId,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.is_quotation', true);
+
+        $transaction = Transaction::where('storefront_order_id', $orderKey)->first();
+        $this->assertNotNull($transaction);
+        $this->assertSame('draft', $transaction->status);
+        $this->assertSame(1, (int) $transaction->is_quotation);
+        $this->assertSame('quotation', $transaction->sub_status);
+
+        $stockAfter = (float) VariationLocationDetails::where('variation_id', $variation->id)
+            ->where('location_id', $location->id)
+            ->value('qty_available');
+        $this->assertSame($stockBefore, $stockAfter);
+    }
+
     public function test_checkout_is_idempotent_for_same_key(): void
     {
         Mail::fake();

@@ -141,7 +141,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | PUT | `/account/profile` | Update profile |
 | PUT | `/account/address` | Update address |
 | GET | `/account/orders` | Order history |
-| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). |
+| GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated **and** storefront setting `digital.expose_credentials_to_customer` is on, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). When that setting is off, secrets stay on POS staff note only. Response includes `is_quotation` when checkout created a draft quotation (`digital.pos_document_type=quotation`). |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 
 ## Wishlist (auth required)
@@ -179,7 +179,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - COD, **shipping zones** (governorate matching, flat / free / pickup methods; digital-only free rate), announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
 - **Shipping classes** + optional product `shipping_class_id` / weight for per-class and per-kg flat costs
 - **Couriers** (optional Bosta API key; staging defaults **off** / production) — create shipment via `POST /deliveries/bulk` when marking shipped with carrier `bosta`; requires checkout `district_id`; public settings expose `couriers.bosta.enabled` only
-- **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; public `GET /settings` exposes `digital.enabled` only
+- **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; `pos_document_type` (`sell` \| `quotation`); `expose_credentials_to_customer` (default true; when false secrets stay on POS staff note only). Public `GET /settings` exposes `digital.enabled` only
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only

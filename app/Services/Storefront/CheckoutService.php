@@ -156,10 +156,15 @@ class CheckoutService
                 'billing_address' => $payload['billing_address'] ?? $payload['shipping_address'] ?? [],
             ]);
 
+            // Optional: create POS quotation (draft) instead of final sell — Storefront Settings → Digital.
+            $asQuotation = (($settings['digital']['pos_document_type'] ?? 'sell') === 'quotation');
+
             $input = [
                 'location_id' => $locationId,
                 'contact_id' => $contact->id,
-                'status' => 'final',
+                'status' => $asQuotation ? 'draft' : 'final',
+                'is_quotation' => $asQuotation ? 1 : 0,
+                'sub_status' => $asQuotation ? 'quotation' : null,
                 'transaction_date' => now()->format('Y-m-d H:i:s'),
                 'final_total' => $finalTotal,
                 'discount_type' => 'fixed',
@@ -221,19 +226,22 @@ class CheckoutService
                 $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment'], $businessId, $userId, false);
             }
 
-            foreach ($input['products'] as $product) {
-                $decreaseQty = (float) $product['quantity'];
-                if ($product['enable_stock']) {
-                    $this->productUtil->decreaseProductQuantity(
-                        $product['product_id'],
-                        $product['variation_id'],
-                        $locationId,
-                        $decreaseQty
-                    );
-                }
-                if (($product['product_type'] ?? '') === 'combo') {
-                    $comboDetails = $this->productUtil->resolveComboDetailsForStockAdjustment($product, false);
-                    $this->productUtil->decreaseProductQuantityCombo($comboDetails, $locationId);
+            // Quotations do not decrease stock until staff converts to a final sale (Accounts pattern).
+            if (! $asQuotation) {
+                foreach ($input['products'] as $product) {
+                    $decreaseQty = (float) $product['quantity'];
+                    if ($product['enable_stock']) {
+                        $this->productUtil->decreaseProductQuantity(
+                            $product['product_id'],
+                            $product['variation_id'],
+                            $locationId,
+                            $decreaseQty
+                        );
+                    }
+                    if (($product['product_type'] ?? '') === 'combo') {
+                        $comboDetails = $this->productUtil->resolveComboDetailsForStockAdjustment($product, false);
+                        $this->productUtil->decreaseProductQuantityCombo($comboDetails, $locationId);
+                    }
                 }
             }
 
@@ -325,6 +333,7 @@ class CheckoutService
             'storefront_order_id' => $transaction->storefront_order_id,
             'invoice_no' => $transaction->invoice_no,
             'status' => $transaction->status,
+            'is_quotation' => (bool) ($transaction->is_quotation ?? false),
             'payment_status' => $transaction->payment_status,
             'final_total' => (float) $transaction->final_total,
             'transaction_date' => $transaction->transaction_date,
@@ -451,14 +460,20 @@ class CheckoutService
     }
 
     /**
-     * Final sell transactions for this contact (storefront checkout and POS sales).
+     * Final sells for this contact, plus storefront quotations (when checkout creates drafts).
      */
     private function contactOrdersQuery(int $businessId, int $contactId)
     {
         return Transaction::where('business_id', $businessId)
             ->where('contact_id', $contactId)
             ->where('type', 'sell')
-            ->where('status', 'final');
+            ->where(function ($q) {
+                $q->where('status', 'final')
+                    ->orWhere(function ($q2) {
+                        $q2->where('source', 'storefront')
+                            ->where('is_quotation', 1);
+                    });
+            });
     }
 
     /**

@@ -238,6 +238,10 @@ class DigitalFulfillmentService
             return [];
         }
 
+        if (! $this->exposeCredentialsToCustomer((int) $transaction->business_id)) {
+            return [];
+        }
+
         return StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
             ->where('status', 'allocated')
             ->get()
@@ -245,6 +249,22 @@ class DigitalFulfillmentService
             ->filter()
             ->values()
             ->all();
+    }
+
+    /**
+     * Whether customers may see allocated secrets (account/email/invoice line note).
+     * Staff note always receives credentials regardless of this flag.
+     */
+    public function exposeCredentialsToCustomer(int $businessId): bool
+    {
+        $digital = $this->settings->get($businessId)['digital'] ?? [];
+
+        // Default true for backward compatibility when key is absent.
+        if (! array_key_exists('expose_credentials_to_customer', $digital)) {
+            return true;
+        }
+
+        return ! empty($digital['expose_credentials_to_customer']);
     }
 
     private function allocateOne(Transaction $transaction, StorefrontDigitalFulfillment $row): void
@@ -319,7 +339,11 @@ class DigitalFulfillmentService
         $row->allocated_at = now();
         $row->save();
 
-        $this->appendSecretsToSellLineNote($row, $secrets);
+        // Sale line note can print on customer invoices when "show sale description" is on.
+        if ($this->exposeCredentialsToCustomer((int) $transaction->business_id)) {
+            $this->appendSecretsToSellLineNote($row, $secrets);
+        }
+        // Staff note is always updated (Accounts / POS operators only).
         $this->appendSecretsToStaffNote($transaction, $row, $secrets);
         $accountsOrderId = isset($body['order_id']) ? (int) $body['order_id'] : (int) ($row->accounts_order_id ?? 0);
         $this->stampAccountsOrderAsSentToPos(

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-13 |
+| **Last updated** | 2026-07-14 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -48,7 +48,8 @@
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business SMTP user |
 | Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id` |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
+
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
@@ -247,6 +248,7 @@
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
+| 2026-07-14 | Storefront settings: `digital.pos_document_type` (sell\|quotation) + `digital.expose_credentials_to_customer`; quotations skip stock decrease; staff-only creds gate sell-line / account API / email. |
 | 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |
 | 2026-07-05 | Harden auth/wishlist: reset token expiry, auth rate limit, wishlist caps + batch merge. |
 | 2026-07-05 | Cart inspect API (`resolve: true`); auto-remove OOS lines; checkout blocked with per-item max quantity notice. |

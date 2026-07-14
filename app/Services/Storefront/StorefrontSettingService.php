@@ -48,6 +48,10 @@ class StorefrontSettingService
                 'primary_product_id' => null,
                 'secondary_product_id' => null,
                 'gift_card_product_id' => null,
+                // sell = final POS sale (default); quotation = draft quotation (Accounts workflow)
+                'pos_document_type' => 'sell',
+                // When false: credentials only on staff_note (not sell line / account / email / invoice description)
+                'expose_credentials_to_customer' => true,
             ],
             'contact' => [
                 'phone' => '',

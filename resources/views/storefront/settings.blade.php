@@ -320,6 +320,49 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Comment: POS document type — sell vs quotation for website checkout --}}
+                <h4 style="margin-top: 20px;">Storefront → POS document</h4>
+                <p class="help-block">
+                    How website checkout creates a POS transaction. <strong>Final sell</strong> decreases stock immediately.
+                    <strong>Quotation</strong> creates a draft quotation (same as Accounts send-to-POS) — stock is not decreased until staff converts it to a sale.
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('digital_pos_document_type', 'POS document type') !!}
+                            {!! Form::select(
+                                'digital_pos_document_type',
+                                ['sell' => 'Final sell (current / default)', 'quotation' => 'Quotation (draft)'],
+                                $settings['digital']['pos_document_type'] ?? 'sell',
+                                ['class' => 'form-control']
+                            ) !!}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Comment: when off, secrets stay on staff_note only --}}
+                <h4 style="margin-top: 10px;">Digital credentials visibility</h4>
+                <p class="help-block">
+                    When unchecked, allocated account/card secrets stay on the POS <strong>Staff note</strong> only.
+                    They are not written to sale line notes (invoice print), not returned in the account API, and not emailed to the customer.
+                </p>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox(
+                                    'digital_expose_credentials_to_customer',
+                                    1,
+                                    array_key_exists('expose_credentials_to_customer', $settings['digital'] ?? [])
+                                        ? ! empty($settings['digital']['expose_credentials_to_customer'])
+                                        : true
+                                ) !!}
+                                Expose digital credentials to customer (account page, email, invoice sale description)
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {{-- Appearance: theme, sale badge, catalog cards, announcement --}}

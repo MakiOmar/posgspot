@@ -112,6 +112,8 @@ class StorefrontSettingController extends Controller
             'digital_primary_product_id' => 'nullable|integer|min:1',
             'digital_secondary_product_id' => 'nullable|integer|min:1',
             'digital_gift_card_product_id' => 'nullable|integer|min:1',
+            'digital_pos_document_type' => 'nullable|in:sell,quotation',
+            'digital_expose_credentials_to_customer' => 'nullable|boolean',
         ]);
 
         $payload = [
@@ -143,6 +145,10 @@ class StorefrontSettingController extends Controller
                 'gift_card_product_id' => isset($validated['digital_gift_card_product_id'])
                     ? (int) $validated['digital_gift_card_product_id']
                     : null,
+                'pos_document_type' => ($validated['digital_pos_document_type'] ?? 'sell') === 'quotation'
+                    ? 'quotation'
+                    : 'sell',
+                'expose_credentials_to_customer' => $request->boolean('digital_expose_credentials_to_customer'),
             ],
             'contact' => [
                 'phone' => $validated['contact_phone'] ?? '',
