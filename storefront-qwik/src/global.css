@@ -4597,7 +4597,14 @@ body.is-globally-pending {
     var(--gs-bg);
 }
 
-.home-top-categories__img,
+.home-top-categories__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
 .home-brands__img {
   display: block;
   width: 100%;
@@ -4656,6 +4663,11 @@ body.is-globally-pending {
   .home-category-shelf__layout {
     grid-template-columns: minmax(11rem, 20%) minmax(0, 1fr);
     align-items: start;
+  }
+
+  .home-category-shelf__banner,
+  .home-category-shelf__banner-content {
+    min-height: 800px;
   }
 }
 
