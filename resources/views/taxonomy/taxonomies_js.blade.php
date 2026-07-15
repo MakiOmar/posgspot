@@ -29,6 +29,9 @@
                         @if($cat_code_enabled)
                             { data: 'short_code', name: 'short_code' },
                         @endif
+                        @if(request()->get('type') == 'product')
+                            { data: 'slug', name: 'slug' },
+                        @endif
                         { data: 'description', name: 'description' },
                         { data: 'action', name: 'action', orderable: false, searchable: false},
                     ],

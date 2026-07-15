@@ -35,6 +35,12 @@
         {!! Form::textarea('description', null, ['class' => 'form-control', 'placeholder' => __( 'lang_v1.description'), 'rows' => 3]); !!}
       </div>
       @if($category_type === 'product')
+      {{-- Storefront URL slug --}}
+      <div class="form-group">
+        {!! Form::label('slug', 'Storefront slug:') !!}
+        {!! Form::text('slug', null, ['class' => 'form-control', 'placeholder' => 'ps4-consoles', 'maxlength' => 191]); !!}
+        <p class="help-block">Used in storefront URLs (/category/…). Leave blank to auto-generate from the name.</p>
+      </div>
       {{-- Storefront category card thumbnail --}}
       <div class="form-group">
         {!! Form::label('image', 'Storefront image:') !!}

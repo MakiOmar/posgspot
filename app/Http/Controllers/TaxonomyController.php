@@ -52,7 +52,7 @@ class TaxonomyController extends Controller
 
             $category = Category::where('business_id', $business_id)
                             ->where('category_type', $category_type)
-                            ->select(['name', 'short_code', 'description', 'id', 'parent_id']);
+                            ->select(['name', 'short_code', 'slug', 'description', 'id', 'parent_id']);
 
             return Datatables::of($category)
                 ->addColumn(
@@ -75,6 +75,9 @@ class TaxonomyController extends Controller
                     } else {
                         return $row->name;
                     }
+                })
+                ->editColumn('slug', function ($row) {
+                    return e((string) ($row->slug ?? ''));
                 })
                 ->removeColumn('id')
                 ->removeColumn('parent_id')
@@ -142,9 +145,13 @@ class TaxonomyController extends Controller
             $input['business_id'] = $request->session()->get('user.business_id');
             $input['created_by'] = $request->session()->get('user.id');
 
-            // Auto-generate a unique storefront slug from the name.
+            // Storefront slug: optional override, otherwise from name (unique per business/type).
+            $slugSource = trim((string) $request->input('slug', ''));
+            if ($slugSource === '') {
+                $slugSource = (string) ($input['name'] ?? '');
+            }
             $input['slug'] = Category::generateSlug(
-                $input['name'] ?? '',
+                $slugSource,
                 $input['business_id'],
                 $input['category_type'] ?? 'product'
             );
@@ -246,9 +253,16 @@ class TaxonomyController extends Controller
                 $category->description = $input['description'];
                 $category->short_code = $request->input('short_code');
 
-                // Backfill a slug only when missing; keep existing slugs stable
-                // so previously shared storefront URLs don't break.
-                if (empty($category->slug)) {
+                // Editable storefront slug (unique). Empty input keeps current or backfills from name.
+                $slugSource = trim((string) $request->input('slug', ''));
+                if ($slugSource !== '') {
+                    $category->slug = Category::generateSlug(
+                        $slugSource,
+                        $business_id,
+                        $category->category_type ?? 'product',
+                        $category->id
+                    );
+                } elseif (empty($category->slug)) {
                     $category->slug = Category::generateSlug(
                         $category->name,
                         $business_id,

@@ -35,6 +35,12 @@
         {!! Form::textarea('description', $category->description, ['class' => 'form-control', 'placeholder' => __( 'lang_v1.description'), 'rows' => 3]); !!}
       </div>
       @if(($category->category_type ?? '') === 'product')
+      {{-- Editable storefront URL slug --}}
+      <div class="form-group">
+        {!! Form::label('slug', 'Storefront slug:') !!}
+        {!! Form::text('slug', $category->slug, ['class' => 'form-control', 'placeholder' => 'ps4-consoles', 'maxlength' => 191]); !!}
+        <p class="help-block">Used in storefront URLs (/category/…). Changing this updates public category links.</p>
+      </div>
       {{-- Storefront category card thumbnail --}}
       <div class="form-group">
         {!! Form::label('image', 'Storefront image:') !!}
