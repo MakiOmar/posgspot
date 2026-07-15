@@ -251,6 +251,7 @@
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
+| 2026-07-15 | Featured / deals rail: drop `in_stock_only` so all `is_storefront_featured` products show (OOS cards keep availability CTA). |
 | 2026-07-15 | Shelf banner polish: bg + mid product image + CTA stack; product cards no longer stretch to banner height; `shelf_fg_image` on categories. |
 | 2026-07-15 | Homepage shelves moved to category edit (single source of truth); fix shelf product count (no in_stock_only filter); `GET /categories/homepage-shelves`. |
 | 2026-07-15 | Homepage rebuild (gamesspoteg.com order): hero slider, promo tiles, video, featured/bestsellers API, category shelves settings, category/brand images, Qwik sections. |

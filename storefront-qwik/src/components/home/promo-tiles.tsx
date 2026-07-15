@@ -27,7 +27,13 @@ export const PromoTiles = component$(() => {
           <Link
             key={tile.id}
             href={localePath(locale, tile.href)}
-            class={["home-promo-tiles__tile", i === 0 ? "home-promo-tiles__tile--main" : ""].join(" ")}
+            class={[
+              "home-promo-tiles__tile",
+              i === 0 ? "home-promo-tiles__tile--main" : "",
+              i === 1 ? "home-promo-tiles__tile--wide" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             <img
               src={tile.imageUrl}

@@ -882,8 +882,9 @@ button.header-nav-dropdown__trigger {
 
 .wishlist-toggle {
   border: 0;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--gs-text);
+  background: rgba(255, 255, 255, 0.96);
+  /* Dark stroke on light bubble — --gs-text is near-white and disappears here */
+  color: #1a222d;
   border-radius: 999px;
   width: 2.25rem;
   height: 2.25rem;
@@ -891,7 +892,7 @@ button.header-nav-dropdown__trigger {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
 }
 
 .wishlist-toggle:hover,
@@ -1297,6 +1298,11 @@ button.header-nav-dropdown__trigger {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+  align-items: stretch;
+}
+
+.product-grid > .product-card {
+  height: 100%;
 }
 
 @media (max-width: 1023px) {
@@ -1540,6 +1546,11 @@ button.header-nav-dropdown__trigger {
   font-size: 0.9375rem;
   color: var(--gs-text);
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(1.3em * 2);
 }
 
 .product-card__prices {
@@ -4486,8 +4497,14 @@ body.is-globally-pending {
     grid-template-rows: 1fr 1fr;
   }
 
+  /* Tall left tile */
   .home-promo-tiles__tile--main {
     grid-row: 1 / span 2;
+  }
+
+  /* First small tile spans the full right column; other two sit under it */
+  .home-promo-tiles__tile--wide {
+    grid-column: 2 / span 2;
   }
 }
 
@@ -4550,6 +4567,7 @@ body.is-globally-pending {
 
 .home-product-rail {
   display: flex;
+  align-items: stretch;
   gap: 1rem;
   overflow-x: auto;
   padding-bottom: 0.35rem;
@@ -4559,6 +4577,14 @@ body.is-globally-pending {
 .home-product-rail__item {
   flex: 0 0 min(16rem, 78vw);
   scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-product-rail__item > .product-card {
+  flex: 1 1 auto;
+  height: 100%;
+  width: 100%;
 }
 
 .home-top-categories__rail,
@@ -4664,11 +4690,6 @@ body.is-globally-pending {
     grid-template-columns: minmax(11rem, 20%) minmax(0, 1fr);
     align-items: start;
   }
-
-  .home-category-shelf__banner,
-  .home-category-shelf__banner-content {
-    min-height: 800px;
-  }
 }
 
 /* Vertical promo card: bg + kicker + title + fg product + CTA */
@@ -4721,6 +4742,14 @@ body.is-globally-pending {
   padding: 1.35rem 1rem 1.15rem;
   text-align: center;
   min-height: 22rem;
+}
+
+/* After base 22rem so desktop height wins in the cascade */
+@media (min-width: 900px) {
+  .home-category-shelf__banner,
+  .home-category-shelf__banner-content {
+    min-height: 600px;
+  }
 }
 
 .home-category-shelf__banner-kicker {

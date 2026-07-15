@@ -28,7 +28,8 @@ const emptyPage = (perPage: number) => ({
 export const useFeaturedProducts = routeLoader$(async ({ params }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    return await fetchProductsPage({ featured: 1, per_page: 8, in_stock_only: true }, locale);
+    // Include out-of-stock featured items (card shows availability CTA), same as shelves.
+    return await fetchProductsPage({ featured: 1, per_page: 8 }, locale);
   } catch {
     return emptyPage(8);
   }
