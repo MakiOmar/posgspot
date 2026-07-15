@@ -33,6 +33,8 @@ export const PromoTiles = component$(() => {
               src={tile.imageUrl}
               alt={tile.label}
               class="home-promo-tiles__img"
+              width={800}
+              height={600}
               loading="lazy"
             />
             <span class="home-promo-tiles__cta">{tStatic(locale, "home.shopNow")}</span>

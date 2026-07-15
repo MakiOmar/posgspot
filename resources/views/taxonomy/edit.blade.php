@@ -55,6 +55,60 @@
         {!! Form::file('image', ['id' => 'category_image', 'accept' => 'image/*']); !!}
         <p class="help-block">Optional. Shown on the storefront homepage top categories.</p>
       </div>
+
+      <hr>
+      <h4 style="margin-top: 0;">Homepage shelf</h4>
+      <p class="help-block">Single place to control the homepage banner + product shelf for this category.</p>
+      <div class="checkbox">
+        <label>
+          {!! Form::checkbox('show_on_homepage_shelf', 1, !empty($category->show_on_homepage_shelf)) !!}
+          Show this category as a homepage shelf
+        </label>
+      </div>
+      <div class="form-group">
+        {!! Form::label('homepage_shelf_sort', 'Shelf sort order:') !!}
+        {!! Form::number('homepage_shelf_sort', (int) ($category->homepage_shelf_sort ?? 0), ['class' => 'form-control', 'min' => 0, 'max' => 999]) !!}
+        <p class="help-block">Lower numbers appear first on the homepage.</p>
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_heading', 'Section heading:') !!}
+        {!! Form::text('shelf_heading', $category->shelf_heading, ['class' => 'form-control', 'placeholder' => $category->name, 'maxlength' => 191]) !!}
+        <p class="help-block">Defaults to the category name when empty.</p>
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_view_more_label', 'View more label:') !!}
+        {!! Form::text('shelf_view_more_label', $category->shelf_view_more_label, ['class' => 'form-control', 'placeholder' => 'View more', 'maxlength' => 80]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner', 'Side banner image:') !!}
+        @if(!empty($category->shelf_banner))
+          <div style="margin-bottom: 8px;">
+            <img src="{{ $category->shelf_banner_url }}" alt="" style="max-height: 120px; max-width: 80px;">
+          </div>
+          <label>
+            {!! Form::checkbox('clear_shelf_banner', 1, false) !!} Remove current banner
+          </label>
+        @endif
+        {!! Form::file('shelf_banner', ['id' => 'shelf_banner', 'accept' => 'image/*']); !!}
+        <p class="help-block">Tall/vertical image shown beside the product grid.</p>
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_kicker', 'Banner eyebrow / kicker:') !!}
+        {!! Form::text('shelf_banner_kicker', $category->shelf_banner_kicker, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_text', 'Banner title text:') !!}
+        {!! Form::text('shelf_banner_text', $category->shelf_banner_text, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_button_text', 'Banner button text:') !!}
+        {!! Form::text('shelf_button_text', $category->shelf_button_text, ['class' => 'form-control', 'placeholder' => 'Shop now', 'maxlength' => 80]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_link', 'Banner / button link:') !!}
+        {!! Form::text('shelf_banner_link', $category->shelf_banner_link, ['class' => 'form-control', 'placeholder' => '/category/'.$category->slug, 'maxlength' => 500]) !!}
+        <p class="help-block">Leave blank to link to this category page.</p>
+      </div>
       @endif
       @if(!empty($parent_categories) && $enable_sub_category)
           <div class="form-group">

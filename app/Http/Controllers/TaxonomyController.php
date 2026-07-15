@@ -156,11 +156,16 @@ class TaxonomyController extends Controller
                 $input['category_type'] ?? 'product'
             );
 
-            // Storefront category thumbnail (same uploads/img path as products).
+            // Storefront category thumbnail + homepage shelf fields.
             if (($input['category_type'] ?? '') === 'product') {
                 $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
                 if (! empty($fileName)) {
                     $input['image'] = $fileName;
+                }
+                $input = array_merge($input, $this->homepageShelfInputFromRequest($request));
+                $bannerName = $this->moduleUtil->uploadFile($request, 'shelf_banner', config('constants.product_img_path'), 'image');
+                if (! empty($bannerName)) {
+                    $input['shelf_banner'] = $bannerName;
                 }
             }
 
@@ -277,7 +282,7 @@ class TaxonomyController extends Controller
                     $category->parent_id = 0;
                 }
 
-                // Storefront category thumbnail.
+                // Storefront category thumbnail + homepage shelf fields.
                 if (($category->category_type ?? '') === 'product') {
                     if (! empty($request->input('clear_image'))) {
                         $category->image = null;
@@ -285,6 +290,18 @@ class TaxonomyController extends Controller
                     $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
                     if (! empty($fileName)) {
                         $category->image = $fileName;
+                    }
+
+                    foreach ($this->homepageShelfInputFromRequest($request) as $key => $value) {
+                        $category->{$key} = $value;
+                    }
+
+                    if (! empty($request->input('clear_shelf_banner'))) {
+                        $category->shelf_banner = null;
+                    }
+                    $bannerName = $this->moduleUtil->uploadFile($request, 'shelf_banner', config('constants.product_img_path'), 'image');
+                    if (! empty($bannerName)) {
+                        $category->shelf_banner = $bannerName;
                     }
                 }
 
@@ -338,6 +355,25 @@ class TaxonomyController extends Controller
 
             return $output;
         }
+    }
+
+    /**
+     * Homepage shelf text fields from the category create/edit form.
+     *
+     * @return array<string, mixed>
+     */
+    private function homepageShelfInputFromRequest(Request $request): array
+    {
+        return [
+            'show_on_homepage_shelf' => $request->boolean('show_on_homepage_shelf') ? 1 : 0,
+            'homepage_shelf_sort' => max(0, (int) $request->input('homepage_shelf_sort', 0)),
+            'shelf_heading' => mb_substr(trim((string) $request->input('shelf_heading', '')), 0, 191) ?: null,
+            'shelf_banner_kicker' => mb_substr(trim((string) $request->input('shelf_banner_kicker', '')), 0, 191) ?: null,
+            'shelf_banner_text' => mb_substr(trim((string) $request->input('shelf_banner_text', '')), 0, 191) ?: null,
+            'shelf_button_text' => mb_substr(trim((string) $request->input('shelf_button_text', '')), 0, 80) ?: null,
+            'shelf_banner_link' => mb_substr(trim((string) $request->input('shelf_banner_link', '')), 0, 500) ?: null,
+            'shelf_view_more_label' => mb_substr(trim((string) $request->input('shelf_view_more_label', '')), 0, 80) ?: null,
+        ];
     }
 
     public function getCategoriesApi()

@@ -54,7 +54,6 @@ Public `GET /settings` also exposes:
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
-- `homepage.category_shelves[]` — `{ title, category_slug, banner_image_url, banner_link, view_more_path }` (Storefront Settings → Homepage); product grids load via `/products?category_slug=`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 
@@ -92,12 +91,13 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `homepage.category_shelves`, `couriers.bosta.enabled`, `digital.enabled`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/geo/countries` | Country list for address forms |
 | GET | `/geo/states/{countryCode}` | States / governorates for a country |
 | GET | `/geo/bosta-districts?state=` | Bosta districts for a governorate (`state` code) when Bosta is enabled+keyed; otherwise `{ city_code, city_name, districts: [] }`. Labels follow `X-Content-Locale`. |
 | GET | `/categories` | Category tree (`id`, `name`, `slug`, `image_url`, nested `sub_categories`) |
+| GET | `/categories/homepage-shelves` | Categories with `show_on_homepage_shelf` (banner + heading + CTA fields from POS category edit). Use each `slug` with `/products?category_slug=` for the shelf grid |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown); includes `image_url` |
 | GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
 | GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |
@@ -183,7 +183,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; `pos_document_type` (`sell` \| `quotation`); `expose_credentials_to_customer` (default true; when false secrets stay on POS staff note only). Public `GET /settings` exposes `digital.enabled` only
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
-- **Homepage shelves** (`homepage.category_shelves`) — up to 6 side-banner + category product shelves (title, category slug, banner image URL, links)
+- **Homepage shelves** — edit on product **Categories** (`/taxonomies?type=product`): enable shelf, sort, side banner image, heading, banner copy/button/link; public `GET /categories/homepage-shelves`
 - **Product “Featured on storefront”** — `products.is_storefront_featured`; filter with `GET /products?featured=1`
 - **Category / brand images** — optional `image` upload on POS category/brand forms; public API exposes `image_url`
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only

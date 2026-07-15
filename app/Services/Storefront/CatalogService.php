@@ -52,6 +52,39 @@ class CatalogService
     }
 
     /**
+     * Product categories flagged as homepage shelves (banner + product grid).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getHomepageShelves(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
+    {
+        if (! $this->hasSellingLocations($businessId)) {
+            return [];
+        }
+
+        $query = Category::query()
+            ->where('business_id', $businessId)
+            ->where('category_type', 'product')
+            ->where('show_on_homepage_shelf', 1)
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->orderBy('homepage_shelf_sort')
+            ->orderBy('name');
+
+        if (! StorefrontLocale::isDefault($locale)) {
+            $query->whereHas('storefrontTranslations', fn (Builder $q) => $q->where('locale', $locale))
+                ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)]);
+        }
+
+        return $query->limit(6)
+            ->get()
+            ->map(fn (Category $category) => $this->presenter->homepageShelfFields($category, $locale))
+            ->filter(fn (array $row) => $row !== [])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return array{id:int,name:string,slug:?string,parent_id:int}|null
      */
     public function findCategoryBySlug(int $businessId, string $slug, string $locale = StorefrontLocale::DEFAULT): ?array

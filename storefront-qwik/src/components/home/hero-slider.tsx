@@ -35,6 +35,8 @@ export const HeroSlider = component$(() => {
             src={item.imageUrl}
             alt=""
             class="home-hero-slider__bg"
+            width={1920}
+            height={800}
             loading={i === 0 ? "eager" : "lazy"}
             fetchPriority={i === 0 ? "high" : undefined}
           />

@@ -129,6 +129,14 @@ export function fetchCategory(slug: string, locale?: string) {
   return storefrontFetch<Category>(`/categories/${encodeURIComponent(slug)}`, {}, locale);
 }
 
+export function fetchHomepageShelves(locale?: string) {
+  return storefrontFetch<import("./types").HomepageCategoryShelf[]>(
+    "/categories/homepage-shelves",
+    {},
+    locale,
+  );
+}
+
 export function fetchBrands(locale?: string) {
   return storefrontFetch<Brand[]>("/brands", {}, locale);
 }

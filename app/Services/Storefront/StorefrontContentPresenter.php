@@ -146,6 +146,44 @@ class StorefrontContentPresenter
     }
 
     /**
+     * Homepage shelf payload (category is the single source of truth).
+     *
+     * @return array<string, mixed>|array{}
+     */
+    public function homepageShelfFields(Category $category, string $locale): array
+    {
+        $base = $this->categoryFields($category, $locale);
+        if ($base === [] || empty($base['slug'])) {
+            return [];
+        }
+
+        $categoryPath = '/category/'.$base['slug'];
+        $bannerLink = trim((string) ($category->shelf_banner_link ?? ''));
+        if ($bannerLink === '') {
+            $bannerLink = $categoryPath;
+        }
+
+        $heading = trim((string) ($category->shelf_heading ?? ''));
+        if ($heading === '') {
+            $heading = $base['name'];
+        }
+
+        return [
+            'id' => $base['id'],
+            'name' => $base['name'],
+            'slug' => $base['slug'],
+            'heading' => $heading,
+            'banner_image_url' => $category->shelf_banner_url,
+            'banner_kicker' => trim((string) ($category->shelf_banner_kicker ?? '')) ?: null,
+            'banner_text' => trim((string) ($category->shelf_banner_text ?? '')) ?: null,
+            'button_text' => trim((string) ($category->shelf_button_text ?? '')) ?: null,
+            'banner_link' => $bannerLink,
+            'view_more_path' => $categoryPath,
+            'view_more_label' => trim((string) ($category->shelf_view_more_label ?? '')) ?: null,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>|string|null  $value
      */
     public function localizedSetting(array|string|null $value, string $locale, string $fallback = ''): string

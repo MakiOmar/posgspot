@@ -32,7 +32,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
-| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; categories/brands expose `image_url`; settings include `homepage.category_shelves` |
+| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; categories/brands expose `image_url`; `GET /categories/homepage-shelves` from category shelf fields |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug` |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
@@ -156,7 +156,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
-| Homepage category shelves | ✅ | Settings → Homepage tab; `homepage.category_shelves` on `GET /settings`; Qwik banner+grid shelves |
+| Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; `image_url` on storefront API |
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
@@ -251,6 +251,7 @@
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
+| 2026-07-15 | Homepage shelves moved to category edit (single source of truth); fix shelf product count (no in_stock_only filter); `GET /categories/homepage-shelves`. |
 | 2026-07-15 | Homepage rebuild (gamesspoteg.com order): hero slider, promo tiles, video, featured/bestsellers API, category shelves settings, category/brand images, Qwik sections. |
 | 2026-07-14 | Storefront settings: `digital.pos_document_type` (sell\|quotation) + `digital.expose_credentials_to_customer`; quotations skip stock decrease; staff-only creds gate sell-line / account API / email. |
 | 2026-07-05 | XSS/CSP: CSP + security headers (`plugin@security.ts`), DOMPurify on PDP, API HTML sanitizer, safe JSON-LD. |

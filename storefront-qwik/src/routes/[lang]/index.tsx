@@ -11,7 +11,7 @@ import { HomeVideo } from "~/components/home/home-video";
 import { PromoTiles } from "~/components/home/promo-tiles";
 import { TopCategories } from "~/components/home/top-categories";
 import { JsonLd } from "~/components/seo/json-ld";
-import { fetchBrands, fetchProductsPage } from "~/lib/api";
+import { fetchBrands, fetchHomepageShelves, fetchProductsPage } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -56,23 +56,27 @@ export const useHomeBrands = routeLoader$(async ({ params }): Promise<Brand[]> =
 export const useCategoryShelves = routeLoader$(
   async ({
     params,
-    resolveValue,
   }): Promise<Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>> => {
     const locale = isSupportedLocale(params.lang) ? params.lang : "en";
-    const settings = await resolveValue(useSiteSettings);
-    const shelves = settings.homepage?.category_shelves ?? [];
+    let shelves: HomepageCategoryShelf[] = [];
+    try {
+      const { data } = await fetchHomepageShelves(locale);
+      shelves = data ?? [];
+    } catch {
+      shelves = [];
+    }
 
+    // Match category PLP: include out-of-stock cards (availability CTA), not in_stock_only.
     const rows = await Promise.all(
       shelves.map(async (shelf) => {
-        if (!shelf.category_slug) {
+        if (!shelf.slug) {
           return { shelf, products: [] as ProductSummary[] };
         }
         try {
           const page = await fetchProductsPage(
             {
-              category_slug: shelf.category_slug,
+              category_slug: shelf.slug,
               per_page: 6,
-              in_stock_only: true,
             },
             locale,
           );
@@ -123,9 +127,9 @@ export default component$(() => {
       <FeaturedSlider products={featured.value.data} settings={settings.value} />
       <TopCategories categories={categoriesLoad.value.items} />
 
-      {shelves.value.map(({ shelf, products }, i) => (
+      {shelves.value.map(({ shelf, products }) => (
         <CategoryShelf
-          key={`${shelf.title}-${shelf.category_slug}-${i}`}
+          key={shelf.id}
           shelf={shelf}
           products={products}
           settings={settings.value}

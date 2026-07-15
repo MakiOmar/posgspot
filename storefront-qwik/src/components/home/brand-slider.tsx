@@ -36,7 +36,14 @@ export const BrandSlider = component$<BrandSliderProps>(({ brands }) => {
             title={brand.name}
           >
             {brand.image_url && !brand.image_url.includes("default.png") ? (
-              <img src={brand.image_url} alt={brand.name} class="home-brands__img" loading="lazy" />
+              <img
+                src={brand.image_url}
+                alt={brand.name}
+                class="home-brands__img"
+                width={160}
+                height={80}
+                loading="lazy"
+              />
             ) : (
               <span class="home-brands__placeholder">{brand.name.slice(0, 1)}</span>
             )}

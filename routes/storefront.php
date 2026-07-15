@@ -46,6 +46,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/customers/add', [CustomerRegistrationController::class, 'store']);
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/homepage-shelves', [CategoryController::class, 'homepageShelves']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
     Route::get('/brands', [BrandController::class, 'index']);
     Route::get('/brands/{slug}', [BrandController::class, 'show']);

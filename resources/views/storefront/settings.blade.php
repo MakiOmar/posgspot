@@ -35,11 +35,6 @@
                 </a>
             </li>
             <li>
-                <a href="#tab_homepage" data-toggle="tab" aria-expanded="false">
-                    <i class="fa fa-home"></i> Homepage
-                </a>
-            </li>
-            <li>
                 <a href="#tab_contact" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-phone"></i> Contact &amp; social
                 </a>
@@ -531,66 +526,6 @@
                     <i class="fa fa-plus"></i> Add banner
                 </button>
                 <p class="help-block">Max 12 banners. Prefer wide images (~1200×400). Relative links like <code>/products</code> work on the storefront.</p>
-            </div>
-
-            {{-- Homepage category shelves (banner + product grid) --}}
-            <div class="tab-pane" id="tab_homepage">
-                <div class="alert alert-info">
-                    Each shelf shows a vertical side banner next to a product grid from the category slug.
-                    Leave the slug empty to hide the product grid until you assign a POS category.
-                </div>
-                @php
-                    $homeShelves = $settings['homepage']['category_shelves'] ?? [];
-                    // Always show 3 editor rows for the main homepage shelves.
-                    while (count($homeShelves) < 3) {
-                        $homeShelves[] = [
-                            'title' => '',
-                            'category_slug' => '',
-                            'banner_image_url' => '',
-                            'banner_link' => '/products',
-                            'view_more_path' => '/products',
-                        ];
-                    }
-                @endphp
-                @foreach (array_slice($homeShelves, 0, 3) as $si => $shelf)
-                    <div class="box box-solid" style="border: 1px solid #ddd; padding: 12px; margin-bottom: 16px;">
-                        <h4 style="margin-top: 0;">Shelf {{ $si + 1 }}</h4>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    {!! Form::label("homepage_shelves_{$si}_title", 'Title') !!}
-                                    {!! Form::text("homepage_shelves[$si][title]", $shelf['title'] ?? '', ['class' => 'form-control', 'maxlength' => 120]) !!}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    {!! Form::label("homepage_shelves_{$si}_category_slug", 'Category slug') !!}
-                                    {!! Form::text("homepage_shelves[$si][category_slug]", $shelf['category_slug'] ?? '', ['class' => 'form-control', 'maxlength' => 191, 'placeholder' => 'ps4-consoles']) !!}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    {!! Form::label("homepage_shelves_{$si}_view_more", 'View more path') !!}
-                                    {!! Form::text("homepage_shelves[$si][view_more_path]", $shelf['view_more_path'] ?? '/products', ['class' => 'form-control', 'maxlength' => 500]) !!}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    {!! Form::label("homepage_shelves_{$si}_banner", 'Side banner image URL') !!}
-                                    {!! Form::text("homepage_shelves[$si][banner_image_url]", $shelf['banner_image_url'] ?? '', ['class' => 'form-control', 'maxlength' => 500, 'placeholder' => 'https://…']) !!}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    {!! Form::label("homepage_shelves_{$si}_banner_link", 'Banner link') !!}
-                                    {!! Form::text("homepage_shelves[$si][banner_link]", $shelf['banner_link'] ?? '/products', ['class' => 'form-control', 'maxlength' => 500]) !!}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
             </div>
 
             {{-- Contact & social --}}

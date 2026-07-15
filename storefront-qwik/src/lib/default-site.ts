@@ -18,7 +18,6 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   promo_codes: { enabled_at_checkout: true, allow_stacking: false },
   payment_icons: [],
   banners: [],
-  homepage: { category_shelves: [] },
   newsletter: { enabled: false },
   turnstile: { enabled: false, site_key: null },
   couriers: { bosta: { enabled: false } },

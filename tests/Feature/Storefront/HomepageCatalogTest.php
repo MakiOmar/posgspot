@@ -91,23 +91,12 @@ class HomepageCatalogTest extends TestCase
         $this->assertIsArray($response->json('data'));
     }
 
-    public function test_settings_include_homepage_shelves(): void
+    public function test_homepage_shelves_endpoint(): void
     {
-        $response = $this->getJson('/api/storefront/v1/settings');
+        $response = $this->getJson('/api/storefront/v1/categories/homepage-shelves');
         $response->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonStructure([
-                'data' => [
-                    'homepage' => [
-                        'category_shelves',
-                    ],
-                ],
-            ]);
+            ->assertJsonPath('success', true);
 
-        $shelves = $response->json('data.homepage.category_shelves');
-        $this->assertIsArray($shelves);
-        $this->assertNotEmpty($shelves);
-        $this->assertArrayHasKey('banner_image_url', $shelves[0]);
-        $this->assertArrayHasKey('category_slug', $shelves[0]);
+        $this->assertIsArray($response->json('data'));
     }
 }

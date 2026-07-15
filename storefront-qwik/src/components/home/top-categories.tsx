@@ -36,7 +36,14 @@ export const TopCategories = component$<TopCategoriesProps>(({ categories }) => 
           >
             <span class="home-top-categories__media">
               {category.image_url && !category.image_url.includes("default.png") ? (
-                <img src={category.image_url} alt="" class="home-top-categories__img" loading="lazy" />
+                <img
+                  src={category.image_url}
+                  alt=""
+                  class="home-top-categories__img"
+                  width={200}
+                  height={200}
+                  loading="lazy"
+                />
               ) : (
                 <span class="home-top-categories__placeholder" aria-hidden="true" />
               )}

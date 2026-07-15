@@ -47,6 +47,48 @@
         {!! Form::file('image', ['id' => 'category_image', 'accept' => 'image/*']); !!}
         <p class="help-block">Optional. Shown on the storefront homepage top categories.</p>
       </div>
+
+      <hr>
+      <h4 style="margin-top: 0;">Homepage shelf</h4>
+      <div class="checkbox">
+        <label>
+          {!! Form::checkbox('show_on_homepage_shelf', 1, false) !!}
+          Show this category as a homepage shelf
+        </label>
+      </div>
+      <div class="form-group">
+        {!! Form::label('homepage_shelf_sort', 'Shelf sort order:') !!}
+        {!! Form::number('homepage_shelf_sort', 0, ['class' => 'form-control', 'min' => 0, 'max' => 999]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_heading', 'Section heading:') !!}
+        {!! Form::text('shelf_heading', null, ['class' => 'form-control', 'placeholder' => 'Defaults to category name', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_view_more_label', 'View more label:') !!}
+        {!! Form::text('shelf_view_more_label', null, ['class' => 'form-control', 'placeholder' => 'View more', 'maxlength' => 80]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner', 'Side banner image:') !!}
+        {!! Form::file('shelf_banner', ['id' => 'shelf_banner', 'accept' => 'image/*']); !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_kicker', 'Banner eyebrow / kicker:') !!}
+        {!! Form::text('shelf_banner_kicker', null, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_text', 'Banner title text:') !!}
+        {!! Form::text('shelf_banner_text', null, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_button_text', 'Banner button text:') !!}
+        {!! Form::text('shelf_button_text', null, ['class' => 'form-control', 'placeholder' => 'Shop now', 'maxlength' => 80]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_banner_link', 'Banner / button link:') !!}
+        {!! Form::text('shelf_banner_link', null, ['class' => 'form-control', 'placeholder' => '/category/…', 'maxlength' => 500]) !!}
+        <p class="help-block">Leave blank to link to this category page.</p>
+      </div>
       @endif
       @if(!empty($parent_categories) && $enable_sub_category)
         <div class="form-group">
