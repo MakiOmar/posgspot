@@ -80,17 +80,17 @@
         {!! Form::text('shelf_view_more_label', $category->shelf_view_more_label, ['class' => 'form-control', 'placeholder' => 'View more', 'maxlength' => 80]) !!}
       </div>
       <div class="form-group">
-        {!! Form::label('shelf_banner', 'Side banner image:') !!}
+        {!! Form::label('shelf_banner', 'Banner background image:') !!}
         @if(!empty($category->shelf_banner))
           <div style="margin-bottom: 8px;">
             <img src="{{ $category->shelf_banner_url }}" alt="" style="max-height: 120px; max-width: 80px;">
           </div>
           <label>
-            {!! Form::checkbox('clear_shelf_banner', 1, false) !!} Remove current banner
+            {!! Form::checkbox('clear_shelf_banner', 1, false) !!} Remove current background
           </label>
         @endif
         {!! Form::file('shelf_banner', ['id' => 'shelf_banner', 'accept' => 'image/*']); !!}
-        <p class="help-block">Tall/vertical image shown beside the product grid.</p>
+        <p class="help-block">Full-bleed background behind the shelf banner content.</p>
       </div>
       <div class="form-group">
         {!! Form::label('shelf_banner_kicker', 'Banner eyebrow / kicker:') !!}
@@ -99,6 +99,19 @@
       <div class="form-group">
         {!! Form::label('shelf_banner_text', 'Banner title text:') !!}
         {!! Form::text('shelf_banner_text', $category->shelf_banner_text, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_fg_image', 'Banner product image:') !!}
+        @if(!empty($category->shelf_fg_image))
+          <div style="margin-bottom: 8px;">
+            <img src="{{ $category->shelf_fg_image_url }}" alt="" style="max-height: 100px; max-width: 140px;">
+          </div>
+          <label>
+            {!! Form::checkbox('clear_shelf_fg_image', 1, false) !!} Remove product image
+          </label>
+        @endif
+        {!! Form::file('shelf_fg_image', ['id' => 'shelf_fg_image', 'accept' => 'image/*']); !!}
+        <p class="help-block">Shown between the title text and the Shop Now button.</p>
       </div>
       <div class="form-group">
         {!! Form::label('shelf_button_text', 'Banner button text:') !!}

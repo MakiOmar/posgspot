@@ -167,6 +167,10 @@ class TaxonomyController extends Controller
                 if (! empty($bannerName)) {
                     $input['shelf_banner'] = $bannerName;
                 }
+                $fgName = $this->moduleUtil->uploadFile($request, 'shelf_fg_image', config('constants.product_img_path'), 'image');
+                if (! empty($fgName)) {
+                    $input['shelf_fg_image'] = $fgName;
+                }
             }
 
             $category = Category::create($input);
@@ -302,6 +306,14 @@ class TaxonomyController extends Controller
                     $bannerName = $this->moduleUtil->uploadFile($request, 'shelf_banner', config('constants.product_img_path'), 'image');
                     if (! empty($bannerName)) {
                         $category->shelf_banner = $bannerName;
+                    }
+
+                    if (! empty($request->input('clear_shelf_fg_image'))) {
+                        $category->shelf_fg_image = null;
+                    }
+                    $fgName = $this->moduleUtil->uploadFile($request, 'shelf_fg_image', config('constants.product_img_path'), 'image');
+                    if (! empty($fgName)) {
+                        $category->shelf_fg_image = $fgName;
                     }
                 }
 

@@ -69,7 +69,7 @@
         {!! Form::text('shelf_view_more_label', null, ['class' => 'form-control', 'placeholder' => 'View more', 'maxlength' => 80]) !!}
       </div>
       <div class="form-group">
-        {!! Form::label('shelf_banner', 'Side banner image:') !!}
+        {!! Form::label('shelf_banner', 'Banner background image:') !!}
         {!! Form::file('shelf_banner', ['id' => 'shelf_banner', 'accept' => 'image/*']); !!}
       </div>
       <div class="form-group">
@@ -79,6 +79,11 @@
       <div class="form-group">
         {!! Form::label('shelf_banner_text', 'Banner title text:') !!}
         {!! Form::text('shelf_banner_text', null, ['class' => 'form-control', 'maxlength' => 191]) !!}
+      </div>
+      <div class="form-group">
+        {!! Form::label('shelf_fg_image', 'Banner product image:') !!}
+        {!! Form::file('shelf_fg_image', ['id' => 'shelf_fg_image', 'accept' => 'image/*']); !!}
+        <p class="help-block">Shown between the title text and the Shop Now button.</p>
       </div>
       <div class="form-group">
         {!! Form::label('shelf_button_text', 'Banner button text:') !!}

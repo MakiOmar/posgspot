@@ -97,7 +97,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/geo/states/{countryCode}` | States / governorates for a country |
 | GET | `/geo/bosta-districts?state=` | Bosta districts for a governorate (`state` code) when Bosta is enabled+keyed; otherwise `{ city_code, city_name, districts: [] }`. Labels follow `X-Content-Locale`. |
 | GET | `/categories` | Category tree (`id`, `name`, `slug`, `image_url`, nested `sub_categories`) |
-| GET | `/categories/homepage-shelves` | Categories with `show_on_homepage_shelf` (banner + heading + CTA fields from POS category edit). Use each `slug` with `/products?category_slug=` for the shelf grid |
+| GET | `/categories/homepage-shelves` | Categories with `show_on_homepage_shelf` (background `banner_image_url`, mid product `banner_fg_image_url`, heading/kicker/title/CTA from POS category edit). Use each `slug` with `/products?category_slug=` for the shelf grid |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown); includes `image_url` |
 | GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
 | GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |

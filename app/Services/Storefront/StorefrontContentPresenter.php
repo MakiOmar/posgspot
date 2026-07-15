@@ -174,6 +174,7 @@ class StorefrontContentPresenter
             'slug' => $base['slug'],
             'heading' => $heading,
             'banner_image_url' => $category->shelf_banner_url,
+            'banner_fg_image_url' => $category->shelf_fg_image_url,
             'banner_kicker' => trim((string) ($category->shelf_banner_kicker ?? '')) ?: null,
             'banner_text' => trim((string) ($category->shelf_banner_text ?? '')) ?: null,
             'button_text' => trim((string) ($category->shelf_button_text ?? '')) ?: null,

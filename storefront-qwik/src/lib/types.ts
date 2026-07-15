@@ -105,7 +105,10 @@ export interface HomepageCategoryShelf {
   name: string;
   slug: string;
   heading: string;
+  /** Full-bleed banner background. */
   banner_image_url: string | null;
+  /** Product / hero image between title and CTA. */
+  banner_fg_image_url: string | null;
   banner_kicker: string | null;
   banner_text: string | null;
   button_text: string | null;

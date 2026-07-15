@@ -22,7 +22,7 @@ function resolveStorefrontHref(path: string, locale: "en" | "ar"): string {
 export const CategoryShelf = component$<CategoryShelfProps>(({ shelf, products, settings }) => {
   const { locale } = useI18n();
 
-  if (!shelf.banner_image_url && products.length === 0) {
+  if (!shelf.banner_image_url && !shelf.banner_fg_image_url && products.length === 0) {
     return null;
   }
 
@@ -33,33 +33,45 @@ export const CategoryShelf = component$<CategoryShelfProps>(({ shelf, products, 
   const externalBanner = bannerHref.startsWith("http");
   const externalMore = viewMoreHref.startsWith("http");
 
+  // Stack: background → kicker → title → product image → CTA (reference homepage design).
   const bannerInner = (
     <>
-      {shelf.banner_image_url ? (
-        <img
-          src={shelf.banner_image_url}
-          alt=""
-          width={400}
-          height={640}
-          loading="lazy"
-          class="home-category-shelf__banner-img"
-        />
-      ) : (
-        <span class="home-category-shelf__banner-fallback" aria-hidden="true" />
-      )}
-      {(shelf.banner_kicker || shelf.banner_text || shelf.button_text) && (
-        <span class="home-category-shelf__banner-copy">
-          {shelf.banner_kicker ? (
-            <span class="home-category-shelf__banner-kicker">{shelf.banner_kicker}</span>
-          ) : null}
-          {shelf.banner_text ? (
-            <span class="home-category-shelf__banner-text">{shelf.banner_text}</span>
-          ) : null}
-          {shelf.button_text || shelf.banner_text ? (
-            <span class="home-category-shelf__banner-btn">{buttonText}</span>
-          ) : null}
+      <span class="home-category-shelf__banner-bg" aria-hidden="true">
+        {shelf.banner_image_url ? (
+          <img
+            src={shelf.banner_image_url}
+            alt=""
+            width={480}
+            height={720}
+            loading="lazy"
+            class="home-category-shelf__banner-bg-img"
+          />
+        ) : null}
+      </span>
+      <span class="home-category-shelf__banner-content">
+        {shelf.banner_kicker ? (
+          <span class="home-category-shelf__banner-kicker">{shelf.banner_kicker}</span>
+        ) : null}
+        {shelf.banner_text ? (
+          <span class="home-category-shelf__banner-text">{shelf.banner_text}</span>
+        ) : null}
+        {shelf.banner_fg_image_url ? (
+          <img
+            src={shelf.banner_fg_image_url}
+            alt=""
+            width={320}
+            height={320}
+            loading="lazy"
+            class="home-category-shelf__banner-fg"
+          />
+        ) : null}
+        <span class="home-category-shelf__banner-btn">
+          {buttonText}
+          <span class="home-category-shelf__banner-btn-arrow" aria-hidden="true">
+            →
+          </span>
         </span>
-      )}
+      </span>
     </>
   );
 

@@ -23,7 +23,7 @@ class Category extends Model
      */
     protected $guarded = ['id'];
 
-    protected $appends = ['image_url', 'shelf_banner_url'];
+    protected $appends = ['image_url', 'shelf_banner_url', 'shelf_fg_image_url'];
 
     protected $casts = [
         'show_on_homepage_shelf' => 'boolean',
@@ -42,12 +42,24 @@ class Category extends Model
     }
 
     /**
-     * Vertical homepage shelf side-banner URL (null when unset — no default placeholder).
+     * Homepage shelf background image URL (null when unset).
      */
     public function getShelfBannerUrlAttribute(): ?string
     {
         if (! empty($this->shelf_banner)) {
             return asset('/uploads/img/'.rawurlencode($this->shelf_banner));
+        }
+
+        return null;
+    }
+
+    /**
+     * Homepage shelf foreground product image (between title and button).
+     */
+    public function getShelfFgImageUrlAttribute(): ?string
+    {
+        if (! empty($this->shelf_fg_image)) {
+            return asset('/uploads/img/'.rawurlencode($this->shelf_fg_image));
         }
 
         return null;
