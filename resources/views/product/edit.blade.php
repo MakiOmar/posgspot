@@ -225,13 +225,25 @@
           </div>
 
           <div class="col-sm-4">
-          <div class="form-group">
-            <br>
-            <label>
-              {!! Form::checkbox('not_for_selling', 1, $product->not_for_selling, ['class' => 'input-icheck']); !!} <strong>@lang('lang_v1.not_for_selling')</strong>
-            </label> @show_tooltip(__('lang_v1.tooltip_not_for_selling'))
+            <div class="form-group">
+              <br>
+              <label>
+                {!! Form::checkbox('not_for_selling', 1, $product->not_for_selling, ['class' => 'input-icheck']); !!} <strong>@lang('lang_v1.not_for_selling')</strong>
+              </label> @show_tooltip(__('lang_v1.tooltip_not_for_selling'))
+            </div>
           </div>
-        </div>
+
+          {{-- Featured on storefront homepage deals rail --}}
+          <div class="col-sm-4">
+            <div class="form-group">
+              <br>
+              <label>
+                {!! Form::checkbox('is_storefront_featured', 1, !empty($product->is_storefront_featured), ['class' => 'input-icheck']); !!}
+                <strong>Featured on storefront</strong>
+              </label>
+              @show_tooltip('Show this product in the storefront homepage featured / deals section.')
+            </div>
+          </div>
 
         <div class="clearfix"></div>
 

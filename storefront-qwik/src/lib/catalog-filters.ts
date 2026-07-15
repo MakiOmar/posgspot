@@ -3,7 +3,7 @@ import type { StoreLocaleCode } from "./i18n/config";
 import { tStatic } from "./i18n/context";
 
 /** `default` = catalog order (no A–Z / price / date sort). */
-export type ProductSort = "default" | "name" | "price_asc" | "price_desc" | "newest";
+export type ProductSort = "default" | "name" | "price_asc" | "price_desc" | "newest" | "bestsellers";
 
 export function getProductSortOptions(
   locale: StoreLocaleCode,

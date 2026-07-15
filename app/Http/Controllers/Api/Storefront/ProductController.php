@@ -22,6 +22,7 @@ class ProductController extends StorefrontController
             'q' => $request->query('q'),
             'sort' => $request->query('sort', 'default'),
             'in_stock_only' => $request->boolean('in_stock_only'),
+            'featured' => $request->boolean('featured'),
         ];
 
         $perPage = min(50, max(1, (int) $request->query('per_page', 20)));

@@ -222,6 +222,18 @@
             </div>
         </div>
 
+        {{-- Featured on storefront homepage deals rail --}}
+        <div class="col-sm-4">
+            <div class="form-group">
+                <br>
+                <label>
+                    {!! Form::checkbox('is_storefront_featured', 1, !(empty($duplicate_product)) ? !empty($duplicate_product->is_storefront_featured) : false, ['class' => 'input-icheck']); !!}
+                    <strong>Featured on storefront</strong>
+                </label>
+                @show_tooltip('Show this product in the storefront homepage featured / deals section.')
+            </div>
+        </div>
+
         <div class="clearfix"></div>
 
         <!-- Rack, Row & position number -->

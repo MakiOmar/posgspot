@@ -463,6 +463,7 @@ class ProductController extends Controller
 
             $product_details['enable_stock'] = (! empty($request->input('enable_stock')) && $request->input('enable_stock') == 1) ? 1 : 0;
             $product_details['not_for_selling'] = (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
+            $product_details['is_storefront_featured'] = (! empty($request->input('is_storefront_featured')) && $request->input('is_storefront_featured') == 1) ? 1 : 0;
 
             if (! empty($request->input('sub_category_id'))) {
                 $product_details['sub_category_id'] = $request->input('sub_category_id');
@@ -749,6 +750,7 @@ class ProductController extends Controller
             }
 
             $product->not_for_selling = (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) ? 1 : 0;
+            $product->is_storefront_featured = (! empty($request->input('is_storefront_featured')) && $request->input('is_storefront_featured') == 1) ? 1 : 0;
 
             if (! empty($request->input('sub_category_id'))) {
                 $product->sub_category_id = $request->input('sub_category_id');
@@ -1495,6 +1497,7 @@ class ProductController extends Controller
             if (! empty($request->input('not_for_selling')) && $request->input('not_for_selling') == 1) {
                 $product_details['not_for_selling'] = 1;
             }
+            $product_details['is_storefront_featured'] = (! empty($request->input('is_storefront_featured')) && $request->input('is_storefront_featured') == 1) ? 1 : 0;
             if (empty($product_details['sku'])) {
                 $product_details['sku'] = ' ';
             }

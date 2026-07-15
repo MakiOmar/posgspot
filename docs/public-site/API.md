@@ -54,6 +54,7 @@ Public `GET /settings` also exposes:
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
+- `homepage.category_shelves[]` — `{ title, category_slug, banner_image_url, banner_link, view_more_path }` (Storefront Settings → Homepage); product grids load via `/products?category_slug=`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 
@@ -91,16 +92,16 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `homepage.category_shelves`, `couriers.bosta.enabled`, `digital.enabled`) |
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/geo/countries` | Country list for address forms |
 | GET | `/geo/states/{countryCode}` | States / governorates for a country |
 | GET | `/geo/bosta-districts?state=` | Bosta districts for a governorate (`state` code) when Bosta is enabled+keyed; otherwise `{ city_code, city_name, districts: [] }`. Labels follow `X-Content-Locale`. |
-| GET | `/categories` | Category tree |
-| GET | `/categories/{slug}` | Single category by slug (404 if unknown) |
-| GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`). Locale-filtered: AR requires a brand translation row. |
-| GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content) |
-| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug` or `brand_id` / `brand_slug` |
+| GET | `/categories` | Category tree (`id`, `name`, `slug`, `image_url`, nested `sub_categories`) |
+| GET | `/categories/{slug}` | Single category by slug (404 if unknown); includes `image_url` |
+| GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
+| GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |
+| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
 | GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. Brand object includes `slug` when available. |
 | GET | `/products/{idOrSlug}/reviews` | Approved reviews only (paginated). Each item: `id`, `rating`, `title`, `body`, `is_verified_purchase`, `author_name` (masked), timestamps. |
 | GET | `/products/{idOrSlug}/reviews/eligibility` | **Auth required.** `{ can_review, already_reviewed, reason }` — reasons: `not_purchased`, `pending`, `already_reviewed`, `not_found`. |
@@ -182,6 +183,9 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; `pos_document_type` (`sell` \| `quotation`); `expose_credentials_to_customer` (default true; when false secrets stay on POS staff note only). Public `GET /settings` exposes `digital.enabled` only
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
+- **Homepage shelves** (`homepage.category_shelves`) — up to 6 side-banner + category product shelves (title, category slug, banner image URL, links)
+- **Product “Featured on storefront”** — `products.is_storefront_featured`; filter with `GET /products?featured=1`
+- **Category / brand images** — optional `image` upload on POS category/brand forms; public API exposes `image_url`
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
 - **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact, registration, and newsletter require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable

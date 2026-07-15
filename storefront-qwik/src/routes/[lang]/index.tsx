@@ -1,37 +1,102 @@
 ﻿import { component$ } from "@builder.io/qwik";
-import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
-import { ProductCard } from "~/components/catalog/product-card";
+import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { PromoBanners } from "~/components/catalog/promo-banners";
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
+import { BestSelling } from "~/components/home/best-selling";
+import { BrandSlider } from "~/components/home/brand-slider";
+import { CategoryShelf } from "~/components/home/category-shelf";
+import { FeaturedSlider } from "~/components/home/featured-slider";
+import { HeroSlider } from "~/components/home/hero-slider";
+import { HomeVideo } from "~/components/home/home-video";
+import { PromoTiles } from "~/components/home/promo-tiles";
+import { TopCategories } from "~/components/home/top-categories";
 import { JsonLd } from "~/components/seo/json-ld";
-import { fetchProductsPage } from "~/lib/api";
+import { fetchBrands, fetchProductsPage } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
+import type { Brand, HomepageCategoryShelf, ProductSummary } from "~/lib/types";
 import { useNavCategories, useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useHomeProducts = routeLoader$(async ({ params }) => {
+const emptyPage = (perPage: number) => ({
+  data: [] as ProductSummary[],
+  meta: { current_page: 1, last_page: 1, per_page: perPage, total: 0 },
+});
+
+export const useFeaturedProducts = routeLoader$(async ({ params }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    return await fetchProductsPage({ per_page: 8, in_stock_only: true }, locale);
+    return await fetchProductsPage({ featured: 1, per_page: 8, in_stock_only: true }, locale);
   } catch {
-    return { data: [], meta: { current_page: 1, last_page: 1, per_page: 8, total: 0 } };
+    return emptyPage(8);
   }
 });
 
+export const useBestSellingProducts = routeLoader$(async ({ params }) => {
+  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
+  try {
+    return await fetchProductsPage({ sort: "bestsellers", per_page: 6, in_stock_only: true }, locale);
+  } catch {
+    return emptyPage(6);
+  }
+});
+
+export const useHomeBrands = routeLoader$(async ({ params }): Promise<Brand[]> => {
+  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
+  try {
+    const { data } = await fetchBrands(locale);
+    return data ?? [];
+  } catch {
+    return [];
+  }
+});
+
+export const useCategoryShelves = routeLoader$(
+  async ({
+    params,
+    resolveValue,
+  }): Promise<Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>> => {
+    const locale = isSupportedLocale(params.lang) ? params.lang : "en";
+    const settings = await resolveValue(useSiteSettings);
+    const shelves = settings.homepage?.category_shelves ?? [];
+
+    const rows = await Promise.all(
+      shelves.map(async (shelf) => {
+        if (!shelf.category_slug) {
+          return { shelf, products: [] as ProductSummary[] };
+        }
+        try {
+          const page = await fetchProductsPage(
+            {
+              category_slug: shelf.category_slug,
+              per_page: 6,
+              in_stock_only: true,
+            },
+            locale,
+          );
+          return { shelf, products: page.data };
+        } catch {
+          return { shelf, products: [] as ProductSummary[] };
+        }
+      }),
+    );
+
+    return rows;
+  },
+);
+
 export default component$(() => {
   const settings = useSiteSettings();
-  const products = useHomeProducts();
+  const featured = useFeaturedProducts();
+  const bestsellers = useBestSellingProducts();
+  const brands = useHomeBrands();
+  const shelves = useCategoryShelves();
   const categoriesLoad = useNavCategories();
   const loc = useLocation();
   const { locale } = useI18n();
   const origin = loc.url.origin;
-
-  const featuredCategories = categoriesLoad.value.items
-    .filter((category) => Boolean(category.slug))
-    .slice(0, 8);
 
   return (
     <>
@@ -49,69 +114,26 @@ export default component$(() => {
         }}
       />
 
-      <section class="home-hero">
-        <div class="home-hero__inner">
-          <p class="home-hero__kicker">{tStatic(locale, "home.kicker")}</p>
-          <h1 class="home-hero__title">
-            {tStatic(locale, "home.welcome", { businessName: settings.value.business_name })}
-          </h1>
-          <p class="home-hero__tagline">{tStatic(locale, "home.tagline")}</p>
-          <div class="home-hero__actions">
-            <Link href={localePath(locale, "/products")} class="btn btn-primary">
-              {tStatic(locale, "home.shopNow")}
-            </Link>
-            <Link href={localePath(locale, "/contact")} class="btn btn-secondary">
-              {tStatic(locale, "nav.contact")}
-            </Link>
-          </div>
-        </div>
-      </section>
+      <HeroSlider />
+      <PromoTiles />
+      <HomeVideo />
 
       <PromoBanners banners={settings.value.banners ?? []} placement="home" />
 
-      {featuredCategories.length > 0 ? (
-        <section class="home-section">
-          <div class="home-section__head">
-            <h2 class="home-section__title">{tStatic(locale, "home.featuredCategories")}</h2>
-            <Link href={localePath(locale, "/products")} class="home-all-products-link">
-              {tStatic(locale, "footer.allProducts")}
-            </Link>
-          </div>
-          <div class="home-category-grid">
-            {featuredCategories.map((category) => (
-              <Link
-                key={category.id}
-                href={localePath(locale, `/category/${encodeURIComponent(category.slug!)}`)}
-                class="home-category-card"
-              >
-                <span class="home-category-card__name">{category.name}</span>
-                <span class="home-category-card__cta" aria-hidden="true">
-                  {tStatic(locale, "home.shopCategory")}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : null}
+      <FeaturedSlider products={featured.value.data} settings={settings.value} />
+      <TopCategories categories={categoriesLoad.value.items} />
 
-      <section class="home-section">
-        <div class="home-section__head">
-          <h2 class="home-section__title">{tStatic(locale, "home.featured")}</h2>
-          <Link href={localePath(locale, "/products")} class="home-all-products-link">
-            {tStatic(locale, "footer.allProducts")}
-          </Link>
-        </div>
+      {shelves.value.map(({ shelf, products }, i) => (
+        <CategoryShelf
+          key={`${shelf.title}-${shelf.category_slug}-${i}`}
+          shelf={shelf}
+          products={products}
+          settings={settings.value}
+        />
+      ))}
 
-        {products.value.data.length === 0 ? (
-          <div class="empty-state">{tStatic(locale, "catalog.noProducts")}</div>
-        ) : (
-          <div class="product-grid">
-            {products.value.data.map((product) => (
-              <ProductCard key={product.id} product={product} settings={settings.value} />
-            ))}
-          </div>
-        )}
-      </section>
+      <BrandSlider brands={brands.value} />
+      <BestSelling products={bestsellers.value.data} settings={settings.value} />
 
       <RecentlyViewed
         settings={settings.value}

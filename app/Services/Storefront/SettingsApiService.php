@@ -81,6 +81,9 @@ class SettingsApiService
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
             'banners' => $this->bannersPayload($settings, $locale),
+            'homepage' => [
+                'category_shelves' => $this->categoryShelvesPayload($settings),
+            ],
             'newsletter' => [
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
             ],
@@ -281,6 +284,21 @@ class SettingsApiService
         }
 
         return $out;
+    }
+
+    /**
+     * Homepage category shelves (title + banner + category slug for product grid).
+     *
+     * @return array<int, array{title: string, category_slug: string, banner_image_url: string, banner_link: string, view_more_path: string}>
+     */
+    private function categoryShelvesPayload(array $settings): array
+    {
+        $shelves = $settings['homepage']['category_shelves'] ?? [];
+        if (! is_array($shelves)) {
+            return [];
+        }
+
+        return $this->storefrontSettings->normalizeCategoryShelves($shelves);
     }
 
     /**

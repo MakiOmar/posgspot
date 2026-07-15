@@ -114,6 +114,12 @@ class StorefrontSettingController extends Controller
             'digital_gift_card_product_id' => 'nullable|integer|min:1',
             'digital_pos_document_type' => 'nullable|in:sell,quotation',
             'digital_expose_credentials_to_customer' => 'nullable|boolean',
+            'homepage_shelves' => 'nullable|array|max:6',
+            'homepage_shelves.*.title' => 'nullable|string|max:120',
+            'homepage_shelves.*.category_slug' => 'nullable|string|max:191',
+            'homepage_shelves.*.banner_image_url' => 'nullable|string|max:500',
+            'homepage_shelves.*.banner_link' => 'nullable|string|max:500',
+            'homepage_shelves.*.view_more_path' => 'nullable|string|max:500',
         ]);
 
         $payload = [
@@ -208,6 +214,9 @@ class StorefrontSettingController extends Controller
             ],
             'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
             'banners' => $this->buildBannersPayload($request, $validated['banners'] ?? []),
+            'homepage' => [
+                'category_shelves' => $validated['homepage_shelves'] ?? [],
+            ],
             'newsletter' => [
                 'enabled' => $request->boolean('newsletter_enabled'),
                 'provider' => $validated['newsletter_provider'] ?? null,

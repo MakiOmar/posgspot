@@ -1,7 +1,7 @@
 <div class="modal-dialog" role="document">
   <div class="modal-content">
 
-    {!! Form::open(['url' => action([\App\Http\Controllers\BrandController::class, 'store']), 'method' => 'post', 'id' => $quick_add ? 'quick_add_brand_form' : 'brand_add_form' ]) !!}
+    {!! Form::open(['url' => action([\App\Http\Controllers\BrandController::class, 'store']), 'method' => 'post', 'id' => $quick_add ? 'quick_add_brand_form' : 'brand_add_form', 'files' => true ]) !!}
 
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -17,6 +17,13 @@
       <div class="form-group">
         {!! Form::label('description', __( 'brand.short_description' ) . ':') !!}
           {!! Form::text('description', null, ['class' => 'form-control','placeholder' => __( 'brand.short_description' )]); !!}
+      </div>
+
+      {{-- Storefront brand logo --}}
+      <div class="form-group">
+        {!! Form::label('image', 'Storefront logo:') !!}
+        {!! Form::file('image', ['id' => 'brand_image', 'accept' => 'image/*']); !!}
+        <p class="help-block">Optional. Shown on the storefront shop-by-brand strip.</p>
       </div>
 
         @if($is_repair_installed)

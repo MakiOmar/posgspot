@@ -112,6 +112,7 @@ class StorefrontContentPresenter
             'id' => (int) $brand->id,
             'name' => $name,
             'slug' => $slug,
+            'image_url' => $brand->image_url,
         ];
     }
 
@@ -140,6 +141,7 @@ class StorefrontContentPresenter
             'name' => $name,
             'slug' => $slug,
             'parent_id' => (int) $category->parent_id,
+            'image_url' => $category->image_url,
         ];
     }
 

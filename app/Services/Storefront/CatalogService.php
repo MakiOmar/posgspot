@@ -212,12 +212,17 @@ class CatalogService
             });
         }
 
+        if (! empty($filters['featured'])) {
+            $query->where('products.is_storefront_featured', 1);
+        }
+
         $sort = $filters['sort'] ?? 'default';
         match ($sort) {
             'name' => $this->applyNameSort($query, $locale),
             'price_asc' => $query->orderBy('variations.sell_price_inc_tax', 'asc'),
             'price_desc' => $query->orderBy('variations.sell_price_inc_tax', 'desc'),
             'newest' => $query->orderBy('products.created_at', 'desc'),
+            'bestsellers' => $this->applyBestsellersSort($query, $businessId),
             // Catalog / POS order — no A–Z or price sort.
             default => $query->orderBy('products.id', 'asc'),
         };
@@ -549,6 +554,22 @@ class CatalogService
             '(SELECT pt.name FROM product_translations pt WHERE pt.product_id = products.id AND pt.locale = ? LIMIT 1) ASC',
             [$locale]
         );
+    }
+
+    /**
+     * Order by units sold on final sells (returned qty excluded). Stable secondary key.
+     */
+    private function applyBestsellersSort(Builder $query, int $businessId): void
+    {
+        $query->leftJoin('transaction_sell_lines as tsl_bs', 'tsl_bs.product_id', '=', 'products.id')
+            ->leftJoin('transactions as t_bs', function ($join) use ($businessId) {
+                $join->on('t_bs.id', '=', 'tsl_bs.transaction_id')
+                    ->where('t_bs.business_id', '=', $businessId)
+                    ->where('t_bs.type', '=', 'sell')
+                    ->where('t_bs.status', '=', 'final');
+            })
+            ->orderByRaw('COALESCE(SUM(CASE WHEN t_bs.id IS NULL THEN 0 ELSE (tsl_bs.quantity - IFNULL(tsl_bs.quantity_returned, 0)) END), 0) DESC')
+            ->orderBy('products.id', 'asc');
     }
 
     private function baseProductQuery(int $businessId, array $locationIds): Builder

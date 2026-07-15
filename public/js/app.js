@@ -52,13 +52,16 @@ $(document).ready(function() {
     $(document).on('submit', 'form#brand_add_form', function(e) {
         e.preventDefault();
         var form = $(this);
-        var data = form.serialize();
+        // FormData required for storefront brand logo upload.
+        var data = new FormData(this);
 
         $.ajax({
             method: 'POST',
             url: $(this).attr('action'),
             dataType: 'json',
             data: data,
+            processData: false,
+            contentType: false,
             beforeSend: function(xhr) {
                 __disable_submit_button(form.find('button[type="submit"]'));
             },
@@ -103,13 +106,15 @@ $(document).ready(function() {
             $('form#brand_edit_form').submit(function(e) {
                 e.preventDefault();
                 var form = $(this);
-                var data = form.serialize();
+                var data = new FormData(this);
 
                 $.ajax({
                     method: 'POST',
                     url: $(this).attr('action'),
                     dataType: 'json',
                     data: data,
+                    processData: false,
+                    contentType: false,
                     beforeSend: function(xhr) {
                         __disable_submit_button(form.find('button[type="submit"]'));
                     },

@@ -23,6 +23,20 @@ class Category extends Model
      */
     protected $guarded = ['id'];
 
+    protected $appends = ['image_url'];
+
+    /**
+     * Storefront / POS thumbnail URL (uploads/img or default placeholder).
+     */
+    public function getImageUrlAttribute(): string
+    {
+        if (! empty($this->image)) {
+            return asset('/uploads/img/'.rawurlencode($this->image));
+        }
+
+        return asset('/img/default.png');
+    }
+
     /**
      * Combines Category and sub-category
      *

@@ -107,6 +107,12 @@ class BrandController extends Controller
 
             $input['slug'] = Brands::generateSlug((string) $input['name'], $business_id);
 
+            // Storefront brand logo (same uploads/img path as products).
+            $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
+            if (! empty($fileName)) {
+                $input['image'] = $fileName;
+            }
+
             $brand = Brands::create($input);
             $output = ['success' => true,
                 'data' => $brand,
@@ -185,6 +191,15 @@ class BrandController extends Controller
 
                 if ($this->moduleUtil->isModuleInstalled('Repair')) {
                     $brand->use_for_repair = ! empty($request->input('use_for_repair')) ? 1 : 0;
+                }
+
+                // Storefront brand logo.
+                if (! empty($request->input('clear_image'))) {
+                    $brand->image = null;
+                }
+                $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
+                if (! empty($fileName)) {
+                    $brand->image = $fileName;
                 }
 
                 $brand->save();

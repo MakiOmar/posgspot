@@ -4380,7 +4380,315 @@ body.is-globally-pending {
   color: var(--gs-danger);
 }
 
-/* ---- Homepage hero + categories ---- */
+/* ---- Homepage hero slider + sections (mirror gamesspoteg.com) ---- */
+
+.home-hero-slider {
+  position: relative;
+  margin: 0 0 2rem;
+  min-height: clamp(16rem, 48vw, 28rem);
+  border-radius: calc(var(--gs-radius) + 4px);
+  overflow: hidden;
+  background: #0a0a0c;
+}
+
+.home-hero-slider__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  pointer-events: none;
+}
+
+.home-hero-slider__slide.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.home-hero-slider__bg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-hero-slider__content {
+  position: relative;
+  z-index: 2;
+  max-width: 32rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  color: #fff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+}
+
+.home-hero-slider__kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gs-accent);
+}
+
+.home-hero-slider__title {
+  margin: 0 0 1.25rem;
+  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.home-hero-slider__dots {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 0.85rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.4rem;
+}
+
+.home-hero-slider__dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+}
+
+.home-hero-slider__dot.is-active {
+  background: var(--gs-accent);
+  width: 1.25rem;
+}
+
+.home-promo-tiles {
+  margin: 0 0 2.5rem;
+}
+
+.home-promo-tiles__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gs-accent);
+}
+
+.home-promo-tiles__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .home-promo-tiles__grid {
+    grid-template-columns: 1.4fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .home-promo-tiles__tile--main {
+    grid-row: 1 / span 2;
+  }
+}
+
+.home-promo-tiles__tile {
+  position: relative;
+  display: block;
+  min-height: 10rem;
+  overflow: hidden;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+}
+
+.home-promo-tiles__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 10rem;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.home-promo-tiles__tile:hover .home-promo-tiles__img {
+  transform: scale(1.04);
+}
+
+.home-promo-tiles__cta {
+  position: absolute;
+  left: 0.85rem;
+  bottom: 0.85rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--gs-accent) 90%, #000);
+  color: #04120e;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.home-video {
+  margin: 0 0 2.5rem;
+}
+
+.home-video__frame {
+  border-radius: var(--gs-radius);
+  overflow: hidden;
+  border: 1px solid var(--gs-border);
+  background: #000;
+  line-height: 0;
+}
+
+.home-video__player {
+  display: block;
+  width: 100%;
+  max-height: 32rem;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #000;
+}
+
+.home-product-rail {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scroll-snap-type: x mandatory;
+}
+
+.home-product-rail__item {
+  flex: 0 0 min(16rem, 78vw);
+  scroll-snap-align: start;
+}
+
+.home-top-categories__rail,
+.home-brands__rail {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+  scroll-snap-type: x mandatory;
+}
+
+.home-top-categories__card,
+.home-brands__card {
+  flex: 0 0 8.5rem;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface);
+  color: var(--gs-text);
+  text-align: center;
+}
+
+.home-top-categories__media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: calc(var(--gs-radius) - 2px);
+  overflow: hidden;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--gs-accent) 18%, transparent), transparent 60%),
+    var(--gs-bg);
+}
+
+.home-top-categories__img,
+.home-brands__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.home-top-categories__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--gs-accent) 35%, transparent), transparent 55%),
+    var(--gs-bg);
+}
+
+.home-top-categories__name,
+.home-brands__name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.home-brands__card {
+  flex-basis: 7.5rem;
+  min-height: 7.5rem;
+  justify-content: center;
+}
+
+.home-brands__img {
+  max-height: 3.5rem;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.home-brands__placeholder {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gs-accent) 20%, var(--gs-bg));
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--gs-accent);
+}
+
+.home-category-shelf__layout {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .home-category-shelf__layout {
+    grid-template-columns: minmax(12rem, 22%) minmax(0, 1fr);
+    align-items: stretch;
+  }
+}
+
+.home-category-shelf__banner {
+  display: block;
+  border-radius: var(--gs-radius);
+  overflow: hidden;
+  border: 1px solid var(--gs-border);
+  background: var(--gs-surface);
+  min-height: 14rem;
+}
+
+.home-category-shelf__banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-category-shelf__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+@media (min-width: 720px) {
+  .home-category-shelf__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.home-category-shelf__empty {
+  min-height: 10rem;
+}
 
 .home-hero {
   position: relative;

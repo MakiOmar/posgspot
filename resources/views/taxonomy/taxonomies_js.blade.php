@@ -45,13 +45,16 @@
     $(document).on('submit', 'form#category_add_form', function(e) {
         e.preventDefault();
         var form = $(this);
-        var data = form.serialize();
+        // FormData required for storefront category image upload.
+        var data = new FormData(this);
 
         $.ajax({
             method: 'POST',
             url: $(this).attr('action'),
             dataType: 'json',
             data: data,
+            processData: false,
+            contentType: false,
             beforeSend: function(xhr) {
                 __disable_submit_button(form.find('button[type="submit"]'));
             },
@@ -81,13 +84,15 @@
             $('form#category_edit_form').submit(function(e) {
                 e.preventDefault();
                 var form = $(this);
-                var data = form.serialize();
+                var data = new FormData(this);
 
                 $.ajax({
                     method: 'POST',
                     url: $(this).attr('action'),
                     dataType: 'json',
                     data: data,
+                    processData: false,
+                    contentType: false,
                     beforeSend: function(xhr) {
                         __disable_submit_button(form.find('button[type="submit"]'));
                     },

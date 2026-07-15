@@ -1,7 +1,7 @@
 <div class="modal-dialog" role="document">
   <div class="modal-content">
 
-    {!! Form::open(['url' => action([\App\Http\Controllers\TaxonomyController::class, 'update'], [$category->id]), 'method' => 'PUT', 'id' => 'category_edit_form' ]) !!}
+    {!! Form::open(['url' => action([\App\Http\Controllers\TaxonomyController::class, 'update'], [$category->id]), 'method' => 'PUT', 'id' => 'category_edit_form', 'files' => true ]) !!}
 
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
@@ -34,6 +34,22 @@
         {!! Form::label('description', __( 'lang_v1.description' ) . ':') !!}
         {!! Form::textarea('description', $category->description, ['class' => 'form-control', 'placeholder' => __( 'lang_v1.description'), 'rows' => 3]); !!}
       </div>
+      @if(($category->category_type ?? '') === 'product')
+      {{-- Storefront category card thumbnail --}}
+      <div class="form-group">
+        {!! Form::label('image', 'Storefront image:') !!}
+        @if(!empty($category->image))
+          <div style="margin-bottom: 8px;">
+            <img src="{{ $category->image_url }}" alt="" style="max-height: 64px; max-width: 120px;">
+          </div>
+          <label>
+            {!! Form::checkbox('clear_image', 1, false) !!} Remove current image
+          </label>
+        @endif
+        {!! Form::file('image', ['id' => 'category_image', 'accept' => 'image/*']); !!}
+        <p class="help-block">Optional. Shown on the storefront homepage top categories.</p>
+      </div>
+      @endif
       @if(!empty($parent_categories) && $enable_sub_category)
           <div class="form-group">
             <div class="checkbox">

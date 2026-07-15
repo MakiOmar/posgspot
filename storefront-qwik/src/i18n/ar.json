@@ -544,8 +544,17 @@
     "welcome": "مرحبًا بكم في {businessName}",
     "tagline": "أجهزة ألعاب وإكسسوارات وخدمات — تسوق أونلاين أو تحقق من التوفر في الفروع.",
     "shopNow": "تسوق الآن",
-    "featured": "منتجات مميزة",
+    "featured": "عروض الأسبوع",
     "featuredCategories": "تسوق حسب القسم",
+    "topCategories": "أفضل الأقسام",
+    "shopByBrand": "تسوق حسب العلامة التجارية",
+    "bestSelling": "الأكثر مبيعًا",
+    "viewMore": "عرض المزيد",
+    "promoEyebrow": "احصل عليه الآن",
+    "promoTitle": "007 First Light",
+    "heroAria": "عروض مميزة",
+    "videoAria": "فيديو مميز",
+    "slide": "شريحة",
     "shopCategory": "تسوق"
   },
   "maintenance": {

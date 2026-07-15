@@ -1,7 +1,7 @@
 <div class="modal-dialog" role="document">
   <div class="modal-content">
 
-    {!! Form::open(['url' => action([\App\Http\Controllers\TaxonomyController::class, 'store']), 'method' => 'post', 'id' => 'category_add_form' ]) !!}
+    {!! Form::open(['url' => action([\App\Http\Controllers\TaxonomyController::class, 'store']), 'method' => 'post', 'id' => 'category_add_form', 'files' => true ]) !!}
     <div class="modal-header">
       <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       <h4 class="modal-title">@lang( 'messages.add' )</h4>
@@ -34,6 +34,14 @@
         {!! Form::label('description', __( 'lang_v1.description' ) . ':') !!}
         {!! Form::textarea('description', null, ['class' => 'form-control', 'placeholder' => __( 'lang_v1.description'), 'rows' => 3]); !!}
       </div>
+      @if($category_type === 'product')
+      {{-- Storefront category card thumbnail --}}
+      <div class="form-group">
+        {!! Form::label('image', 'Storefront image:') !!}
+        {!! Form::file('image', ['id' => 'category_image', 'accept' => 'image/*']); !!}
+        <p class="help-block">Optional. Shown on the storefront homepage top categories.</p>
+      </div>
+      @endif
       @if(!empty($parent_categories) && $enable_sub_category)
         <div class="form-group">
             <div class="checkbox">

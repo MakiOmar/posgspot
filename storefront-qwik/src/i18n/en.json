@@ -544,8 +544,17 @@
     "welcome": "Welcome to {businessName}",
     "tagline": "Consoles, accessories, and gaming services — shop online or check store availability.",
     "shopNow": "Shop now",
-    "featured": "Featured products",
+    "featured": "Deals of the week",
     "featuredCategories": "Shop by category",
+    "topCategories": "Top Categories",
+    "shopByBrand": "Shop by Popular Brands",
+    "bestSelling": "Best selling",
+    "viewMore": "View more",
+    "promoEyebrow": "Get yours now",
+    "promoTitle": "007 First Light",
+    "heroAria": "Featured promotions",
+    "videoAria": "Featured video",
+    "slide": "Slide",
     "shopCategory": "Shop"
   },
   "maintenance": {

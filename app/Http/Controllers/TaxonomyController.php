@@ -149,6 +149,14 @@ class TaxonomyController extends Controller
                 $input['category_type'] ?? 'product'
             );
 
+            // Storefront category thumbnail (same uploads/img path as products).
+            if (($input['category_type'] ?? '') === 'product') {
+                $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
+                if (! empty($fileName)) {
+                    $input['image'] = $fileName;
+                }
+            }
+
             $category = Category::create($input);
             $output = ['success' => true,
                 'data' => $category,
@@ -254,6 +262,18 @@ class TaxonomyController extends Controller
                 } else {
                     $category->parent_id = 0;
                 }
+
+                // Storefront category thumbnail.
+                if (($category->category_type ?? '') === 'product') {
+                    if (! empty($request->input('clear_image'))) {
+                        $category->image = null;
+                    }
+                    $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
+                    if (! empty($fileName)) {
+                        $category->image = $fileName;
+                    }
+                }
+
                 $category->save();
 
                 $output = ['success' => true,

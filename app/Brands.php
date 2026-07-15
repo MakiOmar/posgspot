@@ -23,6 +23,20 @@ class Brands extends Model
      */
     protected $guarded = ['id'];
 
+    protected $appends = ['image_url'];
+
+    /**
+     * Storefront brand logo URL (uploads/img or default placeholder).
+     */
+    public function getImageUrlAttribute(): string
+    {
+        if (! empty($this->image)) {
+            return asset('/uploads/img/'.rawurlencode($this->image));
+        }
+
+        return asset('/img/default.png');
+    }
+
     /**
      * URL-safe unique slug for storefront brand pages (scoped per business).
      *

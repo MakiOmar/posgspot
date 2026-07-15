@@ -65,6 +65,10 @@ export interface StoreSettings {
   }>;
   /** Homepage / category promotional banners. */
   banners: PromoBanner[];
+  /** Homepage category shelves (side banner + category product grid). */
+  homepage?: {
+    category_shelves: HomepageCategoryShelf[];
+  };
   newsletter: {
     enabled: boolean;
   };
@@ -99,6 +103,14 @@ export interface PromoBanner {
   image_url: string;
 }
 
+export interface HomepageCategoryShelf {
+  title: string;
+  category_slug: string;
+  banner_image_url: string;
+  banner_link: string;
+  view_more_path: string;
+}
+
 export interface StoreLocation {
   id: number;
   name: string;
@@ -116,6 +128,7 @@ export interface Category {
   id: number;
   name: string;
   slug: string | null;
+  image_url?: string | null;
   sub_categories?: Category[];
 }
 
@@ -123,6 +136,7 @@ export interface Brand {
   id: number;
   name: string;
   slug: string;
+  image_url?: string | null;
 }
 
 export interface ProductSummary {

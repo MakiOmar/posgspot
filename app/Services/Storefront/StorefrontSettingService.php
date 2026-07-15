@@ -104,6 +104,32 @@ class StorefrontSettingService
             'payment_icons' => [],
             // Homepage / category promotional banners (image + link).
             'banners' => [],
+            // Homepage category shelves (side banner + product grid by category slug).
+            'homepage' => [
+                'category_shelves' => [
+                    [
+                        'title' => 'PS4 CONSOLES',
+                        'category_slug' => '',
+                        'banner_image_url' => 'https://gamesspoteg.com/wp-content/uploads/2024/04/home2-banner-6.png',
+                        'banner_link' => '/products',
+                        'view_more_path' => '/products',
+                    ],
+                    [
+                        'title' => 'NEWEST CONSOLE',
+                        'category_slug' => '',
+                        'banner_image_url' => 'https://gamesspoteg.com/wp-content/uploads/2024/04/home2-banner-9.png',
+                        'banner_link' => '/products',
+                        'view_more_path' => '/products',
+                    ],
+                    [
+                        'title' => 'parts & Accessories',
+                        'category_slug' => '',
+                        'banner_image_url' => 'https://gamesspoteg.com/wp-content/uploads/2024/04/home2-banner-11.png',
+                        'banner_link' => '/products',
+                        'view_more_path' => '/products',
+                    ],
+                ],
+            ],
             'newsletter' => [
                 'enabled' => false,
                 'provider' => null,
@@ -178,6 +204,14 @@ class StorefrontSettingService
 
         if (array_key_exists('banners', $settings)) {
             $merged['banners'] = $this->normalizeBanners($settings['banners']);
+        }
+
+        if (array_key_exists('homepage', $settings)) {
+            $merged['homepage'] = [
+                'category_shelves' => $this->normalizeCategoryShelves(
+                    $settings['homepage']['category_shelves'] ?? []
+                ),
+            ];
         }
 
         if (! empty($settings['gateway']['api_key'])) {
@@ -495,6 +529,46 @@ class StorefrontSettingService
         }
 
         return asset($url);
+    }
+
+    /**
+     * Normalize homepage category shelf rows (side banner + category product grid).
+     *
+     * @param  mixed  $shelves
+     * @return array<int, array{title: string, category_slug: string, banner_image_url: string, banner_link: string, view_more_path: string}>
+     */
+    public function normalizeCategoryShelves($shelves): array
+    {
+        if (! is_array($shelves)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($shelves as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $title = trim((string) ($row['title'] ?? ''));
+            $bannerImage = trim((string) ($row['banner_image_url'] ?? ''));
+            if ($title === '' && $bannerImage === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => mb_substr($title !== '' ? $title : 'Category', 0, 120),
+                'category_slug' => mb_substr(trim((string) ($row['category_slug'] ?? '')), 0, 191),
+                'banner_image_url' => mb_substr($bannerImage, 0, 500),
+                'banner_link' => mb_substr(trim((string) ($row['banner_link'] ?? '/products')), 0, 500),
+                'view_more_path' => mb_substr(trim((string) ($row['view_more_path'] ?? '/products')), 0, 500),
+            ];
+
+            if (count($normalized) >= 6) {
+                break;
+            }
+        }
+
+        return $normalized;
     }
 
     /**
