@@ -238,7 +238,7 @@ class Contact extends Authenticatable
         if ($append_id) {
             // Include mobile in label so Select2 filter search matches phone numbers
             $all_contacts->select(
-                DB::raw("IF(contacts.contact_id IS NULL OR contacts.contact_id='', CONCAT(COALESCE(contacts.supplier_business_name, ''), ' - ', contacts.name, IF(COALESCE(contacts.mobile, '') != '', CONCAT(' (', contacts.mobile, ')'), '')), CONCAT(COALESCE(contacts.supplier_business_name, ''), ' - ', contacts.name, ' (', contacts.contact_id, ')', IF(COALESCE(contacts.mobile, '') != '', CONCAT(' - ', contacts.mobile), ''))) AS customer"),
+                DB::raw("CONCAT(COALESCE(contacts.supplier_business_name, ''), ' - ', contacts.name, IF(contacts.contact_id IS NULL OR contacts.contact_id = '', '', CONCAT(' (', contacts.contact_id, ')')), IF(COALESCE(contacts.mobile, '') = '', '', CONCAT(' - ', contacts.mobile))) AS customer"),
                 'contacts.id'
                 );
         } else {

@@ -985,13 +985,15 @@ class ContactController extends Controller
                     $query->where('contacts.name', 'like', '%'.$term.'%')
                             ->orWhere('supplier_business_name', 'like', '%'.$term.'%')
                             ->orWhere('mobile', 'like', '%'.$term.'%')
+                            ->orWhere('alternate_number', 'like', '%'.$term.'%')
+                            ->orWhere('landline', 'like', '%'.$term.'%')
                             ->orWhere('contacts.contact_id', 'like', '%'.$term.'%');
                 });
             }
 
             $contacts->select(
                 'contacts.id',
-                DB::raw("IF(contacts.contact_id IS NULL OR contacts.contact_id='', contacts.name, CONCAT(contacts.name, ' (', contacts.contact_id, ')')) AS text"),
+                DB::raw("IF(contacts.contact_id IS NULL OR contacts.contact_id='', CONCAT(contacts.name, IF(COALESCE(contacts.mobile, '') = '', '', CONCAT(' - ', contacts.mobile))), CONCAT(contacts.name, ' (', contacts.contact_id, ')', IF(COALESCE(contacts.mobile, '') = '', '', CONCAT(' - ', contacts.mobile)))) AS text"),
                 'mobile',
                 'address_line_1',
                 'address_line_2',

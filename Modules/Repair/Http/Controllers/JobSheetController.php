@@ -152,16 +152,17 @@ class JobSheetController extends Controller
                 $job_sheets->where('repair_job_sheets.service_staff', request()->technician);
             }
 
-            $customer_all_statuses = request()->boolean('customer_all_statuses')
-                && ! empty(request()->contact_id);
+            // All statuses: dedicated "All" tab, or customer filter view
+            $show_all_statuses = request()->boolean('all_statuses')
+                || (request()->boolean('customer_all_statuses') && ! empty(request()->contact_id));
 
-            //filter by status (skipped when listing every status for one customer)
-            if (! $customer_all_statuses && ! empty(request()->status_id)) {
+            //filter by status (skipped when listing every status)
+            if (! $show_all_statuses && ! empty(request()->status_id)) {
                 $job_sheets->where('repair_job_sheets.status_id', request()->status_id);
             }
 
-            //filter out mark as completed status (tabs only; customer view shows all statuses)
-            if (! $customer_all_statuses) {
+            //filter out mark as completed status (tabs only; all-status views skip this)
+            if (! $show_all_statuses) {
                 if (request()->get('is_completed_status') === '1') {
                     $job_sheets->where('rs.is_completed_status', 1);
                 } else {

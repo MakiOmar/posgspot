@@ -11,7 +11,7 @@
 <div class="col-md-3">
     <div class="form-group">
         {!! Form::label('sell_list_filter_customer_id',  __('contact.customer') . ':') !!}
-        {!! Form::select('sell_list_filter_customer_id', $customers, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
+        {!! Form::select('sell_list_filter_customer_id', ['' => __('lang_v1.all')], null, ['class' => 'form-control select2_customer_search', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
     </div>
 </div>
 @endif

@@ -21,6 +21,49 @@ $(document).ready(function() {
 
     __select2($('.select2'));
 
+    // Customer filter: ajax search by name, contact id, or phone
+    if ($('.select2_customer_search').length) {
+        $('.select2_customer_search').select2({
+            ajax: {
+                url: '/contacts/customers',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        q: params.term,
+                        page: params.page,
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data,
+                    };
+                },
+            },
+            templateResult: function (data) {
+                if (!data.id) {
+                    return data.text;
+                }
+                var template = '';
+                if (data.supplier_business_name) {
+                    template += data.supplier_business_name + '<br>';
+                }
+                template += data.text;
+                if (data.mobile) {
+                    template += '<br>' + LANG.mobile + ': ' + data.mobile;
+                }
+                return template;
+            },
+            escapeMarkup: function (markup) {
+                return markup;
+            },
+            minimumInputLength: 1,
+            allowClear: true,
+            width: '100%',
+            placeholder: typeof LANG !== 'undefined' && LANG.all ? LANG.all : 'All',
+        });
+    }
+
     // popover
     $('body').on('mouseover', '[data-toggle="popover"]', function() {
         if ($(this).hasClass('popover-default')) {
