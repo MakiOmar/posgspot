@@ -21,46 +21,52 @@ $(document).ready(function() {
 
     __select2($('.select2'));
 
-    // Customer filter: ajax search by name, contact id, or phone
+    // Customer filter: ajax search by name, contact id, or phone (optional; use class select2_customer_search)
     if ($('.select2_customer_search').length) {
-        $('.select2_customer_search').select2({
-            ajax: {
-                url: '/contacts/customers',
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {
-                        q: params.term,
-                        page: params.page,
-                    };
+        $('.select2_customer_search').each(function () {
+            var $el = $(this);
+            if ($el.hasClass('select2-hidden-accessible')) {
+                $el.select2('destroy');
+            }
+            $el.select2({
+                ajax: {
+                    url: '/contacts/customers',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term,
+                            page: params.page,
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data,
+                        };
+                    },
                 },
-                processResults: function (data) {
-                    return {
-                        results: data,
-                    };
+                templateResult: function (data) {
+                    if (!data.id) {
+                        return data.text;
+                    }
+                    var template = '';
+                    if (data.supplier_business_name) {
+                        template += data.supplier_business_name + '<br>';
+                    }
+                    template += data.text;
+                    if (data.mobile) {
+                        template += '<br>' + LANG.mobile + ': ' + data.mobile;
+                    }
+                    return template;
                 },
-            },
-            templateResult: function (data) {
-                if (!data.id) {
-                    return data.text;
-                }
-                var template = '';
-                if (data.supplier_business_name) {
-                    template += data.supplier_business_name + '<br>';
-                }
-                template += data.text;
-                if (data.mobile) {
-                    template += '<br>' + LANG.mobile + ': ' + data.mobile;
-                }
-                return template;
-            },
-            escapeMarkup: function (markup) {
-                return markup;
-            },
-            minimumInputLength: 1,
-            allowClear: true,
-            width: '100%',
-            placeholder: typeof LANG !== 'undefined' && LANG.all ? LANG.all : 'All',
+                escapeMarkup: function (markup) {
+                    return markup;
+                },
+                minimumInputLength: 1,
+                allowClear: true,
+                width: '100%',
+                placeholder: typeof LANG !== 'undefined' && LANG.all ? LANG.all : 'All',
+            });
         });
     }
 

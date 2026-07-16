@@ -22,7 +22,7 @@
         <div class="col-md-3">
             <div class="form-group">
                 {!! Form::label('contact_id',  __('role.customer') . ':') !!}
-                {!! Form::select('contact_id', ['' => __('lang_v1.all')], null, ['class' => 'form-control select2_customer_search', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
+                {!! Form::select('contact_id', $customers, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
             </div>
         </div>
         @if(in_array('service_staff' ,$enabled_modules) && !$is_user_service_staff)
