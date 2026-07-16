@@ -841,9 +841,11 @@ $(document).ready(function() {
             { data: 'subtotal', name: 'subtotal', searchable: false },
         ],
         fnDrawCallback: function(oSettings) {
-            $('#footer_subtotal').text(
-                sum_table_col($('#product_purchase_report_table'), 'row_subtotal')
-            );
+            var footer_subtotal = sum_table_col($('#product_purchase_report_table'), 'row_subtotal');
+            $('#footer_subtotal')
+                .attr('data-orig-value', footer_subtotal)
+                .data('orig-value', footer_subtotal)
+                .text(footer_subtotal);
             $('#footer_total_purchase').html(
                 __sum_stock($('#product_purchase_report_table'), 'purchase_qty')
             );
@@ -975,9 +977,11 @@ $(document).ready(function() {
                 { data: 'payment_methods', name: 'payment_methods', searchable: false },
             ],
             fnDrawCallback: function(oSettings) {
-                $('#footer_subtotal').text(
-                    sum_table_col($('#product_sell_report_table'), 'row_subtotal')
-                );
+                var footer_subtotal = sum_table_col($('#product_sell_report_table'), 'row_subtotal');
+                $('#footer_subtotal')
+                    .attr('data-orig-value', footer_subtotal)
+                    .data('orig-value', footer_subtotal)
+                    .text(footer_subtotal);
                 $('#footer_total_sold').html(__sum_stock($('#product_sell_report_table'), 'sell_qty'));
                 $('#footer_tax').html(__sum_stock($('#product_sell_report_table'), 'tax', 'left'));
                 __currency_convert_recursively($('#product_sell_report_table'));
@@ -1079,9 +1083,11 @@ $(document).ready(function() {
             { data: 'subtotal', name: 'subtotal', searchable: false },
         ],
         fnDrawCallback: function(oSettings) {
-            $('#footer_grouped_subtotal').text(
-                sum_table_col($('#product_sell_grouped_report_table'), 'row_subtotal')
-            );
+            var footer_grouped_subtotal = sum_table_col($('#product_sell_grouped_report_table'), 'row_subtotal');
+            $('#footer_grouped_subtotal')
+                .attr('data-orig-value', footer_grouped_subtotal)
+                .data('orig-value', footer_grouped_subtotal)
+                .text(footer_grouped_subtotal);
             $('#footer_total_grouped_sold').html(
                 __sum_stock($('#product_sell_grouped_report_table'), 'sell_qty')
             );

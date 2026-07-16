@@ -262,9 +262,11 @@
                                     { data: 'subtotal', name: 'subtotal', searchable: false },
                                 ],
                                 fnDrawCallback: function(oSettings) {
-                                    $('#footer_psr_by_cat_total_sell').text(
-                                        sum_table_col($('#product_sell_report_by_category'), 'row_subtotal')
-                                    );
+                                    var footer_psr_by_cat_total_sell = sum_table_col($('#product_sell_report_by_category'), 'row_subtotal');
+                                    $('#footer_psr_by_cat_total_sell')
+                                        .attr('data-orig-value', footer_psr_by_cat_total_sell)
+                                        .data('orig-value', footer_psr_by_cat_total_sell)
+                                        .text(footer_psr_by_cat_total_sell);
                                     $('#footer_psr_by_cat_total_sold').html(
                                         __sum_stock($('#product_sell_report_by_category'), 'sell_qty')
                                     );
@@ -319,14 +321,16 @@
                                     { data: 'subtotal', name: 'subtotal', searchable: false },
                                 ],
                                 fnDrawCallback: function(oSettings) {
-                                    $('#footer_psr_by_brand_total_sell').text(
-                                        sum_table_col($('#product_sell_report_by_brand'), 'row_subtotal')
-                                    );
+                                    var footer_psr_by_brand_total_sell = sum_table_col($('#product_sell_report_by_brand'), 'row_subtotal');
+                                    $('#footer_psr_by_brand_total_sell')
+                                        .attr('data-orig-value', footer_psr_by_brand_total_sell)
+                                        .data('orig-value', footer_psr_by_brand_total_sell)
+                                        .text(footer_psr_by_brand_total_sell);
                                     $('#footer_psr_by_brand_total_sold').html(
                                         __sum_stock($('#product_sell_report_by_brand'), 'sell_qty')
                                     );
 
-                                    $('#footer_psr_by_cat_total_stock').html(
+                                    $('#footer_psr_by_brand_total_stock').html(
                                         __sum_stock($('#product_sell_report_by_brand'), 'current_stock')
                                     );
                                     __currency_convert_recursively($('#product_sell_report_by_brand'));
