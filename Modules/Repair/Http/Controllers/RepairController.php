@@ -150,6 +150,7 @@ class RepairController extends Controller
                     'transactions.invoice_no',
                     'contacts.name',
                     'contacts.contact_id',
+                    'contacts.mobile as mobile',
                     'transactions.payment_status',
                     'transactions.final_total',
                     'transactions.tax_amount',

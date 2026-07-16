@@ -81,6 +81,7 @@
                                         <th>@lang('lang_v1.added_by')</th>
                                         <th>@lang('sale.customer_name')</th>
                                         <th>@lang('lang_v1.contact_id')</th>
+                                        <th>@lang('repair::lang.customer_phone')</th>
                                         <th>@lang('product.brand')</th>
                                         <th>@lang('repair::lang.device_model')</th>
                                         <th>@lang('repair::lang.serial_no')</th>
@@ -97,9 +98,9 @@
                                     <tr class="bg-gray font-17 footer-total text-center">
                                         <td
                                             @if(in_array('service_staff' ,$enabled_modules))
-                                                colspan="12"
+                                                colspan="13"
                                             @else
-                                                colspan="11"
+                                                colspan="12"
                                             @endif>
                                                 <strong>@lang('sale.total'):</strong>
                                         </td>
@@ -154,6 +155,7 @@
                                         <th>@lang('lang_v1.added_by')</th>
                                         <th>@lang('sale.customer_name')</th>
                                         <th>@lang('lang_v1.contact_id')</th>
+                                        <th>@lang('repair::lang.customer_phone')</th>
                                         <th>@lang('product.brand')</th>
                                         <th>@lang('repair::lang.device_model')</th>
                                         <th>@lang('repair::lang.serial_no')</th>
@@ -170,9 +172,9 @@
                                     <tr class="bg-gray font-17 footer-total text-center">
                                         <td
                                             @if(in_array('service_staff' ,$enabled_modules))
-                                                colspan="12"
+                                                colspan="13"
                                             @else
-                                                colspan="11"
+                                                colspan="12"
                                             @endif>
                                                 <strong>@lang('sale.total'):</strong>
                                         </td>
@@ -269,6 +271,7 @@ $(document).ready( function(){
             { data: 'added_by', name: 'added_by', orderable: false, searchable: false},
             { data: 'name', name: 'contacts.name'},
             { data: 'contact_id', name: 'contacts.contact_id'},
+            { data: 'mobile', name: 'contacts.mobile'},
             { data: 'brand', name: 'b.name'},
             { data: 'device_model', name: 'rdm.name'},
             { data: 'repair_serial_no', name: 'transactions.repair_serial_no'},
@@ -295,8 +298,8 @@ $(document).ready( function(){
             __currency_convert_recursively($('#sell_table'));
         },
         createdRow: function( row, data, dataIndex ) {
-            $( row ).find('td:eq(11)').attr('class', 'clickable_td');
-            $( row ).find('td:eq(14)').attr('class', 'clickable_td edit_status_td');
+            $( row ).find('td:eq(12)').attr('class', 'clickable_td');
+            $( row ).find('td:eq(15)').attr('class', 'clickable_td edit_status_td');
         }
     });
 
@@ -339,6 +342,7 @@ $(document).ready( function(){
             { data: 'added_by', name: 'added_by', orderable: false, searchable: false},
             { data: 'name', name: 'contacts.name'},
             { data: 'contact_id', name: 'contacts.contact_id'},
+            { data: 'mobile', name: 'contacts.mobile'},
             { data: 'brand', name: 'b.name'},
             { data: 'device_model', name: 'rdm.name'},
             { data: 'repair_serial_no', name: 'transactions.repair_serial_no'},
@@ -365,8 +369,8 @@ $(document).ready( function(){
             __currency_convert_recursively($('#pending_repair_table'));
         },
         createdRow: function( row, data, dataIndex ) {
-            $( row ).find('td:eq(11)').attr('class', 'clickable_td');
-            $( row ).find('td:eq(14)').attr('class', 'clickable_td edit_status_td');
+            $( row ).find('td:eq(12)').attr('class', 'clickable_td');
+            $( row ).find('td:eq(15)').attr('class', 'clickable_td edit_status_td');
         }
     });
 

@@ -90,6 +90,12 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
     await nav(href);
   });
 
+  const showPanel = open.value && query.value.trim().length >= 2;
+  const activeOptionId =
+    showPanel && activeIndex.value >= 0 && results.value[activeIndex.value]
+      ? `header-search-option-${results.value[activeIndex.value].id}`
+      : undefined;
+
   return (
     <div class="header-search-wrap">
       <form
@@ -110,14 +116,21 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           await submitSearch$(term);
         }}
       >
+        {/*
+          Combobox pattern: aria-expanded / aria-controls / aria-autocomplete require
+          role="combobox" (plain search/textbox does not support them).
+        */}
         <input
           type="search"
           name="q"
+          role="combobox"
           placeholder={tStatic(locale, "header.searchPlaceholder")}
           aria-label={tStatic(locale, "header.searchLabel")}
-          aria-expanded={open.value}
+          aria-expanded={showPanel}
           aria-controls="header-search-suggestions"
           aria-autocomplete="list"
+          aria-haspopup="listbox"
+          aria-activedescendant={activeOptionId}
           autoComplete="off"
           value={query.value}
           onInput$={(_, el) => {
@@ -167,26 +180,30 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
         </button>
       </form>
 
-      {open.value && query.value.trim().length >= 2 ? (
+      {/* Keep listbox in the DOM so aria-controls stays valid when collapsed. */}
+      <div class="header-search-suggestions" hidden={!showPanel}>
+        {loading.value ? (
+          <p class="header-search-suggestions__status" role="status">
+            {tStatic(locale, "common.searching")}
+          </p>
+        ) : null}
+
+        {!loading.value && results.value.length === 0 ? (
+          <p class="header-search-suggestions__status" role="status">
+            {tStatic(locale, "common.noResults")}
+          </p>
+        ) : null}
+
         <div
           id="header-search-suggestions"
-          class="header-search-suggestions"
           role="listbox"
           aria-label={tStatic(locale, "header.searchSuggestions")}
         >
-          {loading.value ? (
-            <p class="header-search-suggestions__status">{tStatic(locale, "common.searching")}</p>
-          ) : null}
-
-          {!loading.value && results.value.length === 0 ? (
-            <p class="header-search-suggestions__status">{tStatic(locale, "common.noResults")}</p>
-          ) : null}
-
           {!loading.value
             ? results.value.map((product, index) => (
-                <button
+                <div
                   key={product.id}
-                  type="button"
+                  id={`header-search-option-${product.id}`}
                   class={`header-search-suggestion${index === activeIndex.value ? " is-active" : ""}`}
                   role="option"
                   aria-selected={index === activeIndex.value}
@@ -219,26 +236,26 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
                       {formatPrice(product.price, settings.currency, locale)}
                     </span>
                   </span>
-                </button>
+                </div>
               ))
             : null}
-
-          {!loading.value && results.value.length > 0 ? (
-            <button
-              type="button"
-              class="header-search-suggestions__all"
-              onMouseDown$={(event) => event.preventDefault()}
-              onClick$={async (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                await submitSearch$(query.value.trim());
-              }}
-            >
-              {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
-            </button>
-          ) : null}
         </div>
-      ) : null}
+
+        {!loading.value && results.value.length > 0 ? (
+          <button
+            type="button"
+            class="header-search-suggestions__all"
+            onMouseDown$={(event) => event.preventDefault()}
+            onClick$={async (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              await submitSearch$(query.value.trim());
+            }}
+          >
+            {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 });
