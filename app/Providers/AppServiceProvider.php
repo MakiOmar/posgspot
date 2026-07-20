@@ -188,10 +188,10 @@ class AppServiceProvider extends ServiceProvider
         // Carbon 3 createFromTimestamp() is UTC-based; parse in app timezone keeps wall-clock.
         Blade::directive('format_date', function ($date) {
             if ($date !== null && $date !== '') {
-                return "(($date) instanceof \\DateTimeInterface"
-                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
-                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
-                    ."->format(session('business.date_format'))";
+                return '((('.$date.') instanceof \\DateTimeInterface'
+                    .' ? \\Carbon\\Carbon::instance('.$date.')->timezone(config(\'app.timezone\'))'
+                    .' : \\Carbon\\Carbon::parse('.$date.', config(\'app.timezone\')))'
+                    .'->format(session(\'business.date_format\')))';
             }
 
             return 'null';
@@ -204,10 +204,10 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($date !== null && $date !== '') {
-                return "(($date) instanceof \\DateTimeInterface"
-                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
-                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
-                    ."->format('$time_format')";
+                return '((('.$date.') instanceof \\DateTimeInterface'
+                    .' ? \\Carbon\\Carbon::instance('.$date.')->timezone(config(\'app.timezone\'))'
+                    .' : \\Carbon\\Carbon::parse('.$date.', config(\'app.timezone\')))'
+                    .'->format(\''.$time_format.'\'))';
             }
 
             return 'null';
@@ -220,10 +220,10 @@ class AppServiceProvider extends ServiceProvider
             }
 
             if ($date !== null && $date !== '') {
-                return "(($date) instanceof \\DateTimeInterface"
-                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
-                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
-                    ."->format(session('business.date_format') . ' ' . '$time_format')";
+                return '((('.$date.') instanceof \\DateTimeInterface'
+                    .' ? \\Carbon\\Carbon::instance('.$date.')->timezone(config(\'app.timezone\'))'
+                    .' : \\Carbon\\Carbon::parse('.$date.', config(\'app.timezone\')))'
+                    .'->format(session(\'business.date_format\').\' \'.\''.$time_format.'\'))';
             }
 
             return 'null';
