@@ -183,8 +183,8 @@ class AppServiceProvider extends ServiceProvider
                 ?>";
         });
 
-        // Blade directives return PHP *expressions* (no <?php ?>), because views use
-        // {{ @format_date($x) }} — the @ is PHP error-suppression after directive expand.
+        // Blade date directives must return expressions (not PHP open/close tags),
+        // because views use {{ @format_date($x) }} (error-suppression after expand).
         // Carbon 3 createFromTimestamp() is UTC-based; parse in app timezone keeps wall-clock.
         Blade::directive('format_date', function ($date) {
             if ($date !== null && $date !== '') {
