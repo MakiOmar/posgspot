@@ -107,9 +107,19 @@ function __currency_convert_recursively(element, use_page_currency = false) {
         var $el = $(this);
         // Prefer the original numeric value so repeated calls (multiple shown.bs.modal
         // handlers) stay correct when the currency symbol contains dots (e.g. "L.E.").
+        // Exception: when callers set a fresh plain number via .text(sum) (report footers
+        // after filter reload), refresh data-orig-value so the total is not stuck.
         var value = $el.data('orig-value');
-        if (typeof value === 'undefined' || value === null || value === '') {
-            value = $el.text();
+        var text = $.trim($el.text());
+        var plain_number_text = text.replace(/,/g, '');
+        var is_plain_number = plain_number_text !== '' && /^-?\d+(\.\d+)?$/.test(plain_number_text);
+
+        if (is_plain_number) {
+            value = plain_number_text;
+            $el.attr('data-orig-value', value);
+            $el.data('orig-value', value);
+        } else if (typeof value === 'undefined' || value === null || value === '') {
+            value = text;
             $el.attr('data-orig-value', value);
             $el.data('orig-value', value);
         }
@@ -142,6 +152,19 @@ function __currency_convert_recursively(element, use_page_currency = false) {
 
         $el.text(__currency_trans_from_en(value, show_symbol, page_currency, __currency_precision, is_quantity));
     });
+}
+
+/**
+ * Set a numeric amount on a .display_currency element and keep data-orig-value in sync
+ * so later __currency_convert_recursively() calls use the new total.
+ */
+function __set_display_currency_value(element, value) {
+    var $el = $(element);
+    if (!$el.length) {
+        return;
+    }
+    var numeric = value === null || typeof value === 'undefined' || value === '' ? 0 : value;
+    $el.attr('data-orig-value', numeric).data('orig-value', numeric).text(numeric);
 }
 
 function __translate(str, obj = []) {
