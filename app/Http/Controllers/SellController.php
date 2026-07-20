@@ -306,9 +306,16 @@ class SellController extends Controller
                 $sells->where('transactions.shipping_status', request()->input('shipping_status'));
             }
 
+            // Dashboard widget: open SOs only. Avoid HAVING aliases — Yajra DataTables
+            // count/filter queries drop select aliases and return Ajax error (tn/7).
             if (! empty(request()->input('for_dashboard_sales_order'))) {
                 $sells->whereIn('transactions.status', ['partial', 'ordered'])
-                    ->orHavingRaw('so_qty_remaining > 0');
+                    ->whereRaw(
+                        '(SELECT COALESCE(SUM(tsl_rem.quantity - tsl_rem.so_quantity_invoiced), 0)
+                          FROM transaction_sell_lines AS tsl_rem
+                          WHERE tsl_rem.transaction_id = transactions.id
+                            AND tsl_rem.parent_sell_line_id IS NULL) > 0'
+                    );
             }
 
             if ($sale_type == 'sales_order') {
