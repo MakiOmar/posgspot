@@ -183,68 +183,50 @@ class AppServiceProvider extends ServiceProvider
                 ?>";
         });
 
-        //Blade directive to convert.
-        // Carbon 3 createFromTimestamp() is UTC-based; parse in app timezone keeps wall-clock time.
+        // Blade directives return PHP *expressions* (no <?php ?>), because views use
+        // {{ @format_date($x) }} — the @ is PHP error-suppression after directive expand.
+        // Carbon 3 createFromTimestamp() is UTC-based; parse in app timezone keeps wall-clock.
         Blade::directive('format_date', function ($date) {
-            if (! empty($date)) {
-                return "<?php
-                    if (empty($date)) { echo null; }
-                    else {
-                        \$__tz = config('app.timezone');
-                        \$__d = ($date) instanceof \\DateTimeInterface
-                            ? \\Carbon\\Carbon::instance($date)->timezone(\$__tz)
-                            : \\Carbon\\Carbon::parse($date, \$__tz);
-                        echo \$__d->format(session('business.date_format'));
-                    }
-                ?>";
-            } else {
-                return null;
+            if ($date !== null && $date !== '') {
+                return "(($date) instanceof \\DateTimeInterface"
+                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
+                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
+                    ."->format(session('business.date_format'))";
             }
+
+            return 'null';
         });
 
-        //Blade directive to convert.
         Blade::directive('format_time', function ($date) {
-            if (! empty($date)) {
-                $time_format = 'h:i A';
-                if (session('business.time_format') == 24) {
-                    $time_format = 'H:i';
-                }
-
-                return "<?php
-                    if (empty($date)) { echo null; }
-                    else {
-                        \$__tz = config('app.timezone');
-                        \$__d = ($date) instanceof \\DateTimeInterface
-                            ? \\Carbon\\Carbon::instance($date)->timezone(\$__tz)
-                            : \\Carbon\\Carbon::parse($date, \$__tz);
-                        echo \$__d->format('$time_format');
-                    }
-                ?>";
-            } else {
-                return null;
+            $time_format = 'h:i A';
+            if (session('business.time_format') == 24) {
+                $time_format = 'H:i';
             }
+
+            if ($date !== null && $date !== '') {
+                return "(($date) instanceof \\DateTimeInterface"
+                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
+                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
+                    ."->format('$time_format')";
+            }
+
+            return 'null';
         });
 
         Blade::directive('format_datetime', function ($date) {
-            if (! empty($date)) {
-                $time_format = 'h:i A';
-                if (session('business.time_format') == 24) {
-                    $time_format = 'H:i';
-                }
-
-                return "<?php
-                    if (empty($date)) { echo null; }
-                    else {
-                        \$__tz = config('app.timezone');
-                        \$__d = ($date) instanceof \\DateTimeInterface
-                            ? \\Carbon\\Carbon::instance($date)->timezone(\$__tz)
-                            : \\Carbon\\Carbon::parse($date, \$__tz);
-                        echo \$__d->format(session('business.date_format') . ' ' . '$time_format');
-                    }
-                ?>";
-            } else {
-                return null;
+            $time_format = 'h:i A';
+            if (session('business.time_format') == 24) {
+                $time_format = 'H:i';
             }
+
+            if ($date !== null && $date !== '') {
+                return "(($date) instanceof \\DateTimeInterface"
+                    ." ? \\Carbon\\Carbon::instance($date)->timezone(config('app.timezone'))"
+                    ." : \\Carbon\\Carbon::parse($date, config('app.timezone')))"
+                    ."->format(session('business.date_format') . ' ' . '$time_format')";
+            }
+
+            return 'null';
         });
 
         //Blade directive to format currency.
