@@ -70,6 +70,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Environment Timezone (immutable)
+    |--------------------------------------------------------------------------
+    |
+    | Copy of APP_TIMEZONE that must not be overwritten by per-business
+    | timezone middleware. Use this when a feature must always follow .env.
+    |
+    */
+    'timezone_env' => env('APP_TIMEZONE', 'Europe/London'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

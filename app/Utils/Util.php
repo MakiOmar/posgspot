@@ -237,7 +237,13 @@ class Util
             $mysql_format = 'Y-m-d H:i:s';
         }
 
-        return ! empty($date_format) ? \Carbon::createFromFormat($date_format, $date)->format($mysql_format) : null;
+        if (empty($date_format) || empty($date)) {
+            return null;
+        }
+
+        // Parse in app timezone so the wall-clock value is stored unchanged.
+        return \Carbon::createFromFormat($date_format, $date, config('app.timezone'))
+            ->format($mysql_format);
     }
 
     /**
@@ -291,7 +297,17 @@ class Util
             }
         }
 
-        return ! empty($date) ? \Carbon::createFromTimestamp(strtotime($date))->format($format) : null;
+        if (empty($date)) {
+            return null;
+        }
+
+        // Interpret/display as app timezone wall-clock (no UTC shift).
+        $timezone = config('app.timezone');
+        if ($date instanceof \DateTimeInterface) {
+            return \Carbon::instance($date)->timezone($timezone)->format($format);
+        }
+
+        return \Carbon::parse($date, $timezone)->format($format);
     }
 
     /**

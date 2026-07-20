@@ -34,6 +34,16 @@ class Escalation extends Model
     ];
 
     /**
+     * Persist datetimes as app-timezone wall-clock values (no UTC shift).
+     */
+    protected function serializeDate(\DateTimeInterface $date)
+    {
+        return \Carbon\Carbon::instance($date)
+            ->timezone(config('app.timezone'))
+            ->format('Y-m-d H:i:s');
+    }
+
+    /**
      * Employee who logged the escalation.
      */
     public function employee()

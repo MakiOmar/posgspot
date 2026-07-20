@@ -166,8 +166,14 @@ class EscalationController extends Controller
 
                     return $name;
                 })
-                ->editColumn('escalated_at', '{{@format_datetime($escalated_at)}}')
-                ->editColumn('callback_at', '@if(!empty($callback_at)) {{@format_datetime($callback_at)}} @endif')
+                ->editColumn('escalated_at', function ($row) {
+                    return $this->commonUtil->format_date($row->escalated_at, true);
+                })
+                ->editColumn('callback_at', function ($row) {
+                    return ! empty($row->callback_at)
+                        ? $this->commonUtil->format_date($row->callback_at, true)
+                        : '';
+                })
                 ->editColumn('status', function ($row) {
                     $statuses = Escalation::statusDropdown();
 
@@ -241,7 +247,10 @@ class EscalationController extends Controller
         $locations = BusinessLocation::forDropdown($business_id);
         $sources = EscalationSource::forDropdown($business_id);
         $default_employee_id = auth()->user()->id;
-        $default_escalated_at = $this->commonUtil->format_date(now(), true);
+        $default_escalated_at = $this->commonUtil->format_date(
+            \Carbon\Carbon::now(config('app.timezone')),
+            true
+        );
 
         return view('crm::escalation.create')
             ->with(compact('locations', 'sources', 'default_employee_id', 'default_escalated_at'));
@@ -276,7 +285,7 @@ class EscalationController extends Controller
             }
 
             if (empty($input['escalated_at'])) {
-                $input['escalated_at'] = $this->commonUtil->uf_date(now()->format('Y-m-d H:i'), true);
+                $input['escalated_at'] = \Carbon\Carbon::now(config('app.timezone'))->format('Y-m-d H:i:s');
             } else {
                 $input['escalated_at'] = $this->commonUtil->uf_date($input['escalated_at'], true);
             }

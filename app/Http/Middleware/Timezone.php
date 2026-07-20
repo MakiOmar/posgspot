@@ -16,16 +16,21 @@ class Timezone
      */
     public function handle($request, Closure $next)
     {
-        $timezone = config('app.timezone');
+        // Prefer APP_TIMEZONE from .env so stored and displayed datetimes match local wall-clock.
+        $timezone = config('app.timezone_env', config('app.timezone'));
 
-        if (session()->has('business.time_zone')) {
-            $timezone = $request->session()->get('business.time_zone');
-        } else {
-            $timezone = Auth::user()->business->time_zone;
+        if (empty($timezone)) {
+            if (session()->has('business.time_zone')) {
+                $timezone = $request->session()->get('business.time_zone');
+            } elseif (Auth::check() && ! empty(Auth::user()->business)) {
+                $timezone = Auth::user()->business->time_zone;
+            }
         }
 
-        config(['app.timezone' => $timezone]);
-        date_default_timezone_set($timezone);
+        if (! empty($timezone)) {
+            config(['app.timezone' => $timezone]);
+            date_default_timezone_set($timezone);
+        }
 
         return $next($request);
     }
