@@ -1745,4 +1745,110 @@ class ContactController extends Controller
             'msg' => __('lang_v1.mobile_already_registered', ['contacts' => implode(', ', $contacts), 'mobile' => $mobile_number]),
         ];
     }
+
+    /**
+     * Manually credit or debit customer reward points.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return array
+     */
+    public function adjustRewardPoints(Request $request, $id)
+    {
+        if (! auth()->user()->can('customer.update')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (request()->session()->get('business.enable_rp') != 1) {
+            return [
+                'success' => false,
+                'msg' => __('lang_v1.reward_points_not_enabled'),
+            ];
+        }
+
+        try {
+            $request->validate([
+                'points' => 'required|integer|min:1',
+                'adjustment_type' => 'required|in:credit,debit',
+                'note' => 'nullable|string|max:500',
+            ]);
+
+            $business_id = $request->session()->get('user.business_id');
+            $contact = Contact::where('business_id', $business_id)
+                ->whereIn('type', ['customer', 'both'])
+                ->findOrFail($id);
+
+            if ($contact->is_default == 1) {
+                return [
+                    'success' => false,
+                    'msg' => __('lang_v1.cannot_adjust_walk_in_reward_points'),
+                ];
+            }
+
+            $points = (int) $request->input('points');
+            $type = $request->input('adjustment_type');
+            $balance_before = (int) ($contact->total_rp ?? 0);
+
+            if ($type === 'credit') {
+                $contact->total_rp = $balance_before + $points;
+            } else {
+                if ($points > $balance_before) {
+                    return [
+                        'success' => false,
+                        'msg' => __('lang_v1.reward_points_insufficient', ['points' => $balance_before]),
+                    ];
+                }
+                $contact->total_rp = $balance_before - $points;
+            }
+
+            $contact->save();
+
+            $balance_after = (int) $contact->total_rp;
+            $rp_name = session('business.rp_name') ?: __('lang_v1.reward_points');
+            $note = trim((string) $request->input('note', ''));
+            $update_note = $type === 'credit'
+                ? __('lang_v1.reward_points_credited_note', [
+                    'points' => $points,
+                    'name' => $rp_name,
+                    'before' => $balance_before,
+                    'after' => $balance_after,
+                ])
+                : __('lang_v1.reward_points_debited_note', [
+                    'points' => $points,
+                    'name' => $rp_name,
+                    'before' => $balance_before,
+                    'after' => $balance_after,
+                ]);
+
+            if ($note !== '') {
+                $update_note .= ' — '.$note;
+            }
+
+            $this->transactionUtil->activityLog($contact, 'reward_points_adjusted', null, [
+                'update_note' => $update_note,
+                'adjustment_type' => $type,
+                'points' => $points,
+                'balance_before' => $balance_before,
+                'balance_after' => $balance_after,
+            ], false);
+
+            return [
+                'success' => true,
+                'msg' => __('lang_v1.reward_points_adjusted_success'),
+                'total_rp' => $balance_after,
+            ];
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return [
+                'success' => false,
+                'msg' => collect($e->errors())->flatten()->first() ?: __('messages.something_went_wrong'),
+            ];
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            return [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+    }
 }

@@ -252,11 +252,20 @@
 
                                         <div class="info-box-content">
                                           <span class="info-box-text">{{session('business.rp_name')}}</span>
-                                          <span class="info-box-number">{{$contact->total_rp ?? 0}}</span>
+                                          <span class="info-box-number" id="customer_total_rp">{{$contact->total_rp ?? 0}}</span>
                                         </div>
                                         <!-- /.info-box-content -->
                                     </div>
                                 </div>
+                                @can('customer.update')
+                                    @if(empty($contact->is_default))
+                                        <div class="col-md-3">
+                                            <button type="button" class="tw-dw-btn tw-dw-btn-primary tw-text-white" data-toggle="modal" data-target="#adjust_reward_points_modal">
+                                                <i class="fa fa-plus-circle"></i> @lang('lang_v1.adjust_reward_points')
+                                            </button>
+                                        </div>
+                                    @endif
+                                @endcan
                             @endif
                             <div class="col-md-12">
                                 <div class="table-responsive">
@@ -312,6 +321,9 @@
         aria-labelledby="gridSystemModalLabel">
 </div>
 @include('ledger_discount.create')
+@if(!empty($reward_enabled) && auth()->user()->can('customer.update') && empty($contact->is_default))
+    @include('contact.partials.adjust_reward_points')
+@endif
 
 @stop
 @section('javascript')
@@ -408,6 +420,39 @@ $(document).ready( function(){
                 } else {
                     toastr.error(result.msg);
                 }
+            },
+        });
+    });
+
+    // Manual reward points credit/debit
+    $(document).on('submit', 'form#adjust_reward_points_form', function(e) {
+        e.preventDefault();
+        var form = $(this);
+        var data = form.serialize();
+
+        $.ajax({
+            method: 'POST',
+            url: form.attr('action'),
+            dataType: 'json',
+            data: data,
+            success: function(result) {
+                if (result.success === true) {
+                    $('div#adjust_reward_points_modal').modal('hide');
+                    toastr.success(result.msg);
+                    form[0].reset();
+                    form.find('#reward_adjustment_type').val('credit');
+                    form.find('button[type="submit"]').removeAttr('disabled');
+                    if (typeof result.total_rp !== 'undefined') {
+                        $('#customer_total_rp').text(result.total_rp);
+                    }
+                } else {
+                    toastr.error(result.msg);
+                    form.find('button[type="submit"]').removeAttr('disabled');
+                }
+            },
+            error: function() {
+                toastr.error(LANG.something_went_wrong);
+                form.find('button[type="submit"]').removeAttr('disabled');
             },
         });
     });
