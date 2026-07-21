@@ -121,6 +121,40 @@ export interface HomepagePromoTile {
   label: string;
 }
 
+/** Compositional promo banner from GET /homepage `promo_banner` settings. */
+export interface HomepagePromoBannerPosition {
+  top: string;
+  right: string;
+  bottom: string;
+  left: string;
+  width: string;
+}
+
+export interface HomepagePromoBanner {
+  logo_url: string | null;
+  top_title: string;
+  main_title: string;
+  top_title_color: string;
+  main_title_color: string;
+  background_color: string;
+  border_radius: number;
+  border_color: string;
+  border_thickness: number;
+  min_height: number;
+  image_url: string | null;
+  image_position: HomepagePromoBannerPosition;
+  button: {
+    label: string;
+    link: string;
+    background_color: string;
+    text_color: string;
+    border_radius: number;
+    show_arrow: boolean;
+    arrow_color: string;
+    position: HomepagePromoBannerPosition;
+  };
+}
+
 /** Homepage shelf from GET /categories/homepage-shelves (POS category fields). */
 export interface HomepageCategoryShelf {
   id: number;

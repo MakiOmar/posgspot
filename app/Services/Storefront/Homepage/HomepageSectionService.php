@@ -310,8 +310,11 @@ class HomepageSectionService
                 $settings['shelf'] = $shelf;
             }
 
-            if ($type === 'promo_banner' && empty($settings['image_url'])) {
+            if ($type === 'promo_banner' && empty($settings['has_content'])) {
                 continue;
+            }
+            if ($type === 'promo_banner') {
+                unset($settings['has_content']);
             }
 
             $out[] = [
@@ -346,7 +349,9 @@ class HomepageSectionService
                 $settings['tiles'] = array_map(fn ($t) => $this->withMediaUrl($t), $settings['tiles'] ?? []);
             }
             if ($type === 'promo_banner') {
-                $settings = $this->withMediaUrl($settings);
+                $settings = $this->normalizePromoBanner(is_array($settings) ? $settings : []);
+                $settings['logo'] = $this->withMediaUrl($settings['logo']);
+                $settings['image'] = $this->withMediaUrl($settings['image']);
             }
             $out[] = [
                 'id' => $section['id'],
@@ -429,30 +434,208 @@ class HomepageSectionService
                 'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
             ],
-            'promo_banner' => [
-                'image_url' => $this->mediaPublicUrl($settings['image'] ?? null, $settings['url'] ?? null),
-                'title' => $this->pickLocale($settings['title'] ?? [], $locale),
-                'link' => trim((string) ($settings['link'] ?? '')),
-            ],
+            'promo_banner' => $this->presentPromoBanner($settings, $locale),
             default => $settings,
         };
     }
 
     /**
      * @param  array<string, mixed>  $settings
-     * @return array{image: string|null, url: string, link: string, title: array{en: string, ar: string}}
+     * @return array<string, mixed>
+     */
+    private function presentPromoBanner(array $settings, string $locale): array
+    {
+        $logo = is_array($settings['logo'] ?? null) ? $settings['logo'] : [];
+        $image = is_array($settings['image'] ?? null) ? $settings['image'] : [];
+        $button = is_array($settings['button'] ?? null) ? $settings['button'] : [];
+        $imagePosition = is_array($image['position'] ?? null) ? $image['position'] : [];
+        $buttonPosition = is_array($button['position'] ?? null) ? $button['position'] : [];
+
+        $logoUrl = $this->mediaPublicUrl($logo['image'] ?? null, $logo['url'] ?? null);
+        $imageUrl = $this->mediaPublicUrl($image['image'] ?? null, $image['url'] ?? null);
+        $topTitle = $this->pickLocale($settings['top_title'] ?? [], $locale);
+        $mainTitle = $this->pickLocale($settings['main_title'] ?? [], $locale);
+        $buttonLabel = $this->pickLocale($button['label'] ?? [], $locale);
+
+        return [
+            'has_content' => $logoUrl !== null || $imageUrl !== null || $topTitle !== '' || $mainTitle !== '',
+            'logo_url' => $logoUrl,
+            'top_title' => $topTitle,
+            'main_title' => $mainTitle,
+            'top_title_color' => $this->cssColor($settings['top_title_color'] ?? null, '#111111'),
+            'main_title_color' => $this->cssColor($settings['main_title_color'] ?? null, '#111111'),
+            'background_color' => $this->cssColor($settings['background_color'] ?? null, '#f5a623'),
+            'border_radius' => max(0, min(64, (int) ($settings['border_radius'] ?? 16))),
+            'border_color' => $this->cssColor($settings['border_color'] ?? null, '#000000'),
+            'border_thickness' => max(0, min(24, (int) ($settings['border_thickness'] ?? 0))),
+            'min_height' => max(80, min(640, (int) ($settings['min_height'] ?? 180))),
+            'image_url' => $imageUrl,
+            'image_position' => $this->normalizePosition($imagePosition, [
+                'top' => '-12%',
+                'right' => '2%',
+                'bottom' => 'auto',
+                'left' => 'auto',
+                'width' => '42%',
+            ]),
+            'button' => [
+                'label' => $buttonLabel !== '' ? $buttonLabel : 'Shop Now',
+                'link' => mb_substr(trim((string) ($button['link'] ?? '')), 0, 500),
+                'background_color' => $this->cssColor($button['background_color'] ?? null, '#ffffff'),
+                'text_color' => $this->cssColor($button['text_color'] ?? null, '#111111'),
+                'border_radius' => max(0, min(64, (int) ($button['border_radius'] ?? 4))),
+                'show_arrow' => filter_var($button['show_arrow'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'arrow_color' => $this->cssColor($button['arrow_color'] ?? null, '#f5c518'),
+                'position' => $this->normalizePosition($buttonPosition, [
+                    'top' => 'auto',
+                    'right' => '5%',
+                    'bottom' => '18%',
+                    'left' => 'auto',
+                    'width' => 'auto',
+                ]),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
      */
     private function normalizePromoBanner(array $settings): array
     {
-        $image = trim((string) ($settings['image'] ?? ''));
-        $url = trim((string) ($settings['url'] ?? ''));
+        // Migrate legacy flat image/url/title/link shape into compositional fields.
+        if (! isset($settings['logo']) && ! is_array($settings['image'] ?? null) && (isset($settings['image']) || isset($settings['url']) || isset($settings['title']))) {
+            $legacyImage = trim((string) ($settings['image'] ?? ''));
+            $legacyUrl = trim((string) ($settings['url'] ?? ''));
+            $legacyTitle = $settings['title'] ?? null;
+            $legacyLink = trim((string) ($settings['link'] ?? ''));
+            $settings['image'] = [
+                'image' => $legacyImage !== '' ? $legacyImage : null,
+                'url' => $legacyImage === '' ? $legacyUrl : '',
+                'position' => [
+                    'top' => '-12%',
+                    'right' => '2%',
+                    'bottom' => 'auto',
+                    'left' => 'auto',
+                    'width' => '42%',
+                ],
+            ];
+            if (! isset($settings['main_title']) && $legacyTitle !== null) {
+                $settings['main_title'] = $legacyTitle;
+            }
+            if (! isset($settings['button']) && $legacyLink !== '') {
+                $settings['button'] = [
+                    'label' => ['en' => 'Shop Now', 'ar' => 'تسوق الآن'],
+                    'link' => $legacyLink,
+                ];
+            }
+        }
+
+        $logo = is_array($settings['logo'] ?? null) ? $settings['logo'] : [];
+        $image = is_array($settings['image'] ?? null) ? $settings['image'] : [];
+        $button = is_array($settings['button'] ?? null) ? $settings['button'] : [];
+
+        return [
+            'logo' => $this->normalizeMediaRow($logo),
+            'top_title' => $this->localeMap($settings['top_title'] ?? null, 160),
+            'main_title' => $this->localeMap($settings['main_title'] ?? null, 220),
+            'top_title_color' => $this->cssColor($settings['top_title_color'] ?? null, '#111111'),
+            'main_title_color' => $this->cssColor($settings['main_title_color'] ?? null, '#111111'),
+            'background_color' => $this->cssColor($settings['background_color'] ?? null, '#f5a623'),
+            'border_radius' => max(0, min(64, (int) ($settings['border_radius'] ?? 16))),
+            'border_color' => $this->cssColor($settings['border_color'] ?? null, '#000000'),
+            'border_thickness' => max(0, min(24, (int) ($settings['border_thickness'] ?? 0))),
+            'min_height' => max(80, min(640, (int) ($settings['min_height'] ?? 180))),
+            'image' => array_merge($this->normalizeMediaRow($image), [
+                'position' => $this->normalizePosition($image['position'] ?? null, [
+                    'top' => '-12%',
+                    'right' => '2%',
+                    'bottom' => 'auto',
+                    'left' => 'auto',
+                    'width' => '42%',
+                ]),
+            ]),
+            'button' => [
+                'label' => $this->localeMap($button['label'] ?? ['en' => 'Shop Now', 'ar' => 'تسوق الآن'], 80),
+                'link' => mb_substr(trim((string) ($button['link'] ?? '')), 0, 500),
+                'background_color' => $this->cssColor($button['background_color'] ?? null, '#ffffff'),
+                'text_color' => $this->cssColor($button['text_color'] ?? null, '#111111'),
+                'border_radius' => max(0, min(64, (int) ($button['border_radius'] ?? 4))),
+                'show_arrow' => filter_var($button['show_arrow'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'arrow_color' => $this->cssColor($button['arrow_color'] ?? null, '#f5c518'),
+                'position' => $this->normalizePosition($button['position'] ?? null, [
+                    'top' => 'auto',
+                    'right' => '5%',
+                    'bottom' => '18%',
+                    'left' => 'auto',
+                    'width' => 'auto',
+                ]),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{image: string|null, url: string}
+     */
+    private function normalizeMediaRow(array $row): array
+    {
+        $image = trim((string) ($row['image'] ?? ''));
+        $url = trim((string) ($row['url'] ?? ''));
 
         return [
             'image' => $image !== '' ? $image : null,
             'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
-            'link' => mb_substr(trim((string) ($settings['link'] ?? '')), 0, 500),
-            'title' => $this->localeMap($settings['title'] ?? null, 120),
         ];
+    }
+
+    /**
+     * @param  mixed  $position
+     * @param  array{top: string, right: string, bottom: string, left: string, width: string}  $defaults
+     * @return array{top: string, right: string, bottom: string, left: string, width: string}
+     */
+    private function normalizePosition($position, array $defaults): array
+    {
+        $row = is_array($position) ? $position : [];
+
+        return [
+            'top' => $this->cssLength($row['top'] ?? null, $defaults['top']),
+            'right' => $this->cssLength($row['right'] ?? null, $defaults['right']),
+            'bottom' => $this->cssLength($row['bottom'] ?? null, $defaults['bottom']),
+            'left' => $this->cssLength($row['left'] ?? null, $defaults['left']),
+            'width' => $this->cssLength($row['width'] ?? null, $defaults['width']),
+        ];
+    }
+
+    private function cssColor(mixed $value, string $fallback): string
+    {
+        $v = trim((string) $value);
+        if (preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $v)) {
+            return $v;
+        }
+        if (preg_match('/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(,\s*(0|1|0?\.\d+)\s*)?\)$/i', $v)) {
+            return $v;
+        }
+
+        return $fallback;
+    }
+
+    private function cssLength(mixed $value, string $fallback): string
+    {
+        $v = trim((string) $value);
+        if ($v === '') {
+            return $fallback;
+        }
+        if (strcasecmp($v, 'auto') === 0) {
+            return 'auto';
+        }
+        if (preg_match('/^-?\d+(\.\d+)?(px|%|rem|em|vh|vw)$/i', $v)) {
+            return $v;
+        }
+        if (preg_match('/^-?\d+(\.\d+)?$/', $v)) {
+            return $v.'px';
+        }
+
+        return $fallback;
     }
 
     /**

@@ -8,6 +8,7 @@ import { CategoryShelf } from "~/components/home/category-shelf";
 import { FeaturedSlider } from "~/components/home/featured-slider";
 import { HeroSlider } from "~/components/home/hero-slider";
 import { HomeVideo } from "~/components/home/home-video";
+import { PromoBannerSection } from "~/components/home/promo-banner-section";
 import { PromoTiles } from "~/components/home/promo-tiles";
 import { TopCategories } from "~/components/home/top-categories";
 import { JsonLd } from "~/components/seo/json-ld";
@@ -26,6 +27,7 @@ import type {
   Brand,
   HomepageCategoryShelf,
   HomepageHeroSlide,
+  HomepagePromoBanner,
   HomepagePromoTile,
   HomepageSection,
   ProductSummary,
@@ -237,26 +239,11 @@ export default component$(() => {
               />
             );
           case "promo_banner": {
-            const imageUrl = String(section.settings.image_url ?? "");
-            if (!imageUrl) {
+            const banner = section.settings as unknown as HomepagePromoBanner;
+            if (!banner.logo_url && !banner.image_url && !banner.top_title && !banner.main_title) {
               return null;
             }
-            return (
-              <PromoBanners
-                key={section.id}
-                banners={[
-                  {
-                    id: section.id,
-                    placement: "home",
-                    category_slug: null,
-                    title: String(section.settings.title ?? ""),
-                    link: String(section.settings.link ?? ""),
-                    image_url: imageUrl,
-                  },
-                ]}
-                placement="home"
-              />
-            );
+            return <PromoBannerSection key={section.id} banner={banner} />;
           }
           case "featured_products":
             return (

@@ -16,6 +16,37 @@
     return { en: "", ar: "" };
   }
 
+  function defaultPromoBanner() {
+    return {
+      logo: { image: null, url: "", image_url: "" },
+      top_title: emptyLocale(),
+      main_title: emptyLocale(),
+      top_title_color: "#111111",
+      main_title_color: "#111111",
+      background_color: "#f5a623",
+      border_radius: 16,
+      border_color: "#000000",
+      border_thickness: 0,
+      min_height: 180,
+      image: {
+        image: null,
+        url: "",
+        image_url: "",
+        position: { top: "-12%", right: "2%", bottom: "auto", left: "auto", width: "42%" },
+      },
+      button: {
+        label: { en: "Shop Now", ar: "تسوق الآن" },
+        link: "/products",
+        background_color: "#ffffff",
+        text_color: "#111111",
+        border_radius: 4,
+        show_arrow: true,
+        arrow_color: "#f5c518",
+        position: { top: "auto", right: "5%", bottom: "18%", left: "auto", width: "auto" },
+      },
+    };
+  }
+
   function defaultSettings(type) {
     switch (type) {
       case "hero_slider":
@@ -27,7 +58,7 @@
       case "promo_banners":
         return { max: 12 };
       case "promo_banner":
-        return { image: null, url: "", link: "", title: emptyLocale() };
+        return defaultPromoBanner();
       case "featured_products":
         return { per_page: 8 };
       case "top_categories":
@@ -205,8 +236,20 @@
           section.settings.tiles.splice(index, 1);
         },
         clearBannerImage: function (section) {
-          section.settings.image = null;
-          section.settings.image_url = "";
+          if (!section.settings.image) {
+            return;
+          }
+          section.settings.image.image = null;
+          section.settings.image.url = "";
+          section.settings.image.image_url = "";
+        },
+        clearBannerLogo: function (section) {
+          if (!section.settings.logo) {
+            return;
+          }
+          section.settings.logo.image = null;
+          section.settings.logo.url = "";
+          section.settings.logo.image_url = "";
         },
         uploadMedia: function (item) {
           var self = this;
@@ -384,18 +427,138 @@
                 </template>
 
                 <template v-else-if="section.type === 'promo_banner'">
-                  <div class="sf-hp-media-row">
-                    <img v-if="section.settings.image_url || section.settings.url" :src="section.settings.image_url || section.settings.url" alt="" class="sf-hp-thumb" />
-                    <div class="sf-hp-media-fields">
-                      <input class="form-control input-sm" v-model="section.settings.url" placeholder="Image URL" :disabled="!!section.settings.image" />
-                      <input class="form-control input-sm" v-model="section.settings.link" placeholder="Link path or URL e.g. /products" />
-                      <input class="form-control input-sm" v-model="section.settings.title.en" placeholder="Title (EN)" />
-                      <input class="form-control input-sm" v-model="section.settings.title.ar" placeholder="Title (AR)" dir="rtl" />
-                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings)">Upload image</button>
-                      <button type="button" class="btn btn-default btn-xs" v-if="section.settings.image" @click="clearBannerImage(section)">Clear upload</button>
+                  <p class="help-block">Compositional banner: logo + titles + background/border + absolutely positioned product image + Shop Now button. Use CSS lengths like <code>-12%</code>, <code>24px</code>, or <code>auto</code>.</p>
+
+                  <fieldset class="sf-hp-fieldset">
+                    <legend>Logo</legend>
+                    <div class="sf-hp-media-row">
+                      <img v-if="section.settings.logo.image_url || section.settings.logo.url" :src="section.settings.logo.image_url || section.settings.logo.url" alt="" class="sf-hp-thumb" />
+                      <div class="sf-hp-media-fields">
+                        <input class="form-control input-sm" v-model="section.settings.logo.url" placeholder="Logo image URL" :disabled="!!section.settings.logo.image" />
+                        <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings.logo)">Upload logo</button>
+                        <button type="button" class="btn btn-default btn-xs" v-if="section.settings.logo.image || section.settings.logo.url" @click="clearBannerLogo(section)">Clear logo</button>
+                      </div>
                     </div>
-                  </div>
-                  <p class="help-block">One banner per section. Insert multiple “Promo banner” sections to stack them.</p>
+                  </fieldset>
+
+                  <fieldset class="sf-hp-fieldset">
+                    <legend>Titles</legend>
+                    <div class="form-group">
+                      <label>Top title (EN)</label>
+                      <input class="form-control input-sm" v-model="section.settings.top_title.en" />
+                    </div>
+                    <div class="form-group">
+                      <label>Top title (AR)</label>
+                      <input class="form-control input-sm" v-model="section.settings.top_title.ar" dir="rtl" />
+                    </div>
+                    <div class="form-group">
+                      <label>Top title color</label>
+                      <input type="color" v-model="section.settings.top_title_color" />
+                      <input class="form-control input-sm" style="max-width:120px;display:inline-block;margin-left:8px;" v-model="section.settings.top_title_color" />
+                    </div>
+                    <div class="form-group">
+                      <label>Main title (EN)</label>
+                      <input class="form-control input-sm" v-model="section.settings.main_title.en" />
+                    </div>
+                    <div class="form-group">
+                      <label>Main title (AR)</label>
+                      <input class="form-control input-sm" v-model="section.settings.main_title.ar" dir="rtl" />
+                    </div>
+                    <div class="form-group">
+                      <label>Main title color</label>
+                      <input type="color" v-model="section.settings.main_title_color" />
+                      <input class="form-control input-sm" style="max-width:120px;display:inline-block;margin-left:8px;" v-model="section.settings.main_title_color" />
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="sf-hp-fieldset">
+                    <legend>Background &amp; border</legend>
+                    <div class="form-group">
+                      <label>Background color</label>
+                      <input type="color" v-model="section.settings.background_color" />
+                      <input class="form-control input-sm" style="max-width:120px;display:inline-block;margin-left:8px;" v-model="section.settings.background_color" />
+                    </div>
+                    <div class="row">
+                      <div class="col-sm-3">
+                        <label>Border radius (px)</label>
+                        <input type="number" min="0" max="64" class="form-control input-sm" v-model.number="section.settings.border_radius" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Border thickness (px)</label>
+                        <input type="number" min="0" max="24" class="form-control input-sm" v-model.number="section.settings.border_thickness" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Border color</label>
+                        <input type="color" class="form-control input-sm" v-model="section.settings.border_color" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Min height (px)</label>
+                        <input type="number" min="80" max="640" class="form-control input-sm" v-model.number="section.settings.min_height" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="sf-hp-fieldset">
+                    <legend>Product image (absolute)</legend>
+                    <div class="sf-hp-media-row">
+                      <img v-if="section.settings.image.image_url || section.settings.image.url" :src="section.settings.image.image_url || section.settings.image.url" alt="" class="sf-hp-thumb" />
+                      <div class="sf-hp-media-fields">
+                        <input class="form-control input-sm" v-model="section.settings.image.url" placeholder="Product image URL" :disabled="!!section.settings.image.image" />
+                        <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings.image)">Upload image</button>
+                        <button type="button" class="btn btn-default btn-xs" v-if="section.settings.image.image || section.settings.image.url" @click="clearBannerImage(section)">Clear image</button>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-sm-2"><label>Top</label><input class="form-control input-sm" v-model="section.settings.image.position.top" placeholder="auto" /></div>
+                      <div class="col-sm-2"><label>Right</label><input class="form-control input-sm" v-model="section.settings.image.position.right" placeholder="auto" /></div>
+                      <div class="col-sm-2"><label>Bottom</label><input class="form-control input-sm" v-model="section.settings.image.position.bottom" placeholder="auto" /></div>
+                      <div class="col-sm-2"><label>Left</label><input class="form-control input-sm" v-model="section.settings.image.position.left" placeholder="auto" /></div>
+                      <div class="col-sm-2"><label>Width</label><input class="form-control input-sm" v-model="section.settings.image.position.width" placeholder="42%" /></div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="sf-hp-fieldset">
+                    <legend>Shop Now button</legend>
+                    <div class="form-group">
+                      <label>Label (EN)</label>
+                      <input class="form-control input-sm" v-model="section.settings.button.label.en" />
+                    </div>
+                    <div class="form-group">
+                      <label>Label (AR)</label>
+                      <input class="form-control input-sm" v-model="section.settings.button.label.ar" dir="rtl" />
+                    </div>
+                    <div class="form-group">
+                      <label>Link</label>
+                      <input class="form-control input-sm" v-model="section.settings.button.link" placeholder="/products or https://…" />
+                    </div>
+                    <div class="row">
+                      <div class="col-sm-3">
+                        <label>Background</label>
+                        <input type="color" class="form-control input-sm" v-model="section.settings.button.background_color" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Text color</label>
+                        <input type="color" class="form-control input-sm" v-model="section.settings.button.text_color" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Arrow color</label>
+                        <input type="color" class="form-control input-sm" v-model="section.settings.button.arrow_color" />
+                      </div>
+                      <div class="col-sm-3">
+                        <label>Radius (px)</label>
+                        <input type="number" min="0" max="64" class="form-control input-sm" v-model.number="section.settings.button.border_radius" />
+                      </div>
+                    </div>
+                    <label style="margin-top:8px;display:block;">
+                      <input type="checkbox" v-model="section.settings.button.show_arrow" /> Show arrow
+                    </label>
+                    <div class="row" style="margin-top:8px;">
+                      <div class="col-sm-2"><label>Top</label><input class="form-control input-sm" v-model="section.settings.button.position.top" /></div>
+                      <div class="col-sm-2"><label>Right</label><input class="form-control input-sm" v-model="section.settings.button.position.right" /></div>
+                      <div class="col-sm-2"><label>Bottom</label><input class="form-control input-sm" v-model="section.settings.button.position.bottom" /></div>
+                      <div class="col-sm-2"><label>Left</label><input class="form-control input-sm" v-model="section.settings.button.position.left" /></div>
+                    </div>
+                  </fieldset>
                 </template>
 
                 <template v-else-if="section.type === 'featured_products'">

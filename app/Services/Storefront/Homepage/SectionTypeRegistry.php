@@ -44,15 +44,47 @@ class SectionTypeRegistry
                     'max' => 12,
                 ],
             ],
-            // Preferred: one banner per section with fields in the builder.
+            // Preferred: compositional banner (logo, titles, bg/border, positioned image, CTA).
             'promo_banner' => [
                 'label' => 'Promo banner',
                 'max_instances' => null,
                 'default_settings' => [
-                    'image' => null,
-                    'url' => '',
-                    'link' => '',
-                    'title' => ['en' => '', 'ar' => ''],
+                    'logo' => ['image' => null, 'url' => ''],
+                    'top_title' => ['en' => '', 'ar' => ''],
+                    'main_title' => ['en' => '', 'ar' => ''],
+                    'top_title_color' => '#111111',
+                    'main_title_color' => '#111111',
+                    'background_color' => '#f5a623',
+                    'border_radius' => 16,
+                    'border_color' => '#000000',
+                    'border_thickness' => 0,
+                    'min_height' => 180,
+                    'image' => [
+                        'image' => null,
+                        'url' => '',
+                        'position' => [
+                            'top' => '-12%',
+                            'right' => '2%',
+                            'bottom' => 'auto',
+                            'left' => 'auto',
+                            'width' => '42%',
+                        ],
+                    ],
+                    'button' => [
+                        'label' => ['en' => 'Shop Now', 'ar' => 'تسوق الآن'],
+                        'link' => '/products',
+                        'background_color' => '#ffffff',
+                        'text_color' => '#111111',
+                        'border_radius' => 4,
+                        'show_arrow' => true,
+                        'arrow_color' => '#f5c518',
+                        'position' => [
+                            'top' => 'auto',
+                            'right' => '5%',
+                            'bottom' => '18%',
+                            'left' => 'auto',
+                        ],
+                    ],
                 ],
             ],
             'featured_products' => [

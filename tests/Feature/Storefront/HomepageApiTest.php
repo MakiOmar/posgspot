@@ -113,7 +113,7 @@ class HomepageApiTest extends TestCase
         $this->assertContains('bestsellers', $types);
     }
 
-    public function test_promo_banner_section_without_image_is_omitted(): void
+    public function test_promo_banner_section_without_content_is_omitted(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [
             'selling_location_ids' => [1],
@@ -123,10 +123,9 @@ class HomepageApiTest extends TestCase
                     'type' => 'promo_banner',
                     'enabled' => true,
                     'settings' => [
-                        'image' => null,
-                        'url' => '',
-                        'link' => '/products',
-                        'title' => ['en' => 'Sale', 'ar' => 'تخفيض'],
+                        'background_color' => '#f5a623',
+                        'top_title' => ['en' => '', 'ar' => ''],
+                        'main_title' => ['en' => '', 'ar' => ''],
                     ],
                 ],
                 [
@@ -146,7 +145,7 @@ class HomepageApiTest extends TestCase
         $this->assertContains('bestsellers', $types);
     }
 
-    public function test_promo_banner_section_presents_image_and_fields(): void
+    public function test_promo_banner_section_presents_compositional_fields(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [
             'selling_location_ids' => [1],
@@ -156,10 +155,30 @@ class HomepageApiTest extends TestCase
                     'type' => 'promo_banner',
                     'enabled' => true,
                     'settings' => [
-                        'image' => null,
-                        'url' => 'https://example.com/promo.jpg',
-                        'link' => '/products',
-                        'title' => ['en' => 'Big sale', 'ar' => 'تخفيض كبير'],
+                        'logo' => ['image' => null, 'url' => 'https://example.com/logo.png'],
+                        'top_title' => ['en' => 'Feel the power', 'ar' => 'اشعر بالقوة'],
+                        'main_title' => ['en' => 'Portal Remote Player', 'ar' => 'جهاز بورتال'],
+                        'background_color' => '#f5a623',
+                        'border_radius' => 16,
+                        'border_thickness' => 0,
+                        'image' => [
+                            'image' => null,
+                            'url' => 'https://example.com/portal.png',
+                            'position' => [
+                                'top' => '-12%',
+                                'right' => '2%',
+                                'bottom' => 'auto',
+                                'left' => 'auto',
+                                'width' => '42%',
+                            ],
+                        ],
+                        'button' => [
+                            'label' => ['en' => 'Shop Now', 'ar' => 'تسوق الآن'],
+                            'link' => '/products',
+                            'background_color' => '#ffffff',
+                            'text_color' => '#111111',
+                            'show_arrow' => true,
+                        ],
                     ],
                 ],
             ],
@@ -169,8 +188,13 @@ class HomepageApiTest extends TestCase
         $response = $this->getJson('/api/storefront/v1/homepage');
         $response->assertOk()
             ->assertJsonPath('data.sections.0.type', 'promo_banner')
-            ->assertJsonPath('data.sections.0.settings.image_url', 'https://example.com/promo.jpg')
-            ->assertJsonPath('data.sections.0.settings.link', '/products')
-            ->assertJsonPath('data.sections.0.settings.title', 'Big sale');
+            ->assertJsonPath('data.sections.0.settings.logo_url', 'https://example.com/logo.png')
+            ->assertJsonPath('data.sections.0.settings.image_url', 'https://example.com/portal.png')
+            ->assertJsonPath('data.sections.0.settings.top_title', 'Feel the power')
+            ->assertJsonPath('data.sections.0.settings.main_title', 'Portal Remote Player')
+            ->assertJsonPath('data.sections.0.settings.background_color', '#f5a623')
+            ->assertJsonPath('data.sections.0.settings.button.link', '/products')
+            ->assertJsonPath('data.sections.0.settings.button.label', 'Shop Now')
+            ->assertJsonPath('data.sections.0.settings.image_position.width', '42%');
     }
 }

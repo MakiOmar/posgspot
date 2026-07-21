@@ -52,3 +52,19 @@
   grid-template-columns: 1fr 1fr;
   gap: 6px;
 }
+
+.sf-hp-fieldset {
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  margin: 0 0 14px;
+  padding: 10px 12px 12px;
+}
+
+.sf-hp-fieldset legend {
+  width: auto;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
