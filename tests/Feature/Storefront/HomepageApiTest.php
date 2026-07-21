@@ -112,4 +112,65 @@ class HomepageApiTest extends TestCase
         $this->assertNotContains('category_shelf', $types);
         $this->assertContains('bestsellers', $types);
     }
+
+    public function test_promo_banner_section_without_image_is_omitted(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_bn',
+                    'type' => 'promo_banner',
+                    'enabled' => true,
+                    'settings' => [
+                        'image' => null,
+                        'url' => '',
+                        'link' => '/products',
+                        'title' => ['en' => 'Sale', 'ar' => 'تخفيض'],
+                    ],
+                ],
+                [
+                    'id' => 'sec_best',
+                    'type' => 'bestsellers',
+                    'enabled' => true,
+                    'settings' => ['per_page' => 3, 'in_stock_only' => true],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk();
+        $types = array_column($response->json('data.sections'), 'type');
+        $this->assertNotContains('promo_banner', $types);
+        $this->assertContains('bestsellers', $types);
+    }
+
+    public function test_promo_banner_section_presents_image_and_fields(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_bn',
+                    'type' => 'promo_banner',
+                    'enabled' => true,
+                    'settings' => [
+                        'image' => null,
+                        'url' => 'https://example.com/promo.jpg',
+                        'link' => '/products',
+                        'title' => ['en' => 'Big sale', 'ar' => 'تخفيض كبير'],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'promo_banner')
+            ->assertJsonPath('data.sections.0.settings.image_url', 'https://example.com/promo.jpg')
+            ->assertJsonPath('data.sections.0.settings.link', '/products')
+            ->assertJsonPath('data.sections.0.settings.title', 'Big sale');
+    }
 }

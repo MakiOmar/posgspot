@@ -36,11 +36,23 @@ class SectionTypeRegistry
                     'title' => ['en' => '', 'ar' => ''],
                 ],
             ],
+            // Legacy: pulls from Storefront Settings → Banners (placement=home).
             'promo_banners' => [
-                'label' => 'Promo banners (home)',
+                'label' => 'Promo banners (legacy Banners tab)',
                 'max_instances' => 1,
                 'default_settings' => [
                     'max' => 12,
+                ],
+            ],
+            // Preferred: one banner per section with fields in the builder.
+            'promo_banner' => [
+                'label' => 'Promo banner',
+                'max_instances' => null,
+                'default_settings' => [
+                    'image' => null,
+                    'url' => '',
+                    'link' => '',
+                    'title' => ['en' => '', 'ar' => ''],
                 ],
             ],
             'featured_products' => [

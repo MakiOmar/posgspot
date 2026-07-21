@@ -157,7 +157,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
-| Homepage section builder | ✅ | Settings → Homepage tab (Vue); insert/reorder/enable; `category_shelf` (pick category); hero/promo/video editable; `POST /storefront/homepage-sections` |
+| Homepage section builder | ✅ | Settings → Homepage tab (Vue); insert/reorder/enable; `promo_banner` + `category_shelf`; hero/promo/video editable; legacy `promo_banners` / `category_shelves`; `POST /storefront/homepage-sections` |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
@@ -223,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | Homepage `promo_banner` section: image/link/title in builder; legacy label for `promo_banners` (Banners tab). |
 | 2026-07-21 | Homepage `category_shelf` section: pick a category in POS builder; renders like shelf; API embeds resolved `shelf`. |
 | 2026-07-21 | Homepage section builder: registry + `homepage_sections`, `GET /homepage`, Vue POS builder, Qwik dynamic home (hero/promo/video from settings). |
 | 2026-07-21 | POS brands: reliable Edit action + logo column; create/edit logo upload (storefront shop-by-brand). |

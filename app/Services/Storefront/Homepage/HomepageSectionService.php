@@ -249,6 +249,7 @@ class HomepageSectionService
             'promo_banners' => [
                 'max' => max(1, min(24, (int) ($settings['max'] ?? 12))),
             ],
+            'promo_banner' => $this->normalizePromoBanner($settings),
             'featured_products' => [
                 'per_page' => max(1, min(24, (int) ($settings['per_page'] ?? 8))),
             ],
@@ -309,6 +310,10 @@ class HomepageSectionService
                 $settings['shelf'] = $shelf;
             }
 
+            if ($type === 'promo_banner' && empty($settings['image_url'])) {
+                continue;
+            }
+
             $out[] = [
                 'id' => $section['id'],
                 'type' => $type,
@@ -339,6 +344,9 @@ class HomepageSectionService
             }
             if ($type === 'promo_tiles') {
                 $settings['tiles'] = array_map(fn ($t) => $this->withMediaUrl($t), $settings['tiles'] ?? []);
+            }
+            if ($type === 'promo_banner') {
+                $settings = $this->withMediaUrl($settings);
             }
             $out[] = [
                 'id' => $section['id'],
@@ -421,8 +429,30 @@ class HomepageSectionService
                 'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
             ],
+            'promo_banner' => [
+                'image_url' => $this->mediaPublicUrl($settings['image'] ?? null, $settings['url'] ?? null),
+                'title' => $this->pickLocale($settings['title'] ?? [], $locale),
+                'link' => trim((string) ($settings['link'] ?? '')),
+            ],
             default => $settings,
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array{image: string|null, url: string, link: string, title: array{en: string, ar: string}}
+     */
+    private function normalizePromoBanner(array $settings): array
+    {
+        $image = trim((string) ($settings['image'] ?? ''));
+        $url = trim((string) ($settings['url'] ?? ''));
+
+        return [
+            'image' => $image !== '' ? $image : null,
+            'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
+            'link' => mb_substr(trim((string) ($settings['link'] ?? '')), 0, 500),
+            'title' => $this->localeMap($settings['title'] ?? null, 120),
+        ];
     }
 
     /**

@@ -236,6 +236,28 @@ export default component$(() => {
                 placement="home"
               />
             );
+          case "promo_banner": {
+            const imageUrl = String(section.settings.image_url ?? "");
+            if (!imageUrl) {
+              return null;
+            }
+            return (
+              <PromoBanners
+                key={section.id}
+                banners={[
+                  {
+                    id: section.id,
+                    placement: "home",
+                    category_slug: null,
+                    title: String(section.settings.title ?? ""),
+                    link: String(section.settings.link ?? ""),
+                    image_url: imageUrl,
+                  },
+                ]}
+                placement="home"
+              />
+            );
+          }
           case "featured_products":
             return (
               <FeaturedSlider

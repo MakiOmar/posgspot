@@ -26,6 +26,8 @@
         return { url: "", poster: "", title: emptyLocale() };
       case "promo_banners":
         return { max: 12 };
+      case "promo_banner":
+        return { image: null, url: "", link: "", title: emptyLocale() };
       case "featured_products":
         return { per_page: 8 };
       case "top_categories":
@@ -202,6 +204,10 @@
         removeTile: function (section, index) {
           section.settings.tiles.splice(index, 1);
         },
+        clearBannerImage: function (section) {
+          section.settings.image = null;
+          section.settings.image_url = "";
+        },
         uploadMedia: function (item) {
           var self = this;
           var input = document.createElement("input");
@@ -370,11 +376,26 @@
                 </template>
 
                 <template v-else-if="section.type === 'promo_banners'">
-                  <p class="help-block">Uses banners from the Banners tab with placement = home.</p>
+                  <p class="help-block">Legacy: uses banners from the Banners tab with placement = home. Prefer inserting “Promo banner” sections instead.</p>
                   <div class="form-group">
                     <label>Max banners</label>
                     <input type="number" min="1" max="24" class="form-control" v-model.number="section.settings.max" />
                   </div>
+                </template>
+
+                <template v-else-if="section.type === 'promo_banner'">
+                  <div class="sf-hp-media-row">
+                    <img v-if="section.settings.image_url || section.settings.url" :src="section.settings.image_url || section.settings.url" alt="" class="sf-hp-thumb" />
+                    <div class="sf-hp-media-fields">
+                      <input class="form-control input-sm" v-model="section.settings.url" placeholder="Image URL" :disabled="!!section.settings.image" />
+                      <input class="form-control input-sm" v-model="section.settings.link" placeholder="Link path or URL e.g. /products" />
+                      <input class="form-control input-sm" v-model="section.settings.title.en" placeholder="Title (EN)" />
+                      <input class="form-control input-sm" v-model="section.settings.title.ar" placeholder="Title (AR)" dir="rtl" />
+                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings)">Upload image</button>
+                      <button type="button" class="btn btn-default btn-xs" v-if="section.settings.image" @click="clearBannerImage(section)">Clear upload</button>
+                    </div>
+                  </div>
+                  <p class="help-block">One banner per section. Insert multiple “Promo banner” sections to stack them.</p>
                 </template>
 
                 <template v-else-if="section.type === 'featured_products'">
