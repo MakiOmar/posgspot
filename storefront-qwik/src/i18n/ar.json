@@ -173,7 +173,7 @@
     "loginPrompt": "سجّل الدخول لترك مراجعة.",
     "verifiedPurchase": "شراء موثّق",
     "averageTitle": "{average} من 5 من {count} مراجعة",
-    "countLabel": "{count}"
+    "countLabel": "{count} تقييمات"
   },
   "availability": {
     "title": "التوفر في الفروع",

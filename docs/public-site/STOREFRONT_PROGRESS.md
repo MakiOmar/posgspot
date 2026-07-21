@@ -157,7 +157,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
-| Homepage section builder | ✅ | Settings → Homepage tab (Vue); `promo_banner` compositional (logo/titles/bg/border/image pos/CTA); `category_shelf`; legacy `promo_banners` / `category_shelves` |
+| Homepage section builder | ✅ | Settings → Homepage tab; `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
@@ -223,6 +223,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | Homepage `trust_badges` section: icon + title + description items (EN/AR). |
+| 2026-07-21 | Bestsellers section `style` setting: `grid` (default) or `horizontal` image+details cards. |
 | 2026-07-21 | CSP: allow YouTube/Vimeo `frame-src` + HTTPS `media-src` for homepage video embeds. |
 | 2026-07-21 | Homepage video section: source selector (self-hosted / YouTube / Vimeo) + embed playback. |
 | 2026-07-21 | Fix promo tiles layout: restore `__img`/`__cta` classes + cover fill (broken after homepage builder). |

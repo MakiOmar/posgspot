@@ -6,6 +6,8 @@ interface StarRatingProps {
   count?: number;
   size?: "sm" | "md";
   showCount?: boolean;
+  /** When false, hide the numeric average next to the count. Default true. */
+  showAverage?: boolean;
 }
 
 /** Read-only star display for aggregates (cards + PDP summary). */
@@ -15,6 +17,7 @@ export const StarRating = component$<StarRatingProps>((props) => {
   const count = props.count ?? 0;
   const size = props.size ?? "sm";
   const showCount = props.showCount ?? count > 0;
+  const showAverage = props.showAverage ?? true;
   const rounded = Math.round(average * 2) / 2;
 
   return (
@@ -41,7 +44,7 @@ export const StarRating = component$<StarRatingProps>((props) => {
       </span>
       {showCount ? (
         <span class="star-rating__meta">
-          <span class="star-rating__avg">{average.toFixed(1)}</span>
+          {showAverage ? <span class="star-rating__avg">{average.toFixed(1)}</span> : null}
           <span class="star-rating__count">
             ({tStatic(locale, "reviews.countLabel", { count: String(count) })})
           </span>

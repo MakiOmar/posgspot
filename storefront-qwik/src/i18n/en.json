@@ -173,7 +173,7 @@
     "loginPrompt": "Sign in to leave a review.",
     "verifiedPurchase": "Verified purchase",
     "averageTitle": "{average} out of 5 from {count} reviews",
-    "countLabel": "{count}"
+    "countLabel": "{count} reviews"
   },
   "availability": {
     "title": "Store availability",

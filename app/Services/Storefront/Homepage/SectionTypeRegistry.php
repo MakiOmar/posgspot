@@ -37,6 +37,13 @@ class SectionTypeRegistry
                     'title' => ['en' => '', 'ar' => ''],
                 ],
             ],
+            'trust_badges' => [
+                'label' => 'Trust badges',
+                'max_instances' => 1,
+                'default_settings' => [
+                    'items' => [],
+                ],
+            ],
             // Legacy: pulls from Storefront Settings → Banners (placement=home).
             'promo_banners' => [
                 'label' => 'Promo banners (legacy Banners tab)',
@@ -132,6 +139,7 @@ class SectionTypeRegistry
                 'default_settings' => [
                     'per_page' => 6,
                     'in_stock_only' => true,
+                    'style' => 'grid',
                 ],
             ],
             'recently_viewed' => [

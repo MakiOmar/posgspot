@@ -85,6 +85,31 @@ class HomepageApiTest extends TestCase
         $this->assertFalse($response->json('data.sections.0.settings.in_stock_only'));
     }
 
+    public function test_bestsellers_style_horizontal_is_persisted(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_best',
+                    'type' => 'bestsellers',
+                    'enabled' => true,
+                    'settings' => [
+                        'per_page' => 6,
+                        'in_stock_only' => true,
+                        'style' => 'horizontal',
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'bestsellers')
+            ->assertJsonPath('data.sections.0.settings.style', 'horizontal');
+    }
+
     public function test_category_shelf_section_without_category_is_omitted(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [
@@ -254,6 +279,66 @@ class HomepageApiTest extends TestCase
         $response = $this->getJson('/api/storefront/v1/homepage');
         $types = array_column($response->json('data.sections'), 'type');
         $this->assertNotContains('video', $types);
+        $this->assertContains('bestsellers', $types);
+    }
+
+    public function test_trust_badges_section_presents_items(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'settings' => [
+                        'items' => [
+                            [
+                                'id' => 'badge_1',
+                                'image' => null,
+                                'url' => 'https://example.com/ship.svg',
+                                'title' => ['en' => 'Worldwide Shipping', 'ar' => 'شحن عالمي'],
+                                'description' => ['en' => 'Enjoy free delivery on every order.', 'ar' => 'توصيل مجاني'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'trust_badges')
+            ->assertJsonPath('data.sections.0.settings.items.0.title', 'Worldwide Shipping')
+            ->assertJsonPath('data.sections.0.settings.items.0.description', 'Enjoy free delivery on every order.')
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_url', 'https://example.com/ship.svg');
+    }
+
+    public function test_trust_badges_section_without_items_is_omitted(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'settings' => ['items' => []],
+                ],
+                [
+                    'id' => 'sec_best',
+                    'type' => 'bestsellers',
+                    'enabled' => true,
+                    'settings' => ['per_page' => 3, 'in_stock_only' => true],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $types = array_column($response->json('data.sections'), 'type');
+        $this->assertNotContains('trust_badges', $types);
         $this->assertContains('bestsellers', $types);
     }
 }

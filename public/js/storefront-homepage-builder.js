@@ -55,6 +55,8 @@
         return { tiles: [] };
       case "video":
         return { source: "self", url: "", poster: "", title: emptyLocale() };
+      case "trust_badges":
+        return { items: [] };
       case "promo_banners":
         return { max: 12 };
       case "promo_banner":
@@ -70,7 +72,7 @@
       case "brand_slider":
         return { limit: 24 };
       case "bestsellers":
-        return { per_page: 6, in_stock_only: true };
+        return { per_page: 6, in_stock_only: true, style: "grid" };
       case "recently_viewed":
         return { limit: 8 };
       default:
@@ -234,6 +236,22 @@
         },
         removeTile: function (section, index) {
           section.settings.tiles.splice(index, 1);
+        },
+        addTrustBadge: function (section) {
+          if (!section.settings.items) {
+            section.settings.items = [];
+          }
+          section.settings.items.push({
+            id: uid("badge"),
+            image: null,
+            url: "",
+            image_url: "",
+            title: emptyLocale(),
+            description: emptyLocale(),
+          });
+        },
+        removeTrustBadge: function (section, index) {
+          section.settings.items.splice(index, 1);
         },
         clearBannerImage: function (section) {
           if (!section.settings.image) {
@@ -435,6 +453,23 @@
                   </div>
                 </template>
 
+                <template v-else-if="section.type === 'trust_badges'">
+                  <p class="help-block">Row of trust / service items (icon + title + description). Typically 3–4 items with vertical dividers.</p>
+                  <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)">Add item</button>
+                  <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row">
+                    <img v-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
+                    <div class="sf-hp-media-fields">
+                      <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />
+                      <input class="form-control input-sm" v-model="item.title.en" placeholder="Title (EN)" />
+                      <input class="form-control input-sm" v-model="item.title.ar" placeholder="Title (AR)" dir="rtl" />
+                      <input class="form-control input-sm" v-model="item.description.en" placeholder="Description (EN)" />
+                      <input class="form-control input-sm" v-model="item.description.ar" placeholder="Description (AR)" dir="rtl" />
+                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item)">Upload icon</button>
+                      <button type="button" class="btn btn-danger btn-xs" @click="removeTrustBadge(section, bi)">Remove</button>
+                    </div>
+                  </div>
+                </template>
+
                 <template v-else-if="section.type === 'promo_banners'">
                   <p class="help-block">Legacy: uses banners from the Banners tab with placement = home. Prefer inserting “Promo banner” sections instead.</p>
                   <div class="form-group">
@@ -630,6 +665,13 @@
                 </template>
 
                 <template v-else-if="section.type === 'bestsellers'">
+                  <div class="form-group">
+                    <label>Style</label>
+                    <select class="form-control" v-model="section.settings.style">
+                      <option value="grid">Grid cards (default)</option>
+                      <option value="horizontal">Horizontal cards (image + details)</option>
+                    </select>
+                  </div>
                   <div class="form-group">
                     <label>Products per page</label>
                     <input type="number" min="1" max="24" class="form-control" v-model.number="section.settings.per_page" />

@@ -155,6 +155,14 @@ export interface HomepagePromoBanner {
   };
 }
 
+/** Trust / service badge from GET /homepage `trust_badges` settings. */
+export interface HomepageTrustBadge {
+  id: string;
+  icon_url: string | null;
+  title: string;
+  description: string;
+}
+
 /** Homepage shelf from GET /categories/homepage-shelves (POS category fields). */
 export interface HomepageCategoryShelf {
   id: number;

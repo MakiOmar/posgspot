@@ -243,6 +243,9 @@ class HomepageSectionService
                 'tiles' => $this->normalizeTiles($settings['tiles'] ?? []),
             ],
             'video' => $this->normalizeVideo($settings),
+            'trust_badges' => [
+                'items' => $this->normalizeTrustBadgeItems($settings['items'] ?? []),
+            ],
             'promo_banners' => [
                 'max' => max(1, min(24, (int) ($settings['max'] ?? 12))),
             ],
@@ -267,6 +270,7 @@ class HomepageSectionService
             'bestsellers' => [
                 'per_page' => max(1, min(24, (int) ($settings['per_page'] ?? 6))),
                 'in_stock_only' => filter_var($settings['in_stock_only'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'style' => $this->normalizeBestsellersStyle($settings['style'] ?? null),
             ],
             'recently_viewed' => [
                 'limit' => max(1, min(24, (int) ($settings['limit'] ?? 8))),
@@ -324,6 +328,13 @@ class HomepageSectionService
                 }
             }
 
+            if ($type === 'trust_badges') {
+                $items = $settings['items'] ?? [];
+                if (! is_array($items) || $items === []) {
+                    continue;
+                }
+            }
+
             $out[] = [
                 'id' => $section['id'],
                 'type' => $type,
@@ -355,6 +366,12 @@ class HomepageSectionService
             if ($type === 'promo_tiles') {
                 $settings['tiles'] = array_map(fn ($t) => $this->withMediaUrl($t), $settings['tiles'] ?? []);
             }
+            if ($type === 'trust_badges') {
+                $settings['items'] = array_map(
+                    fn ($item) => $this->withMediaUrl(is_array($item) ? $item : []),
+                    $settings['items'] ?? []
+                );
+            }
             if ($type === 'promo_banner') {
                 $settings = $this->normalizePromoBanner(is_array($settings) ? $settings : []);
                 $settings['logo'] = $this->withMediaUrl($settings['logo']);
@@ -362,6 +379,15 @@ class HomepageSectionService
             }
             if ($type === 'video') {
                 $settings = $this->normalizeVideo(is_array($settings) ? $settings : []);
+            }
+            if ($type === 'bestsellers') {
+                $settings = array_merge(
+                    $this->registry->get('bestsellers')['default_settings'] ?? [],
+                    is_array($settings) ? $settings : []
+                );
+                $settings['style'] = $this->normalizeBestsellersStyle($settings['style'] ?? null);
+                $settings['per_page'] = max(1, min(24, (int) ($settings['per_page'] ?? 6)));
+                $settings['in_stock_only'] = filter_var($settings['in_stock_only'] ?? true, FILTER_VALIDATE_BOOLEAN);
             }
             $out[] = [
                 'id' => $section['id'],
@@ -436,6 +462,25 @@ class HomepageSectionService
                 }, $settings['tiles'] ?? []))),
             ],
             'video' => $this->presentVideo($settings, $locale),
+            'trust_badges' => [
+                'items' => array_values(array_filter(array_map(function ($item) use ($locale) {
+                    if (! is_array($item)) {
+                        return null;
+                    }
+                    $title = $this->pickLocale($item['title'] ?? [], $locale);
+                    $description = $this->pickLocale($item['description'] ?? [], $locale);
+                    if ($title === '' && $description === '') {
+                        return null;
+                    }
+
+                    return [
+                        'id' => (string) ($item['id'] ?? ''),
+                        'icon_url' => $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null),
+                        'title' => $title,
+                        'description' => $description,
+                    ];
+                }, $settings['items'] ?? []))),
+            ],
             'category_shelf' => [
                 'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
@@ -734,6 +779,50 @@ class HomepageSectionService
             'en' => mb_substr(trim((string) ($value['en'] ?? '')), 0, $max),
             'ar' => mb_substr(trim((string) ($value['ar'] ?? '')), 0, $max),
         ];
+    }
+
+    /**
+     * @param  mixed  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeTrustBadgeItems($items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        foreach (array_slice($items, 0, 8) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $title = $this->localeMap($row['title'] ?? null, 120);
+            $description = $this->localeMap($row['description'] ?? null, 240);
+            $media = $this->normalizeMediaRow($row);
+            if ($title['en'] === '' && $title['ar'] === '' && $description['en'] === '' && $description['ar'] === '' && $media['image'] === null && $media['url'] === '') {
+                continue;
+            }
+            $id = trim((string) ($row['id'] ?? ''));
+            if ($id === '') {
+                $id = 'badge_'.Str::lower(Str::random(6));
+            }
+            $out[] = [
+                'id' => mb_substr($id, 0, 40),
+                'image' => $media['image'],
+                'url' => $media['url'],
+                'title' => $title,
+                'description' => $description,
+            ];
+        }
+
+        return $out;
+    }
+
+    private function normalizeBestsellersStyle(mixed $style): string
+    {
+        $style = strtolower(trim((string) $style));
+
+        return in_array($style, ['grid', 'horizontal'], true) ? $style : 'grid';
     }
 
     /**

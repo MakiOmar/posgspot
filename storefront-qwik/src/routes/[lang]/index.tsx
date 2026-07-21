@@ -11,6 +11,7 @@ import { HomeVideo } from "~/components/home/home-video";
 import { PromoBannerSection } from "~/components/home/promo-banner-section";
 import { PromoTiles } from "~/components/home/promo-tiles";
 import { TopCategories } from "~/components/home/top-categories";
+import { TrustBadges } from "~/components/home/trust-badges";
 import { JsonLd } from "~/components/seo/json-ld";
 import {
   fetchBrands,
@@ -30,6 +31,7 @@ import type {
   HomepagePromoBanner,
   HomepagePromoTile,
   HomepageSection,
+  HomepageTrustBadge,
   ProductSummary,
 } from "~/lib/types";
 import { useNavCategories, useSiteSettings } from "~/routes/[lang]/layout";
@@ -235,6 +237,10 @@ export default component$(() => {
                 title={String(section.settings.title ?? "")}
               />
             );
+          case "trust_badges": {
+            const items = (section.settings.items as HomepageTrustBadge[] | undefined) ?? [];
+            return <TrustBadges key={section.id} items={items} />;
+          }
           case "promo_banners":
             return (
               <PromoBanners
@@ -307,6 +313,7 @@ export default component$(() => {
                 key={section.id}
                 products={catalog.value.bestsellers}
                 settings={settings.value}
+                style={String(section.settings.style ?? "grid")}
               />
             );
           case "recently_viewed":
