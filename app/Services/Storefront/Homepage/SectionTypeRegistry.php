@@ -31,6 +31,7 @@ class SectionTypeRegistry
                 'label' => 'Video',
                 'max_instances' => 1,
                 'default_settings' => [
+                    'source' => 'self',
                     'url' => '',
                     'poster' => '',
                     'title' => ['en' => '', 'ar' => ''],

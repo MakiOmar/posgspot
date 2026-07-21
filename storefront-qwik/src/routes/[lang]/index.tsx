@@ -226,8 +226,13 @@ export default component$(() => {
             return (
               <HomeVideo
                 key={section.id}
+                source={String(section.settings.source ?? "self")}
                 src={String(section.settings.url ?? "")}
+                embedUrl={
+                  section.settings.embed_url == null ? null : String(section.settings.embed_url)
+                }
                 poster={String(section.settings.poster ?? "")}
+                title={String(section.settings.title ?? "")}
               />
             );
           case "promo_banners":

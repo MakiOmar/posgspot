@@ -91,6 +91,8 @@ export const PromoBannerSection = component$<PromoBannerSectionProps>(({ banner 
             class="promo-banner-block__media"
             src={banner.image_url}
             alt=""
+            width={640}
+            height={480}
             style={positionStyle(banner.image_position)}
             loading="lazy"
           />

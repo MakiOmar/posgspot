@@ -197,4 +197,63 @@ class HomepageApiTest extends TestCase
             ->assertJsonPath('data.sections.0.settings.button.label', 'Shop Now')
             ->assertJsonPath('data.sections.0.settings.image_position.width', '42%');
     }
+
+    public function test_video_section_presents_youtube_embed(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_vid',
+                    'type' => 'video',
+                    'enabled' => true,
+                    'settings' => [
+                        'source' => 'youtube',
+                        'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                        'poster' => '',
+                        'title' => ['en' => 'Trailer', 'ar' => 'إعلان'],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'video')
+            ->assertJsonPath('data.sections.0.settings.source', 'youtube')
+            ->assertJsonPath('data.sections.0.settings.embed_url', 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')
+            ->assertJsonPath('data.sections.0.settings.title', 'Trailer');
+    }
+
+    public function test_video_section_without_url_is_omitted(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_vid',
+                    'type' => 'video',
+                    'enabled' => true,
+                    'settings' => [
+                        'source' => 'vimeo',
+                        'url' => '',
+                        'title' => ['en' => 'Empty', 'ar' => ''],
+                    ],
+                ],
+                [
+                    'id' => 'sec_best',
+                    'type' => 'bestsellers',
+                    'enabled' => true,
+                    'settings' => ['per_page' => 3, 'in_stock_only' => true],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $types = array_column($response->json('data.sections'), 'type');
+        $this->assertNotContains('video', $types);
+        $this->assertContains('bestsellers', $types);
+    }
 }

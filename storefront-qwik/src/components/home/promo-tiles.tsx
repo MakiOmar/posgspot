@@ -10,6 +10,7 @@ interface PromoTilesProps {
 
 /**
  * Promo tile grid after the hero (tiles from GET /homepage section settings).
+ * Layout: tall main tile + wide top-right + two smaller tiles (CSS grid).
  */
 export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
   const { locale } = useI18n();
@@ -42,13 +43,14 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
               .join(" ")}
           >
             <img
+              class="home-promo-tiles__img"
               src={tile.image_url}
-              alt={tile.label}
+              alt={tile.label || ""}
               width={i === 0 ? 800 : 400}
               height={i === 0 ? 600 : 300}
               loading="lazy"
             />
-            <span class="home-promo-tiles__label">{tile.label}</span>
+            <span class="home-promo-tiles__cta">{tStatic(locale, "home.shopNow")}</span>
           </Link>
         ))}
       </div>

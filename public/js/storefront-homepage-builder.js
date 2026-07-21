@@ -54,7 +54,7 @@
       case "promo_tiles":
         return { tiles: [] };
       case "video":
-        return { url: "", poster: "", title: emptyLocale() };
+        return { source: "self", url: "", poster: "", title: emptyLocale() };
       case "promo_banners":
         return { max: 12 };
       case "promo_banner":
@@ -401,12 +401,29 @@
 
                 <template v-else-if="section.type === 'video'">
                   <div class="form-group">
-                    <label>Video URL</label>
-                    <input class="form-control" v-model="section.settings.url" />
+                    <label>Source</label>
+                    <select class="form-control" v-model="section.settings.source">
+                      <option value="self">Self-hosted (MP4 / direct URL)</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="vimeo">Vimeo</option>
+                    </select>
                   </div>
                   <div class="form-group">
-                    <label>Poster URL</label>
-                    <input class="form-control" v-model="section.settings.poster" />
+                    <label v-if="section.settings.source === 'youtube'">YouTube URL or video ID</label>
+                    <label v-else-if="section.settings.source === 'vimeo'">Vimeo URL or video ID</label>
+                    <label v-else>Video file URL</label>
+                    <input class="form-control" v-model="section.settings.url"
+                      :placeholder="section.settings.source === 'youtube'
+                        ? 'https://www.youtube.com/watch?v=…'
+                        : (section.settings.source === 'vimeo'
+                          ? 'https://vimeo.com/123456789'
+                          : 'https://…/video.mp4')" />
+                    <p class="help-block" v-if="section.settings.source === 'youtube'">Accepts watch, youtu.be, Shorts, or embed links.</p>
+                    <p class="help-block" v-else-if="section.settings.source === 'vimeo'">Accepts vimeo.com or player.vimeo.com links.</p>
+                  </div>
+                  <div class="form-group" v-if="section.settings.source === 'self' || !section.settings.source">
+                    <label>Poster URL (optional)</label>
+                    <input class="form-control" v-model="section.settings.poster" placeholder="Preview image for self-hosted video" />
                   </div>
                   <div class="form-group">
                     <label>Title (EN)</label>

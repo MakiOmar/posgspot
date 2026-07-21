@@ -112,6 +112,7 @@ class HomepageSectionService
                 'type' => 'video',
                 'enabled' => true,
                 'settings' => [
+                    'source' => 'self',
                     'url' => self::WP.'/2026/06/Grand-Theft-Auto-VI-Trailer-2.mp4',
                     'poster' => self::WP.'/2026/06/poster_full.0az_iud2g3y4j.jpg',
                     'title' => ['en' => '', 'ar' => ''],
@@ -241,11 +242,7 @@ class HomepageSectionService
             'promo_tiles' => [
                 'tiles' => $this->normalizeTiles($settings['tiles'] ?? []),
             ],
-            'video' => [
-                'url' => mb_substr(trim((string) ($settings['url'] ?? '')), 0, 1000),
-                'poster' => mb_substr(trim((string) ($settings['poster'] ?? '')), 0, 1000),
-                'title' => $this->localeMap($settings['title'] ?? null, 120),
-            ],
+            'video' => $this->normalizeVideo($settings),
             'promo_banners' => [
                 'max' => max(1, min(24, (int) ($settings['max'] ?? 12))),
             ],
@@ -317,6 +314,16 @@ class HomepageSectionService
                 unset($settings['has_content']);
             }
 
+            if ($type === 'video') {
+                $source = (string) ($settings['source'] ?? 'self');
+                $hasVideo = $source === 'self'
+                    ? trim((string) ($settings['url'] ?? '')) !== ''
+                    : ! empty($settings['embed_url']);
+                if (! $hasVideo) {
+                    continue;
+                }
+            }
+
             $out[] = [
                 'id' => $section['id'],
                 'type' => $type,
@@ -352,6 +359,9 @@ class HomepageSectionService
                 $settings = $this->normalizePromoBanner(is_array($settings) ? $settings : []);
                 $settings['logo'] = $this->withMediaUrl($settings['logo']);
                 $settings['image'] = $this->withMediaUrl($settings['image']);
+            }
+            if ($type === 'video') {
+                $settings = $this->normalizeVideo(is_array($settings) ? $settings : []);
             }
             $out[] = [
                 'id' => $section['id'],
@@ -425,11 +435,7 @@ class HomepageSectionService
                     ];
                 }, $settings['tiles'] ?? []))),
             ],
-            'video' => [
-                'url' => (string) ($settings['url'] ?? ''),
-                'poster' => (string) ($settings['poster'] ?? ''),
-                'title' => $this->pickLocale($settings['title'] ?? [], $locale),
-            ],
+            'video' => $this->presentVideo($settings, $locale),
             'category_shelf' => [
                 'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
@@ -728,6 +734,106 @@ class HomepageSectionService
             'en' => mb_substr(trim((string) ($value['en'] ?? '')), 0, $max),
             'ar' => mb_substr(trim((string) ($value['ar'] ?? '')), 0, $max),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array{source: string, url: string, poster: string, title: array{en: string, ar: string}}
+     */
+    private function normalizeVideo(array $settings): array
+    {
+        $url = mb_substr(trim((string) ($settings['url'] ?? '')), 0, 1000);
+        $source = $this->normalizeVideoSource($settings['source'] ?? null, $url);
+
+        return [
+            'source' => $source,
+            'url' => $url,
+            'poster' => $source === 'self' ? mb_substr(trim((string) ($settings['poster'] ?? '')), 0, 1000) : '',
+            'title' => $this->localeMap($settings['title'] ?? null, 120),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array{source: string, url: string, poster: string, title: string, embed_url: string|null}
+     */
+    private function presentVideo(array $settings, string $locale): array
+    {
+        $url = trim((string) ($settings['url'] ?? ''));
+        $source = $this->normalizeVideoSource($settings['source'] ?? null, $url);
+        $embedUrl = null;
+        if ($source === 'youtube') {
+            $embedUrl = $this->youtubeEmbedUrl($url);
+        } elseif ($source === 'vimeo') {
+            $embedUrl = $this->vimeoEmbedUrl($url);
+        }
+
+        return [
+            'source' => $source,
+            'url' => $url,
+            'poster' => $source === 'self' ? trim((string) ($settings['poster'] ?? '')) : '',
+            'title' => $this->pickLocale($settings['title'] ?? [], $locale),
+            'embed_url' => $embedUrl,
+        ];
+    }
+
+    private function normalizeVideoSource(mixed $source, string $url): string
+    {
+        $source = strtolower(trim((string) $source));
+        if (in_array($source, ['youtube', 'vimeo', 'self'], true)) {
+            return $source;
+        }
+
+        if ($this->youtubeEmbedUrl($url) !== null) {
+            return 'youtube';
+        }
+        if ($this->vimeoEmbedUrl($url) !== null) {
+            return 'vimeo';
+        }
+
+        return 'self';
+    }
+
+    private function youtubeEmbedUrl(string $url): ?string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        $id = null;
+        if (preg_match('~(?:youtube\.com/watch\?(?:[^#]*&)?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/shorts/)([A-Za-z0-9_-]{6,})~i', $url, $m)) {
+            $id = $m[1];
+        } elseif (preg_match('~^[A-Za-z0-9_-]{6,}$~', $url)) {
+            $id = $url;
+        }
+
+        if ($id === null) {
+            return null;
+        }
+
+        return 'https://www.youtube-nocookie.com/embed/'.$id;
+    }
+
+    private function vimeoEmbedUrl(string $url): ?string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+
+        $id = null;
+        if (preg_match('~(?:player\.)?vimeo\.com/(?:video/)?(\d+)~i', $url, $m)) {
+            $id = $m[1];
+        } elseif (preg_match('~^\d+$~', $url)) {
+            $id = $url;
+        }
+
+        if ($id === null) {
+            return null;
+        }
+
+        return 'https://player.vimeo.com/video/'.$id;
     }
 
     /**

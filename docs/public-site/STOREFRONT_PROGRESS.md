@@ -223,6 +223,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | Homepage video section: source selector (self-hosted / YouTube / Vimeo) + embed playback. |
+| 2026-07-21 | Fix promo tiles layout: restore `__img`/`__cta` classes + cover fill (broken after homepage builder). |
 | 2026-07-21 | Homepage `promo_banner`: compositional fields (logo, titles, bg/border, absolute image + CTA positions). |
 | 2026-07-21 | Homepage `promo_banner` section: image/link/title in builder; legacy label for `promo_banners` (Banners tab). |
 | 2026-07-21 | Homepage `category_shelf` section: pick a category in POS builder; renders like shelf; API embeds resolved `shelf`. |
