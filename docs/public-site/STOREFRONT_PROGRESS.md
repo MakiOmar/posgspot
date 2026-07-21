@@ -179,7 +179,7 @@
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
 | `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes; staging `PUBLIC_ROBOTS_DISALLOW_ALL` → `Disallow: /` + empty sitemap + sitewide noindex / `X-Robots-Tag` |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
-| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Cloudflare Turnstile allowed when enabled; skipped in dev |
+| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Turnstile/Fawry/Maps; YouTube/Vimeo embeds + HTTPS media; skipped in dev |
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
 | Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
 
@@ -223,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | CSP: allow YouTube/Vimeo `frame-src` + HTTPS `media-src` for homepage video embeds. |
 | 2026-07-21 | Homepage video section: source selector (self-hosted / YouTube / Vimeo) + embed playback. |
 | 2026-07-21 | Fix promo tiles layout: restore `__img`/`__cta` classes + cover fill (broken after homepage builder). |
 | 2026-07-21 | Homepage `promo_banner`: compositional fields (logo, titles, bg/border, absolute image + CTA positions). |

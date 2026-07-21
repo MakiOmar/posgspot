@@ -70,7 +70,8 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(" ")} https://challenges.cloudflare.com`,
-    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com",
+    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+    "media-src 'self' https: blob:",
     "form-action 'self' https://www.atfawry.com https://atfawry.fawrystaging.com",
   ];
 

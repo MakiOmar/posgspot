@@ -230,4 +230,4 @@ Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros d
 - Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).
 - Customer Sanctum bearer tokens expire after `STOREFRONT_SANCTUM_EXPIRATION_MINUTES` (default **43200** = 30 days). Password reset revokes all active storefront tokens; a new login also replaces any prior token (single active session).
-- Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry/Google Fonts/Maps; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.
+- Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry/Google Fonts/Maps, YouTube/Vimeo embeds (`frame-src`), and HTTPS media for self-hosted video; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.
