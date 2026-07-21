@@ -896,10 +896,10 @@
 @endsection
 
 @section('javascript')
-<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=2">
+<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=3">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=8"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=9"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

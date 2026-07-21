@@ -33,34 +33,45 @@ export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
   return (
     <section class="home-trust-badges" aria-label="Store benefits">
       <ul class="home-trust-badges__list">
-        {items.map((item) => (
-          <li key={item.id || item.title} class="home-trust-badges__item">
-            {item.icon_url ? (
-              <img
-                class="home-trust-badges__icon"
-                src={item.icon_url}
-                alt=""
-                width={48}
-                height={48}
-                loading="lazy"
-              />
-            ) : null}
-            {item.title ? <h3 class="home-trust-badges__title">{item.title}</h3> : null}
-            {item.description ? (
-              <p class="home-trust-badges__desc">
-                {descriptionParts(item.description).map((part, i) =>
-                  part.accent ? (
-                    <span key={i} class="home-trust-badges__accent">
-                      {part.text}
-                    </span>
-                  ) : (
-                    <span key={i}>{part.text}</span>
-                  ),
-                )}
-              </p>
-            ) : null}
-          </li>
-        ))}
+        {items.map((item) => {
+          const color = item.icon_color || "#f5a623";
+          const useSvg = item.icon_kind === "svg" && Boolean(item.svg_markup);
+
+          return (
+            <li key={item.id || item.title} class="home-trust-badges__item">
+              {useSvg ? (
+                <span
+                  class="home-trust-badges__icon home-trust-badges__icon--svg"
+                  style={{ color }}
+                  dangerouslySetInnerHTML={item.svg_markup || ""}
+                />
+              ) : item.icon_url ? (
+                <img
+                  class="home-trust-badges__icon"
+                  src={item.icon_url}
+                  alt=""
+                  width={48}
+                  height={48}
+                  loading="lazy"
+                />
+              ) : null}
+              {item.title ? <h3 class="home-trust-badges__title">{item.title}</h3> : null}
+              {item.description ? (
+                <p class="home-trust-badges__desc">
+                  {descriptionParts(item.description).map((part, i) =>
+                    part.accent ? (
+                      <span key={i} class="home-trust-badges__accent">
+                        {part.text}
+                      </span>
+                    ) : (
+                      <span key={i}>{part.text}</span>
+                    ),
+                  )}
+                </p>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

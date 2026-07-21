@@ -103,6 +103,8 @@ export interface PromoBanner {
 export interface HomepageSection {
   id: string;
   type: string;
+  /** Boxed = site content width; full = viewport width with side margins. */
+  layout_width?: "boxed" | "full";
   settings: Record<string, unknown>;
 }
 
@@ -158,7 +160,10 @@ export interface HomepagePromoBanner {
 /** Trust / service badge from GET /homepage `trust_badges` settings. */
 export interface HomepageTrustBadge {
   id: string;
+  icon_kind?: "image" | "svg";
   icon_url: string | null;
+  svg_markup?: string | null;
+  icon_color?: string;
   title: string;
   description: string;
 }

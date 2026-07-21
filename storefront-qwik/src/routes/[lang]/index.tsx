@@ -1,4 +1,4 @@
-﻿import { component$ } from "@builder.io/qwik";
+﻿import { component$, type JSXOutput } from "@builder.io/qwik";
 import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { PromoBanners } from "~/components/catalog/promo-banners";
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
@@ -215,19 +215,24 @@ export default component$(() => {
       />
 
       {sections.value.map((section) => {
+        const width = section.layout_width === "full" ? "full" : "boxed";
+        const shellClass = `home-section-shell home-section-shell--${width}`;
+
+        let content: JSXOutput | null = null;
         switch (section.type) {
           case "hero_slider": {
             const slides = (section.settings.slides as HomepageHeroSlide[] | undefined) ?? [];
-            return <HeroSlider key={section.id} slides={slides} />;
+            content = <HeroSlider slides={slides} />;
+            break;
           }
           case "promo_tiles": {
             const tiles = (section.settings.tiles as HomepagePromoTile[] | undefined) ?? [];
-            return <PromoTiles key={section.id} tiles={tiles} />;
+            content = <PromoTiles tiles={tiles} />;
+            break;
           }
           case "video":
-            return (
+            content = (
               <HomeVideo
-                key={section.id}
                 source={String(section.settings.source ?? "self")}
                 src={String(section.settings.url ?? "")}
                 embedUrl={
@@ -237,44 +242,42 @@ export default component$(() => {
                 title={String(section.settings.title ?? "")}
               />
             );
+            break;
           case "trust_badges": {
             const items = (section.settings.items as HomepageTrustBadge[] | undefined) ?? [];
-            return <TrustBadges key={section.id} items={items} />;
+            content = <TrustBadges items={items} />;
+            break;
           }
           case "promo_banners":
-            return (
-              <PromoBanners
-                key={section.id}
-                banners={settings.value.banners ?? []}
-                placement="home"
-              />
+            content = (
+              <PromoBanners banners={settings.value.banners ?? []} placement="home" />
             );
+            break;
           case "promo_banner": {
             const banner = section.settings as unknown as HomepagePromoBanner;
             if (!banner.logo_url && !banner.image_url && !banner.top_title && !banner.main_title) {
-              return null;
+              content = null;
+            } else {
+              content = <PromoBannerSection banner={banner} />;
             }
-            return <PromoBannerSection key={section.id} banner={banner} />;
+            break;
           }
           case "featured_products":
-            return (
-              <FeaturedSlider
-                key={section.id}
-                products={catalog.value.featured}
-                settings={settings.value}
-              />
+            content = (
+              <FeaturedSlider products={catalog.value.featured} settings={settings.value} />
             );
+            break;
           case "top_categories":
-            return (
+            content = (
               <TopCategories
-                key={section.id}
                 categories={categoriesLoad.value.items}
                 limit={sectionSettingNumber(section.settings, "limit", 8)}
               />
             );
+            break;
           case "category_shelves":
-            return (
-              <div key={section.id}>
+            content = (
+              <div>
                 {catalog.value.shelves.map(({ shelf, products }) => (
                   <CategoryShelf
                     key={shelf.id}
@@ -285,49 +288,57 @@ export default component$(() => {
                 ))}
               </div>
             );
+            break;
           case "category_shelf": {
             const shelf = section.settings.shelf as HomepageCategoryShelf | undefined;
-            if (!shelf) {
-              return null;
-            }
-            return (
+            content = shelf ? (
               <CategoryShelf
-                key={section.id}
                 shelf={shelf}
                 products={catalog.value.categoryShelfProducts[section.id] ?? []}
                 settings={settings.value}
               />
-            );
+            ) : null;
+            break;
           }
           case "brand_slider":
-            return (
+            content = (
               <BrandSlider
-                key={section.id}
                 brands={catalog.value.brands}
                 limit={sectionSettingNumber(section.settings, "limit", 24)}
               />
             );
+            break;
           case "bestsellers":
-            return (
+            content = (
               <BestSelling
-                key={section.id}
                 products={catalog.value.bestsellers}
                 settings={settings.value}
                 style={String(section.settings.style ?? "grid")}
               />
             );
+            break;
           case "recently_viewed":
-            return (
+            content = (
               <RecentlyViewed
-                key={section.id}
                 settings={settings.value}
                 headingId="home-recently-viewed-heading"
                 limit={sectionSettingNumber(section.settings, "limit", 8)}
               />
             );
+            break;
           default:
-            return null;
+            content = null;
         }
+
+        if (!content) {
+          return null;
+        }
+
+        return (
+          <div key={section.id} class={shellClass}>
+            {content}
+          </div>
+        );
       })}
     </>
   );

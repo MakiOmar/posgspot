@@ -220,6 +220,7 @@ class HomepageSectionService
                 'id' => mb_substr($id, 0, 40),
                 'type' => $type,
                 'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'layout_width' => $this->normalizeLayoutWidth($row['layout_width'] ?? null),
                 'settings' => $this->normalizeSettings($type, is_array($row['settings'] ?? null) ? $row['settings'] : []),
             ];
         }
@@ -338,6 +339,7 @@ class HomepageSectionService
             $out[] = [
                 'id' => $section['id'],
                 'type' => $type,
+                'layout_width' => $this->normalizeLayoutWidth($section['layout_width'] ?? null),
                 'settings' => $settings,
             ];
         }
@@ -393,6 +395,7 @@ class HomepageSectionService
                 'id' => $section['id'],
                 'type' => $type,
                 'enabled' => (bool) ($section['enabled'] ?? true),
+                'layout_width' => $this->normalizeLayoutWidth($section['layout_width'] ?? null),
                 'settings' => $settings,
             ];
         }
@@ -469,13 +472,30 @@ class HomepageSectionService
                     }
                     $title = $this->pickLocale($item['title'] ?? [], $locale);
                     $description = $this->pickLocale($item['description'] ?? [], $locale);
+                    $kind = $this->normalizeIconKind($item['icon_kind'] ?? null);
+                    $svgMarkup = $kind === 'svg' ? $this->sanitizeSvgMarkup((string) ($item['svg_markup'] ?? '')) : null;
+                    $iconUrl = $kind === 'image'
+                        ? $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null)
+                        : null;
                     if ($title === '' && $description === '') {
                         return null;
+                    }
+                    if ($kind === 'svg' && ($svgMarkup === null || $svgMarkup === '')) {
+                        // Fall back to image if SVG markup missing but a file/url exists.
+                        $iconUrl = $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null);
+                        if ($iconUrl === null) {
+                            // Still allow text-only badges.
+                        } else {
+                            $kind = 'image';
+                        }
                     }
 
                     return [
                         'id' => (string) ($item['id'] ?? ''),
-                        'icon_url' => $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null),
+                        'icon_kind' => $kind,
+                        'icon_url' => $iconUrl,
+                        'svg_markup' => $svgMarkup,
+                        'icon_color' => $this->cssColor($item['icon_color'] ?? null, '#f5a623'),
                         'title' => $title,
                         'description' => $description,
                     ];
@@ -798,8 +818,21 @@ class HomepageSectionService
             }
             $title = $this->localeMap($row['title'] ?? null, 120);
             $description = $this->localeMap($row['description'] ?? null, 240);
+            $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
             $media = $this->normalizeMediaRow($row);
-            if ($title['en'] === '' && $title['ar'] === '' && $description['en'] === '' && $description['ar'] === '' && $media['image'] === null && $media['url'] === '') {
+            $svgMarkup = $kind === 'svg' ? ($this->sanitizeSvgMarkup((string) ($row['svg_markup'] ?? '')) ?? '') : '';
+
+            // If SVG mode but only a local uploaded .svg filename, try reading markup from disk.
+            if ($kind === 'svg' && $svgMarkup === '' && ! empty($media['image'])) {
+                $svgMarkup = $this->readUploadedSvgMarkup((string) $media['image']) ?? '';
+            }
+
+            if (
+                $title['en'] === '' && $title['ar'] === ''
+                && $description['en'] === '' && $description['ar'] === ''
+                && $media['image'] === null && $media['url'] === ''
+                && $svgMarkup === ''
+            ) {
                 continue;
             }
             $id = trim((string) ($row['id'] ?? ''));
@@ -808,14 +841,81 @@ class HomepageSectionService
             }
             $out[] = [
                 'id' => mb_substr($id, 0, 40),
+                'icon_kind' => $kind,
+                'icon_color' => $this->cssColor($row['icon_color'] ?? null, '#f5a623'),
                 'image' => $media['image'],
                 'url' => $media['url'],
+                'svg_markup' => $svgMarkup,
                 'title' => $title,
                 'description' => $description,
             ];
         }
 
         return $out;
+    }
+
+    private function normalizeLayoutWidth(mixed $value): string
+    {
+        $value = strtolower(trim((string) $value));
+
+        return $value === 'full' ? 'full' : 'boxed';
+    }
+
+    private function normalizeIconKind(mixed $value): string
+    {
+        $value = strtolower(trim((string) $value));
+
+        return $value === 'svg' ? 'svg' : 'image';
+    }
+
+    /**
+     * Public wrapper used by homepage media upload for SVG sanitization.
+     */
+    public function sanitizeSvgForUpload(string $svg): ?string
+    {
+        return $this->sanitizeSvgMarkup($svg);
+    }
+
+    private function sanitizeSvgMarkup(string $svg): ?string
+    {
+        $svg = trim($svg);
+        if ($svg === '' || ! preg_match('/<svg\b/i', $svg)) {
+            return null;
+        }
+        if (strlen($svg) > 120000) {
+            return null;
+        }
+
+        $svg = preg_replace('/<\?xml[^>]*>/i', '', $svg) ?? $svg;
+        $svg = preg_replace('/<!DOCTYPE[^>]*>/i', '', $svg) ?? $svg;
+        $svg = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $svg) ?? $svg;
+        $svg = preg_replace('/<foreignObject\b[^>]*>.*?<\/foreignObject>/is', '', $svg) ?? $svg;
+        $svg = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $svg) ?? $svg;
+        $svg = preg_replace('/\s(xlink:)?href\s*=\s*("(?!#)[^"]*"|\'(?!#)[^\']*\')/i', '', $svg) ?? $svg;
+
+        if (! preg_match('/<svg\b/i', $svg)) {
+            return null;
+        }
+
+        return trim($svg);
+    }
+
+    private function readUploadedSvgMarkup(string $filename): ?string
+    {
+        $filename = basename($filename);
+        if ($filename === '' || ! preg_match('/\.svg$/i', $filename)) {
+            return null;
+        }
+        $path = public_path(self::UPLOAD_DIR.'/'.$filename);
+        if (! is_readable($path)) {
+            return null;
+        }
+        $raw = @file_get_contents($path);
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        return $this->sanitizeSvgMarkup($raw);
     }
 
     private function normalizeBestsellersStyle(mixed $style): string

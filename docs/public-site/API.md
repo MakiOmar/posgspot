@@ -63,10 +63,11 @@ Returns `{ sections: [{ id, type, settings }] }` for **enabled** sections only (
 
 | type | settings (presented) |
 |------|----------------------|
+| *(all types)* | Section row also has `layout_width`: `boxed` (default) \| `full` (viewport width with side margins) |
 | `hero_slider` | `slides[]` → `{ id, image_url, href, kicker, title }` |
 | `promo_tiles` | `tiles[]` → `{ id, image_url, href, label }` |
 | `video` | `source` (`self`\|`youtube`\|`vimeo`), `url`, `poster` (self only), `title`, `embed_url` (youtube/vimeo) |
-| `trust_badges` | `items[]` → `{ id, icon_url, title, description }` |
+| `trust_badges` | `items[]` → `{ id, icon_kind (image\|svg), icon_url, svg_markup, icon_color, title, description }` |
 | `promo_banners` | `max` (legacy: clients use `settings.banners` placement=home) |
 | `promo_banner` | Compositional: `logo_url`, `top_title`, `main_title`, colors, `background_color`, `border_radius` / `border_color` / `border_thickness`, `min_height`, `image_url` + `image_position` `{top,right,bottom,left,width}`, `button` `{label,link,colors,border_radius,show_arrow,arrow_color,position}`. Insert multiple to stack. |
 | `featured_products` | `per_page` → client calls `GET /products?featured=1` |

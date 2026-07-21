@@ -94,6 +94,26 @@
     } catch (e) {
       sections = [];
     }
+    if (Array.isArray(sections)) {
+      sections.forEach(function (s) {
+        if (!s.layout_width) {
+          s.layout_width = "boxed";
+        }
+        if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
+          s.settings.items.forEach(function (item) {
+            if (!item.icon_kind) {
+              item.icon_kind = "image";
+            }
+            if (!item.icon_color) {
+              item.icon_color = "#f5a623";
+            }
+            if (typeof item.svg_markup !== "string") {
+              item.svg_markup = "";
+            }
+          });
+        }
+      });
+    }
     try {
       types = JSON.parse(el.getAttribute("data-types") || "[]");
     } catch (e) {
@@ -180,6 +200,7 @@
             id: uid("sec"),
             type: type,
             enabled: true,
+            layout_width: "boxed",
             settings: defaultSettings(type),
           };
           this.sections.push(section);
@@ -247,9 +268,12 @@
           }
           section.settings.items.push({
             id: uid("badge"),
+            icon_kind: "image",
+            icon_color: "#f5a623",
             image: null,
             url: "",
             image_url: "",
+            svg_markup: "",
             title: emptyLocale(),
             description: emptyLocale(),
           });
@@ -272,9 +296,12 @@
           }
           var copy = {
             id: uid("badge"),
+            icon_kind: src.icon_kind === "svg" ? "svg" : "image",
+            icon_color: src.icon_color || "#f5a623",
             image: src.image || null,
             url: src.url || "",
             image_url: src.image_url || src.url || "",
+            svg_markup: src.svg_markup || "",
             title: {
               en: (src.title && src.title.en) || "",
               ar: (src.title && src.title.ar) || "",
@@ -286,6 +313,38 @@
           };
           section.settings.items.splice(index + 1, 0, copy);
           this.error = "";
+        },
+        loadTrustBadgeSvgFromUrl: function (item) {
+          var self = this;
+          var url = (item.url || "").trim();
+          if (!url) {
+            self.error = "Enter an SVG URL first.";
+            return;
+          }
+          self.uploading = true;
+          fetch(url, { credentials: "omit" })
+            .then(function (res) {
+              if (!res.ok) {
+                throw new Error("fetch failed");
+              }
+              return res.text();
+            })
+            .then(function (text) {
+              self.uploading = false;
+              if (!/<svg\b/i.test(text)) {
+                self.error = "URL did not return SVG markup.";
+                return;
+              }
+              item.icon_kind = "svg";
+              item.svg_markup = text;
+              item.image = null;
+              self.message = "SVG loaded — adjust color to preview.";
+              self.error = "";
+            })
+            .catch(function () {
+              self.uploading = false;
+              self.error = "Could not load SVG (CORS or invalid URL). Upload the file instead.";
+            });
         },
         clearBannerImage: function (section) {
           if (!section.settings.image) {
@@ -303,11 +362,13 @@
           section.settings.logo.url = "";
           section.settings.logo.image_url = "";
         },
-        uploadMedia: function (item) {
+        uploadMedia: function (item, opts) {
           var self = this;
+          var options = opts || {};
+          var acceptSvg = !!options.acceptSvg;
           var input = document.createElement("input");
           input.type = "file";
-          input.accept = "image/*";
+          input.accept = acceptSvg ? "image/*,.svg,image/svg+xml" : "image/*";
           input.onchange = function () {
             var file = input.files && input.files[0];
             if (!file) {
@@ -337,7 +398,15 @@
                 item.image = json.image;
                 item.url = "";
                 item.image_url = json.image_url;
-                self.message = "Image uploaded.";
+                if (json.icon_kind === "svg" && json.svg_markup) {
+                  item.icon_kind = "svg";
+                  item.svg_markup = json.svg_markup;
+                } else if (options.forceImageKind) {
+                  item.icon_kind = "image";
+                  item.svg_markup = "";
+                }
+                self.message = "File uploaded.";
+                self.error = "";
               })
               .catch(function () {
                 self.uploading = false;
@@ -419,6 +488,13 @@
                 </div>
               </div>
               <div v-show="openId === section.id" class="box-body">
+                <div class="form-group sf-hp-layout-width">
+                  <label>Section width</label>
+                  <select class="form-control" v-model="section.layout_width" style="max-width:280px;">
+                    <option value="boxed">Boxed (align with site content)</option>
+                    <option value="full">Full viewport (edge-to-edge with side margins)</option>
+                  </select>
+                </div>
                 <template v-if="section.type === 'hero_slider'">
                   <button type="button" class="btn btn-default btn-sm" @click="addSlide(section)">Add slide</button>
                   <div v-for="(slide, si) in section.settings.slides" :key="slide.id" class="sf-hp-media-row">
@@ -488,17 +564,42 @@
                 </template>
 
                 <template v-else-if="section.type === 'trust_badges'">
-                  <p class="help-block">Row of trust / service items (icon + title + description). Typically 3–4 items with vertical dividers.</p>
+                  <p class="help-block">Row of trust / service items (icon + title + description). Use SVG icons for recolorable line icons.</p>
                   <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)">Add item</button>
-                  <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row">
-                    <img v-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
+                  <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row sf-hp-trust-item">
+                    <div class="sf-hp-trust-preview">
+                      <div
+                        v-if="item.icon_kind === 'svg' && item.svg_markup"
+                        class="sf-hp-svg-preview"
+                        :style="{ color: item.icon_color || '#f5a623' }"
+                        v-html="item.svg_markup"
+                      ></div>
+                      <img v-else-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
+                      <div v-else class="sf-hp-thumb sf-hp-thumb--empty">No icon</div>
+                    </div>
                     <div class="sf-hp-media-fields">
-                      <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />
+                      <select class="form-control input-sm" v-model="item.icon_kind">
+                        <option value="image">Image (PNG/JPG/WebP)</option>
+                        <option value="svg">SVG (inline markup, recolorable)</option>
+                      </select>
+                      <template v-if="item.icon_kind === 'svg'">
+                        <input class="form-control input-sm" v-model="item.url" placeholder="SVG URL (optional)" />
+                        <button type="button" class="btn btn-default btn-xs" @click="loadTrustBadgeSvgFromUrl(item)">Load SVG from URL</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { acceptSvg: true })">Upload SVG</button>
+                        <label class="sf-hp-color-label">Icon color
+                          <input type="color" v-model="item.icon_color" />
+                          <input class="form-control input-sm" style="max-width:120px;display:inline-block;" v-model="item.icon_color" />
+                        </label>
+                        <textarea class="form-control input-sm" rows="3" v-model="item.svg_markup" placeholder="Or paste SVG markup here — preview updates live"></textarea>
+                      </template>
+                      <template v-else>
+                        <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />
+                        <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { forceImageKind: true })">Upload image</button>
+                      </template>
                       <input class="form-control input-sm" v-model="item.title.en" placeholder="Title (EN)" />
                       <input class="form-control input-sm" v-model="item.title.ar" placeholder="Title (AR)" dir="rtl" />
                       <input class="form-control input-sm" v-model="item.description.en" placeholder="Description (EN)" />
                       <input class="form-control input-sm" v-model="item.description.ar" placeholder="Description (AR)" dir="rtl" />
-                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item)">Upload icon</button>
                       <button type="button" class="btn btn-default btn-xs" @click="duplicateTrustBadge(section, bi)" :disabled="section.settings.items.length >= 8">Duplicate</button>
                       <button type="button" class="btn btn-danger btn-xs" @click="removeTrustBadge(section, bi)">Remove</button>
                     </div>

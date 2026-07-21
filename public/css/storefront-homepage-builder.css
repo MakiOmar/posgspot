@@ -68,3 +68,63 @@
   font-size: 13px;
   font-weight: 600;
 }
+
+.sf-hp-layout-width {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.sf-hp-trust-preview {
+  flex-shrink: 0;
+  width: 96px;
+}
+
+.sf-hp-svg-preview {
+  width: 96px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+
+.sf-hp-svg-preview svg {
+  width: 40px;
+  height: 40px;
+  display: block;
+}
+
+.sf-hp-svg-preview svg [fill]:not([fill='none']),
+.sf-hp-svg-preview svg path,
+.sf-hp-svg-preview svg circle,
+.sf-hp-svg-preview svg rect,
+.sf-hp-svg-preview svg polygon {
+  fill: currentColor;
+}
+
+.sf-hp-svg-preview svg [stroke]:not([stroke='none']) {
+  stroke: currentColor;
+}
+
+.sf-hp-thumb--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #999;
+}
+
+.sf-hp-color-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+  margin: 0;
+}
+
+.sf-hp-trust-item .sf-hp-media-fields {
+  grid-template-columns: 1fr;
+}

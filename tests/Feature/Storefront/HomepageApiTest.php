@@ -348,6 +348,43 @@ class HomepageApiTest extends TestCase
             ->assertJsonPath('data.sections.0.settings.items.0.icon_url', 'https://example.com/ship.svg');
     }
 
+    public function test_trust_badges_svg_item_presents_markup_and_color(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'layout_width' => 'full',
+                    'settings' => [
+                        'items' => [
+                            [
+                                'id' => 'badge_svg',
+                                'icon_kind' => 'svg',
+                                'icon_color' => '#ff9900',
+                                'svg_markup' => $svg,
+                                'title' => ['en' => 'Secure', 'ar' => 'آمن'],
+                                'description' => ['en' => 'Safe checkout', 'ar' => ''],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'trust_badges')
+            ->assertJsonPath('data.sections.0.layout_width', 'full')
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'svg')
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_color', '#ff9900');
+        $this->assertStringContainsString('<svg', (string) $response->json('data.sections.0.settings.items.0.svg_markup'));
+    }
+
     public function test_trust_badges_section_without_items_is_omitted(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [

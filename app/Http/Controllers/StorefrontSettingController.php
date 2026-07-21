@@ -94,7 +94,7 @@ class StorefrontSettingController extends Controller
     }
 
     /**
-     * Upload an image for hero/promo section media; returns stored filename + public URL.
+     * Upload an image or SVG for homepage section media; returns stored filename + public URL (+ svg_markup for SVGs).
      */
     public function uploadHomepageMedia(Request $request)
     {
@@ -103,18 +103,59 @@ class StorefrontSettingController extends Controller
         }
 
         $request->validate([
-            'image' => 'required|image|max:5120',
+            'image' => [
+                'required',
+                'file',
+                'max:5120',
+                'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/svg+xml,text/plain,text/xml,application/xml,application/octet-stream',
+            ],
         ]);
 
+        $file = $request->file('image');
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        $mime = strtolower((string) $file->getMimeType());
+        $isSvg = $ext === 'svg' || str_contains($mime, 'svg');
+
         $this->commonUtil->ensurePublicUploadPermissions('storefront_homepage', null, true);
+
+        $svgMarkup = null;
+        if ($isSvg) {
+            $raw = @file_get_contents($file->getRealPath());
+            $svgMarkup = is_string($raw)
+                ? app(\App\Services\Storefront\Homepage\HomepageSectionService::class)->sanitizeSvgForUpload($raw)
+                : null;
+            if ($svgMarkup === null) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => 'Invalid SVG file.',
+                ], 422);
+            }
+        }
 
         try {
             $filename = $this->commonUtil->uploadFile($request, 'image', 'storefront_homepage', 'image');
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'msg' => __('messages.something_went_wrong'),
-            ], 422);
+            // SVG sometimes reports as text/xml — store manually.
+            if ($isSvg) {
+                $filename = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
+                if (! str_ends_with(strtolower($filename), '.svg')) {
+                    $filename .= '.svg';
+                }
+                $dir = public_path('uploads/storefront_homepage');
+                if (! is_dir($dir)) {
+                    @mkdir($dir, 0755, true);
+                }
+                if (! $file->move($dir, $filename)) {
+                    $filename = null;
+                } else {
+                    $this->commonUtil->ensurePublicUploadPermissions('storefront_homepage', $filename);
+                }
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
+                ], 422);
+            }
         }
 
         if (empty($filename)) {
@@ -128,6 +169,8 @@ class StorefrontSettingController extends Controller
             'success' => true,
             'image' => $filename,
             'image_url' => asset('uploads/storefront_homepage/'.$filename),
+            'svg_markup' => $svgMarkup,
+            'icon_kind' => $isSvg ? 'svg' : 'image',
         ]);
     }
 
