@@ -21,9 +21,9 @@
 
       {{-- Storefront brand logo --}}
       <div class="form-group">
-        {!! Form::label('image', 'Storefront logo:') !!}
+        {!! Form::label('image', __( 'brand.logo' ) . ':') !!}
         {!! Form::file('image', ['id' => 'brand_image', 'accept' => 'image/*']); !!}
-        <p class="help-block">Optional. Shown on the storefront shop-by-brand strip.</p>
+        <p class="help-block">@lang('brand.logo_help')</p>
       </div>
 
         @if($is_repair_installed)

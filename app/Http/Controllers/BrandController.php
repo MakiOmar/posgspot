@@ -38,24 +38,38 @@ class BrandController extends Controller
 
         if (request()->ajax()) {
             $business_id = request()->session()->get('user.business_id');
+            $can_update = auth()->user()->can('brand.update');
+            $can_delete = auth()->user()->can('brand.delete');
 
             $brands = Brands::where('business_id', $business_id)
-                        ->select(['name', 'description', 'id']);
+                        ->select(['name', 'description', 'image', 'id']);
 
             return Datatables::of($brands)
+                ->addColumn('logo', function ($row) {
+                    if (empty($row->image)) {
+                        return '<span class="text-muted">—</span>';
+                    }
+
+                    return '<img src="'.e($row->image_url).'" alt="" style="max-height:36px;max-width:72px;object-fit:contain;">';
+                })
                 ->addColumn(
                     'action',
-                    '@can("brand.update")
-                    <button data-href="{{action(\'App\Http\Controllers\BrandController@edit\', [$id])}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary edit_brand_button"><i class="glyphicon glyphicon-edit"></i> @lang("messages.edit")</button>
-                        &nbsp;
-                    @endcan
-                    @can("brand.delete")
-                        <button data-href="{{action(\'App\Http\Controllers\BrandController@destroy\', [$id])}}" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete_brand_button"><i class="glyphicon glyphicon-trash"></i> @lang("messages.delete")</button>
-                    @endcan'
+                    function ($row) use ($can_update, $can_delete) {
+                        $html = '';
+                        if ($can_update) {
+                            $html .= '<button type="button" data-href="'.action([\App\Http\Controllers\BrandController::class, 'edit'], [$row->id]).'" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary edit_brand_button"><i class="glyphicon glyphicon-edit"></i> '.__('messages.edit').'</button>&nbsp;';
+                        }
+                        if ($can_delete) {
+                            $html .= '<button type="button" data-href="'.action([\App\Http\Controllers\BrandController::class, 'destroy'], [$row->id]).'" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete_brand_button"><i class="glyphicon glyphicon-trash"></i> '.__('messages.delete').'</button>';
+                        }
+
+                        return $html;
+                    }
                 )
                 ->removeColumn('id')
-                ->rawColumns([2])
-                ->make(false);
+                ->removeColumn('image')
+                ->rawColumns(['logo', 'action'])
+                ->make(true);
         }
 
         return view('brand.index');
@@ -154,7 +168,7 @@ class BrandController extends Controller
 
         if (request()->ajax()) {
             $business_id = request()->session()->get('user.business_id');
-            $brand = Brands::where('business_id', $business_id)->find($id);
+            $brand = Brands::where('business_id', $business_id)->findOrFail($id);
 
             $is_repair_installed = $this->moduleUtil->isModuleInstalled('Repair');
 

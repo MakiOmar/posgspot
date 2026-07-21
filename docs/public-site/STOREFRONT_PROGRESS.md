@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-15 |
+| **Last updated** | 2026-07-21 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -158,7 +158,7 @@
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
-| Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; `image_url` on storefront API |
+| Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
@@ -220,6 +220,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | POS brands: reliable Edit action + logo column; create/edit logo upload (storefront shop-by-brand). |
 | 2026-07-12 | Remove temporary digital fulfill debug panel and `storefront.digital.fulfill.*` diagnostic logs. |
 | 2026-07-13 | Staging crawl block: `PUBLIC_ROBOTS_DISALLOW_ALL` → robots `Disallow: /`, empty sitemap, RouterHead noindex, `X-Robots-Tag`. |
 | 2026-07-12 | Sent-to-POS: allocate sets `pos_order_id` (one call); stamp fallback uses Accounts `order_id` + clearer already-synced vs not-found. |

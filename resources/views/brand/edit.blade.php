@@ -21,17 +21,17 @@
 
       {{-- Storefront brand logo --}}
       <div class="form-group">
-        {!! Form::label('image', 'Storefront logo:') !!}
+        {!! Form::label('image', __( 'brand.logo' ) . ':') !!}
         @if(!empty($brand->image))
           <div style="margin-bottom: 8px;">
             <img src="{{ $brand->image_url }}" alt="" style="max-height: 64px; max-width: 120px;">
           </div>
           <label>
-            {!! Form::checkbox('clear_image', 1, false) !!} Remove current logo
+            {!! Form::checkbox('clear_image', 1, false) !!} @lang('brand.remove_logo')
           </label>
         @endif
         {!! Form::file('image', ['id' => 'brand_image', 'accept' => 'image/*']); !!}
-        <p class="help-block">Optional. Shown on the storefront shop-by-brand strip.</p>
+        <p class="help-block">@lang('brand.logo_help')</p>
       </div>
 
         @if($is_repair_installed)

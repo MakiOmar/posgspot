@@ -22,5 +22,8 @@ return [
     'deleted_success' => 'Brand deleted successfully',
     'add_brand' => 'Add brand',
     'edit_brand' => 'Edit brand',
+    'logo' => 'Logo',
+    'remove_logo' => 'Remove current logo',
+    'logo_help' => 'Optional. Shown on the storefront shop-by-brand strip.',
 
 ];

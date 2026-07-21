@@ -40,6 +40,7 @@
                         <thead>
                             <tr>
                                 <th>@lang('brand.brands')</th>
+                                <th>@lang('brand.logo')</th>
                                 <th>@lang('brand.note')</th>
                                 <th>@lang('messages.action')</th>
                             </tr>

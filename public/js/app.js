@@ -139,12 +139,11 @@ $(document).ready(function() {
         serverSide: true,
         fixedHeader:false,
         ajax: '/brands',
-        columnDefs: [
-            {
-                targets: 2,
-                orderable: false,
-                searchable: false,
-            },
+        columns: [
+            { data: 'name', name: 'name' },
+            { data: 'logo', name: 'logo', orderable: false, searchable: false },
+            { data: 'description', name: 'description' },
+            { data: 'action', name: 'action', orderable: false, searchable: false },
         ],
     });
 
