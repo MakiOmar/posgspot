@@ -241,6 +241,10 @@
           if (!section.settings.items) {
             section.settings.items = [];
           }
+          if (section.settings.items.length >= 8) {
+            this.error = "Maximum of 8 trust badge items.";
+            return;
+          }
           section.settings.items.push({
             id: uid("badge"),
             image: null,
@@ -249,9 +253,39 @@
             title: emptyLocale(),
             description: emptyLocale(),
           });
+          this.error = "";
         },
         removeTrustBadge: function (section, index) {
           section.settings.items.splice(index, 1);
+        },
+        duplicateTrustBadge: function (section, index) {
+          if (!section.settings.items) {
+            section.settings.items = [];
+          }
+          if (section.settings.items.length >= 8) {
+            this.error = "Maximum of 8 trust badge items.";
+            return;
+          }
+          var src = section.settings.items[index];
+          if (!src) {
+            return;
+          }
+          var copy = {
+            id: uid("badge"),
+            image: src.image || null,
+            url: src.url || "",
+            image_url: src.image_url || src.url || "",
+            title: {
+              en: (src.title && src.title.en) || "",
+              ar: (src.title && src.title.ar) || "",
+            },
+            description: {
+              en: (src.description && src.description.en) || "",
+              ar: (src.description && src.description.ar) || "",
+            },
+          };
+          section.settings.items.splice(index + 1, 0, copy);
+          this.error = "";
         },
         clearBannerImage: function (section) {
           if (!section.settings.image) {
@@ -465,6 +499,7 @@
                       <input class="form-control input-sm" v-model="item.description.en" placeholder="Description (EN)" />
                       <input class="form-control input-sm" v-model="item.description.ar" placeholder="Description (AR)" dir="rtl" />
                       <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item)">Upload icon</button>
+                      <button type="button" class="btn btn-default btn-xs" @click="duplicateTrustBadge(section, bi)" :disabled="section.settings.items.length >= 8">Duplicate</button>
                       <button type="button" class="btn btn-danger btn-xs" @click="removeTrustBadge(section, bi)">Remove</button>
                     </div>
                   </div>
