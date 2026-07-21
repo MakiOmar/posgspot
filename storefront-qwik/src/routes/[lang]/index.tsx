@@ -76,6 +76,8 @@ export const useHomepageCatalog = routeLoader$(
     bestsellers: ProductSummary[];
     brands: Brand[];
     shelves: Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>;
+    /** Products for selected `category_shelf` sections, keyed by section id. */
+    categoryShelfProducts: Record<string, ProductSummary[]>;
   }> => {
     const locale = isSupportedLocale(params.lang) ? params.lang : "en";
     const sections = await resolveValue(useHomepageSections);
@@ -84,6 +86,7 @@ export const useHomepageCatalog = routeLoader$(
     const bestSec = sections.find((s) => s.type === "bestsellers");
     const brandSec = sections.find((s) => s.type === "brand_slider");
     const shelfSec = sections.find((s) => s.type === "category_shelves");
+    const categoryShelfSecs = sections.filter((s) => s.type === "category_shelf");
 
     const featuredPerPage = featuredSec
       ? sectionSettingNumber(featuredSec.settings, "per_page", 8)
@@ -98,61 +101,86 @@ export const useHomepageCatalog = routeLoader$(
       ? sectionSettingNumber(shelfSec.settings, "products_per_shelf", 6)
       : 6;
 
-    const [featuredPage, bestPage, brands, shelfRows] = await Promise.all([
-      featuredSec
-        ? fetchProductsPage({ featured: 1, per_page: featuredPerPage }, locale).catch(() =>
-            emptyPage(featuredPerPage),
-          )
-        : Promise.resolve(emptyPage(0)),
-      bestSec
-        ? fetchProductsPage(
-            {
-              sort: "bestsellers",
-              per_page: bestPerPage,
-              ...(bestInStock ? { in_stock_only: true } : {}),
-            },
-            locale,
-          ).catch(() => emptyPage(bestPerPage))
-        : Promise.resolve(emptyPage(0)),
-      brandSec
-        ? fetchBrands(locale)
-            .then((r) => (r.data ?? []).slice(0, brandLimit))
-            .catch(() => [] as Brand[])
-        : Promise.resolve([] as Brand[]),
-      shelfSec
-        ? (async () => {
-            let shelves: HomepageCategoryShelf[] = [];
-            try {
-              const { data } = await fetchHomepageShelves(locale);
-              shelves = (data ?? []).slice(0, shelfLimit);
-            } catch {
-              shelves = [];
+    const [featuredPage, bestPage, brands, shelfRows, categoryShelfProductEntries] =
+      await Promise.all([
+        featuredSec
+          ? fetchProductsPage({ featured: 1, per_page: featuredPerPage }, locale).catch(() =>
+              emptyPage(featuredPerPage),
+            )
+          : Promise.resolve(emptyPage(0)),
+        bestSec
+          ? fetchProductsPage(
+              {
+                sort: "bestsellers",
+                per_page: bestPerPage,
+                ...(bestInStock ? { in_stock_only: true } : {}),
+              },
+              locale,
+            ).catch(() => emptyPage(bestPerPage))
+          : Promise.resolve(emptyPage(0)),
+        brandSec
+          ? fetchBrands(locale)
+              .then((r) => (r.data ?? []).slice(0, brandLimit))
+              .catch(() => [] as Brand[])
+          : Promise.resolve([] as Brand[]),
+        shelfSec
+          ? (async () => {
+              let shelves: HomepageCategoryShelf[] = [];
+              try {
+                const { data } = await fetchHomepageShelves(locale);
+                shelves = (data ?? []).slice(0, shelfLimit);
+              } catch {
+                shelves = [];
+              }
+              return Promise.all(
+                shelves.map(async (shelf) => {
+                  if (!shelf.slug) {
+                    return { shelf, products: [] as ProductSummary[] };
+                  }
+                  try {
+                    const page = await fetchProductsPage(
+                      { category_slug: shelf.slug, per_page: productsPerShelf },
+                      locale,
+                    );
+                    return { shelf, products: page.data };
+                  } catch {
+                    return { shelf, products: [] as ProductSummary[] };
+                  }
+                }),
+              );
+            })()
+          : Promise.resolve([]),
+        Promise.all(
+          categoryShelfSecs.map(async (sec) => {
+            const shelf = sec.settings.shelf as HomepageCategoryShelf | undefined;
+            const perPage = sectionSettingNumber(sec.settings, "products_per_shelf", 6);
+            if (!shelf?.slug) {
+              return [sec.id, [] as ProductSummary[]] as const;
             }
-            return Promise.all(
-              shelves.map(async (shelf) => {
-                if (!shelf.slug) {
-                  return { shelf, products: [] as ProductSummary[] };
-                }
-                try {
-                  const page = await fetchProductsPage(
-                    { category_slug: shelf.slug, per_page: productsPerShelf },
-                    locale,
-                  );
-                  return { shelf, products: page.data };
-                } catch {
-                  return { shelf, products: [] as ProductSummary[] };
-                }
-              }),
-            );
-          })()
-        : Promise.resolve([]),
-    ]);
+            try {
+              const page = await fetchProductsPage(
+                { category_slug: shelf.slug, per_page: perPage },
+                locale,
+              );
+              return [sec.id, page.data] as const;
+            } catch {
+              return [sec.id, [] as ProductSummary[]] as const;
+            }
+          }),
+        ),
+      ]);
+
+    const categoryShelfProducts: Record<string, ProductSummary[]> = {};
+    for (const [id, products] of categoryShelfProductEntries) {
+      categoryShelfProducts[id] = products;
+    }
 
     return {
       featured: featuredPage.data,
       bestsellers: bestPage.data,
       brands,
       shelves: shelfRows,
+      categoryShelfProducts,
     };
   },
 );
@@ -237,6 +265,20 @@ export default component$(() => {
                 ))}
               </div>
             );
+          case "category_shelf": {
+            const shelf = section.settings.shelf as HomepageCategoryShelf | undefined;
+            if (!shelf) {
+              return null;
+            }
+            return (
+              <CategoryShelf
+                key={section.id}
+                shelf={shelf}
+                products={catalog.value.categoryShelfProducts[section.id] ?? []}
+                settings={settings.value}
+              />
+            );
+          }
           case "brand_slider":
             return (
               <BrandSlider

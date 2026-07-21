@@ -84,4 +84,32 @@ class HomepageApiTest extends TestCase
         $this->assertSame(4, $response->json('data.sections.0.settings.per_page'));
         $this->assertFalse($response->json('data.sections.0.settings.in_stock_only'));
     }
+
+    public function test_category_shelf_section_without_category_is_omitted(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_cat',
+                    'type' => 'category_shelf',
+                    'enabled' => true,
+                    'settings' => ['category_id' => null, 'products_per_shelf' => 6],
+                ],
+                [
+                    'id' => 'sec_best',
+                    'type' => 'bestsellers',
+                    'enabled' => true,
+                    'settings' => ['per_page' => 3, 'in_stock_only' => true],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk();
+        $types = array_column($response->json('data.sections'), 'type');
+        $this->assertNotContains('category_shelf', $types);
+        $this->assertContains('bestsellers', $types);
+    }
 }

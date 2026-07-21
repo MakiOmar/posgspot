@@ -58,10 +58,19 @@ class SectionTypeRegistry
                 ],
             ],
             'category_shelves' => [
-                'label' => 'Category shelves',
+                'label' => 'Category shelves (legacy flags)',
                 'max_instances' => 1,
                 'default_settings' => [
                     'limit' => 6,
+                    'products_per_shelf' => 6,
+                ],
+            ],
+            // Preferred: pick a category per section (replaces shelves long-term).
+            'category_shelf' => [
+                'label' => 'Category shelf',
+                'max_instances' => null,
+                'default_settings' => [
+                    'category_id' => null,
                     'products_per_shelf' => 6,
                 ],
             ],

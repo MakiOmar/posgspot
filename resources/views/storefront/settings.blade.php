@@ -455,6 +455,7 @@
                     id="storefront-homepage-builder"
                     data-sections="{{ htmlspecialchars(json_encode($homepage_sections ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
                     data-types="{{ htmlspecialchars(json_encode($homepage_section_types ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
+                    data-categories="{{ htmlspecialchars(json_encode($homepage_categories ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
                     data-save-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections']) }}"
                     data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}"
                 >
@@ -898,7 +899,7 @@
 <link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=1">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=1"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=2"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

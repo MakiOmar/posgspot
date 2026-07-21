@@ -2,6 +2,7 @@
 
 namespace App\Services\Storefront\Homepage;
 
+use App\Services\Storefront\CatalogService;
 use Illuminate\Support\Str;
 
 /**
@@ -13,8 +14,10 @@ class HomepageSectionService
 
     private const WP = 'https://gamesspoteg.com/wp-content/uploads';
 
-    public function __construct(private SectionTypeRegistry $registry)
-    {
+    public function __construct(
+        private SectionTypeRegistry $registry,
+        private CatalogService $catalog
+    ) {
     }
 
     /**
@@ -256,6 +259,10 @@ class HomepageSectionService
                 'limit' => max(1, min(12, (int) ($settings['limit'] ?? 6))),
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
             ],
+            'category_shelf' => [
+                'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
+                'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
+            ],
             'brand_slider' => [
                 'limit' => max(1, min(48, (int) ($settings['limit'] ?? 24))),
             ],
@@ -276,7 +283,7 @@ class HomepageSectionService
      * @param  array<int, array{id: string, type: string, enabled: bool, settings: array<string, mixed>}>  $sections
      * @return array<int, array{id: string, type: string, settings: array<string, mixed>}>
      */
-    public function presentForApi(array $sections, string $locale): array
+    public function presentForApi(array $sections, string $locale, int $businessId = 0): array
     {
         $out = [];
         foreach ($sections as $section) {
@@ -288,10 +295,24 @@ class HomepageSectionService
                 continue;
             }
 
+            $settings = $this->presentSettings($type, $section['settings'] ?? [], $locale);
+
+            if ($type === 'category_shelf') {
+                $categoryId = (int) ($settings['category_id'] ?? 0);
+                if ($categoryId < 1 || $businessId < 1) {
+                    continue;
+                }
+                $shelf = $this->catalog->getCategoryShelfById($businessId, $categoryId, $locale);
+                if ($shelf === null) {
+                    continue;
+                }
+                $settings['shelf'] = $shelf;
+            }
+
             $out[] = [
                 'id' => $section['id'],
                 'type' => $type,
-                'settings' => $this->presentSettings($type, $section['settings'] ?? [], $locale),
+                'settings' => $settings,
             ];
         }
 
@@ -395,6 +416,10 @@ class HomepageSectionService
                 'url' => (string) ($settings['url'] ?? ''),
                 'poster' => (string) ($settings['poster'] ?? ''),
                 'title' => $this->pickLocale($settings['title'] ?? [], $locale),
+            ],
+            'category_shelf' => [
+                'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
+                'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
             ],
             default => $settings,
         };

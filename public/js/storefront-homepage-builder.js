@@ -1,6 +1,6 @@
 /**
  * Storefront homepage section builder (Vue 3 island).
- * Expects #storefront-homepage-builder with data-sections / data-types / data-save-url / data-upload-url.
+ * Expects #storefront-homepage-builder with data-sections / data-types / data-categories / data-save-url / data-upload-url.
  */
 (function () {
   function csrf() {
@@ -32,6 +32,8 @@
         return { limit: 8 };
       case "category_shelves":
         return { limit: 6, products_per_shelf: 6 };
+      case "category_shelf":
+        return { category_id: null, products_per_shelf: 6 };
       case "brand_slider":
         return { limit: 24 };
       case "bestsellers":
@@ -51,6 +53,7 @@
 
     var sections = [];
     var types = [];
+    var categories = [];
     try {
       sections = JSON.parse(el.getAttribute("data-sections") || "[]");
     } catch (e) {
@@ -61,6 +64,11 @@
     } catch (e) {
       types = [];
     }
+    try {
+      categories = JSON.parse(el.getAttribute("data-categories") || "[]");
+    } catch (e) {
+      categories = [];
+    }
 
     var saveUrl = el.getAttribute("data-save-url") || "";
     var uploadUrl = el.getAttribute("data-upload-url") || "";
@@ -70,6 +78,7 @@
         return {
           sections: Array.isArray(sections) ? sections : [],
           types: Array.isArray(types) ? types : [],
+          categories: Array.isArray(categories) ? categories : [],
           selectedType: types[0] ? types[0].type : "",
           openId: null,
           saving: false,
@@ -392,7 +401,24 @@
                     <label>Products per shelf</label>
                     <input type="number" min="1" max="24" class="form-control" v-model.number="section.settings.products_per_shelf" />
                   </div>
-                  <p class="help-block">Shelves are enabled on product category edit.</p>
+                  <p class="help-block">Legacy: shelves enabled on product category edit. Prefer inserting “Category shelf” sections instead.</p>
+                </template>
+
+                <template v-else-if="section.type === 'category_shelf'">
+                  <div class="form-group">
+                    <label>Category</label>
+                    <select class="form-control" v-model.number="section.settings.category_id">
+                      <option :value="null">— Select category —</option>
+                      <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                        {{ cat.parent_id ? '— ' : '' }}{{ cat.name }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Products per shelf</label>
+                    <input type="number" min="1" max="24" class="form-control" v-model.number="section.settings.products_per_shelf" />
+                  </div>
+                  <p class="help-block">Renders like a category shelf (banner fields from the category + product grid). Insert multiple sections for multiple categories.</p>
                 </template>
 
                 <template v-else-if="section.type === 'brand_slider'">

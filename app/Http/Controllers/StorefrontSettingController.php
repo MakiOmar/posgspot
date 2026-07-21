@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\BusinessLocation;
+use App\Category;
 use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontSettingService;
@@ -39,12 +40,27 @@ class StorefrontSettingController extends Controller
             $settings['homepage_sections'] ?? []
         );
         $homepage_section_types = $this->sectionTypes->forAdmin();
+        $homepage_categories = Category::where('business_id', $business_id)
+            ->where('category_type', 'product')
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'parent_id'])
+            ->map(fn (Category $c) => [
+                'id' => (int) $c->id,
+                'name' => (string) $c->name,
+                'slug' => (string) $c->slug,
+                'parent_id' => (int) ($c->parent_id ?? 0),
+            ])
+            ->values()
+            ->all();
 
         return view('storefront.settings', compact(
             'settings',
             'locations',
             'homepage_sections',
-            'homepage_section_types'
+            'homepage_section_types',
+            'homepage_categories'
         ));
     }
 

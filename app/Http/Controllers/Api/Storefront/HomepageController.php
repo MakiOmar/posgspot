@@ -27,7 +27,8 @@ class HomepageController extends StorefrontController
         return $this->jsonSuccess([
             'sections' => $this->homepage->presentForApi(
                 is_array($sections) ? $sections : [],
-                $locale
+                $locale,
+                $this->businessId($request)
             ),
         ]);
     }
