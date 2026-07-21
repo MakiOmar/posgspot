@@ -223,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | Fix main Storefront Settings save wiping homepage_sections (preserve when not posted). |
 | 2026-07-21 | Homepage `trust_badges` section: icon + title + description items (EN/AR). |
 | 2026-07-21 | Bestsellers section `style` setting: `grid` (default) or `horizontal` image+details cards. |
 | 2026-07-21 | CSP: allow YouTube/Vimeo `frame-src` + HTTPS `media-src` for homepage video embeds. |

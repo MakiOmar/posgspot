@@ -15,6 +15,39 @@ class HomepageApiTest extends TestCase
 {
     protected int $businessId = 1;
 
+    public function test_saving_settings_without_homepage_sections_preserves_existing(): void
+    {
+        $custom = [
+            [
+                'id' => 'sec_keep',
+                'type' => 'bestsellers',
+                'enabled' => true,
+                'settings' => ['per_page' => 5, 'in_stock_only' => false, 'style' => 'horizontal'],
+            ],
+        ];
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => $custom,
+        ]);
+        Cache::flush();
+
+        // Mimic main settings form: payload has no homepage_sections key.
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'cod_enabled' => true,
+        ]);
+        Cache::flush();
+
+        $saved = app(StorefrontSettingService::class)->get($this->businessId);
+        $sections = $saved['homepage_sections'] ?? [];
+        $this->assertCount(1, $sections);
+        $this->assertSame('sec_keep', $sections[0]['id']);
+        $this->assertSame('bestsellers', $sections[0]['type']);
+        $this->assertSame(5, $sections[0]['settings']['per_page']);
+        $this->assertSame('horizontal', $sections[0]['settings']['style']);
+    }
+
     public function test_homepage_returns_seeded_sections_when_empty(): void
     {
         StorefrontSetting::updateOrCreate(

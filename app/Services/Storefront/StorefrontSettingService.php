@@ -188,6 +188,12 @@ class StorefrontSettingService
         if (array_key_exists('homepage_sections', $settings)) {
             $merged['homepage_sections'] = $this->homepageSections()->normalizeSections($settings['homepage_sections']);
         } else {
+            // Main settings form does not post homepage_sections (saved via dedicated AJAX).
+            // Preserve existing rows — do not reseed defaults from an empty merge.
+            $existing = $this->getRaw($businessId);
+            $merged['homepage_sections'] = is_array($existing['homepage_sections'] ?? null)
+                ? $existing['homepage_sections']
+                : [];
             $merged = $this->homepageSections()->ensureSections($merged);
         }
 
