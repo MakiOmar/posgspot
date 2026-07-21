@@ -117,6 +117,14 @@ export function fetchSettings(locale?: string) {
   return storefrontFetch<StoreSettings>("/settings", {}, locale);
 }
 
+export function fetchHomepage(locale?: string) {
+  return storefrontFetch<{ sections: import("./types").HomepageSection[] }>(
+    "/homepage",
+    {},
+    locale,
+  );
+}
+
 export function fetchLocations(locale?: string) {
   return storefrontFetch<StoreLocation[]>("/locations", {}, locale);
 }

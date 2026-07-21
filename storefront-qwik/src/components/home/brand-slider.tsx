@@ -6,12 +6,13 @@ import type { Brand } from "~/lib/types";
 
 interface BrandSliderProps {
   brands: Brand[];
+  limit?: number;
 }
 
 /** Shop-by-brand logo strip. */
-export const BrandSlider = component$<BrandSliderProps>(({ brands }) => {
+export const BrandSlider = component$<BrandSliderProps>(({ brands, limit = 16 }) => {
   const { locale } = useI18n();
-  const items = brands.filter((b) => Boolean(b.slug)).slice(0, 16);
+  const items = brands.filter((b) => Boolean(b.slug)).slice(0, limit);
 
   if (items.length === 0) {
     return null;

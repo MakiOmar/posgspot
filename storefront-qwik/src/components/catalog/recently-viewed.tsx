@@ -14,6 +14,7 @@ interface RecentlyViewedProps {
   excludeProductId?: number;
   headingId?: string;
   class?: string;
+  limit?: number;
 }
 
 /**
@@ -29,6 +30,7 @@ export const RecentlyViewed = component$<RecentlyViewedProps>((props) => {
   useVisibleTask$(({ track }) => {
     track(() => props.recordProduct?.id);
     track(() => props.excludeProductId);
+    track(() => props.limit);
     track(() => locale);
 
     if (props.recordProduct) {
@@ -37,6 +39,7 @@ export const RecentlyViewed = component$<RecentlyViewedProps>((props) => {
 
     items.value = getRecentlyViewedForDisplay(locale, {
       excludeProductId: props.excludeProductId ?? props.recordProduct?.id,
+      limit: props.limit,
     });
     ready.value = true;
   });

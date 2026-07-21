@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\Storefront\CouponController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\DigitalCatalogController;
 use App\Http\Controllers\Api\Storefront\GeoController;
+use App\Http\Controllers\Api\Storefront\HomepageController;
 use App\Http\Controllers\Api\Storefront\LocationController;
 use App\Http\Controllers\Api\Storefront\PhoneCountryController;
 use App\Http\Controllers\Api\Storefront\NewsletterController;
@@ -39,6 +40,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/ping', PingController::class)->name('storefront.ping');
 
     Route::get('/settings', [SettingsController::class, 'show']);
+    Route::get('/homepage', [HomepageController::class, 'show']);
     Route::get('/phone-countries', [PhoneCountryController::class, 'index']);
     Route::get('/geo/countries', [GeoController::class, 'countries']);
     Route::get('/geo/states/{countryCode}', [GeoController::class, 'states']);

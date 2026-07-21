@@ -151,6 +151,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/business/settings', [BusinessController::class, 'getBusinessSettings'])->name('business.getBusinessSettings');
     Route::get('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'edit'])->name('storefront.settings.edit');
     Route::post('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'update'])->name('storefront.settings.update');
+    Route::post('/storefront/homepage-sections', [\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections'])->name('storefront.homepage-sections.update');
+    Route::post('/storefront/homepage-media', [\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia'])->name('storefront.homepage-media.upload');
     Route::get('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'index'])->name('storefront.shipping.zones.index');
     Route::post('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])->name('storefront.shipping.zones.store');
     Route::put('/storefront/shipping/zones/{id}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'update'])->name('storefront.shipping.zones.update');

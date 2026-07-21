@@ -99,6 +99,28 @@ export interface PromoBanner {
   image_url: string;
 }
 
+/** GET /homepage section row (enabled only). */
+export interface HomepageSection {
+  id: string;
+  type: string;
+  settings: Record<string, unknown>;
+}
+
+export interface HomepageHeroSlide {
+  id: string;
+  image_url: string;
+  href: string;
+  kicker: string;
+  title: string;
+}
+
+export interface HomepagePromoTile {
+  id: string;
+  image_url: string;
+  href: string;
+  label: string;
+}
+
 /** Homepage shelf from GET /categories/homepage-shelves (POS category fields). */
 export interface HomepageCategoryShelf {
   id: number;

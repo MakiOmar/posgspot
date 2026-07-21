@@ -33,6 +33,7 @@
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; categories/brands expose `image_url`; `GET /categories/homepage-shelves` from category shelf fields |
+| Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug` |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
@@ -71,7 +72,7 @@
 | Route | Status | Notes |
 |-------|--------|-------|
 | `/` → `/en/` or `/ar/` | ✅ | `Accept-Language` redirect |
-| `/[lang]/` Homepage | ✅ | Hero slider, promo tiles (demo), video, featured deals, top categories, 3 category shelves + side banners, shop-by-brand, bestsellers, recently viewed, SEO |
+| `/[lang]/` Homepage | ✅ | Dynamic sections from `GET /homepage` (hero/promo/video settings + catalog blocks); SEO |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + promo banners + pagination + locale filter |
 | `/[lang]/brands` | ✅ | Brand index (sellable brands with slug) |
@@ -156,6 +157,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
+| Homepage section builder | ✅ | Settings → Homepage tab (Vue); insert/reorder/enable; hero/promo/video editable; `POST /storefront/homepage-sections` |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
@@ -205,6 +207,7 @@
 | Brand slug API | ✅ | `BrandSlugApiTest` |
 | Brand slug generation | ✅ | `BrandSlugGenerationTest`; POS `BrandController` create/update |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
+| Homepage API | ✅ | `HomepageApiTest` |
 | Frontend (Qwik) tests | ⬜ |
 
 ---
@@ -220,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-21 | Homepage section builder: registry + `homepage_sections`, `GET /homepage`, Vue POS builder, Qwik dynamic home (hero/promo/video from settings). |
 | 2026-07-21 | POS brands: reliable Edit action + logo column; create/edit logo upload (storefront shop-by-brand). |
 | 2026-07-12 | Remove temporary digital fulfill debug panel and `storefront.digital.fulfill.*` diagnostic logs. |
 | 2026-07-13 | Staging crawl block: `PUBLIC_ROBOTS_DISALLOW_ALL` → robots `Disallow: /`, empty sitemap, RouterHead noindex, `X-Robots-Tag`. |

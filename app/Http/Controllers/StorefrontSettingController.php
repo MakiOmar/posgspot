@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\BusinessLocation;
+use App\Services\Storefront\Homepage\HomepageSectionService;
+use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontSettingService;
 use App\Utils\Util;
 use Illuminate\Http\Request;
@@ -14,6 +16,8 @@ class StorefrontSettingController extends Controller
 {
     public function __construct(
         private StorefrontSettingService $settings,
+        private HomepageSectionService $homepageSections,
+        private SectionTypeRegistry $sectionTypes,
         private Util $commonUtil
     ) {
     }
@@ -31,7 +35,84 @@ class StorefrontSettingController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('storefront.settings', compact('settings', 'locations'));
+        $homepage_sections = $this->homepageSections->presentForAdmin(
+            $settings['homepage_sections'] ?? []
+        );
+        $homepage_section_types = $this->sectionTypes->forAdmin();
+
+        return view('storefront.settings', compact(
+            'settings',
+            'locations',
+            'homepage_sections',
+            'homepage_section_types'
+        ));
+    }
+
+    /**
+     * AJAX save for the Vue homepage section builder.
+     */
+    public function updateHomepageSections(Request $request)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = (int) $request->session()->get('user.business_id');
+        $sections = $request->input('sections');
+        if (is_string($sections)) {
+            $decoded = json_decode($sections, true);
+            $sections = is_array($decoded) ? $decoded : [];
+        }
+
+        $current = $this->settings->get($business_id);
+        $current['homepage_sections'] = is_array($sections) ? $sections : [];
+        $this->settings->save($business_id, $current);
+
+        $saved = $this->settings->get($business_id);
+
+        return response()->json([
+            'success' => true,
+            'msg' => 'Homepage sections saved.',
+            'sections' => $this->homepageSections->presentForAdmin($saved['homepage_sections'] ?? []),
+        ]);
+    }
+
+    /**
+     * Upload an image for hero/promo section media; returns stored filename + public URL.
+     */
+    public function uploadHomepageMedia(Request $request)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'image' => 'required|image|max:5120',
+        ]);
+
+        $this->commonUtil->ensurePublicUploadPermissions('storefront_homepage', null, true);
+
+        try {
+            $filename = $this->commonUtil->uploadFile($request, 'image', 'storefront_homepage', 'image');
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ], 422);
+        }
+
+        if (empty($filename)) {
+            return response()->json([
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'image' => $filename,
+            'image_url' => asset('uploads/storefront_homepage/'.$filename),
+        ]);
     }
 
     public function update(Request $request)

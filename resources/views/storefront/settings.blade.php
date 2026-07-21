@@ -30,6 +30,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_homepage" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-home"></i> Homepage
+                </a>
+            </li>
+            <li>
                 <a href="#tab_banners" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-picture-o"></i> Banners
                 </a>
@@ -441,6 +446,19 @@
                 <div class="form-group">
                     {!! Form::label('announcement_link', 'Link (optional)') !!}
                     {!! Form::text('announcement_link', $settings['announcement']['link'] ?? '', ['class' => 'form-control']) !!}
+                </div>
+            </div>
+
+            {{-- Homepage section builder (Vue island) --}}
+            <div class="tab-pane" id="tab_homepage">
+                <div
+                    id="storefront-homepage-builder"
+                    data-sections="{{ htmlspecialchars(json_encode($homepage_sections ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
+                    data-types="{{ htmlspecialchars(json_encode($homepage_section_types ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
+                    data-save-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections']) }}"
+                    data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}"
+                >
+                    <p class="text-muted">Loading homepage builder…</p>
                 </div>
             </div>
 
@@ -877,6 +895,10 @@
 @endsection
 
 @section('javascript')
+<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=1">
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=1"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

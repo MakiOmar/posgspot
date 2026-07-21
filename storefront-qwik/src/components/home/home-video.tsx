@@ -1,10 +1,18 @@
 import { component$ } from "@builder.io/qwik";
-import { HOME_VIDEO } from "~/lib/home-demo";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 
-/** Hosted homepage video (demo trailer from live site). */
-export const HomeVideo = component$(() => {
+interface HomeVideoProps {
+  src: string;
+  poster?: string;
+}
+
+/** Homepage video from GET /homepage section settings. */
+export const HomeVideo = component$<HomeVideoProps>(({ src, poster }) => {
   const { locale } = useI18n();
+
+  if (!src) {
+    return null;
+  }
 
   return (
     <section class="home-video" aria-label={tStatic(locale, "home.videoAria")}>
@@ -14,8 +22,8 @@ export const HomeVideo = component$(() => {
           controls
           playsInline
           preload="metadata"
-          poster={HOME_VIDEO.poster}
-          src={HOME_VIDEO.src}
+          poster={poster || undefined}
+          src={src}
         />
       </div>
     </section>

@@ -11,13 +11,25 @@ import { HomeVideo } from "~/components/home/home-video";
 import { PromoTiles } from "~/components/home/promo-tiles";
 import { TopCategories } from "~/components/home/top-categories";
 import { JsonLd } from "~/components/seo/json-ld";
-import { fetchBrands, fetchHomepageShelves, fetchProductsPage } from "~/lib/api";
+import {
+  fetchBrands,
+  fetchHomepage,
+  fetchHomepageShelves,
+  fetchProductsPage,
+} from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import type { Brand, HomepageCategoryShelf, ProductSummary } from "~/lib/types";
+import type {
+  Brand,
+  HomepageCategoryShelf,
+  HomepageHeroSlide,
+  HomepagePromoTile,
+  HomepageSection,
+  ProductSummary,
+} from "~/lib/types";
 import { useNavCategories, useSiteSettings } from "~/routes/[lang]/layout";
 
 const emptyPage = (perPage: number) => ({
@@ -25,79 +37,130 @@ const emptyPage = (perPage: number) => ({
   meta: { current_page: 1, last_page: 1, per_page: perPage, total: 0 },
 });
 
-export const useFeaturedProducts = routeLoader$(async ({ params }) => {
-  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
-  try {
-    // Include out-of-stock featured items (card shows availability CTA), same as shelves.
-    return await fetchProductsPage({ featured: 1, per_page: 8 }, locale);
-  } catch {
-    return emptyPage(8);
-  }
-});
+function sectionSettingNumber(settings: Record<string, unknown>, key: string, fallback: number): number {
+  const raw = settings[key];
+  const n = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
 
-export const useBestSellingProducts = routeLoader$(async ({ params }) => {
-  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
-  try {
-    return await fetchProductsPage({ sort: "bestsellers", per_page: 6, in_stock_only: true }, locale);
-  } catch {
-    return emptyPage(6);
+function sectionSettingBool(settings: Record<string, unknown>, key: string, fallback: boolean): boolean {
+  const raw = settings[key];
+  if (typeof raw === "boolean") {
+    return raw;
   }
-});
+  if (raw === "1" || raw === "true") {
+    return true;
+  }
+  if (raw === "0" || raw === "false") {
+    return false;
+  }
+  return fallback;
+}
 
-export const useHomeBrands = routeLoader$(async ({ params }): Promise<Brand[]> => {
+export const useHomepageSections = routeLoader$(async ({ params }): Promise<HomepageSection[]> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    const { data } = await fetchBrands(locale);
-    return data ?? [];
+    const { data } = await fetchHomepage(locale);
+    return Array.isArray(data?.sections) ? data.sections : [];
   } catch {
     return [];
   }
 });
 
-export const useCategoryShelves = routeLoader$(
+export const useHomepageCatalog = routeLoader$(
   async ({
     params,
-  }): Promise<Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>> => {
+    resolveValue,
+  }): Promise<{
+    featured: ProductSummary[];
+    bestsellers: ProductSummary[];
+    brands: Brand[];
+    shelves: Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>;
+  }> => {
     const locale = isSupportedLocale(params.lang) ? params.lang : "en";
-    let shelves: HomepageCategoryShelf[] = [];
-    try {
-      const { data } = await fetchHomepageShelves(locale);
-      shelves = data ?? [];
-    } catch {
-      shelves = [];
-    }
+    const sections = await resolveValue(useHomepageSections);
 
-    // Match category PLP: include out-of-stock cards (availability CTA), not in_stock_only.
-    const rows = await Promise.all(
-      shelves.map(async (shelf) => {
-        if (!shelf.slug) {
-          return { shelf, products: [] as ProductSummary[] };
-        }
-        try {
-          const page = await fetchProductsPage(
+    const featuredSec = sections.find((s) => s.type === "featured_products");
+    const bestSec = sections.find((s) => s.type === "bestsellers");
+    const brandSec = sections.find((s) => s.type === "brand_slider");
+    const shelfSec = sections.find((s) => s.type === "category_shelves");
+
+    const featuredPerPage = featuredSec
+      ? sectionSettingNumber(featuredSec.settings, "per_page", 8)
+      : 8;
+    const bestPerPage = bestSec ? sectionSettingNumber(bestSec.settings, "per_page", 6) : 6;
+    const bestInStock = bestSec
+      ? sectionSettingBool(bestSec.settings, "in_stock_only", true)
+      : true;
+    const brandLimit = brandSec ? sectionSettingNumber(brandSec.settings, "limit", 24) : 24;
+    const shelfLimit = shelfSec ? sectionSettingNumber(shelfSec.settings, "limit", 6) : 6;
+    const productsPerShelf = shelfSec
+      ? sectionSettingNumber(shelfSec.settings, "products_per_shelf", 6)
+      : 6;
+
+    const [featuredPage, bestPage, brands, shelfRows] = await Promise.all([
+      featuredSec
+        ? fetchProductsPage({ featured: 1, per_page: featuredPerPage }, locale).catch(() =>
+            emptyPage(featuredPerPage),
+          )
+        : Promise.resolve(emptyPage(0)),
+      bestSec
+        ? fetchProductsPage(
             {
-              category_slug: shelf.slug,
-              per_page: 6,
+              sort: "bestsellers",
+              per_page: bestPerPage,
+              ...(bestInStock ? { in_stock_only: true } : {}),
             },
             locale,
-          );
-          return { shelf, products: page.data };
-        } catch {
-          return { shelf, products: [] as ProductSummary[] };
-        }
-      }),
-    );
+          ).catch(() => emptyPage(bestPerPage))
+        : Promise.resolve(emptyPage(0)),
+      brandSec
+        ? fetchBrands(locale)
+            .then((r) => (r.data ?? []).slice(0, brandLimit))
+            .catch(() => [] as Brand[])
+        : Promise.resolve([] as Brand[]),
+      shelfSec
+        ? (async () => {
+            let shelves: HomepageCategoryShelf[] = [];
+            try {
+              const { data } = await fetchHomepageShelves(locale);
+              shelves = (data ?? []).slice(0, shelfLimit);
+            } catch {
+              shelves = [];
+            }
+            return Promise.all(
+              shelves.map(async (shelf) => {
+                if (!shelf.slug) {
+                  return { shelf, products: [] as ProductSummary[] };
+                }
+                try {
+                  const page = await fetchProductsPage(
+                    { category_slug: shelf.slug, per_page: productsPerShelf },
+                    locale,
+                  );
+                  return { shelf, products: page.data };
+                } catch {
+                  return { shelf, products: [] as ProductSummary[] };
+                }
+              }),
+            );
+          })()
+        : Promise.resolve([]),
+    ]);
 
-    return rows;
+    return {
+      featured: featuredPage.data,
+      bestsellers: bestPage.data,
+      brands,
+      shelves: shelfRows,
+    };
   },
 );
 
 export default component$(() => {
   const settings = useSiteSettings();
-  const featured = useFeaturedProducts();
-  const bestsellers = useBestSellingProducts();
-  const brands = useHomeBrands();
-  const shelves = useCategoryShelves();
+  const sections = useHomepageSections();
+  const catalog = useHomepageCatalog();
   const categoriesLoad = useNavCategories();
   const loc = useLocation();
   const { locale } = useI18n();
@@ -119,31 +182,90 @@ export default component$(() => {
         }}
       />
 
-      <HeroSlider />
-      <PromoTiles />
-      <HomeVideo />
-
-      <PromoBanners banners={settings.value.banners ?? []} placement="home" />
-
-      <FeaturedSlider products={featured.value.data} settings={settings.value} />
-      <TopCategories categories={categoriesLoad.value.items} />
-
-      {shelves.value.map(({ shelf, products }) => (
-        <CategoryShelf
-          key={shelf.id}
-          shelf={shelf}
-          products={products}
-          settings={settings.value}
-        />
-      ))}
-
-      <BrandSlider brands={brands.value} />
-      <BestSelling products={bestsellers.value.data} settings={settings.value} />
-
-      <RecentlyViewed
-        settings={settings.value}
-        headingId="home-recently-viewed-heading"
-      />
+      {sections.value.map((section) => {
+        switch (section.type) {
+          case "hero_slider": {
+            const slides = (section.settings.slides as HomepageHeroSlide[] | undefined) ?? [];
+            return <HeroSlider key={section.id} slides={slides} />;
+          }
+          case "promo_tiles": {
+            const tiles = (section.settings.tiles as HomepagePromoTile[] | undefined) ?? [];
+            return <PromoTiles key={section.id} tiles={tiles} />;
+          }
+          case "video":
+            return (
+              <HomeVideo
+                key={section.id}
+                src={String(section.settings.url ?? "")}
+                poster={String(section.settings.poster ?? "")}
+              />
+            );
+          case "promo_banners":
+            return (
+              <PromoBanners
+                key={section.id}
+                banners={settings.value.banners ?? []}
+                placement="home"
+              />
+            );
+          case "featured_products":
+            return (
+              <FeaturedSlider
+                key={section.id}
+                products={catalog.value.featured}
+                settings={settings.value}
+              />
+            );
+          case "top_categories":
+            return (
+              <TopCategories
+                key={section.id}
+                categories={categoriesLoad.value.items}
+                limit={sectionSettingNumber(section.settings, "limit", 8)}
+              />
+            );
+          case "category_shelves":
+            return (
+              <div key={section.id}>
+                {catalog.value.shelves.map(({ shelf, products }) => (
+                  <CategoryShelf
+                    key={shelf.id}
+                    shelf={shelf}
+                    products={products}
+                    settings={settings.value}
+                  />
+                ))}
+              </div>
+            );
+          case "brand_slider":
+            return (
+              <BrandSlider
+                key={section.id}
+                brands={catalog.value.brands}
+                limit={sectionSettingNumber(section.settings, "limit", 24)}
+              />
+            );
+          case "bestsellers":
+            return (
+              <BestSelling
+                key={section.id}
+                products={catalog.value.bestsellers}
+                settings={settings.value}
+              />
+            );
+          case "recently_viewed":
+            return (
+              <RecentlyViewed
+                key={section.id}
+                settings={settings.value}
+                headingId="home-recently-viewed-heading"
+                limit={sectionSettingNumber(section.settings, "limit", 8)}
+              />
+            );
+          default:
+            return null;
+        }
+      })}
     </>
   );
 });

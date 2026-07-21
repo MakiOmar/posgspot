@@ -57,7 +57,24 @@ Public `GET /settings` also exposes:
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 
-### Checkout + Fawry payment
+### Homepage sections (`GET /homepage`)
+
+Returns `{ sections: [{ id, type, settings }] }` for **enabled** sections only (order = display order). Locale via `X-Content-Locale`.
+
+| type | settings (presented) |
+|------|----------------------|
+| `hero_slider` | `slides[]` → `{ id, image_url, href, kicker, title }` |
+| `promo_tiles` | `tiles[]` → `{ id, image_url, href, label }` |
+| `video` | `url`, `poster`, `title` |
+| `promo_banners` | `max` (clients still use `settings.banners` placement=home) |
+| `featured_products` | `per_page` → client calls `GET /products?featured=1` |
+| `top_categories` | `limit` |
+| `category_shelves` | `limit`, `products_per_shelf` → `GET /categories/homepage-shelves` |
+| `brand_slider` | `limit` |
+| `bestsellers` | `per_page`, `in_stock_only` |
+| `recently_viewed` | `limit` (client localStorage) |
+
+Unknown types should be skipped by clients.
 
 `POST /checkout` with `payment_method: "fawry"` when online payments are enabled returns:
 
@@ -92,6 +109,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 |--------|------|-------------|
 | GET | `/ping` | Health check |
 | GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
+| GET | `/homepage` | Ordered enabled homepage sections (`type` + presented `settings`) for Qwik / mobile; catalog data still from product/category/brand endpoints |
 | GET | `/locations` | Selling locations; `address` uses **Storefront display address** when set on the location, else landmark/city/state/country/zip. Location email is `email_encoded` (base64), not raw. Powers checkout pickup, contact branches, and the Qwik **store locator** (`/[lang]/stores`). |
 | GET | `/geo/countries` | Country list for address forms |
 | GET | `/geo/states/{countryCode}` | States / governorates for a country |
@@ -183,6 +201,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; `pos_document_type` (`sell` \| `quotation`); `expose_credentials_to_customer` (default true; when false secrets stay on POS staff note only). Public `GET /settings` exposes `digital.enabled` only
 - **Footer payment icons** (`payment_icons`) — label + uploaded image or external URL; public API returns `{ label, icon_url }`
 - **Promotional banners** (`banners`) — homepage / category image banners (upload or URL + link + EN/AR title); public API returns enabled rows only
+- **Homepage sections** (`homepage_sections`) — ordered section builder on Storefront Settings → Homepage tab; public `GET /homepage` returns enabled sections only (`hero_slider`, `promo_tiles`, `video`, `promo_banners`, `featured_products`, `top_categories`, `category_shelves`, `brand_slider`, `bestsellers`, `recently_viewed`). Hero/promo/video media live in section settings; shelves/featured still use category/product flags
 - **Homepage shelves** — edit on product **Categories** (`/taxonomies?type=product`): enable shelf, sort, side banner image, heading, banner copy/button/link; public `GET /categories/homepage-shelves`
 - **Product “Featured on storefront”** — `products.is_storefront_featured`; filter with `GET /products?featured=1`
 - **Category / brand images** — optional `image` upload on POS category/brand forms; public API exposes `image_url`

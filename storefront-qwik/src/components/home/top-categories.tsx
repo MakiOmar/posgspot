@@ -6,12 +6,13 @@ import type { Category } from "~/lib/types";
 
 interface TopCategoriesProps {
   categories: Category[];
+  limit?: number;
 }
 
 /** Top category cards with thumbnail or CSS placeholder. */
-export const TopCategories = component$<TopCategoriesProps>(({ categories }) => {
+export const TopCategories = component$<TopCategoriesProps>(({ categories, limit = 8 }) => {
   const { locale } = useI18n();
-  const items = categories.filter((c) => Boolean(c.slug)).slice(0, 8);
+  const items = categories.filter((c) => Boolean(c.slug)).slice(0, limit);
 
   if (items.length === 0) {
     return null;

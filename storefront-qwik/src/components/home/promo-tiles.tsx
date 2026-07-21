@@ -1,16 +1,22 @@
 import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
-import { HOME_PROMO_TILES } from "~/lib/home-demo";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import type { HomepagePromoTile } from "~/lib/types";
+
+interface PromoTilesProps {
+  tiles: HomepagePromoTile[];
+}
 
 /**
- * Promo tile grid after the hero.
- * Demo images/links for now — wire to Accounts API later (see home-demo.ts).
+ * Promo tile grid after the hero (tiles from GET /homepage section settings).
  */
-export const PromoTiles = component$(() => {
+export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
   const { locale } = useI18n();
-  const tiles = HOME_PROMO_TILES;
+
+  if (tiles.length === 0) {
+    return null;
+  }
 
   return (
     <section class="home-promo-tiles" aria-labelledby="home-promo-heading">
@@ -36,14 +42,13 @@ export const PromoTiles = component$(() => {
               .join(" ")}
           >
             <img
-              src={tile.imageUrl}
+              src={tile.image_url}
               alt={tile.label}
-              class="home-promo-tiles__img"
-              width={800}
-              height={600}
+              width={i === 0 ? 800 : 400}
+              height={i === 0 ? 600 : 300}
               loading="lazy"
             />
-            <span class="home-promo-tiles__cta">{tStatic(locale, "home.shopNow")}</span>
+            <span class="home-promo-tiles__label">{tile.label}</span>
           </Link>
         ))}
       </div>

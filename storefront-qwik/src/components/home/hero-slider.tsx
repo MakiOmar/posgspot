@@ -1,25 +1,36 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
-import { HOME_HERO_SLIDES } from "~/lib/home-demo";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import type { HomepageHeroSlide } from "~/lib/types";
+
+interface HeroSliderProps {
+  slides: HomepageHeroSlide[];
+}
 
 /**
- * Full-bleed homepage hero carousel (demo slides from live site images).
+ * Full-bleed homepage hero carousel (slides from GET /homepage section settings).
  */
-export const HeroSlider = component$(() => {
+export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
   const { locale } = useI18n();
   const index = useSignal(0);
-  const slides = HOME_HERO_SLIDES;
 
   // Auto-advance slides on the client only.
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(({ cleanup }) => {
+  useVisibleTask$(({ cleanup, track }) => {
+    track(() => slides.length);
+    if (slides.length < 2) {
+      return;
+    }
     const timer = setInterval(() => {
       index.value = (index.value + 1) % slides.length;
     }, 6000);
     cleanup(() => clearInterval(timer));
   });
+
+  if (slides.length === 0) {
+    return null;
+  }
 
   const slide = slides[index.value] ?? slides[0];
 
@@ -32,7 +43,7 @@ export const HeroSlider = component$(() => {
           aria-hidden={i !== index.value}
         >
           <img
-            src={item.imageUrl}
+            src={item.image_url}
             alt=""
             class="home-hero-slider__bg"
             width={1920}

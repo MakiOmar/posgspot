@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\BusinessLocation;
+use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\StorefrontSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
@@ -104,6 +105,8 @@ class StorefrontSettingService
             'payment_icons' => [],
             // Homepage / category promotional banners (image + link).
             'banners' => [],
+            // Ordered homepage section builder (see Homepage\SectionTypeRegistry).
+            'homepage_sections' => [],
             'newsletter' => [
                 'enabled' => false,
                 'provider' => null,
@@ -131,10 +134,12 @@ class StorefrontSettingService
             $row = StorefrontSetting::where('business_id', $businessId)->first();
 
             if (empty($row) || empty($row->value)) {
-                return $this->defaults();
+                return $this->homepageSections()->ensureSections($this->defaults());
             }
 
-            return $this->normalizeLocalized(array_replace_recursive($this->defaults(), $row->value));
+            return $this->homepageSections()->ensureSections(
+                $this->normalizeLocalized(array_replace_recursive($this->defaults(), $row->value))
+            );
         });
     }
 
@@ -178,6 +183,12 @@ class StorefrontSettingService
 
         if (array_key_exists('banners', $settings)) {
             $merged['banners'] = $this->normalizeBanners($settings['banners']);
+        }
+
+        if (array_key_exists('homepage_sections', $settings)) {
+            $merged['homepage_sections'] = $this->homepageSections()->normalizeSections($settings['homepage_sections']);
+        } else {
+            $merged = $this->homepageSections()->ensureSections($merged);
         }
 
         if (! empty($settings['gateway']['api_key'])) {
@@ -339,7 +350,14 @@ class StorefrontSettingService
     {
         $row = StorefrontSetting::where('business_id', $businessId)->first();
 
-        return empty($row) ? $this->defaults() : array_replace_recursive($this->defaults(), $row->value ?? []);
+        $raw = empty($row) ? $this->defaults() : array_replace_recursive($this->defaults(), $row->value ?? []);
+
+        return $this->homepageSections()->ensureSections($raw);
+    }
+
+    private function homepageSections(): HomepageSectionService
+    {
+        return app(HomepageSectionService::class);
     }
 
     /**
