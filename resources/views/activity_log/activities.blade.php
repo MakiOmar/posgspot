@@ -13,7 +13,7 @@
                 {{__('lang_v1.' . $activity->description)}}
             </td>
             <td>
-                {{$activity->causer->user_full_name ?? ''}}
+                {{$activity->causer?->user_full_name ?? ''}}
                 @if(!empty($activity->getExtraProperty('from_api')))
                     <br>
                     <span class="label bg-gray">{{$activity->getExtraProperty('from_api')}}</span>

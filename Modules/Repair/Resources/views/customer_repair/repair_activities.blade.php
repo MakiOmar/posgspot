@@ -19,7 +19,7 @@
                                 {{__('lang_v1.' . $activity->description)}}
                             @endif
                         </td>
-                        <td>{{$activity->causer->user_full_name}}</td>
+                        <td>{{$activity->causer?->user_full_name ?? ''}}</td>
                         <td>
                             @if(!empty($activity->getExtraProperty('update_note')))
                                 {{$activity->getExtraProperty('update_note')}}
