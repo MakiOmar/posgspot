@@ -224,6 +224,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | LiteSpeed-friendly CORS `.htaccess` in `uploads/storefront_homepage` + `storefront_library` (CacheDisable); note LSCache purge. |
 | 2026-07-22 | CORS on `uploads/storefront_*` so cross-origin CSS masks work on the Qwik storefront. |
 | 2026-07-22 | Trust badge SVG recolor via CSS mask + `icon_color` (URL only; no inline markup). |
 | 2026-07-22 | Scrub artisan: clear oversized strings + reset homepage when PDO hydrates JSON as array (prior scrub left 898MB blob). |

@@ -226,7 +226,9 @@ Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros d
 
 - Independent of WooCommerce module
 - `storefront_order_id` on transactions for checkout idempotency
-- CORS: configure `CORS_ALLOWED_ORIGINS` in `.env` (Laravel API only). Static trust-badge SVG **masks** also need CORS on upload files — Apache: `public/uploads/.htaccess` sets `Access-Control-Allow-Origin: *` for `uploads/storefront_homepage/` and `uploads/storefront_library/`. Nginx example:
+- CORS: configure `CORS_ALLOWED_ORIGINS` in `.env` (Laravel API only — `api/*` / Sanctum). That does **not** cover static `/uploads/…` files. Trust-badge SVG **masks** need ACAO on the file response:
+  - **Apache / LiteSpeed:** `public/uploads/storefront_homepage/.htaccess` and `public/uploads/storefront_library/.htaccess` set `Access-Control-Allow-Origin: *`. Deploy those files, then **purge LiteSpeed Cache** (and any CDN) for `/uploads/storefront_*` — cached copies often omit the new headers.
+  - **Nginx:**
 
 ```nginx
 location ~* ^/uploads/storefront_(homepage|library)/ {
@@ -235,6 +237,8 @@ location ~* ^/uploads/storefront_(homepage|library)/ {
     if ($request_method = OPTIONS) { return 204; }
 }
 ```
+
+  Verify: `curl -sI -H "Origin: https://new.gamesspoteg.com" "https://YOUR-POS/uploads/storefront_homepage/….svg"` must show `Access-Control-Allow-Origin`.
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
 - **Transactional mail (system-wide Mailgun API):** set `MAIL_MAILER=mailgun`, `MAILGUN_DOMAIN`, `MAILGUN_SECRET`, optional `MAILGUN_ENDPOINT` (`api.mailgun.net` or `api.eu.mailgun.net`), plus `MAIL_FROM_*`. Requires `symfony/mailgun-mailer` + `symfony/http-client`. Businesses that enable **Use superadmin email settings** send via this transport (From name/address can still come from business settings). Otherwise per-business SMTP in Business Settings is used. See root `.env.example`. Smoke test: `php artisan tinker` then `Mail::raw('…', fn ($m) => $m->to('you@example.com')->subject('Test'));` (authorize sandbox recipients in the Mailgun dashboard).
 - Digital allocate when a sell becomes **paid** (any POS path via `updatePaymentStatus`): Accounts `receiveOrder`, credentials on Staff note + sell line. Retry: `php artisan storefront:fulfill-digital` (optional `--transaction=ID`)

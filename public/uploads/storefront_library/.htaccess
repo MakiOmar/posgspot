@@ -1,0 +1,17 @@
+# CORS for CSS mask-image (Qwik storefront). Applies to all library/{business_id}/ files.
+# See docs/public-site/API.md
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Origin, Accept, Content-Type"
+</IfModule>
+
+<IfModule LiteSpeed>
+    CacheDisable public
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^ - [R=204,L]
+</IfModule>

@@ -1,0 +1,20 @@
+# CORS for CSS mask-image (Qwik storefront). Plain <img> does not need this.
+# LiteSpeed: supports Header; avoid SetEnvIf+env= (unreliable). LSCache: purge
+# after deploy; exclude these paths if cached responses omit ACAO.
+# See docs/public-site/API.md
+<IfModule mod_headers.c>
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Origin, Accept, Content-Type"
+</IfModule>
+
+# Do not cache these responses without CORS headers (LiteSpeed Cache / CDN).
+<IfModule LiteSpeed>
+    CacheDisable public
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^ - [R=204,L]
+</IfModule>

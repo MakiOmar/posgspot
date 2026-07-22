@@ -1,16 +1,9 @@
-# Public storefront media (homepage + library). CSS mask-image on the Qwik
-# storefront is cross-origin and requires ACAO; plain <img> does not.
-# Requires Apache mod_headers. Nginx: see docs/public-site/API.md.
+# Fallback if a request is handled at /uploads/ without a subfolder .htaccess.
+# Prefer storefront_homepage/ and storefront_library/ rules (LiteSpeed-friendly).
+# See docs/public-site/API.md
 <IfModule mod_headers.c>
     SetEnvIf Request_URI "storefront_(homepage|library)/" STOREFRONT_PUBLIC_MEDIA=1
     Header always set Access-Control-Allow-Origin "*" env=STOREFRONT_PUBLIC_MEDIA
     Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS" env=STOREFRONT_PUBLIC_MEDIA
     Header always set Access-Control-Allow-Headers "Origin, Accept, Content-Type" env=STOREFRONT_PUBLIC_MEDIA
-</IfModule>
-
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteCond %{REQUEST_URI} storefront_(homepage|library)/ [NC]
-    RewriteRule ^ - [R=204,L]
 </IfModule>
