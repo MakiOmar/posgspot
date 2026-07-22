@@ -158,7 +158,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
-| Homepage section builder | ✅ | Settings → Homepage tab; `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
+| Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
@@ -224,6 +224,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Storefront media library: `storefront_media` + checksum dedupe under `uploads/storefront_library/{business_id}/`; list/upload/delete API; homepage builder Library picker; homepage uploads migrate to library paths. |
 | 2026-07-22 | Storefront import/export: stream ZIP media (no full extract), compact JSON, batched DB lookups/inserts, short transactions. |
 | 2026-07-22 | Storefront import/export expanded to full ZIP bundle (settings, shipping, media, coupons, overlays, translations). |
 | 2026-07-22 | Storefront settings JSON import/export on `/storefront/settings` (secrets redacted; zones/media excluded). |

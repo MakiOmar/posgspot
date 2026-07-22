@@ -40,6 +40,7 @@ class StorefrontBundleService
     /** @var list<string> */
     private const MEDIA_DIRS = [
         'storefront_homepage',
+        'storefront_library',
         'storefront_payment_icons',
         'storefront_banners',
         'img',
@@ -48,6 +49,7 @@ class StorefrontBundleService
     /** @var array<string, true> */
     private const MEDIA_DIR_LOOKUP = [
         'storefront_homepage' => true,
+        'storefront_library' => true,
         'storefront_payment_icons' => true,
         'storefront_banners' => true,
         'img' => true,
@@ -695,33 +697,57 @@ class StorefrontBundleService
      */
     private function collectMediaFiles(array $manifest): array
     {
-        $basenames = [];
-        $this->collectImageBasenames($manifest['settings'] ?? [], $basenames);
+        $refs = [];
+        $this->collectImageRefs($manifest['settings'] ?? [], $refs);
 
         foreach (($manifest['catalog_overlays']['categories'] ?? []) as $row) {
             foreach (['image', 'shelf_banner', 'shelf_fg_image'] as $field) {
                 $val = trim((string) ($row[$field] ?? ''));
                 if ($val !== '') {
-                    $basenames[$val] = true;
+                    $refs[$val] = true;
                 }
             }
         }
         foreach (($manifest['catalog_overlays']['brands'] ?? []) as $row) {
             $val = trim((string) ($row['image'] ?? ''));
             if ($val !== '') {
-                $basenames[$val] = true;
+                $refs[$val] = true;
             }
         }
 
         $files = [];
         $uploadsRoot = public_path('uploads');
 
-        foreach (array_keys($basenames) as $basename) {
-            $basename = basename((string) $basename);
+        foreach (array_keys($refs) as $ref) {
+            $ref = str_replace('\\', '/', trim((string) $ref));
+            $ref = ltrim($ref, '/');
+            if ($ref === '' || str_contains($ref, '..')) {
+                continue;
+            }
+
+            // Library / explicit relative path under uploads/
+            if (str_contains($ref, '/')) {
+                if (
+                    ! str_starts_with($ref, 'storefront_library/')
+                    && ! str_starts_with($ref, 'storefront_homepage/')
+                ) {
+                    continue;
+                }
+                $absolute = $uploadsRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $ref);
+                if (is_file($absolute)) {
+                    $files[$ref] = $absolute;
+                }
+                continue;
+            }
+
+            $basename = basename($ref);
             if ($basename === '' || $basename === '.' || $basename === '..') {
                 continue;
             }
             foreach (self::MEDIA_DIRS as $dir) {
+                if ($dir === 'storefront_library') {
+                    continue; // nested only via relative path refs
+                }
                 $absolute = $uploadsRoot.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.$basename;
                 if (is_file($absolute)) {
                     $files[$dir.'/'.$basename] = $absolute;
@@ -737,7 +763,7 @@ class StorefrontBundleService
      * @param  mixed  $node
      * @param  array<string, true>  $out
      */
-    private function collectImageBasenames(mixed $node, array &$out): void
+    private function collectImageRefs(mixed $node, array &$out): void
     {
         if (! is_array($node)) {
             return;
@@ -747,14 +773,12 @@ class StorefrontBundleService
             if (is_string($key) && in_array($key, ['image', 'shelf_banner', 'shelf_fg_image'], true)
                 && is_string($value)
                 && $value !== ''
-                && ! str_contains($value, '/')
-                && ! str_contains($value, '\\')
                 && ! str_starts_with($value, 'data:')
                 && ! preg_match('#^https?://#i', $value)
             ) {
-                $out[basename($value)] = true;
+                $out[$value] = true;
             } elseif (is_array($value)) {
-                $this->collectImageBasenames($value, $out);
+                $this->collectImageRefs($value, $out);
             }
         }
     }
@@ -781,23 +805,46 @@ class StorefrontBundleService
             }
 
             $relative = substr($name, strlen('media/'));
-            $parts = explode('/', str_replace('\\', '/', $relative));
-            if (count($parts) !== 2) {
+            $relative = str_replace('\\', '/', $relative);
+            $parts = explode('/', $relative);
+            if (count($parts) < 2 || in_array('', $parts, true) || in_array('.', $parts, true) || in_array('..', $parts, true)) {
                 $skipped++;
                 continue;
             }
-            [$dir, $file] = $parts;
+            $dir = $parts[0];
             if (! isset(self::MEDIA_DIR_LOOKUP[$dir])) {
                 $skipped++;
                 continue;
             }
-            $safe = basename($file);
-            if ($safe === '' || $safe !== $file || $safe === '.' || $safe === '..') {
-                $skipped++;
-                continue;
+
+            // Flat dirs: media/{dir}/{file}
+            // Library: media/storefront_library/{business_id}/{file}
+            if ($dir === 'storefront_library') {
+                if (count($parts) !== 3 || ! ctype_digit((string) $parts[1])) {
+                    $skipped++;
+                    continue;
+                }
+                $file = $parts[2];
+                $safe = basename($file);
+                if ($safe === '' || $safe !== $file) {
+                    $skipped++;
+                    continue;
+                }
+                $targetDir = $uploadsRoot.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.$parts[1];
+            } else {
+                if (count($parts) !== 2) {
+                    $skipped++;
+                    continue;
+                }
+                $file = $parts[1];
+                $safe = basename($file);
+                if ($safe === '' || $safe !== $file) {
+                    $skipped++;
+                    continue;
+                }
+                $targetDir = $uploadsRoot.DIRECTORY_SEPARATOR.$dir;
             }
 
-            $targetDir = $uploadsRoot.DIRECTORY_SEPARATOR.$dir;
             if (! is_dir($targetDir) && ! @mkdir($targetDir, 0755, true) && ! is_dir($targetDir)) {
                 $skipped++;
                 continue;
@@ -843,6 +890,42 @@ class StorefrontBundleService
         foreach (self::MEDIA_DIRS as $dir) {
             $sourceDir = $mediaDir.DIRECTORY_SEPARATOR.$dir;
             if (! is_dir($sourceDir)) {
+                continue;
+            }
+
+            if ($dir === 'storefront_library') {
+                foreach (scandir($sourceDir) ?: [] as $bizFolder) {
+                    if ($bizFolder === '.' || $bizFolder === '..' || ! ctype_digit((string) $bizFolder)) {
+                        continue;
+                    }
+                    $bizSource = $sourceDir.DIRECTORY_SEPARATOR.$bizFolder;
+                    if (! is_dir($bizSource)) {
+                        continue;
+                    }
+                    $targetDir = public_path('uploads/'.$dir.'/'.$bizFolder);
+                    if (! is_dir($targetDir)) {
+                        @mkdir($targetDir, 0755, true);
+                    }
+                    foreach (scandir($bizSource) ?: [] as $file) {
+                        if ($file === '.' || $file === '..') {
+                            continue;
+                        }
+                        $safe = basename($file);
+                        if ($safe !== $file) {
+                            $skipped++;
+                            continue;
+                        }
+                        $from = $bizSource.DIRECTORY_SEPARATOR.$safe;
+                        if (! is_file($from)) {
+                            continue;
+                        }
+                        if (@copy($from, $targetDir.DIRECTORY_SEPARATOR.$safe)) {
+                            $copied++;
+                        } else {
+                            $skipped++;
+                        }
+                    }
+                }
                 continue;
             }
 

@@ -506,6 +506,8 @@
                     id="storefront-homepage-builder"
                     data-save-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections']) }}"
                     data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}"
+                    data-media-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'listMedia']) }}"
+                    data-media-delete-url="{{ url('/storefront/media') }}"
                 >
                     <script type="application/json" id="sf-hp-sections-json">{!! json_encode($homepage_sections ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
                     <script type="application/json" id="sf-hp-types-json">{!! json_encode($homepage_section_types ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
@@ -950,10 +952,10 @@
 @endsection
 
 @section('javascript')
-<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=4">
+<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=5">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=16"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=17"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

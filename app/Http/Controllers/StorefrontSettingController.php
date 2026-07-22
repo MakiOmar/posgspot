@@ -7,6 +7,7 @@ use App\Category;
 use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontBundleService;
+use App\Services\Storefront\StorefrontMediaLibraryService;
 use App\Services\Storefront\StorefrontSettingService;
 use App\Utils\Util;
 use Illuminate\Http\Request;
@@ -100,9 +101,36 @@ class StorefrontSettingController extends Controller
     }
 
     /**
-     * Upload an image or SVG for homepage section media; returns stored filename + public URL (+ svg_markup for SVGs).
+     * List storefront media library assets for the homepage builder picker.
      */
-    public function uploadHomepageMedia(Request $request)
+    public function listMedia(Request $request, StorefrontMediaLibraryService $library)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            return response()->json(['success' => false, 'msg' => 'Unauthorized action.'], 403);
+        }
+
+        $businessId = (int) $request->session()->get('user.business_id');
+        $kind = $request->query('kind');
+        $kind = is_string($kind) ? $kind : null;
+        $q = $request->query('q');
+        $q = is_string($q) ? $q : null;
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = max(1, min(48, (int) $request->query('per_page', 24)));
+
+        $result = $library->list($businessId, $kind, $q, $page, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'items' => $result['items'],
+            'meta' => $result['meta'],
+        ]);
+    }
+
+    /**
+     * Upload an image or SVG into the storefront media library (checksum-deduped).
+     * Returns storage path + public URL (+ svg_markup for SVGs).
+     */
+    public function uploadHomepageMedia(Request $request, StorefrontMediaLibraryService $library)
     {
         if (! auth()->user()->can('storefront.settings')) {
             abort(403, 'Unauthorized action.');
@@ -117,67 +145,56 @@ class StorefrontSettingController extends Controller
             ],
         ]);
 
-        $file = $request->file('image');
-        $ext = strtolower((string) $file->getClientOriginalExtension());
-        $mime = strtolower((string) $file->getMimeType());
-        $isSvg = $ext === 'svg' || str_contains($mime, 'svg');
-
-        $this->commonUtil->ensurePublicUploadPermissions('storefront_homepage', null, true);
-
-        $svgMarkup = null;
-        if ($isSvg) {
-            $raw = @file_get_contents($file->getRealPath());
-            $svgMarkup = is_string($raw)
-                ? app(\App\Services\Storefront\Homepage\HomepageSectionService::class)->sanitizeSvgForUpload($raw)
-                : null;
-            if ($svgMarkup === null) {
-                return response()->json([
-                    'success' => false,
-                    'msg' => 'Invalid SVG file.',
-                ], 422);
-            }
-        }
+        $businessId = (int) $request->session()->get('user.business_id');
 
         try {
-            $filename = $this->commonUtil->uploadFile($request, 'image', 'storefront_homepage', 'image');
+            $result = $library->storeUploadedFile(
+                $businessId,
+                $request->file('image'),
+                auth()->id()
+            );
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ], 422);
         } catch (\Throwable $e) {
-            // SVG sometimes reports as text/xml — store manually.
-            if ($isSvg) {
-                $filename = time().'_'.preg_replace('/[^a-zA-Z0-9._-]/', '_', $file->getClientOriginalName());
-                if (! str_ends_with(strtolower($filename), '.svg')) {
-                    $filename .= '.svg';
-                }
-                $dir = public_path('uploads/storefront_homepage');
-                if (! is_dir($dir)) {
-                    @mkdir($dir, 0755, true);
-                }
-                if (! $file->move($dir, $filename)) {
-                    $filename = null;
-                } else {
-                    $this->commonUtil->ensurePublicUploadPermissions('storefront_homepage', $filename);
-                }
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'msg' => __('messages.something_went_wrong'),
-                ], 422);
-            }
-        }
+            Log::warning('Storefront media upload failed', ['error' => $e->getMessage()]);
 
-        if (empty($filename)) {
             return response()->json([
                 'success' => false,
                 'msg' => __('messages.something_went_wrong'),
             ], 422);
         }
 
+        $presented = $library->present($result['media']);
+
         return response()->json([
             'success' => true,
-            'image' => $filename,
-            'image_url' => asset('uploads/storefront_homepage/'.$filename),
-            'svg_markup' => $svgMarkup,
-            'icon_kind' => $isSvg ? 'svg' : 'image',
+            'media_id' => $presented['id'],
+            'image' => $presented['image'],
+            'image_url' => $presented['image_url'],
+            'svg_markup' => $result['svg_markup'],
+            'icon_kind' => $result['media']->kind === 'svg' ? 'svg' : 'image',
+            'deduped' => ! $result['created'],
         ]);
+    }
+
+    /**
+     * Soft-delete a library asset and remove its file from disk.
+     */
+    public function destroyMedia(Request $request, int $id, StorefrontMediaLibraryService $library)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            return response()->json(['success' => false, 'msg' => 'Unauthorized action.'], 403);
+        }
+
+        $businessId = (int) $request->session()->get('user.business_id');
+        if (! $library->delete($businessId, $id)) {
+            return response()->json(['success' => false, 'msg' => 'Media not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'msg' => 'Media deleted.']);
     }
 
     public function update(Request $request)

@@ -226,6 +226,8 @@
 
     var saveUrl = el.getAttribute("data-save-url") || "";
     var uploadUrl = el.getAttribute("data-upload-url") || "";
+    var mediaUrl = el.getAttribute("data-media-url") || "";
+    var mediaDeleteBase = el.getAttribute("data-media-delete-url") || "";
 
     Vue.createApp({
       data: function () {
@@ -239,6 +241,14 @@
           uploading: false,
           message: "",
           error: "",
+          libraryOpen: false,
+          libraryLoading: false,
+          libraryItems: [],
+          libraryMeta: { current_page: 1, last_page: 1, per_page: 24, total: 0 },
+          libraryKind: "",
+          libraryQ: "",
+          libraryTarget: null,
+          libraryForceImageKind: false,
         };
       },
       computed: {
@@ -503,15 +513,20 @@
                 item.image = json.image;
                 item.url = "";
                 item.image_url = json.image_url;
+                item.media_id = json.media_id || null;
                 if (json.icon_kind === "svg" && json.svg_markup) {
                   item.icon_kind = "svg";
                   item.svg_markup = json.svg_markup;
+                  baselineTrustBadgeSvg(item);
                 } else if (options.forceImageKind) {
                   item.icon_kind = "image";
                   item.svg_markup = "";
                 }
-                self.message = "File uploaded.";
+                self.message = json.deduped ? "Reused existing library file." : "File uploaded to library.";
                 self.error = "";
+                if (self.libraryOpen) {
+                  self.loadLibrary(1);
+                }
               })
               .catch(function () {
                 self.uploading = false;
@@ -519,6 +534,130 @@
               });
           };
           input.click();
+        },
+        openLibrary: function (item, opts) {
+          var options = opts || {};
+          this.libraryTarget = item;
+          this.libraryForceImageKind = !!options.forceImageKind;
+          this.libraryKind = options.kind || "";
+          this.libraryQ = "";
+          this.libraryOpen = true;
+          this.loadLibrary(1);
+        },
+        closeLibrary: function () {
+          this.libraryOpen = false;
+          this.libraryTarget = null;
+          this.libraryItems = [];
+        },
+        loadLibrary: function (page) {
+          var self = this;
+          if (!mediaUrl) {
+            self.error = "Media library URL missing — refresh the page.";
+            return;
+          }
+          var params = new URLSearchParams();
+          params.set("page", String(page || 1));
+          params.set("per_page", "24");
+          if (self.libraryKind) {
+            params.set("kind", self.libraryKind);
+          }
+          if (self.libraryQ) {
+            params.set("q", self.libraryQ);
+          }
+          self.libraryLoading = true;
+          fetch(mediaUrl + "?" + params.toString(), {
+            method: "GET",
+            headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" },
+            credentials: "same-origin",
+          })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (json) {
+              self.libraryLoading = false;
+              if (!json.success) {
+                self.error = json.msg || "Could not load media library.";
+                return;
+              }
+              self.libraryItems = Array.isArray(json.items) ? json.items : [];
+              self.libraryMeta = json.meta || self.libraryMeta;
+            })
+            .catch(function () {
+              self.libraryLoading = false;
+              self.error = "Could not load media library.";
+            });
+        },
+        searchLibrary: function () {
+          this.loadLibrary(1);
+        },
+        pickLibraryItem: function (media) {
+          var self = this;
+          var item = this.libraryTarget;
+          if (!item || !media) {
+            return;
+          }
+          item.image = media.image || media.path;
+          item.url = "";
+          item.image_url = media.image_url || media.url || "";
+          item.media_id = media.id || null;
+          if (media.kind === "svg" && !this.libraryForceImageKind) {
+            item.icon_kind = "svg";
+            // Load markup for recolor preview (same-origin).
+            self.uploading = true;
+            fetch(item.image_url, { credentials: "same-origin" })
+              .then(function (res) {
+                return res.text();
+              })
+              .then(function (text) {
+                self.uploading = false;
+                item.svg_markup = text && text.indexOf("<svg") !== -1 ? text : "";
+                baselineTrustBadgeSvg(item);
+                self.message = "Selected from library.";
+                self.closeLibrary();
+              })
+              .catch(function () {
+                self.uploading = false;
+                item.svg_markup = "";
+                self.message = "Selected from library (preview unavailable).";
+                self.closeLibrary();
+              });
+            return;
+          }
+          item.icon_kind = "image";
+          item.svg_markup = "";
+          this.message = "Selected from library.";
+          this.closeLibrary();
+        },
+        deleteLibraryItem: function (media) {
+          var self = this;
+          if (!media || !media.id || !mediaDeleteBase) {
+            return;
+          }
+          if (!window.confirm("Delete this file from the media library?")) {
+            return;
+          }
+          fetch(mediaDeleteBase.replace(/\/$/, "") + "/" + media.id, {
+            method: "DELETE",
+            headers: {
+              "X-CSRF-TOKEN": csrf(),
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            credentials: "same-origin",
+          })
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (json) {
+              if (!json.success) {
+                self.error = json.msg || "Delete failed.";
+                return;
+              }
+              self.loadLibrary(self.libraryMeta.current_page || 1);
+            })
+            .catch(function () {
+              self.error = "Delete failed.";
+            });
         },
         save: function () {
           var self = this;
@@ -704,6 +843,7 @@
                       <input class="form-control input-sm" v-model="slide.title.en" placeholder="Title (EN)" />
                       <input class="form-control input-sm" v-model="slide.title.ar" placeholder="Title (AR)" dir="rtl" />
                       <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(slide)">Upload image</button>
+                      <button type="button" class="btn btn-default btn-xs" @click="openLibrary(slide, { kind: 'image' })">Library</button>
                       <button type="button" class="btn btn-danger btn-xs" @click="removeSlide(section, si)">Remove</button>
                     </div>
                   </div>
@@ -719,6 +859,7 @@
                       <input class="form-control input-sm" v-model="tile.label.en" placeholder="Label (EN)" />
                       <input class="form-control input-sm" v-model="tile.label.ar" placeholder="Label (AR)" dir="rtl" />
                       <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(tile)">Upload image</button>
+                      <button type="button" class="btn btn-default btn-xs" @click="openLibrary(tile, { kind: 'image' })">Library</button>
                       <button type="button" class="btn btn-danger btn-xs" @click="removeTile(section, ti)">Remove</button>
                     </div>
                   </div>
@@ -783,6 +924,7 @@
                         <input class="form-control input-sm" v-model="item.url" placeholder="SVG URL (optional)" />
                         <button type="button" class="btn btn-default btn-xs" @click="loadTrustBadgeSvgFromUrl(item)">Load SVG from URL</button>
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { acceptSvg: true })">Upload SVG</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="openLibrary(item, { kind: 'svg' })">Library</button>
                         <label class="sf-hp-color-label">Icon color
                           <input type="color" v-model="item.icon_color" />
                           <input class="form-control input-sm" style="max-width:120px;display:inline-block;" v-model="item.icon_color" />
@@ -792,6 +934,7 @@
                       <template v-else>
                         <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { forceImageKind: true })">Upload image</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="openLibrary(item, { kind: 'image', forceImageKind: true })">Library</button>
                       </template>
                       <input class="form-control input-sm" v-model="item.title.en" placeholder="Title (EN)" />
                       <input class="form-control input-sm" v-model="item.title.ar" placeholder="Title (AR)" dir="rtl" />
@@ -821,6 +964,7 @@
                       <div class="sf-hp-media-fields">
                         <input class="form-control input-sm" v-model="section.settings.logo.url" placeholder="Logo image URL" :disabled="!!section.settings.logo.image" />
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings.logo)">Upload logo</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="openLibrary(section.settings.logo, { kind: 'image' })">Library</button>
                         <button type="button" class="btn btn-default btn-xs" v-if="section.settings.logo.image || section.settings.logo.url" @click="clearBannerLogo(section)">Clear logo</button>
                       </div>
                     </div>
@@ -890,6 +1034,7 @@
                       <div class="sf-hp-media-fields">
                         <input class="form-control input-sm" v-model="section.settings.image.url" placeholder="Product image URL" :disabled="!!section.settings.image.image" />
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(section.settings.image)">Upload image</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="openLibrary(section.settings.image, { kind: 'image' })">Library</button>
                         <button type="button" class="btn btn-default btn-xs" v-if="section.settings.image.image || section.settings.image.url" @click="clearBannerImage(section)">Clear image</button>
                       </div>
                     </div>
@@ -1026,6 +1171,46 @@
             </div>
           </div>
           <p v-if="!sections.length" class="text-muted">No sections yet — insert one above.</p>
+
+          <div v-if="libraryOpen" class="sf-hp-library-modal" @click.self="closeLibrary">
+            <div class="sf-hp-library-dialog" role="dialog" aria-modal="true" aria-label="Media library">
+              <div class="sf-hp-library-head">
+                <strong>Media library</strong>
+                <button type="button" class="btn btn-default btn-xs" @click="closeLibrary">Close</button>
+              </div>
+              <div class="sf-hp-library-toolbar">
+                <input
+                  class="form-control input-sm"
+                  v-model="libraryQ"
+                  placeholder="Search by filename"
+                  @keyup.enter="searchLibrary"
+                />
+                <button type="button" class="btn btn-default btn-sm" @click="searchLibrary">Search</button>
+                <button type="button" class="btn btn-primary btn-sm" :disabled="!libraryTarget" @click="uploadMedia(libraryTarget, { acceptSvg: libraryKind !== 'image', forceImageKind: libraryForceImageKind })">Upload new</button>
+              </div>
+              <p v-if="libraryLoading" class="text-muted">Loading…</p>
+              <div v-else class="sf-hp-library-grid">
+                <button
+                  type="button"
+                  class="sf-hp-library-card"
+                  v-for="m in libraryItems"
+                  :key="m.id"
+                  @click="pickLibraryItem(m)"
+                >
+                  <img v-if="m.image_url" :src="m.image_url" alt="" />
+                  <span class="sf-hp-library-name">{{ m.original_name || m.path }}</span>
+                  <span class="sf-hp-library-meta">{{ m.kind }} · {{ Math.round((m.bytes || 0) / 1024) }} KB</span>
+                  <span class="sf-hp-library-del" @click.stop="deleteLibraryItem(m)" title="Delete">×</span>
+                </button>
+                <p v-if="!libraryItems.length" class="text-muted">No files yet — upload one.</p>
+              </div>
+              <div class="sf-hp-library-pager" v-if="libraryMeta.last_page > 1">
+                <button type="button" class="btn btn-default btn-xs" :disabled="libraryMeta.current_page <= 1" @click="loadLibrary(libraryMeta.current_page - 1)">Prev</button>
+                <span class="text-muted">Page {{ libraryMeta.current_page }} / {{ libraryMeta.last_page }}</span>
+                <button type="button" class="btn btn-default btn-xs" :disabled="libraryMeta.current_page >= libraryMeta.last_page" @click="loadLibrary(libraryMeta.current_page + 1)">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
       `,
     }).mount(el);

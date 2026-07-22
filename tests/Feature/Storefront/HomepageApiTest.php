@@ -422,10 +422,11 @@ class HomepageApiTest extends TestCase
         $this->assertNotNull($trust);
         $item = $trust['settings']['items'][0] ?? null;
         $this->assertIsArray($item);
-        // Pasted SVG should be persisted as an uploaded .svg file.
+        // Pasted SVG should be persisted into the media library (checksum-deduped).
         $this->assertNotEmpty($item['image'] ?? null);
+        $this->assertStringContainsString('storefront_library/', (string) $item['image']);
         $this->assertStringEndsWith('.svg', (string) $item['image']);
-        $this->assertFileExists(public_path('uploads/storefront_homepage/'.$item['image']));
+        $this->assertFileExists(public_path('uploads/'.$item['image']));
 
         $response = $this->getJson('/api/storefront/v1/homepage');
         $response->assertOk()
@@ -465,7 +466,8 @@ class HomepageApiTest extends TestCase
             ->firstWhere('type', 'trust_badges')['settings']['items'][0] ?? null;
         $this->assertSame('svg', $item['icon_kind'] ?? null);
         $this->assertNotEmpty($item['image'] ?? null);
-        $this->assertFileExists(public_path('uploads/storefront_homepage/'.$item['image']));
+        $this->assertStringContainsString('storefront_library/', (string) $item['image']);
+        $this->assertFileExists(public_path('uploads/'.$item['image']));
     }
 
     public function test_trust_badges_svg_item_presents_markup_and_color(): void

@@ -3,6 +3,7 @@
 namespace App\Services\Storefront\Homepage;
 
 use App\Services\Storefront\CatalogService;
+use App\Services\Storefront\StorefrontMediaLibraryService;
 use Illuminate\Support\Str;
 
 /**
@@ -185,7 +186,7 @@ class HomepageSectionService
      * @param  mixed  $sections
      * @return array<int, array{id: string, type: string, enabled: bool, settings: array<string, mixed>}>
      */
-    public function normalizeSections($sections): array
+    public function normalizeSections($sections, ?int $businessId = null): array
     {
         if (! is_array($sections)) {
             return $this->defaultSections();
@@ -221,7 +222,11 @@ class HomepageSectionService
                 'type' => $type,
                 'enabled' => filter_var($row['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'layout_width' => $this->normalizeLayoutWidth($row['layout_width'] ?? null),
-                'settings' => $this->normalizeSettings($type, is_array($row['settings'] ?? null) ? $row['settings'] : []),
+                'settings' => $this->normalizeSettings(
+                    $type,
+                    is_array($row['settings'] ?? null) ? $row['settings'] : [],
+                    $businessId
+                ),
             ];
         }
 
@@ -232,7 +237,7 @@ class HomepageSectionService
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */
-    public function normalizeSettings(string $type, array $settings): array
+    public function normalizeSettings(string $type, array $settings, ?int $businessId = null): array
     {
         $defaults = $this->registry->get($type)['default_settings'] ?? [];
 
@@ -245,7 +250,7 @@ class HomepageSectionService
             ],
             'video' => $this->normalizeVideo($settings),
             'trust_badges' => [
-                'items' => $this->normalizeTrustBadgeItems($settings['items'] ?? []),
+                'items' => $this->normalizeTrustBadgeItems($settings['items'] ?? [], $businessId),
             ],
             'promo_banners' => [
                 'max' => max(1, min(24, (int) ($settings['max'] ?? 12))),
@@ -431,7 +436,10 @@ class HomepageSectionService
     {
         $image = trim((string) $image);
         if ($image !== '') {
-            return asset(self::UPLOAD_DIR.'/'.$image);
+            $rel = $this->resolveUploadRelativePath($image);
+            if ($rel !== null) {
+                return asset('uploads/'.$rel);
+            }
         }
 
         $url = trim((string) $url);
@@ -448,6 +456,33 @@ class HomepageSectionService
         }
 
         return asset($url);
+    }
+
+    /**
+     * Resolve a stored image key to a path under public/uploads.
+     * Legacy: bare filename → storefront_homepage/{file}
+     * Library: storefront_library/{business_id}/{file}
+     */
+    public function resolveUploadRelativePath(string $image): ?string
+    {
+        $image = str_replace('\\', '/', trim($image));
+        $image = ltrim($image, '/');
+        if ($image === '' || str_contains($image, '..')) {
+            return null;
+        }
+
+        if (str_contains($image, '/')) {
+            if (
+                str_starts_with($image, StorefrontMediaLibraryService::DIR.'/')
+                || str_starts_with($image, 'storefront_homepage/')
+            ) {
+                return $image;
+            }
+
+            return null;
+        }
+
+        return 'storefront_homepage/'.$image;
     }
 
     /**
@@ -678,6 +713,11 @@ class HomepageSectionService
     private function normalizeMediaRow(array $row): array
     {
         $image = trim((string) ($row['image'] ?? ''));
+        if ($image !== '') {
+            // Accept legacy filenames and library-relative paths only.
+            $rel = $this->resolveUploadRelativePath($image);
+            $image = $rel ?? '';
+        }
         $url = trim((string) ($row['url'] ?? ''));
 
         return [
@@ -832,7 +872,7 @@ class HomepageSectionService
      * @param  mixed  $items
      * @return array<int, array<string, mixed>>
      */
-    private function normalizeTrustBadgeItems($items): array
+    private function normalizeTrustBadgeItems($items, ?int $businessId = null): array
     {
         if (! is_array($items)) {
             return [];
@@ -873,7 +913,7 @@ class HomepageSectionService
             // Do not read existing .svg files back into memory and rewrite them on every save
             // (that path caused production OOM with large SVGs + PCRE sanitization).
             if ($kind === 'svg' && $svgMarkup !== '') {
-                $storedFile = $this->persistSvgMarkupToUpload($svgMarkup);
+                $storedFile = $this->persistSvgMarkupToUpload($svgMarkup, $businessId);
                 if (is_string($storedFile) && $storedFile !== '') {
                     $media['image'] = $storedFile;
                     $media['url'] = '';
@@ -1050,13 +1090,28 @@ class HomepageSectionService
     }
 
     /**
-     * Persist pasted SVG markup as an uploaded file so settings JSON stays small / WAF-safe.
+     * Persist pasted SVG markup into the media library (checksum-deduped) when business id is known.
+     * Falls back to legacy storefront_homepage/ for edge cases without a business context.
      */
-    private function persistSvgMarkupToUpload(string $svgMarkup): ?string
+    private function persistSvgMarkupToUpload(string $svgMarkup, ?int $businessId = null): ?string
     {
         $clean = $this->sanitizeSvgMarkup($svgMarkup);
         if ($clean === null || $clean === '') {
             return null;
+        }
+
+        if ($businessId !== null && $businessId > 0) {
+            try {
+                $result = app(StorefrontMediaLibraryService::class)->storeSvgMarkup(
+                    $businessId,
+                    $clean,
+                    auth()->id()
+                );
+
+                return (string) $result['media']->path;
+            } catch (\Throwable $e) {
+                return null;
+            }
         }
 
         $dir = public_path(self::UPLOAD_DIR);
@@ -1073,13 +1128,13 @@ class HomepageSectionService
         return $filename;
     }
 
-    private function readUploadedSvgMarkup(string $filename): ?string
+    private function readUploadedSvgMarkup(string $image): ?string
     {
-        $filename = basename($filename);
-        if ($filename === '' || ! preg_match('/\.svg$/i', $filename)) {
+        $rel = $this->resolveUploadRelativePath($image);
+        if ($rel === null || ! preg_match('/\.svg$/i', $rel)) {
             return null;
         }
-        $path = public_path(self::UPLOAD_DIR.'/'.$filename);
+        $path = public_path('uploads/'.$rel);
         if (! is_readable($path)) {
             return null;
         }

@@ -155,6 +155,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/storefront/settings/import', [\App\Http\Controllers\StorefrontSettingController::class, 'import'])->name('storefront.settings.import');
     Route::post('/storefront/homepage-sections', [\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections'])->name('storefront.homepage-sections.update');
     Route::post('/storefront/homepage-media', [\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia'])->name('storefront.homepage-media.upload');
+    Route::get('/storefront/media', [\App\Http\Controllers\StorefrontSettingController::class, 'listMedia'])->name('storefront.media.index');
+    Route::post('/storefront/media', [\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia'])->name('storefront.media.upload');
+    Route::delete('/storefront/media/{id}', [\App\Http\Controllers\StorefrontSettingController::class, 'destroyMedia'])->name('storefront.media.destroy');
     Route::get('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'index'])->name('storefront.shipping.zones.index');
     Route::post('/storefront/shipping/zones', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'store'])->name('storefront.shipping.zones.store');
     Route::put('/storefront/shipping/zones/{id}', [\App\Http\Controllers\StorefrontShippingZoneController::class, 'update'])->name('storefront.shipping.zones.update');
