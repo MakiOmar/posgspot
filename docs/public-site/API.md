@@ -226,7 +226,15 @@ Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros d
 
 - Independent of WooCommerce module
 - `storefront_order_id` on transactions for checkout idempotency
-- CORS: configure `CORS_ALLOWED_ORIGINS` in `.env`
+- CORS: configure `CORS_ALLOWED_ORIGINS` in `.env` (Laravel API only). Static trust-badge SVG **masks** also need CORS on upload files — Apache: `public/uploads/.htaccess` sets `Access-Control-Allow-Origin: *` for `uploads/storefront_homepage/` and `uploads/storefront_library/`. Nginx example:
+
+```nginx
+location ~* ^/uploads/storefront_(homepage|library)/ {
+    add_header Access-Control-Allow-Origin "*" always;
+    add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+    if ($request_method = OPTIONS) { return 204; }
+}
+```
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
 - **Transactional mail (system-wide Mailgun API):** set `MAIL_MAILER=mailgun`, `MAILGUN_DOMAIN`, `MAILGUN_SECRET`, optional `MAILGUN_ENDPOINT` (`api.mailgun.net` or `api.eu.mailgun.net`), plus `MAIL_FROM_*`. Requires `symfony/mailgun-mailer` + `symfony/http-client`. Businesses that enable **Use superadmin email settings** send via this transport (From name/address can still come from business settings). Otherwise per-business SMTP in Business Settings is used. See root `.env.example`. Smoke test: `php artisan tinker` then `Mail::raw('…', fn ($m) => $m->to('you@example.com')->subject('Test'));` (authorize sandbox recipients in the Mailgun dashboard).
 - Digital allocate when a sell becomes **paid** (any POS path via `updatePaymentStatus`): Accounts `receiveOrder`, credentials on Staff note + sell line. Retry: `php artisan storefront:fulfill-digital` (optional `--transaction=ID`)
