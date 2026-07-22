@@ -1126,20 +1126,21 @@ class Util
      */
     public function IsMailConfigured()
     {
-        $is_mail_configured = false;
+        $mailer = config('mail.default', env('MAIL_MAILER'));
 
-        if (
-            ! empty(env('MAIL_MAILER')) &&
-            ! empty(env('MAIL_HOST')) &&
-            ! empty(env('MAIL_PORT')) &&
-            ! empty(env('MAIL_USERNAME')) &&
-            ! empty(env('MAIL_PASSWORD')) &&
-            ! empty(env('MAIL_FROM_ADDRESS'))
-        ) {
-            $is_mail_configured = true;
+        // System-wide Mailgun API transport (MAIL_MAILER=mailgun).
+        if ($mailer === 'mailgun') {
+            return ! empty(config('services.mailgun.domain'))
+                && ! empty(config('services.mailgun.secret'))
+                && ! empty(config('mail.from.address'));
         }
 
-        return $is_mail_configured;
+        return ! empty($mailer)
+            && ! empty(config('mail.mailers.smtp.host'))
+            && ! empty(config('mail.mailers.smtp.port'))
+            && ! empty(config('mail.mailers.smtp.username'))
+            && ! empty(config('mail.mailers.smtp.password'))
+            && ! empty(config('mail.from.address'));
     }
 
     /**

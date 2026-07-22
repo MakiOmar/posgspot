@@ -4,13 +4,14 @@ namespace App\Services\Storefront;
 
 use App\Business;
 use App\Mail\StorefrontOrderShipped;
+use App\System;
 use App\Transaction;
 use App\Utils\BusinessUtil;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * Applies business SMTP settings and resolves a valid From header for storefront mail.
+ * Applies business or system mail settings and resolves a valid From header for storefront mail.
  */
 class StorefrontMailService
 {
@@ -23,6 +24,9 @@ class StorefrontMailService
     /**
      * Configure Laravel mail for the business and return the From address/name.
      *
+     * When the business uses superadmin settings, keep the system mailer
+     * (e.g. Mailgun API from .env) and only override the From header.
+     *
      * @return array{address: string, name: string}
      */
     public function applyForBusiness(int $businessId): array
@@ -30,7 +34,12 @@ class StorefrontMailService
         $business = Business::find($businessId);
         $emailSettings = $this->emailSettingsForBusiness($business);
 
-        if (! empty($emailSettings['mail_host'])) {
+        $useSuperadmin = ! empty($emailSettings['use_superadmin_settings'])
+            && ! empty(System::getProperty('allow_email_settings_to_businesses'));
+
+        if ($useSuperadmin) {
+            // Leave mail.default / Mailgun credentials from .env unchanged.
+        } elseif (! empty($emailSettings['mail_host'])) {
             Config::set('mail.default', $emailSettings['mail_driver'] ?? 'smtp');
             Config::set('mail.mailers.smtp.host', $emailSettings['mail_host']);
             Config::set('mail.mailers.smtp.port', $emailSettings['mail_port']);

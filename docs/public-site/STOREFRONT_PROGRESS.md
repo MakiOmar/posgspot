@@ -47,7 +47,7 @@
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
-| Contact form API | ✅ | Emails business SMTP user |
+| Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
 | Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
@@ -55,7 +55,7 @@
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
-| Order confirmation email | ✅ | `StorefrontMailService` |
+| Order confirmation email | ✅ | `StorefrontMailService` (system Mailgun API or business SMTP) |
 | CORS / `STOREFRONT_URL` | ✅ | Documented in `API.md` |
 | Product description HTML sanitization | ✅ | `StorefrontHtmlSanitizer` on PDP API responses |
 | Catalog translations (`product_translations`, etc.) | ✅ | Overlay via `StorefrontContentPresenter`; strict AR list filter |
@@ -266,6 +266,7 @@
 | 2026-07-10 | Footer payment icons: admin setting (upload or URL), `GET /settings` → `payment_icons[]`, Qwik footer render. |
 | 2026-07-05 | Sanctum sessions: 30-day token TTL (`STOREFRONT_SANCTUM_EXPIRATION_MINUTES`), revoke all tokens on password reset, client 401 handler + toast. |
 | 2026-07-05 | Cloudflare Turnstile: admin settings (site + encrypted secret), server verify on contact/register when configured, Qwik widget + CSP, API tests. |
+| 2026-07-21 | System-wide Mailgun API: `symfony/mailgun-mailer`, `MAIL_MAILER=mailgun` + `MAILGUN_*`; superadmin settings keep API transport; docs + `IsMailConfigured` / `configureEmail` / `StorefrontMailService` fixes. |
 | 2026-07-15 | Featured / deals rail: drop `in_stock_only` so all `is_storefront_featured` products show (OOS cards keep availability CTA). |
 | 2026-07-15 | Shelf banner polish: bg + mid product image + CTA stack; product cards no longer stretch to banner height; `shelf_fg_image` on categories. |
 | 2026-07-15 | Homepage shelves moved to category edit (single source of truth); fix shelf product count (no in_stock_only filter); `GET /categories/homepage-shelves`. |

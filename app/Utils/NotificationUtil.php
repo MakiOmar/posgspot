@@ -293,27 +293,60 @@ class NotificationUtil extends Util
 
         $is_superadmin_settings_allowed = System::getProperty('allow_email_settings_to_businesses');
 
-        //Check if prefered email setting is superadmin email settings
+        // Prefer system (.env) mail when the business opts into superadmin settings.
         if (! empty($is_superadmin_settings_allowed) && ! empty($email_settings['use_superadmin_settings']) && $check_superadmin) {
-            $email_settings['mail_driver'] = config('mail.mailers.smtp.transport');
+            $default_mailer = config('mail.default', 'smtp');
+
+            // System-wide Mailgun API: keep mailgun transport; do not copy SMTP credentials.
+            if ($default_mailer === 'mailgun') {
+                Config::set('mail.default', 'mailgun');
+
+                $from_address = ! empty($email_settings['mail_from_address'])
+                    ? $email_settings['mail_from_address']
+                    : config('mail.from.address');
+                $from_name = ! empty($email_settings['mail_from_name'])
+                    ? $email_settings['mail_from_name']
+                    : config('mail.from.name');
+
+                Config::set('mail.from.address', $from_address);
+                Config::set('mail.from.name', $from_name);
+
+                return;
+            }
+
+            $email_settings['mail_driver'] = 'smtp';
             $email_settings['mail_host'] = config('mail.mailers.smtp.host');
             $email_settings['mail_port'] = config('mail.mailers.smtp.port');
             $email_settings['mail_username'] = config('mail.mailers.smtp.username');
             $email_settings['mail_password'] = config('mail.mailers.smtp.password');
             $email_settings['mail_encryption'] = config('mail.mailers.smtp.encryption');
-            $email_settings['mail_from_address'] = config('mail.mailers.smtp.address');
+            $email_settings['mail_from_address'] = config('mail.from.address')
+                ?: config('mail.mailers.smtp.address');
         }
 
         $mail_driver = ! empty($email_settings['mail_driver']) ? $email_settings['mail_driver'] : 'smtp';
-        Config::set('mail.driver', $mail_driver);
-        Config::set('mail.host', $email_settings['mail_host']);
-        Config::set('mail.port', $email_settings['mail_port']);
-        Config::set('mail.username', $email_settings['mail_username']);
-        Config::set('mail.password', $email_settings['mail_password']);
-        Config::set('mail.encryption', $email_settings['mail_encryption']);
 
-        Config::set('mail.from.address', $email_settings['mail_from_address']);
-        Config::set('mail.from.name', $email_settings['mail_from_name']);
+        if ($mail_driver === 'mailgun') {
+            Config::set('mail.default', 'mailgun');
+        } else {
+            Config::set('mail.default', $mail_driver);
+            Config::set('mail.mailers.smtp.host', $email_settings['mail_host'] ?? null);
+            Config::set('mail.mailers.smtp.port', $email_settings['mail_port'] ?? null);
+            Config::set('mail.mailers.smtp.username', $email_settings['mail_username'] ?? null);
+            Config::set('mail.mailers.smtp.password', $email_settings['mail_password'] ?? null);
+            Config::set('mail.mailers.smtp.encryption', $email_settings['mail_encryption'] ?? null);
+
+            // Legacy keys (older notification paths / packages).
+            Config::set('mail.driver', $mail_driver);
+            Config::set('mail.host', $email_settings['mail_host'] ?? null);
+            Config::set('mail.port', $email_settings['mail_port'] ?? null);
+            Config::set('mail.username', $email_settings['mail_username'] ?? null);
+            Config::set('mail.password', $email_settings['mail_password'] ?? null);
+            Config::set('mail.encryption', $email_settings['mail_encryption'] ?? null);
+        }
+
+        Config::set('mail.from.address', $email_settings['mail_from_address'] ?? null);
+        Config::set('mail.from.name', $email_settings['mail_from_name'] ?? null);
     }
 
     public function replaceHmsBookingTags($data, $transaction, $adults, $childrens, $customer){
