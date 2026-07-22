@@ -758,7 +758,16 @@
                   <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)" :disabled="section.settings.items.length >= 8">Add item</button>
                   <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row sf-hp-trust-item">
                     <div class="sf-hp-trust-preview">
-                      <img v-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
+                      <span
+                        v-if="item.icon_kind === 'svg' && (item.image_url || item.url)"
+                        class="sf-hp-thumb sf-hp-thumb--mask"
+                        :style="{
+                          backgroundColor: item.icon_color || '#f5a623',
+                          WebkitMaskImage: 'url(' + (item.image_url || item.url) + ')',
+                          maskImage: 'url(' + (item.image_url || item.url) + ')',
+                        }"
+                      ></span>
+                      <img v-else-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
                       <div v-else class="sf-hp-thumb sf-hp-thumb--empty">No icon</div>
                     </div>
                     <div class="sf-hp-media-fields">
@@ -770,6 +779,9 @@
                         <input class="form-control input-sm" v-model="item.url" placeholder="SVG URL (optional)" :disabled="!!item.image" />
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { acceptSvg: true })">Upload SVG</button>
                         <button type="button" class="btn btn-default btn-xs" @click="openLibrary(item, { kind: 'svg' })">Library</button>
+                        <label class="sf-hp-inline-label">Icon color
+                          <input type="color" class="form-control input-sm sf-hp-color" v-model="item.icon_color" />
+                        </label>
                       </template>
                       <template v-else>
                         <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />

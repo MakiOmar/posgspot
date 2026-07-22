@@ -24,7 +24,15 @@ function descriptionParts(text: string): Array<{ text: string; accent: boolean }
   return parts.length > 0 ? parts : [{ text, accent: false }];
 }
 
-/** Homepage trust / service badges row (icon + title + description). Icons are media URLs only. */
+function isSvgIcon(item: HomepageTrustBadge): boolean {
+  if (item.icon_kind === "svg") {
+    return true;
+  }
+  const url = item.icon_url || "";
+  return /\.svg(\?|#|$)/i.test(url);
+}
+
+/** Homepage trust badges — SVG icons use CSS mask + icon_color; rasters use lazy img. */
 export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
   if (items.length === 0) {
     return null;
@@ -34,9 +42,23 @@ export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
     <section class="home-trust-badges" aria-label="Store benefits">
       <ul class="home-trust-badges__list">
         {items.map((item) => {
+          const color = item.icon_color || "#f5a623";
+          const useMask = Boolean(item.icon_url) && isSvgIcon(item);
+
           return (
             <li key={item.id || item.title} class="home-trust-badges__item">
-              {item.icon_url ? (
+              {useMask ? (
+                <span
+                  class="home-trust-badges__icon home-trust-badges__icon--mask"
+                  role="img"
+                  aria-hidden="true"
+                  style={{
+                    backgroundColor: color,
+                    WebkitMaskImage: `url("${item.icon_url}")`,
+                    maskImage: `url("${item.icon_url}")`,
+                  }}
+                />
+              ) : item.icon_url ? (
                 <img
                   class="home-trust-badges__icon"
                   src={item.icon_url}

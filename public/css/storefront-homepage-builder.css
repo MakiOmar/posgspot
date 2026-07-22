@@ -91,22 +91,34 @@
   border-radius: 4px;
 }
 
-.sf-hp-svg-preview svg {
-  width: 40px;
-  height: 40px;
+.sf-hp-thumb--mask {
   display: block;
+  width: 48px;
+  height: 48px;
+  margin: 8px auto;
+  background-color: #f5a623;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
-.sf-hp-svg-preview svg [fill]:not([fill='none']),
-.sf-hp-svg-preview svg path,
-.sf-hp-svg-preview svg circle,
-.sf-hp-svg-preview svg rect,
-.sf-hp-svg-preview svg polygon {
-  fill: currentColor;
+.sf-hp-inline-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: normal;
+  font-size: 12px;
+  margin: 0;
+  grid-column: 1 / -1;
 }
 
-.sf-hp-svg-preview svg [stroke]:not([stroke='none']) {
-  stroke: currentColor;
+.sf-hp-inline-label .sf-hp-color {
+  width: 48px;
+  height: 28px;
+  padding: 2px;
 }
 
 .sf-hp-thumb--empty {

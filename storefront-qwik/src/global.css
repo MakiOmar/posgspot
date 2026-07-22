@@ -4784,27 +4784,15 @@ body.is-globally-pending {
   margin: 0 0 0.75rem;
 }
 
-.home-trust-badges__icon--svg {
-  line-height: 0;
-  color: var(--gs-accent);
-}
-
-.home-trust-badges__icon--svg svg {
-  display: block;
-  width: 2.75rem;
-  height: 2.75rem;
-}
-
-.home-trust-badges__icon--svg svg [fill]:not([fill="none"]),
-.home-trust-badges__icon--svg svg path,
-.home-trust-badges__icon--svg svg circle,
-.home-trust-badges__icon--svg svg rect,
-.home-trust-badges__icon--svg svg polygon {
-  fill: currentColor;
-}
-
-.home-trust-badges__icon--svg svg [stroke]:not([stroke="none"]) {
-  stroke: currentColor;
+/* Recolor SVG via mask — file URL only (no inline markup). */
+.home-trust-badges__icon--mask {
+  background-color: var(--gs-accent);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 .home-trust-badges__title {

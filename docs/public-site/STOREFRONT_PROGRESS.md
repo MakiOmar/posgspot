@@ -224,6 +224,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Trust badge SVG recolor via CSS mask + `icon_color` (URL only; no inline markup). |
 | 2026-07-22 | Scrub artisan: clear oversized strings + reset homepage when PDO hydrates JSON as array (prior scrub left 898MB blob). |
 | 2026-07-22 | Homepage save OOM: surgical JSON replace for oversized settings blobs; scrub `svg_markup` without Eloquent cast; `storefront:scrub-inline-svg` artisan; request size guard + debug logs. |
 | 2026-07-22 | Trust badges: drop inline SVG sanitize/present; icons are media-library URLs only (fixes production OOM). |
