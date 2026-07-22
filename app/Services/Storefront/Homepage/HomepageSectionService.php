@@ -847,7 +847,14 @@ class HomepageSectionService
             $description = $this->localeMap($row['description'] ?? null, 240);
             $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
             $media = $this->normalizeMediaRow($row);
-            $svgMarkup = $kind === 'svg' ? ($this->sanitizeSvgMarkup((string) ($row['svg_markup'] ?? '')) ?? '') : '';
+            $rawMarkup = (string) ($row['svg_markup'] ?? '');
+            if ($rawMarkup === '' && ! empty($row['svg_markup_b64']) && is_string($row['svg_markup_b64'])) {
+                $decoded = base64_decode($row['svg_markup_b64'], true);
+                if (is_string($decoded) && $decoded !== '') {
+                    $rawMarkup = $decoded;
+                }
+            }
+            $svgMarkup = $kind === 'svg' ? ($this->sanitizeSvgMarkup($rawMarkup) ?? '') : '';
 
             // If SVG mode but only a local uploaded .svg filename, try reading markup from disk.
             if ($kind === 'svg' && $svgMarkup === '' && ! empty($media['image'])) {

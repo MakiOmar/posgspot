@@ -389,6 +389,40 @@ class HomepageApiTest extends TestCase
         $this->assertCount(5, $response->json('data.sections.0.settings.items'));
     }
 
+    public function test_trust_badges_accepts_base64_svg_markup(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'settings' => [
+                        'items' => [
+                            [
+                                'id' => 'badge_b64',
+                                'icon_kind' => 'svg',
+                                'icon_color' => '#abc123',
+                                'svg_markup' => '',
+                                'svg_markup_b64' => base64_encode($svg),
+                                'title' => ['en' => 'Encoded', 'ar' => ''],
+                                'description' => ['en' => 'Via b64', 'ar' => ''],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'svg');
+        $this->assertStringContainsString('<svg', (string) $response->json('data.sections.0.settings.items.0.svg_markup'));
+    }
+
     public function test_trust_badges_svg_item_presents_markup_and_color(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';

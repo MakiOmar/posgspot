@@ -70,7 +70,10 @@ class StorefrontSettingController extends Controller
     public function updateHomepageSections(Request $request)
     {
         if (! auth()->user()->can('storefront.settings')) {
-            abort(403, 'Unauthorized action.');
+            return response()->json([
+                'success' => false,
+                'msg' => 'Unauthorized action.',
+            ], 403);
         }
 
         $business_id = (int) $request->session()->get('user.business_id');

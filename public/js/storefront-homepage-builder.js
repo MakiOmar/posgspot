@@ -5,7 +5,39 @@
 (function () {
   function csrf() {
     var meta = document.querySelector('meta[name="csrf-token"]');
-    return meta ? meta.getAttribute("content") : "";
+    if (meta && meta.getAttribute("content")) {
+      return meta.getAttribute("content");
+    }
+    var input = document.querySelector('input[name="_token"]');
+    return input ? input.value : "";
+  }
+
+  /**
+   * Clone sections for save: move SVG markup to base64 so the POST body has no raw <svg>
+   * tags (WAMP/ModSecurity often returns HTTP 403 on those).
+   */
+  function encodeSectionsForSave(sections) {
+    return sections.map(function (section) {
+      var clone = JSON.parse(JSON.stringify(section));
+      if (
+        clone.type === "trust_badges" &&
+        clone.settings &&
+        Array.isArray(clone.settings.items)
+      ) {
+        clone.settings.items = clone.settings.items.map(function (item) {
+          if (typeof item.svg_markup === "string" && item.svg_markup !== "") {
+            try {
+              item.svg_markup_b64 = btoa(unescape(encodeURIComponent(item.svg_markup)));
+              item.svg_markup = "";
+            } catch (e) {
+              // keep raw markup if encode fails
+            }
+          }
+          return item;
+        });
+      }
+      return clone;
+    });
   }
 
   function uid(prefix) {
@@ -445,22 +477,39 @@
           self.saving = true;
           self.message = "";
           self.error = "";
-          var body;
+          var token = csrf();
+          if (!token) {
+            self.saving = false;
+            self.error = "Missing CSRF token — refresh the page and try again.";
+            return;
+          }
+          if (!saveUrl) {
+            self.saving = false;
+            self.error = "Missing save URL — refresh the page and try again.";
+            return;
+          }
+          var payload;
           try {
-            body = JSON.stringify({ sections: self.sections });
+            payload = encodeSectionsForSave(self.sections);
           } catch (err) {
             self.saving = false;
             self.error = "Could not prepare sections for save (invalid data).";
             return;
           }
+          // form-urlencoded + _token matches other POS AJAX and avoids JSON bodies
+          // with raw <svg> that ModSecurity often blocks with HTTP 403.
+          var body = new URLSearchParams();
+          body.set("_token", token);
+          body.set("sections", JSON.stringify(payload));
           fetch(saveUrl, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
               Accept: "application/json",
-              "X-CSRF-TOKEN": csrf(),
+              "X-CSRF-TOKEN": token,
+              "X-Requested-With": "XMLHttpRequest",
             },
-            body: body,
+            body: body.toString(),
             credentials: "same-origin",
           })
             .then(function (res) {
@@ -478,9 +527,17 @@
               self.saving = false;
               var json = result.json;
               if (!result.ok || !json || !json.success) {
-                var msg =
-                  (json && (json.msg || json.message)) ||
-                  "Save failed (HTTP " + result.status + "). Use Save homepage — not Save settings.";
+                var msg = json && (json.msg || json.message);
+                if (!msg) {
+                  if (result.status === 419) {
+                    msg = "Session expired — refresh the page and try Save homepage again.";
+                  } else if (result.status === 403) {
+                    msg =
+                      "Save blocked (HTTP 403). Refresh the page; if it persists, a security filter may be blocking SVG content.";
+                  } else {
+                    msg = "Save failed (HTTP " + result.status + ").";
+                  }
+                }
                 self.error = msg;
                 if (typeof toastr !== "undefined") {
                   toastr.error(msg);
