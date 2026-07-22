@@ -6,6 +6,7 @@ use App\BusinessLocation;
 use App\Category;
 use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\Services\Storefront\Homepage\SectionTypeRegistry;
+use App\Services\Storefront\StorefrontBundleService;
 use App\Services\Storefront\StorefrontSettingService;
 use App\Utils\Util;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class StorefrontSettingController extends Controller
 {
     public function __construct(
         private StorefrontSettingService $settings,
+        private StorefrontBundleService $bundle,
         private HomepageSectionService $homepageSections,
         private SectionTypeRegistry $sectionTypes,
         private Util $commonUtil
@@ -380,7 +382,8 @@ class StorefrontSettingController extends Controller
     }
 
     /**
-     * Download storefront settings as JSON (secrets redacted).
+     * Download full storefront config as a ZIP (settings, shipping, media, coupons, overlays, translations).
+     * Secrets are redacted. Orders / wishlist / reviews are excluded.
      */
     public function export(Request $request)
     {
@@ -389,22 +392,30 @@ class StorefrontSettingController extends Controller
         }
 
         $business_id = (int) $request->session()->get('user.business_id');
-        $envelope = $this->settings->exportEnvelope($business_id);
-        $filename = 'storefront-settings-'.$business_id.'-'.now()->format('Y-m-d-His').'.json';
 
-        return response()->streamDownload(
-            function () use ($envelope) {
-                echo json_encode($envelope, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            },
-            $filename,
-            [
-                'Content-Type' => 'application/json; charset=UTF-8',
-            ]
-        );
+        try {
+            $zipPath = $this->bundle->exportToTempZip($business_id);
+        } catch (\Throwable $e) {
+            Log::error('Storefront settings export failed', [
+                'business_id' => $business_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->action([self::class, 'edit'])->with('status', [
+                'success' => false,
+                'msg' => $e->getMessage() ?: __('messages.something_went_wrong'),
+            ]);
+        }
+
+        $filename = 'storefront-bundle-'.$business_id.'-'.now()->format('Y-m-d-His').'.zip';
+
+        return response()->download($zipPath, $filename, [
+            'Content-Type' => 'application/zip',
+        ])->deleteFileAfterSend(true);
     }
 
     /**
-     * Import storefront settings from a JSON export file.
+     * Import a storefront ZIP bundle or legacy settings JSON.
      */
     public function import(Request $request)
     {
@@ -413,31 +424,15 @@ class StorefrontSettingController extends Controller
         }
 
         $request->validate([
-            'import_file' => 'required|file|max:5120',
+            'import_file' => 'required|file|max:102400',
         ]);
 
         $file = $request->file('import_file');
         $ext = strtolower((string) $file->getClientOriginalExtension());
-        if (! in_array($ext, ['json', 'txt'], true)) {
-            return redirect()->action([self::class, 'edit'])->with('status', [
-                'success' => false,
-                'msg' => 'Import file must be a .json file.',
-            ]);
-        }
-
         $business_id = (int) $request->session()->get('user.business_id');
-        $raw = @file_get_contents($file->getRealPath());
-        $decoded = is_string($raw) ? json_decode($raw, true) : null;
-
-        if (! is_array($decoded)) {
-            return redirect()->action([self::class, 'edit'])->with('status', [
-                'success' => false,
-                'msg' => 'Import file must be valid JSON.',
-            ]);
-        }
 
         try {
-            $result = $this->settings->importFromPayload($business_id, $decoded);
+            $result = $this->bundle->importPath($business_id, $file->getRealPath(), $ext);
         } catch (\InvalidArgumentException $e) {
             return redirect()->action([self::class, 'edit'])->with('status', [
                 'success' => false,
@@ -455,11 +450,11 @@ class StorefrontSettingController extends Controller
             ]);
         }
 
-        $count = count($result['imported_keys']);
+        $sections = implode(', ', $result['sections'] ?? []);
 
         return redirect()->action([self::class, 'edit'])->with('status', [
             'success' => true,
-            'msg' => 'Storefront settings imported ('.$count.' section'.($count === 1 ? '' : 's').'). Secrets left blank in the file were kept unchanged. Shipping zones are not included.',
+            'msg' => 'Storefront import complete ('.$sections.'). Secrets left blank were kept unchanged. Catalog overlays/translations apply only when matching slugs/SKUs exist.',
         ]);
     }
 

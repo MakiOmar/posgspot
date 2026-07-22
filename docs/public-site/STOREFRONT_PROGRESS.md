@@ -150,7 +150,7 @@
 | Item | Status | Path |
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
-| Settings JSON import / export | ✅ | Export/import on settings page; secrets redacted; shipping zones not included |
+| Settings JSON import / export | ✅ | Full ZIP bundle (`storefront_bundle` v2): settings + shipping + media + coupons + catalog overlays + translations; legacy JSON still works |
 | Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
 | Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Couriers section; `digital.*` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
@@ -224,6 +224,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Storefront import/export: stream ZIP media (no full extract), compact JSON, batched DB lookups/inserts, short transactions. |
+| 2026-07-22 | Storefront import/export expanded to full ZIP bundle (settings, shipping, media, coupons, overlays, translations). |
 | 2026-07-22 | Storefront settings JSON import/export on `/storefront/settings` (secrets redacted; zones/media excluded). |
 | 2026-07-22 | Pasted trust-badge SVG: upload-as-file before save + server-side persist; BOM/data-URI sanitize. |
 | 2026-07-22 | Fix Save homepage HTTP 403: form-urlencoded POST + base64 SVG markup (WAF-safe); CSRF token fallback. |

@@ -21,33 +21,35 @@
     <div class="row" style="margin-bottom: 10px;">
         <div class="col-md-12 text-right">
             <a href="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'export']) }}" class="btn btn-default btn-sm">
-                <i class="fa fa-download"></i> Export settings
+                <i class="fa fa-download"></i> Export storefront
             </a>
             <button type="button" class="btn btn-default btn-sm" data-toggle="modal" data-target="#storefront_settings_import_modal">
-                <i class="fa fa-upload"></i> Import settings
+                <i class="fa fa-upload"></i> Import storefront
             </button>
         </div>
     </div>
 
-    {{-- Import settings JSON (outside main form so nested forms are avoided) --}}
+    {{-- Import storefront ZIP/JSON (outside main form so nested forms are avoided) --}}
     <div class="modal fade" id="storefront_settings_import_modal" tabindex="-1" role="dialog" aria-labelledby="storefront_settings_import_label">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 {!! Form::open(['url' => action([\App\Http\Controllers\StorefrontSettingController::class, 'import']), 'method' => 'post', 'files' => true, 'id' => 'storefront_settings_import_form']) !!}
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                    <h4 class="modal-title" id="storefront_settings_import_label">Import storefront settings</h4>
+                    <h4 class="modal-title" id="storefront_settings_import_label">Import storefront</h4>
                 </div>
                 <div class="modal-body">
                     <p class="text-muted">
-                        Upload a JSON file exported from <strong>Export settings</strong>.
-                        Gateway / Turnstile / courier / newsletter secrets are never included in exports;
-                        blank secrets in the file leave current secrets unchanged.
-                        Shipping zones and uploaded image files are not part of this import.
+                        Upload a <strong>.zip</strong> exported from <strong>Export storefront</strong>
+                        (settings, shipping zones, media, storefront coupons, category/brand overlays, translations).
+                        Legacy settings-only <strong>.json</strong> files are still accepted.
+                        Secrets are never included in exports; blank secrets leave current values unchanged.
+                        Orders, wishlist, and reviews are not imported.
+                        Catalog overlays and translations apply only when matching product/category/brand slugs or SKUs already exist.
                     </p>
                     <div class="form-group">
-                        {!! Form::label('import_file', 'Settings JSON file') !!}
-                        {!! Form::file('import_file', ['class' => 'form-control', 'accept' => '.json,application/json', 'required' => true]) !!}
+                        {!! Form::label('import_file', 'Storefront export file (.zip or .json)') !!}
+                        {!! Form::file('import_file', ['class' => 'form-control', 'accept' => '.zip,.json,application/zip,application/json', 'required' => true]) !!}
                     </div>
                 </div>
                 <div class="modal-footer">
