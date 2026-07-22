@@ -271,12 +271,32 @@ class StorefrontSettingService
             $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
         } elseif (is_string($raw) && $raw !== '') {
             $working = $raw;
+            // Do not walk/rebuild 900MB strings looking for svg_markup — lean top-level keys instead.
             if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
+                $sizes = $this->measureTopLevelJsonKeySizes($working);
+                Log::warning('storefront.settings.scrub_top_level_sizes', [
+                    'business_id' => $businessId,
+                    'sizes' => $sizes,
+                ]);
+                foreach ($sizes as $key => $size) {
+                    if ($size > 50_000) {
+                        $cleared['(top) '.$key] = $size;
+                    }
+                }
+                $leaned = $this->leanOversizedTopLevelJsonValues($working, 50_000);
+                if (is_string($leaned)) {
+                    $working = $leaned;
+                }
+                if (isset($sizes['homepage_sections']) || array_key_exists('homepage_sections', $sizes)) {
+                    $resetHomepage = true;
+                }
+            } else {
                 $stripped = $this->stripInlineSvgKeysFromJsonString($working);
                 if (is_string($stripped)) {
                     $working = $stripped;
                 }
             }
+
             if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
                 $replaced = $this->replaceJsonKeyValue($working, 'homepage_sections', '[]');
                 if (is_string($replaced)) {
@@ -285,7 +305,7 @@ class StorefrontSettingService
                 }
             }
 
-            // Still huge after surgical edits — do not json_decode poison; write lean defaults.
+            // Still huge — do not json_decode poison; write lean defaults.
             if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
                 Log::warning('storefront.settings.scrub_nuclear_reset', [
                     'business_id' => $businessId,
@@ -303,7 +323,7 @@ class StorefrontSettingService
                     $data = $this->defaults();
                 } else {
                     $removed = $this->stripInlineSvgFromArray($data);
-                    $cleared = $this->stripOversizedStringsFromArray($data, 50_000);
+                    $cleared = array_merge($cleared, $this->stripOversizedStringsFromArray($data, 50_000));
                     $data = array_replace_recursive($this->defaults(), $data);
                 }
                 if ($resetHomepage || $before >= self::OVERSIZED_BLOB_BYTES) {
@@ -360,7 +380,7 @@ class StorefrontSettingService
     }
 
     /**
-     * Inspect largest string values in the settings blob (no write).
+     * Inspect largest values in the settings blob (no write).
      *
      * @return array{business_id: int, blob_bytes: int, raw_type: string, largest: array<string, int>}
      */
@@ -373,14 +393,18 @@ class StorefrontSettingService
 
         if (is_array($raw)) {
             $largest = $this->collectLargestStrings($raw, $limit);
-        } elseif (is_string($raw) && $raw !== '') {
-            foreach (['homepage_sections', 'banners', 'payment_icons'] as $key) {
-                $probe = $this->replaceJsonKeyValue($raw, $key, '[]');
-                if (is_string($probe)) {
-                    $largest[$key] = max(0, strlen($raw) - strlen($probe));
+            // Also top-level key totals.
+            foreach ($raw as $key => $value) {
+                if (! is_string($key)) {
+                    continue;
                 }
+                $size = is_string($value) ? strlen($value) : (is_array($value) ? $this->estimateArrayBytes($value) : 8);
+                $largest['(top) '.$key] = $size;
             }
             arsort($largest);
+            $largest = array_slice($largest, 0, $limit, true);
+        } elseif (is_string($raw) && $raw !== '') {
+            $largest = $this->measureTopLevelJsonKeySizes($raw);
             $largest = array_slice($largest, 0, $limit, true);
         }
 
@@ -565,6 +589,222 @@ class StorefrontSettingService
         arsort($found);
 
         return array_slice($found, 0, $limit, true);
+    }
+
+    /**
+     * Measure byte size of each top-level JSON object value without full decode.
+     *
+     * @return array<string, int>
+     */
+    public function measureTopLevelJsonKeySizes(string $json): array
+    {
+        $json = ltrim($json);
+        if ($json === '' || ($json[0] ?? '') !== '{') {
+            return ['_root' => strlen($json)];
+        }
+
+        $len = strlen($json);
+        $i = 1;
+        $sizes = [];
+
+        while ($i < $len) {
+            while ($i < $len && (ctype_space($json[$i]) || $json[$i] === ',')) {
+                $i++;
+            }
+            if ($i >= $len || $json[$i] === '}') {
+                break;
+            }
+            if ($json[$i] !== '"') {
+                break;
+            }
+
+            $keyStart = $i;
+            $keyEnd = $this->skipJsonString($json, $i);
+            if ($keyEnd === null) {
+                break;
+            }
+            $keyLiteral = substr($json, $keyStart, $keyEnd - $keyStart);
+            $key = json_decode($keyLiteral);
+            if (! is_string($key)) {
+                $key = '(invalid_key)';
+            }
+            $i = $keyEnd;
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            if ($i >= $len || $json[$i] !== ':') {
+                break;
+            }
+            $i++;
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            $valueStart = $i;
+            $valueEnd = $this->skipJsonValue($json, $i);
+            if ($valueEnd === null) {
+                break;
+            }
+            $sizes[$key] = $valueEnd - $valueStart;
+            $i = $valueEnd;
+        }
+
+        arsort($sizes);
+
+        return $sizes;
+    }
+
+    /**
+     * Rebuild a JSON object, replacing any top-level value larger than $maxValueBytes
+     * with [] / {} / "" / null (matching the original value type). Avoids copying huge values.
+     */
+    public function leanOversizedTopLevelJsonValues(string $json, int $maxValueBytes): ?string
+    {
+        $json = ltrim($json);
+        if ($json === '' || ($json[0] ?? '') !== '{') {
+            return null;
+        }
+
+        $len = strlen($json);
+        $i = 1;
+        $parts = [];
+
+        while ($i < $len) {
+            while ($i < $len && (ctype_space($json[$i]) || $json[$i] === ',')) {
+                $i++;
+            }
+            if ($i >= $len || $json[$i] === '}') {
+                break;
+            }
+            if ($json[$i] !== '"') {
+                return null;
+            }
+
+            $keyStart = $i;
+            $keyEnd = $this->skipJsonString($json, $i);
+            if ($keyEnd === null) {
+                return null;
+            }
+            $i = $keyEnd;
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            if ($i >= $len || $json[$i] !== ':') {
+                return null;
+            }
+            $i++;
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            $valueStart = $i;
+            $valueEnd = $this->skipJsonValue($json, $i);
+            if ($valueEnd === null) {
+                return null;
+            }
+
+            $keyLiteral = substr($json, $keyStart, $keyEnd - $keyStart);
+            $valueSize = $valueEnd - $valueStart;
+            if ($valueSize > $maxValueBytes) {
+                $first = $json[$valueStart] ?? '';
+                $replacement = match ($first) {
+                    '[' => '[]',
+                    '{' => '{}',
+                    '"' => '""',
+                    default => 'null',
+                };
+                $parts[] = $keyLiteral.':'.$replacement;
+            } else {
+                $parts[] = $keyLiteral.':'.substr($json, $valueStart, $valueSize);
+            }
+            $i = $valueEnd;
+        }
+
+        return '{'.implode(',', $parts).'}';
+    }
+
+    /**
+     * @return int|null index after the closing quote
+     */
+    private function skipJsonString(string $json, int $start): ?int
+    {
+        $len = strlen($json);
+        if ($start >= $len || $json[$start] !== '"') {
+            return null;
+        }
+        $i = $start + 1;
+        while ($i < $len) {
+            $c = $json[$i];
+            if ($c === '\\') {
+                $i += 2;
+                continue;
+            }
+            if ($c === '"') {
+                return $i + 1;
+            }
+            $i++;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return int|null index after the value
+     */
+    private function skipJsonValue(string $json, int $start): ?int
+    {
+        $len = strlen($json);
+        if ($start >= $len) {
+            return null;
+        }
+        $c = $json[$start];
+        if ($c === '"') {
+            return $this->skipJsonString($json, $start);
+        }
+        if ($c === '{' || $c === '[') {
+            $open = $c;
+            $close = $c === '{' ? '}' : ']';
+            $depth = 0;
+            $inString = false;
+            $escape = false;
+            for ($i = $start; $i < $len; $i++) {
+                $ch = $json[$i];
+                if ($inString) {
+                    if ($escape) {
+                        $escape = false;
+                        continue;
+                    }
+                    if ($ch === '\\') {
+                        $escape = true;
+                        continue;
+                    }
+                    if ($ch === '"') {
+                        $inString = false;
+                    }
+                    continue;
+                }
+                if ($ch === '"') {
+                    $inString = true;
+                    continue;
+                }
+                if ($ch === $open) {
+                    $depth++;
+                } elseif ($ch === $close) {
+                    $depth--;
+                    if ($depth === 0) {
+                        return $i + 1;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // number / true / false / null
+        $i = $start;
+        while ($i < $len && ! in_array($json[$i], [',', '}', ']'], true) && ! ctype_space($json[$i])) {
+            $i++;
+        }
+
+        return $i > $start ? $i : null;
     }
 
     /**

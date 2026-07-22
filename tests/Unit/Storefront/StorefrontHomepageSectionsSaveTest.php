@@ -139,4 +139,28 @@ class StorefrontHomepageSectionsSaveTest extends TestCase
         $storedStr = is_string($stored) ? $stored : json_encode($stored);
         $this->assertStringNotContainsString($poison, (string) $storedStr);
     }
+
+    public function test_measure_and_lean_top_level_json_keys(): void
+    {
+        $svc = app(StorefrontSettingService::class);
+        $poison = str_repeat('Z', 120_000);
+        $json = json_encode([
+            'cod_enabled' => true,
+            'mystery_dump' => $poison,
+            'homepage_sections' => [['id' => 'a']],
+        ], JSON_UNESCAPED_UNICODE);
+        $this->assertNotFalse($json);
+
+        $sizes = $svc->measureTopLevelJsonKeySizes($json);
+        $this->assertGreaterThan(100_000, $sizes['mystery_dump']);
+        $this->assertLessThan(5000, $sizes['homepage_sections']);
+
+        $lean = $svc->leanOversizedTopLevelJsonValues($json, 50_000);
+        $this->assertNotNull($lean);
+        $decoded = json_decode($lean, true);
+        $this->assertTrue($decoded['cod_enabled']);
+        $this->assertSame('', $decoded['mystery_dump']);
+        $this->assertSame('a', $decoded['homepage_sections'][0]['id']);
+        $this->assertLessThan(5000, strlen($lean));
+    }
 }
