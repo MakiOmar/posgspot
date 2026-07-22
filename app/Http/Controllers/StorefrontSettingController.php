@@ -9,6 +9,7 @@ use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontSettingService;
 use App\Utils\Util;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Back-office settings for the public storefront (selling locations, COD, shipping, etc.).
@@ -376,6 +377,90 @@ class StorefrontSettingController extends Controller
         $output = ['success' => true, 'msg' => __('lang_v1.success')];
 
         return redirect()->action([self::class, 'edit'])->with('status', $output);
+    }
+
+    /**
+     * Download storefront settings as JSON (secrets redacted).
+     */
+    public function export(Request $request)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = (int) $request->session()->get('user.business_id');
+        $envelope = $this->settings->exportEnvelope($business_id);
+        $filename = 'storefront-settings-'.$business_id.'-'.now()->format('Y-m-d-His').'.json';
+
+        return response()->streamDownload(
+            function () use ($envelope) {
+                echo json_encode($envelope, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            },
+            $filename,
+            [
+                'Content-Type' => 'application/json; charset=UTF-8',
+            ]
+        );
+    }
+
+    /**
+     * Import storefront settings from a JSON export file.
+     */
+    public function import(Request $request)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $request->validate([
+            'import_file' => 'required|file|max:5120',
+        ]);
+
+        $file = $request->file('import_file');
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        if (! in_array($ext, ['json', 'txt'], true)) {
+            return redirect()->action([self::class, 'edit'])->with('status', [
+                'success' => false,
+                'msg' => 'Import file must be a .json file.',
+            ]);
+        }
+
+        $business_id = (int) $request->session()->get('user.business_id');
+        $raw = @file_get_contents($file->getRealPath());
+        $decoded = is_string($raw) ? json_decode($raw, true) : null;
+
+        if (! is_array($decoded)) {
+            return redirect()->action([self::class, 'edit'])->with('status', [
+                'success' => false,
+                'msg' => 'Import file must be valid JSON.',
+            ]);
+        }
+
+        try {
+            $result = $this->settings->importFromPayload($business_id, $decoded);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->action([self::class, 'edit'])->with('status', [
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Storefront settings import failed', [
+                'business_id' => $business_id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->action([self::class, 'edit'])->with('status', [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ]);
+        }
+
+        $count = count($result['imported_keys']);
+
+        return redirect()->action([self::class, 'edit'])->with('status', [
+            'success' => true,
+            'msg' => 'Storefront settings imported ('.$count.' section'.($count === 1 ? '' : 's').'). Secrets left blank in the file were kept unchanged. Shipping zones are not included.',
+        ]);
     }
 
     /**

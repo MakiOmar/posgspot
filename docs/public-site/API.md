@@ -198,6 +198,7 @@ Limits (configurable via `config/storefront.php` / env):
 
 Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
+- **Import / export** — `GET /storefront/settings/export` downloads a JSON envelope (`format: storefront_settings`, `version: 1`, `settings`). `POST /storefront/settings/import` accepts that file (or a raw settings object). Secrets (gateway / Fawry / Turnstile / Bosta / newsletter tokens) are **redacted on export** and **preserved when blank on import**. Does **not** include shipping zones/methods, coupons, or uploaded media files (image filenames in settings still reference local uploads).
 - Select selling locations (catalog is empty when none selected)
 - COD, **shipping zones** (governorate matching, flat / free / pickup methods; digital-only free rate), announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
 - **Shipping classes** + optional product `shipping_class_id` / weight for per-class and per-kg flat costs

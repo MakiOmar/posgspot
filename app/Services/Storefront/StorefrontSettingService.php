@@ -258,6 +258,230 @@ class StorefrontSettingService
         return array_values(array_filter(array_map('intval', (array) $ids)));
     }
 
+    /** Envelope format marker for JSON import/export. */
+    public const EXPORT_FORMAT = 'storefront_settings';
+
+    /** Current export schema version. */
+    public const EXPORT_VERSION = 1;
+
+    /**
+     * Build a downloadable JSON envelope for storefront settings.
+     * Secrets are redacted (never leave the server as ciphertext or plaintext).
+     *
+     * @return array{format: string, version: int, exported_at: string, settings: array<string, mixed>}
+     */
+    public function exportEnvelope(int $businessId): array
+    {
+        $settings = $this->redactSecretsForExport($this->get($businessId));
+
+        return [
+            'format' => self::EXPORT_FORMAT,
+            'version' => self::EXPORT_VERSION,
+            'exported_at' => now()->toIso8601String(),
+            'settings' => $settings,
+        ];
+    }
+
+    /**
+     * Import settings from an export envelope or a raw settings object.
+     * Blank/missing secrets preserve existing encrypted values via save().
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{imported_keys: list<string>}
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function importFromPayload(int $businessId, array $payload): array
+    {
+        $settings = $this->extractImportSettings($payload);
+        $settings = $this->sanitizeImportSettings($businessId, $settings);
+
+        if ($settings === []) {
+            throw new \InvalidArgumentException('Import file contains no recognized storefront settings.');
+        }
+
+        $this->save($businessId, $settings);
+
+        return [
+            'imported_keys' => array_keys($settings),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    public function redactSecretsForExport(array $settings): array
+    {
+        foreach ($this->secretPaths() as $path) {
+            $this->setNestedValue($settings, $path, null);
+        }
+
+        return $settings;
+    }
+
+    /**
+     * @return list<list<string>>
+     */
+    private function secretPaths(): array
+    {
+        return [
+            ['gateway', 'api_key'],
+            ['gateway', 'fawry', 'security_key'],
+            ['turnstile', 'secret_key'],
+            ['couriers', 'bosta', 'api_key'],
+            ['newsletter', 'mailchimp', 'api_key'],
+            ['newsletter', 'mailerlite', 'api_token'],
+            ['newsletter', 'aweber', 'access_token'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function extractImportSettings(array $payload): array
+    {
+        // Full envelope from exportEnvelope().
+        if (isset($payload['settings']) && is_array($payload['settings'])) {
+            $format = $payload['format'] ?? null;
+            if ($format !== null && $format !== self::EXPORT_FORMAT) {
+                throw new \InvalidArgumentException('Unrecognized import format.');
+            }
+
+            $version = $payload['version'] ?? null;
+            if ($version !== null && (int) $version > self::EXPORT_VERSION) {
+                throw new \InvalidArgumentException(
+                    'Import file version '.((int) $version).' is newer than this app supports ('.self::EXPORT_VERSION.').'
+                );
+            }
+
+            return $payload['settings'];
+        }
+
+        // Raw settings object (keys match defaults()).
+        $knownKeys = array_keys($this->defaults());
+        $hasKnown = false;
+        foreach ($knownKeys as $key) {
+            if (array_key_exists($key, $payload)) {
+                $hasKnown = true;
+                break;
+            }
+        }
+
+        if (! $hasKnown) {
+            throw new \InvalidArgumentException('Import file is not a storefront settings export.');
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Keep only known top-level keys; drop secrets that are empty placeholders;
+     * filter location IDs to this business.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function sanitizeImportSettings(int $businessId, array $settings): array
+    {
+        $allowed = array_flip(array_keys($this->defaults()));
+        $clean = [];
+
+        foreach ($settings as $key => $value) {
+            if (! is_string($key) || ! isset($allowed[$key])) {
+                continue;
+            }
+            $clean[$key] = $value;
+        }
+
+        // Empty secret placeholders must not overwrite existing encrypted values.
+        foreach ($this->secretPaths() as $path) {
+            $current = $this->getNestedValue($clean, $path);
+            if ($current === null || $current === '') {
+                $this->unsetNestedValue($clean, $path);
+            }
+        }
+
+        if (array_key_exists('selling_location_ids', $clean)) {
+            $validIds = BusinessLocation::where('business_id', $businessId)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            $validLookup = array_flip($validIds);
+            $clean['selling_location_ids'] = array_values(array_filter(
+                array_map('intval', (array) $clean['selling_location_ids']),
+                fn (int $id) => isset($validLookup[$id])
+            ));
+        }
+
+        if (array_key_exists('default_fulfillment_location_id', $clean)) {
+            $fulfillmentId = $clean['default_fulfillment_location_id'];
+            if ($fulfillmentId !== null && $fulfillmentId !== '') {
+                $fulfillmentId = (int) $fulfillmentId;
+                $belongs = BusinessLocation::where('business_id', $businessId)
+                    ->where('id', $fulfillmentId)
+                    ->exists();
+                $clean['default_fulfillment_location_id'] = $belongs ? $fulfillmentId : null;
+            } else {
+                $clean['default_fulfillment_location_id'] = null;
+            }
+        }
+
+        return $clean;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $path
+     */
+    private function getNestedValue(array $data, array $path): mixed
+    {
+        $cursor = $data;
+        foreach ($path as $segment) {
+            if (! is_array($cursor) || ! array_key_exists($segment, $cursor)) {
+                return null;
+            }
+            $cursor = $cursor[$segment];
+        }
+
+        return $cursor;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $path
+     */
+    private function setNestedValue(array &$data, array $path, mixed $value): void
+    {
+        $cursor = &$data;
+        $last = array_pop($path);
+        foreach ($path as $segment) {
+            if (! isset($cursor[$segment]) || ! is_array($cursor[$segment])) {
+                $cursor[$segment] = [];
+            }
+            $cursor = &$cursor[$segment];
+        }
+        $cursor[$last] = $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $path
+     */
+    private function unsetNestedValue(array &$data, array $path): void
+    {
+        $cursor = &$data;
+        $last = array_pop($path);
+        foreach ($path as $segment) {
+            if (! isset($cursor[$segment]) || ! is_array($cursor[$segment])) {
+                return;
+            }
+            $cursor = &$cursor[$segment];
+        }
+        unset($cursor[$last]);
+    }
+
     public function decryptGatewayApiKey(array $settings): ?string
     {
         $key = $settings['gateway']['api_key'] ?? null;
