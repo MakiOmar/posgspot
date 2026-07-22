@@ -227,6 +227,7 @@
 | 2026-07-22 | Storefront import/export: stream ZIP media (no full extract), compact JSON, batched DB lookups/inserts, short transactions. |
 | 2026-07-22 | Storefront import/export expanded to full ZIP bundle (settings, shipping, media, coupons, overlays, translations). |
 | 2026-07-22 | Storefront settings JSON import/export on `/storefront/settings` (secrets redacted; zones/media excluded). |
+| 2026-07-22 | Fix pasted trust-badge SVG ignored when item already had image (re-upload on markup change + baseline). |
 | 2026-07-22 | Pasted trust-badge SVG: upload-as-file before save + server-side persist; BOM/data-URI sanitize. |
 | 2026-07-22 | Fix Save homepage HTTP 403: form-urlencoded POST + base64 SVG markup (WAF-safe); CSRF token fallback. |
 | 2026-07-22 | Fix trust badges save UX: homepage builder JSON via script tags; block outer form submit/Enter on Homepage tab; persist 5+ items; file-backed SVG rehydrate. |

@@ -25,14 +25,9 @@
         Array.isArray(clone.settings.items)
       ) {
         clone.settings.items = clone.settings.items.map(function (item) {
-          var markup = typeof item.svg_markup === "string" ? item.svg_markup : "";
-          // Already uploaded — do not resend markup (WAF/size).
-          if (item.image) {
-            item.svg_markup = "";
-            delete item.svg_markup_b64;
-            return item;
-          }
-          if (markup) {
+          var markup = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
+          // Fresh paste without a file yet — send as base64 fallback.
+          if (markup && !item.image) {
             item.icon_kind = "svg";
             try {
               item.svg_markup_b64 = btoa(unescape(encodeURIComponent(markup)));
@@ -40,7 +35,11 @@
             } catch (e) {
               // keep raw markup if encode fails
             }
+            return item;
           }
+          // File-backed: do not resend markup (rehydrated from disk after save).
+          item.svg_markup = "";
+          delete item.svg_markup_b64;
           return item;
         });
       }
@@ -176,6 +175,26 @@
     return emptyLocale();
   }
 
+  /** Snapshot current SVG markup so we only re-upload when the user edits/pastes. */
+  function baselineTrustBadgeSvg(item) {
+    item._svgBaseline = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
+  }
+
+  function hydrateTrustBadgeItem(item) {
+    if (!item.icon_kind) {
+      item.icon_kind = "image";
+    }
+    if (!item.icon_color) {
+      item.icon_color = "#f5a623";
+    }
+    if (typeof item.svg_markup !== "string") {
+      item.svg_markup = "";
+    }
+    item.title = ensureLocaleMap(item.title);
+    item.description = ensureLocaleMap(item.description);
+    baselineTrustBadgeSvg(item);
+  }
+
   function mount() {
     var el = document.getElementById("storefront-homepage-builder");
     if (!el || typeof Vue === "undefined") {
@@ -200,17 +219,7 @@
       }
       if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
         s.settings.items.forEach(function (item) {
-          if (!item.icon_kind) {
-            item.icon_kind = "image";
-          }
-          if (!item.icon_color) {
-            item.icon_color = "#f5a623";
-          }
-          if (typeof item.svg_markup !== "string") {
-            item.svg_markup = "";
-          }
-          item.title = ensureLocaleMap(item.title);
-          item.description = ensureLocaleMap(item.description);
+          hydrateTrustBadgeItem(item);
         });
       }
     });
@@ -536,12 +545,18 @@
             }
             section.settings.items.forEach(function (item) {
               var markup = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
-              if (!markup || item.image) {
+              if (!markup) {
                 return;
               }
               if (!uploadUrl) {
                 return;
               }
+              var baseline = typeof item._svgBaseline === "string" ? item._svgBaseline : "";
+              // Skip re-upload when markup is only the rehydrated file content (unchanged).
+              if (item.image && markup === baseline) {
+                return;
+              }
+              // Pasted/edited markup wins over an existing image (duplicates often share one .svg).
               item.icon_kind = "svg";
               uploadTasks.push(
                 uploadPastedSvgMarkup(uploadUrl, markup).then(function (json) {
@@ -551,10 +566,12 @@
                   if (json.svg_markup) {
                     item.svg_markup = json.svg_markup;
                   }
+                  baselineTrustBadgeSvg(item);
                 })
               );
             });
           });
+
 
           Promise.all(uploadTasks)
             .then(function () {
@@ -610,17 +627,7 @@
                 json.sections.forEach(function (s) {
                   if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
                     s.settings.items.forEach(function (item) {
-                      item.title = ensureLocaleMap(item.title);
-                      item.description = ensureLocaleMap(item.description);
-                      if (!item.icon_kind) {
-                        item.icon_kind = "image";
-                      }
-                      if (!item.icon_color) {
-                        item.icon_color = "#f5a623";
-                      }
-                      if (typeof item.svg_markup !== "string") {
-                        item.svg_markup = "";
-                      }
+                      hydrateTrustBadgeItem(item);
                     });
                   }
                   if (!s.layout_width) {

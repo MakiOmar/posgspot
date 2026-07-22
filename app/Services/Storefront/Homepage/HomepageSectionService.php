@@ -868,8 +868,9 @@ class HomepageSectionService
                 $svgMarkup = $this->readUploadedSvgMarkup((string) $media['image']) ?? '';
             }
 
-            // Persist pasted SVG to a file so later saves don't re-send huge markup (WAF/size).
-            if ($kind === 'svg' && $svgMarkup !== '' && empty($media['image'])) {
+            // Persist SVG markup to a file. Incoming paste/markup overrides any existing image
+            // (duplicated badges often share one .svg path — without this, pastes never stick).
+            if ($kind === 'svg' && $svgMarkup !== '') {
                 $storedFile = $this->persistSvgMarkupToUpload($svgMarkup);
                 if (is_string($storedFile) && $storedFile !== '') {
                     $media['image'] = $storedFile;
