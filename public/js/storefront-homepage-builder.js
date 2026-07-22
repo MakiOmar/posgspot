@@ -1,6 +1,6 @@
 /**
  * Storefront homepage section builder (Vue 3 island).
- * Expects #storefront-homepage-builder with data-sections / data-types / data-categories / data-save-url / data-upload-url.
+ * Expects #storefront-homepage-builder with JSON bootstraps in #sf-hp-sections-json / #sf-hp-types-json / #sf-hp-categories-json plus data-save-url / data-upload-url.
  */
 (function () {
   function csrf() {
@@ -80,50 +80,69 @@
     }
   }
 
+  function readJsonScript(id) {
+    var node = document.getElementById(id);
+    if (!node) {
+      return null;
+    }
+    try {
+      return JSON.parse(node.textContent || "null");
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function ensureLocaleMap(value) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      return {
+        en: typeof value.en === "string" ? value.en : "",
+        ar: typeof value.ar === "string" ? value.ar : "",
+      };
+    }
+    if (typeof value === "string") {
+      return { en: value, ar: "" };
+    }
+    return emptyLocale();
+  }
+
   function mount() {
     var el = document.getElementById("storefront-homepage-builder");
     if (!el || typeof Vue === "undefined") {
       return;
     }
 
-    var sections = [];
-    var types = [];
-    var categories = [];
-    try {
-      sections = JSON.parse(el.getAttribute("data-sections") || "[]");
-    } catch (e) {
+    var sections = readJsonScript("sf-hp-sections-json");
+    var types = readJsonScript("sf-hp-types-json");
+    var categories = readJsonScript("sf-hp-categories-json");
+    if (!Array.isArray(sections)) {
       sections = [];
     }
-    if (Array.isArray(sections)) {
-      sections.forEach(function (s) {
-        if (!s.layout_width) {
-          s.layout_width = "boxed";
-        }
-        if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
-          s.settings.items.forEach(function (item) {
-            if (!item.icon_kind) {
-              item.icon_kind = "image";
-            }
-            if (!item.icon_color) {
-              item.icon_color = "#f5a623";
-            }
-            if (typeof item.svg_markup !== "string") {
-              item.svg_markup = "";
-            }
-          });
-        }
-      });
-    }
-    try {
-      types = JSON.parse(el.getAttribute("data-types") || "[]");
-    } catch (e) {
+    if (!Array.isArray(types)) {
       types = [];
     }
-    try {
-      categories = JSON.parse(el.getAttribute("data-categories") || "[]");
-    } catch (e) {
+    if (!Array.isArray(categories)) {
       categories = [];
     }
+    sections.forEach(function (s) {
+      if (!s.layout_width) {
+        s.layout_width = "boxed";
+      }
+      if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
+        s.settings.items.forEach(function (item) {
+          if (!item.icon_kind) {
+            item.icon_kind = "image";
+          }
+          if (!item.icon_color) {
+            item.icon_color = "#f5a623";
+          }
+          if (typeof item.svg_markup !== "string") {
+            item.svg_markup = "";
+          }
+          item.title = ensureLocaleMap(item.title);
+          item.description = ensureLocaleMap(item.description);
+        });
+      }
+    });
 
     var saveUrl = el.getAttribute("data-save-url") || "";
     var uploadUrl = el.getAttribute("data-upload-url") || "";
@@ -165,6 +184,12 @@
       },
       mounted: function () {
         var self = this;
+        // Builder sits inside #storefront_settings_form — block Enter from submitting that form.
+        this.$el.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
+            e.preventDefault();
+          }
+        });
         if (typeof Sortable === "undefined") {
           return;
         }
@@ -420,6 +445,14 @@
           self.saving = true;
           self.message = "";
           self.error = "";
+          var body;
+          try {
+            body = JSON.stringify({ sections: self.sections });
+          } catch (err) {
+            self.saving = false;
+            self.error = "Could not prepare sections for save (invalid data).";
+            return;
+          }
           fetch(saveUrl, {
             method: "POST",
             headers: {
@@ -427,19 +460,54 @@
               Accept: "application/json",
               "X-CSRF-TOKEN": csrf(),
             },
-            body: JSON.stringify({ sections: self.sections }),
+            body: body,
             credentials: "same-origin",
           })
             .then(function (res) {
-              return res.json();
+              return res.text().then(function (text) {
+                var json = null;
+                try {
+                  json = text ? JSON.parse(text) : null;
+                } catch (e) {
+                  json = null;
+                }
+                return { ok: res.ok, status: res.status, json: json, text: text };
+              });
             })
-            .then(function (json) {
+            .then(function (result) {
               self.saving = false;
-              if (!json.success) {
-                self.error = json.msg || "Save failed";
+              var json = result.json;
+              if (!result.ok || !json || !json.success) {
+                var msg =
+                  (json && (json.msg || json.message)) ||
+                  "Save failed (HTTP " + result.status + "). Use Save homepage — not Save settings.";
+                self.error = msg;
+                if (typeof toastr !== "undefined") {
+                  toastr.error(msg);
+                }
                 return;
               }
               if (Array.isArray(json.sections)) {
+                json.sections.forEach(function (s) {
+                  if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
+                    s.settings.items.forEach(function (item) {
+                      item.title = ensureLocaleMap(item.title);
+                      item.description = ensureLocaleMap(item.description);
+                      if (!item.icon_kind) {
+                        item.icon_kind = "image";
+                      }
+                      if (!item.icon_color) {
+                        item.icon_color = "#f5a623";
+                      }
+                      if (typeof item.svg_markup !== "string") {
+                        item.svg_markup = "";
+                      }
+                    });
+                  }
+                  if (!s.layout_width) {
+                    s.layout_width = "boxed";
+                  }
+                });
                 self.sections = json.sections;
               }
               self.message = json.msg || "Saved.";
@@ -449,7 +517,7 @@
             })
             .catch(function () {
               self.saving = false;
-              self.error = "Save failed";
+              self.error = "Save failed (network error).";
             });
         },
       },
@@ -564,8 +632,8 @@
                 </template>
 
                 <template v-else-if="section.type === 'trust_badges'">
-                  <p class="help-block">Row of trust / service items (icon + title + description). Use SVG icons for recolorable line icons.</p>
-                  <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)">Add item</button>
+                  <p class="help-block">Row of trust / service items (icon + title + description). Up to 8 items. Use SVG icons for recolorable line icons. Click <strong>Save homepage</strong> after editing.</p>
+                  <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)" :disabled="section.settings.items.length >= 8">Add item</button>
                   <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row sf-hp-trust-item">
                     <div class="sf-hp-trust-preview">
                       <div

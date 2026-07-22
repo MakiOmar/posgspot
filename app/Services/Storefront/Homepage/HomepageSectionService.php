@@ -370,7 +370,31 @@ class HomepageSectionService
             }
             if ($type === 'trust_badges') {
                 $settings['items'] = array_map(
-                    fn ($item) => $this->withMediaUrl(is_array($item) ? $item : []),
+                    function ($item) {
+                        $row = $this->withMediaUrl(is_array($item) ? $item : []);
+                        $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
+                        $markup = trim((string) ($row['svg_markup'] ?? ''));
+                        if ($kind === 'svg' && $markup === '' && ! empty($row['image'])) {
+                            $fromFile = $this->readUploadedSvgMarkup((string) $row['image']);
+                            if (is_string($fromFile) && $fromFile !== '') {
+                                $row['svg_markup'] = $fromFile;
+                            }
+                        }
+                        if (! isset($row['title']) || ! is_array($row['title'])) {
+                            $row['title'] = $this->localeMap($row['title'] ?? null, 120);
+                        }
+                        if (! isset($row['description']) || ! is_array($row['description'])) {
+                            $row['description'] = $this->localeMap($row['description'] ?? null, 240);
+                        }
+                        if (! isset($row['icon_kind'])) {
+                            $row['icon_kind'] = $kind;
+                        }
+                        if (! isset($row['icon_color'])) {
+                            $row['icon_color'] = $this->cssColor($row['icon_color'] ?? null, '#f5a623');
+                        }
+
+                        return $row;
+                    },
                     $settings['items'] ?? []
                 );
             }
@@ -474,6 +498,9 @@ class HomepageSectionService
                     $description = $this->pickLocale($item['description'] ?? [], $locale);
                     $kind = $this->normalizeIconKind($item['icon_kind'] ?? null);
                     $svgMarkup = $kind === 'svg' ? $this->sanitizeSvgMarkup((string) ($item['svg_markup'] ?? '')) : null;
+                    if ($kind === 'svg' && ($svgMarkup === null || $svgMarkup === '') && ! empty($item['image'])) {
+                        $svgMarkup = $this->readUploadedSvgMarkup((string) $item['image']);
+                    }
                     $iconUrl = $kind === 'image'
                         ? $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null)
                         : null;
@@ -839,13 +866,26 @@ class HomepageSectionService
             if ($id === '') {
                 $id = 'badge_'.Str::lower(Str::random(6));
             }
+
+            // Prefer file-backed SVG storage: keep markup empty when an uploaded .svg exists
+            // (rehydrated in presentForAdmin / public present). Still keep pasted markup when no file.
+            $storeMarkup = $svgMarkup;
+            if (
+                $kind === 'svg'
+                && $storeMarkup !== ''
+                && ! empty($media['image'])
+                && preg_match('/\.svg$/i', (string) $media['image'])
+            ) {
+                $storeMarkup = '';
+            }
+
             $out[] = [
                 'id' => mb_substr($id, 0, 40),
                 'icon_kind' => $kind,
                 'icon_color' => $this->cssColor($row['icon_color'] ?? null, '#f5a623'),
                 'image' => $media['image'],
                 'url' => $media['url'],
-                'svg_markup' => $svgMarkup,
+                'svg_markup' => $storeMarkup,
                 'title' => $title,
                 'description' => $description,
             ];

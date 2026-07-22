@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-21 |
+| **Last updated** | 2026-07-22 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -223,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Fix trust badges save UX: homepage builder JSON via script tags; block outer form submit/Enter on Homepage tab; persist 5+ items; file-backed SVG rehydrate. |
 | 2026-07-21 | Trust badges: SVG/image icon kinds + recolorable SVG; all sections get `layout_width` boxed\|full. |
 | 2026-07-21 | Fix main Storefront Settings save wiping homepage_sections (preserve when not posted). |
 | 2026-07-21 | Homepage `trust_badges` section: icon + title + description items (EN/AR). |

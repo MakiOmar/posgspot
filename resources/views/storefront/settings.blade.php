@@ -449,16 +449,21 @@
                 </div>
             </div>
 
-            {{-- Homepage section builder (Vue island) --}}
+            {{-- Homepage section builder (Vue island). JSON bootstraps via script tags — not data-* attributes —
+                 so large SVG trust-badge markup cannot break HTML attribute parsing. --}}
             <div class="tab-pane" id="tab_homepage">
+                <div class="alert alert-warning" style="margin-bottom:12px;">
+                    Use <strong>Save homepage</strong> on this tab to persist section changes.
+                    The page-level <strong>Save settings</strong> button does not save the homepage builder.
+                </div>
                 <div
                     id="storefront-homepage-builder"
-                    data-sections="{{ htmlspecialchars(json_encode($homepage_sections ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
-                    data-types="{{ htmlspecialchars(json_encode($homepage_section_types ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
-                    data-categories="{{ htmlspecialchars(json_encode($homepage_categories ?? [], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') }}"
                     data-save-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections']) }}"
                     data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}"
                 >
+                    <script type="application/json" id="sf-hp-sections-json">{!! json_encode($homepage_sections ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
+                    <script type="application/json" id="sf-hp-types-json">{!! json_encode($homepage_section_types ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
+                    <script type="application/json" id="sf-hp-categories-json">{!! json_encode($homepage_categories ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
                     <p class="text-muted">Loading homepage builder…</p>
                 </div>
             </div>
@@ -886,8 +891,11 @@
             </div>
         </div>
 
-        <div class="box-footer" style="border-top: 1px solid #f4f4f4; padding: 10px 15px;">
-            <button type="submit" class="btn btn-primary pull-right">Save settings</button>
+        <div class="box-footer" style="border-top: 1px solid #f4f4f4; padding: 10px 15px;" id="storefront_settings_footer">
+            <button type="submit" class="btn btn-primary pull-right" id="storefront_save_settings_btn">Save settings</button>
+            <p class="text-muted pull-right" id="storefront_homepage_save_hint" style="display:none;margin:6px 12px 0 0;">
+                Use <strong>Save homepage</strong> above — this button is hidden on the Homepage tab.
+            </p>
         </div>
     </div>
 
@@ -896,13 +904,32 @@
 @endsection
 
 @section('javascript')
-<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=3">
+<link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=4">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=9"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=10"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();
+
+        // Homepage builder lives inside this form; hide page Save on that tab and block accidental submits.
+        function syncHomepageTabSaveUi() {
+            var onHomepage = $('#tab_homepage').hasClass('active');
+            $('#storefront_save_settings_btn').toggle(!onHomepage);
+            $('#storefront_homepage_save_hint').toggle(onHomepage);
+        }
+        $('a[data-toggle="tab"]', '#storefront_settings_tabs').on('shown.bs.tab', syncHomepageTabSaveUi);
+        syncHomepageTabSaveUi();
+
+        $('#storefront_settings_form').on('submit', function (e) {
+            if ($('#tab_homepage').hasClass('active')) {
+                e.preventDefault();
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning('Use “Save homepage” on this tab to save section changes.');
+                }
+                return false;
+            }
+        });
 
         // Open the tab that matches a deep-link hash (e.g. #payment-icons-settings).
         function activateTabFromHash() {

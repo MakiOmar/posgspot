@@ -348,6 +348,47 @@ class HomepageApiTest extends TestCase
             ->assertJsonPath('data.sections.0.settings.items.0.icon_url', 'https://example.com/ship.svg');
     }
 
+    public function test_trust_badges_persists_more_than_three_items(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+        $items = [];
+        for ($i = 1; $i <= 5; $i++) {
+            $items[] = [
+                'id' => 'badge_'.$i,
+                'icon_kind' => 'svg',
+                'icon_color' => '#112233',
+                'svg_markup' => $svg,
+                'title' => ['en' => 'Badge '.$i, 'ar' => 'شارة '.$i],
+                'description' => ['en' => 'Desc '.$i, 'ar' => ''],
+            ];
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'settings' => ['items' => $items],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $saved = app(StorefrontSettingService::class)->get($this->businessId);
+        $trust = collect($saved['homepage_sections'] ?? [])->firstWhere('type', 'trust_badges');
+        $this->assertNotNull($trust);
+        $this->assertCount(5, $trust['settings']['items'] ?? []);
+
+        $admin = app(HomepageSectionService::class)->presentForAdmin([$trust]);
+        $this->assertCount(5, $admin[0]['settings']['items'] ?? []);
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk();
+        $this->assertCount(5, $response->json('data.sections.0.settings.items'));
+    }
+
     public function test_trust_badges_svg_item_presents_markup_and_color(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
