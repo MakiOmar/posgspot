@@ -224,6 +224,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Trust badges: drop inline SVG sanitize/present; icons are media-library URLs only (fixes production OOM). |
 | 2026-07-22 | Storefront media library: `storefront_media` + checksum dedupe under `uploads/storefront_library/{business_id}/`; list/upload/delete API; homepage builder Library picker; homepage uploads migrate to library paths. |
 | 2026-07-22 | Storefront import/export: stream ZIP media (no full extract), compact JSON, batched DB lookups/inserts, short transactions. |
 | 2026-07-22 | Storefront import/export expanded to full ZIP bundle (settings, shipping, media, coupons, overlays, translations). |

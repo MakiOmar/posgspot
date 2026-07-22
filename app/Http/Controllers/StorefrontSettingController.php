@@ -128,7 +128,7 @@ class StorefrontSettingController extends Controller
 
     /**
      * Upload an image or SVG into the storefront media library (checksum-deduped).
-     * Returns storage path + public URL (+ svg_markup for SVGs).
+     * Returns storage path + public URL. SVG content is never inlined.
      */
     public function uploadHomepageMedia(Request $request, StorefrontMediaLibraryService $library)
     {
@@ -174,7 +174,6 @@ class StorefrontSettingController extends Controller
             'media_id' => $presented['id'],
             'image' => $presented['image'],
             'image_url' => $presented['image_url'],
-            'svg_markup' => $result['svg_markup'],
             'icon_kind' => $result['media']->kind === 'svg' ? 'svg' : 'image',
             'deduped' => ! $result['created'],
         ]);

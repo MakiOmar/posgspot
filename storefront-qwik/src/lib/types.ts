@@ -162,7 +162,6 @@ export interface HomepageTrustBadge {
   id: string;
   icon_kind?: "image" | "svg";
   icon_url: string | null;
-  svg_markup?: string | null;
   icon_color?: string;
   title: string;
   description: string;

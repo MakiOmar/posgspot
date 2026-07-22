@@ -13,8 +13,7 @@
   }
 
   /**
-   * Clone sections for save: prefer file-backed SVG (no raw markup in POST).
-   * Fall back to base64 for paste-only items that were not uploaded yet.
+   * Clone sections for save: strip any leftover inline SVG fields (library files only).
    */
   function encodeSectionsForSave(sections) {
     return sections.map(function (section) {
@@ -25,56 +24,13 @@
         Array.isArray(clone.settings.items)
       ) {
         clone.settings.items = clone.settings.items.map(function (item) {
-          var markup = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
-          // Fresh paste without a file yet — send as base64 fallback.
-          if (markup && !item.image) {
-            item.icon_kind = "svg";
-            try {
-              item.svg_markup_b64 = btoa(unescape(encodeURIComponent(markup)));
-              item.svg_markup = "";
-            } catch (e) {
-              // keep raw markup if encode fails
-            }
-            return item;
-          }
-          // File-backed: do not resend markup (rehydrated from disk after save).
-          item.svg_markup = "";
+          delete item.svg_markup;
           delete item.svg_markup_b64;
+          delete item._svgBaseline;
           return item;
         });
       }
       return clone;
-    });
-  }
-
-  function uploadPastedSvgMarkup(uploadUrl, markup) {
-    var token = csrf();
-    var blob = new Blob([markup], { type: "image/svg+xml" });
-    var body = new FormData();
-    // Third arg sets the filename for Laravel's UploadedFile.
-    body.append("image", blob, "pasted-badge.svg");
-    return fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        "X-CSRF-TOKEN": token,
-        Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: body,
-      credentials: "same-origin",
-    }).then(function (res) {
-      return res.text().then(function (text) {
-        var json = null;
-        try {
-          json = text ? JSON.parse(text) : null;
-        } catch (e) {
-          json = null;
-        }
-        if (!res.ok || !json || !json.success) {
-          throw new Error((json && json.msg) || "SVG upload failed (HTTP " + res.status + ")");
-        }
-        return json;
-      });
     });
   }
 
@@ -175,11 +131,6 @@
     return emptyLocale();
   }
 
-  /** Snapshot current SVG markup so we only re-upload when the user edits/pastes. */
-  function baselineTrustBadgeSvg(item) {
-    item._svgBaseline = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
-  }
-
   function hydrateTrustBadgeItem(item) {
     if (!item.icon_kind) {
       item.icon_kind = "image";
@@ -187,12 +138,11 @@
     if (!item.icon_color) {
       item.icon_color = "#f5a623";
     }
-    if (typeof item.svg_markup !== "string") {
-      item.svg_markup = "";
-    }
+    delete item.svg_markup;
+    delete item.svg_markup_b64;
+    delete item._svgBaseline;
     item.title = ensureLocaleMap(item.title);
     item.description = ensureLocaleMap(item.description);
-    baselineTrustBadgeSvg(item);
   }
 
   function mount() {
@@ -388,7 +338,6 @@
             image: null,
             url: "",
             image_url: "",
-            svg_markup: "",
             title: emptyLocale(),
             description: emptyLocale(),
           });
@@ -416,7 +365,6 @@
             image: src.image || null,
             url: src.url || "",
             image_url: src.image_url || src.url || "",
-            svg_markup: src.svg_markup || "",
             title: {
               en: (src.title && src.title.en) || "",
               ar: (src.title && src.title.ar) || "",
@@ -428,38 +376,6 @@
           };
           section.settings.items.splice(index + 1, 0, copy);
           this.error = "";
-        },
-        loadTrustBadgeSvgFromUrl: function (item) {
-          var self = this;
-          var url = (item.url || "").trim();
-          if (!url) {
-            self.error = "Enter an SVG URL first.";
-            return;
-          }
-          self.uploading = true;
-          fetch(url, { credentials: "omit" })
-            .then(function (res) {
-              if (!res.ok) {
-                throw new Error("fetch failed");
-              }
-              return res.text();
-            })
-            .then(function (text) {
-              self.uploading = false;
-              if (!/<svg\b/i.test(text)) {
-                self.error = "URL did not return SVG markup.";
-                return;
-              }
-              item.icon_kind = "svg";
-              item.svg_markup = text;
-              item.image = null;
-              self.message = "SVG loaded — adjust color to preview.";
-              self.error = "";
-            })
-            .catch(function () {
-              self.uploading = false;
-              self.error = "Could not load SVG (CORS or invalid URL). Upload the file instead.";
-            });
         },
         clearBannerImage: function (section) {
           if (!section.settings.image) {
@@ -514,13 +430,10 @@
                 item.url = "";
                 item.image_url = json.image_url;
                 item.media_id = json.media_id || null;
-                if (json.icon_kind === "svg" && json.svg_markup) {
+                if (json.icon_kind === "svg") {
                   item.icon_kind = "svg";
-                  item.svg_markup = json.svg_markup;
-                  baselineTrustBadgeSvg(item);
                 } else if (options.forceImageKind) {
                   item.icon_kind = "image";
-                  item.svg_markup = "";
                 }
                 self.message = json.deduped ? "Reused existing library file." : "File uploaded to library.";
                 self.error = "";
@@ -591,7 +504,6 @@
           this.loadLibrary(1);
         },
         pickLibraryItem: function (media) {
-          var self = this;
           var item = this.libraryTarget;
           if (!item || !media) {
             return;
@@ -602,29 +514,9 @@
           item.media_id = media.id || null;
           if (media.kind === "svg" && !this.libraryForceImageKind) {
             item.icon_kind = "svg";
-            // Load markup for recolor preview (same-origin).
-            self.uploading = true;
-            fetch(item.image_url, { credentials: "same-origin" })
-              .then(function (res) {
-                return res.text();
-              })
-              .then(function (text) {
-                self.uploading = false;
-                item.svg_markup = text && text.indexOf("<svg") !== -1 ? text : "";
-                baselineTrustBadgeSvg(item);
-                self.message = "Selected from library.";
-                self.closeLibrary();
-              })
-              .catch(function () {
-                self.uploading = false;
-                item.svg_markup = "";
-                self.message = "Selected from library (preview unavailable).";
-                self.closeLibrary();
-              });
-            return;
+          } else {
+            item.icon_kind = "image";
           }
-          item.icon_kind = "image";
-          item.svg_markup = "";
           this.message = "Selected from library.";
           this.closeLibrary();
         },
@@ -676,60 +568,21 @@
             return;
           }
 
-          // Upload pasted SVG markup as files first (avoids WAF/size limits on Save homepage).
-          var uploadTasks = [];
-          self.sections.forEach(function (section) {
-            if (section.type !== "trust_badges" || !section.settings || !Array.isArray(section.settings.items)) {
-              return;
-            }
-            section.settings.items.forEach(function (item) {
-              var markup = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
-              if (!markup) {
-                return;
-              }
-              if (!uploadUrl) {
-                return;
-              }
-              var baseline = typeof item._svgBaseline === "string" ? item._svgBaseline : "";
-              // Skip re-upload when markup is only the rehydrated file content (unchanged).
-              if (item.image && markup === baseline) {
-                return;
-              }
-              // Pasted/edited markup wins over an existing image (duplicates often share one .svg).
-              item.icon_kind = "svg";
-              uploadTasks.push(
-                uploadPastedSvgMarkup(uploadUrl, markup).then(function (json) {
-                  item.image = json.image;
-                  item.url = "";
-                  item.image_url = json.image_url || "";
-                  if (json.svg_markup) {
-                    item.svg_markup = json.svg_markup;
-                  }
-                  baselineTrustBadgeSvg(item);
-                })
-              );
-            });
-          });
-
-
-          Promise.all(uploadTasks)
-            .then(function () {
-              var payload = encodeSectionsForSave(self.sections);
-              var body = new URLSearchParams();
-              body.set("_token", token);
-              body.set("sections", JSON.stringify(payload));
-              return fetch(saveUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-                  Accept: "application/json",
-                  "X-CSRF-TOKEN": token,
-                  "X-Requested-With": "XMLHttpRequest",
-                },
-                body: body.toString(),
-                credentials: "same-origin",
-              });
-            })
+          var payload = encodeSectionsForSave(self.sections);
+          var body = new URLSearchParams();
+          body.set("_token", token);
+          body.set("sections", JSON.stringify(payload));
+          fetch(saveUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+              Accept: "application/json",
+              "X-CSRF-TOKEN": token,
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            body: body.toString(),
+            credentials: "same-origin",
+          })
             .then(function (res) {
               return res.text().then(function (text) {
                 var json = null;
@@ -750,8 +603,7 @@
                   if (result.status === 419) {
                     msg = "Session expired — refresh the page and try Save homepage again.";
                   } else if (result.status === 403) {
-                    msg =
-                      "Save blocked (HTTP 403). Refresh the page; if it persists, a security filter may be blocking SVG content.";
+                    msg = "Save blocked (HTTP 403). Refresh the page and try again.";
                   } else {
                     msg = "Save failed (HTTP " + result.status + ").";
                   }
@@ -902,34 +754,22 @@
                 </template>
 
                 <template v-else-if="section.type === 'trust_badges'">
-                  <p class="help-block">Row of trust / service items (icon + title + description). Up to 8 items. Choose <strong>SVG</strong>, paste markup (or upload), then click <strong>Save homepage</strong>. Pasted SVGs are stored as files automatically.</p>
+                  <p class="help-block">Row of trust / service items (icon + title + description). Up to 8 items. Upload or pick icons from the <strong>media library</strong> (SVG/PNG/JPG). Inline SVG paste is not supported.</p>
                   <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)" :disabled="section.settings.items.length >= 8">Add item</button>
                   <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row sf-hp-trust-item">
                     <div class="sf-hp-trust-preview">
-                      <div
-                        v-if="item.icon_kind === 'svg' && item.svg_markup"
-                        class="sf-hp-svg-preview"
-                        :style="{ color: item.icon_color || '#f5a623' }"
-                        v-html="item.svg_markup"
-                      ></div>
-                      <img v-else-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
+                      <img v-if="item.image_url || item.url" :src="item.image_url || item.url" alt="" class="sf-hp-thumb" />
                       <div v-else class="sf-hp-thumb sf-hp-thumb--empty">No icon</div>
                     </div>
                     <div class="sf-hp-media-fields">
                       <select class="form-control input-sm" v-model="item.icon_kind">
                         <option value="image">Image (PNG/JPG/WebP)</option>
-                        <option value="svg">SVG (inline markup, recolorable)</option>
+                        <option value="svg">SVG file</option>
                       </select>
                       <template v-if="item.icon_kind === 'svg'">
-                        <input class="form-control input-sm" v-model="item.url" placeholder="SVG URL (optional)" />
-                        <button type="button" class="btn btn-default btn-xs" @click="loadTrustBadgeSvgFromUrl(item)">Load SVG from URL</button>
+                        <input class="form-control input-sm" v-model="item.url" placeholder="SVG URL (optional)" :disabled="!!item.image" />
                         <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(item, { acceptSvg: true })">Upload SVG</button>
                         <button type="button" class="btn btn-default btn-xs" @click="openLibrary(item, { kind: 'svg' })">Library</button>
-                        <label class="sf-hp-color-label">Icon color
-                          <input type="color" v-model="item.icon_color" />
-                          <input class="form-control input-sm" style="max-width:120px;display:inline-block;" v-model="item.icon_color" />
-                        </label>
-                        <textarea class="form-control input-sm" rows="3" v-model="item.svg_markup" placeholder="Or paste SVG markup here — preview updates live"></textarea>
                       </template>
                       <template v-else>
                         <input class="form-control input-sm" v-model="item.url" placeholder="Icon image URL" :disabled="!!item.image" />

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /**
- * Per-business storefront media library (checksum dedupe).
+ * Per-business storefront media library (checksum dedupe; no inline SVG processing).
  */
 class StorefrontMediaLibraryTest extends TestCase
 {
@@ -28,13 +28,13 @@ class StorefrontMediaLibraryTest extends TestCase
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
         $file1 = UploadedFile::fake()->createWithContent('badge.svg', $svg);
-        // Fake createWithContent may set octet-stream; force svg extension path.
         $library = app(StorefrontMediaLibraryService::class);
 
         $first = $library->storeUploadedFile($this->businessId, $file1, null);
         $this->assertTrue($first['created']);
         $this->assertSame('svg', $first['media']->kind);
         $this->assertStringStartsWith('storefront_library/'.$this->businessId.'/', $first['media']->path);
+        $this->assertArrayNotHasKey('svg_markup', $first);
 
         $file2 = UploadedFile::fake()->createWithContent('badge-copy.svg', $svg);
         $second = $library->storeUploadedFile($this->businessId, $file2, null);
@@ -45,21 +45,25 @@ class StorefrontMediaLibraryTest extends TestCase
         $this->assertSame(1, $list['meta']['total']);
     }
 
-    public function test_store_svg_markup_and_delete(): void
+    public function test_delete_soft_hides_then_reupload_restores(): void
     {
         $library = app(StorefrontMediaLibraryService::class);
         $svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="10" height="10"/></svg>';
-        $result = $library->storeSvgMarkup($this->businessId, $svg, null, 'pasted.svg');
+        $file = UploadedFile::fake()->createWithContent('pasted.svg', $svg);
+        $result = $library->storeUploadedFile($this->businessId, $file, null);
         $this->assertTrue($result['created']);
         $path = public_path('uploads/'.$result['media']->path);
         $this->assertFileExists($path);
 
         $this->assertTrue($library->delete($this->businessId, (int) $result['media']->id));
         $this->assertNull($library->findForBusiness($this->businessId, (int) $result['media']->id));
-        // File retained so checksum restore can revive the row.
         $this->assertFileExists($path);
 
-        $again = $library->storeSvgMarkup($this->businessId, $svg, null, 'pasted.svg');
+        $again = $library->storeUploadedFile(
+            $this->businessId,
+            UploadedFile::fake()->createWithContent('pasted.svg', $svg),
+            null
+        );
         $this->assertFalse($again['created']);
         $this->assertSame($result['media']->id, $again['media']->id);
     }

@@ -24,7 +24,7 @@ function descriptionParts(text: string): Array<{ text: string; accent: boolean }
   return parts.length > 0 ? parts : [{ text, accent: false }];
 }
 
-/** Homepage trust / service badges row (icon + title + description). */
+/** Homepage trust / service badges row (icon + title + description). Icons are media URLs only. */
 export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
   if (items.length === 0) {
     return null;
@@ -34,18 +34,9 @@ export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
     <section class="home-trust-badges" aria-label="Store benefits">
       <ul class="home-trust-badges__list">
         {items.map((item) => {
-          const color = item.icon_color || "#f5a623";
-          const useSvg = item.icon_kind === "svg" && Boolean(item.svg_markup);
-
           return (
             <li key={item.id || item.title} class="home-trust-badges__item">
-              {useSvg ? (
-                <span
-                  class="home-trust-badges__icon home-trust-badges__icon--svg"
-                  style={{ color }}
-                  dangerouslySetInnerHTML={item.svg_markup || ""}
-                />
-              ) : item.icon_url ? (
+              {item.icon_url ? (
                 <img
                   class="home-trust-badges__icon"
                   src={item.icon_url}

@@ -955,7 +955,7 @@
 <link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=5">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=17"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=18"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

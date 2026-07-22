@@ -350,14 +350,13 @@ class HomepageApiTest extends TestCase
 
     public function test_trust_badges_persists_more_than_three_items(): void
     {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
         $items = [];
         for ($i = 1; $i <= 5; $i++) {
             $items[] = [
                 'id' => 'badge_'.$i,
-                'icon_kind' => 'svg',
+                'icon_kind' => 'image',
                 'icon_color' => '#112233',
-                'svg_markup' => $svg,
+                'url' => 'https://example.com/badge-'.$i.'.png',
                 'title' => ['en' => 'Badge '.$i, 'ar' => 'شارة '.$i],
                 'description' => ['en' => 'Desc '.$i, 'ar' => ''],
             ];
@@ -389,7 +388,7 @@ class HomepageApiTest extends TestCase
         $this->assertCount(5, $response->json('data.sections.0.settings.items'));
     }
 
-    public function test_trust_badges_accepts_base64_svg_markup(): void
+    public function test_trust_badges_ignores_inline_svg_markup(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
         app(StorefrontSettingService::class)->save($this->businessId, [
@@ -405,7 +404,7 @@ class HomepageApiTest extends TestCase
                                 'id' => 'badge_b64',
                                 'icon_kind' => 'svg',
                                 'icon_color' => '#abc123',
-                                'svg_markup' => '',
+                                'svg_markup' => $svg,
                                 'svg_markup_b64' => base64_encode($svg),
                                 'title' => ['en' => 'Encoded', 'ar' => ''],
                                 'description' => ['en' => 'Via b64', 'ar' => ''],
@@ -422,19 +421,18 @@ class HomepageApiTest extends TestCase
         $this->assertNotNull($trust);
         $item = $trust['settings']['items'][0] ?? null;
         $this->assertIsArray($item);
-        // Pasted SVG should be persisted into the media library (checksum-deduped).
-        $this->assertNotEmpty($item['image'] ?? null);
-        $this->assertStringContainsString('storefront_library/', (string) $item['image']);
-        $this->assertStringEndsWith('.svg', (string) $item['image']);
-        $this->assertFileExists(public_path('uploads/'.$item['image']));
+        // Inline markup must not be stored or turned into uploads.
+        $this->assertArrayNotHasKey('svg_markup', $item);
+        $this->assertEmpty($item['image'] ?? null);
 
         $response = $this->getJson('/api/storefront/v1/homepage');
         $response->assertOk()
-            ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'svg');
-        $this->assertStringContainsString('<svg', (string) $response->json('data.sections.0.settings.items.0.svg_markup'));
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'image')
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_url', null)
+            ->assertJsonMissingPath('data.sections.0.settings.items.0.svg_markup');
     }
 
-    public function test_pasted_svg_markup_forces_svg_kind_and_persists_file(): void
+    public function test_pasted_svg_markup_is_discarded_without_library_file(): void
     {
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>';
         app(StorefrontSettingService::class)->save($this->businessId, [
@@ -448,8 +446,7 @@ class HomepageApiTest extends TestCase
                         'items' => [
                             [
                                 'id' => 'badge_paste',
-                                // Intentionally "image" — pasted markup should force svg.
-                                'icon_kind' => 'image',
+                                'icon_kind' => 'svg',
                                 'svg_markup' => $svg,
                                 'title' => ['en' => 'Paste', 'ar' => ''],
                                 'description' => ['en' => '', 'ar' => ''],
@@ -464,15 +461,21 @@ class HomepageApiTest extends TestCase
         $saved = app(StorefrontSettingService::class)->get($this->businessId);
         $item = collect($saved['homepage_sections'] ?? [])
             ->firstWhere('type', 'trust_badges')['settings']['items'][0] ?? null;
-        $this->assertSame('svg', $item['icon_kind'] ?? null);
-        $this->assertNotEmpty($item['image'] ?? null);
-        $this->assertStringContainsString('storefront_library/', (string) $item['image']);
-        $this->assertFileExists(public_path('uploads/'.$item['image']));
+        $this->assertSame('image', $item['icon_kind'] ?? null);
+        $this->assertEmpty($item['image'] ?? null);
+        $this->assertArrayNotHasKey('svg_markup', $item);
     }
 
-    public function test_trust_badges_svg_item_presents_markup_and_color(): void
+    public function test_trust_badges_svg_file_presents_icon_url_not_markup(): void
     {
+        $rel = 'storefront_library/'.$this->businessId.'/test-badge.svg';
+        $absDir = public_path('uploads/storefront_library/'.$this->businessId);
+        if (! is_dir($absDir)) {
+            mkdir($absDir, 0755, true);
+        }
         $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z"/></svg>';
+        file_put_contents(public_path('uploads/'.$rel), $svg);
+
         app(StorefrontSettingService::class)->save($this->businessId, [
             'selling_location_ids' => [1],
             'homepage_sections' => [
@@ -487,7 +490,7 @@ class HomepageApiTest extends TestCase
                                 'id' => 'badge_svg',
                                 'icon_kind' => 'svg',
                                 'icon_color' => '#ff9900',
-                                'svg_markup' => $svg,
+                                'image' => $rel,
                                 'title' => ['en' => 'Secure', 'ar' => 'آمن'],
                                 'description' => ['en' => 'Safe checkout', 'ar' => ''],
                             ],
@@ -503,8 +506,9 @@ class HomepageApiTest extends TestCase
             ->assertJsonPath('data.sections.0.type', 'trust_badges')
             ->assertJsonPath('data.sections.0.layout_width', 'full')
             ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'svg')
-            ->assertJsonPath('data.sections.0.settings.items.0.icon_color', '#ff9900');
-        $this->assertStringContainsString('<svg', (string) $response->json('data.sections.0.settings.items.0.svg_markup'));
+            ->assertJsonPath('data.sections.0.settings.items.0.icon_color', '#ff9900')
+            ->assertJsonMissingPath('data.sections.0.settings.items.0.svg_markup');
+        $this->assertStringContainsString('uploads/'.$rel, (string) $response->json('data.sections.0.settings.items.0.icon_url'));
     }
 
     public function test_trust_badges_section_without_items_is_omitted(): void

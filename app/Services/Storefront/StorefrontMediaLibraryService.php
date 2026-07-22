@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 
 /**
  * Storefront media library: checksum-deduped uploads under uploads/storefront_library/{business_id}/.
+ *
+ * SVGs are stored as files and served by URL — never sanitized or inlined into settings/API JSON.
  */
 class StorefrontMediaLibraryService
 {
@@ -66,7 +68,7 @@ class StorefrontMediaLibraryService
     /**
      * Store an uploaded file (or return existing row with the same checksum).
      *
-     * @return array{media: StorefrontMedia, created: bool, svg_markup: string|null}
+     * @return array{media: StorefrontMedia, created: bool}
      */
     public function storeUploadedFile(int $businessId, UploadedFile $file, ?int $uploadedBy = null): array
     {
@@ -75,28 +77,26 @@ class StorefrontMediaLibraryService
         $isSvg = $ext === 'svg' || str_contains($mime, 'svg');
         $kind = $isSvg ? 'svg' : 'image';
 
+        $realPath = $file->getRealPath();
+        if (! is_string($realPath) || $realPath === '' || ! is_readable($realPath)) {
+            throw new \InvalidArgumentException('Could not read uploaded file.');
+        }
+
         $bytes = (int) $file->getSize();
         if ($bytes < 1 || $bytes > self::MAX_BYTES) {
             throw new \InvalidArgumentException('File too large (max 5MB).');
         }
 
-        $raw = @file_get_contents($file->getRealPath());
-        if (! is_string($raw) || $raw === '') {
-            throw new \InvalidArgumentException('Could not read uploaded file.');
+        if ($isSvg && ! $this->peekLooksLikeSvg($realPath)) {
+            throw new \InvalidArgumentException('Invalid SVG file.');
         }
 
-        $svgMarkup = null;
-        if ($isSvg) {
-            $svgMarkup = app(\App\Services\Storefront\Homepage\HomepageSectionService::class)
-                ->sanitizeSvgForUpload($raw);
-            if ($svgMarkup === null || $svgMarkup === '') {
-                throw new \InvalidArgumentException('Invalid SVG file.');
-            }
-            $raw = $svgMarkup;
-            $bytes = strlen($raw);
+        // Hash from disk — do not load the whole file into a PHP string for checksum.
+        $checksum = hash_file('sha256', $realPath);
+        if (! is_string($checksum) || $checksum === '') {
+            throw new \InvalidArgumentException('Could not fingerprint uploaded file.');
         }
 
-        $checksum = hash('sha256', $raw);
         $existing = StorefrontMedia::withTrashed()
             ->where('business_id', $businessId)
             ->where('checksum', $checksum)
@@ -110,7 +110,6 @@ class StorefrontMediaLibraryService
             return [
                 'media' => $existing->fresh(),
                 'created' => false,
-                'svg_markup' => $isSvg ? $this->readSvgMarkup($existing) : null,
             ];
         }
 
@@ -129,7 +128,8 @@ class StorefrontMediaLibraryService
         }
 
         $absPath = $absDir.DIRECTORY_SEPARATOR.$filename;
-        if (@file_put_contents($absPath, $raw) === false) {
+        // Stream copy — avoid loading multi‑MB uploads into memory.
+        if (! @copy($realPath, $absPath)) {
             throw new \RuntimeException('Could not store media file.');
         }
         $this->util->ensurePublicUploadPermissions(self::DIR.'/'.$businessId, $filename);
@@ -148,68 +148,12 @@ class StorefrontMediaLibraryService
         return [
             'media' => $media,
             'created' => true,
-            'svg_markup' => $isSvg ? $svgMarkup : null,
         ];
     }
 
     /**
-     * Store sanitized SVG markup (paste path) with checksum dedupe.
-     *
-     * @return array{media: StorefrontMedia, created: bool}
+     * Soft-delete a library asset (file retained so checksum restore can revive the row).
      */
-    public function storeSvgMarkup(int $businessId, string $svgMarkup, ?int $uploadedBy = null, string $originalName = 'pasted.svg'): array
-    {
-        $clean = app(\App\Services\Storefront\Homepage\HomepageSectionService::class)
-            ->sanitizeSvgForUpload($svgMarkup);
-        if ($clean === null || $clean === '') {
-            throw new \InvalidArgumentException('Invalid SVG markup.');
-        }
-
-        $checksum = hash('sha256', $clean);
-        $existing = StorefrontMedia::withTrashed()
-            ->where('business_id', $businessId)
-            ->where('checksum', $checksum)
-            ->first();
-        if ($existing) {
-            if ($existing->trashed()) {
-                $existing->restore();
-            }
-
-            return ['media' => $existing->fresh(), 'created' => false];
-        }
-
-        $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: 'pasted.svg';
-        if (! str_ends_with(strtolower($safeName), '.svg')) {
-            $safeName .= '.svg';
-        }
-        $filename = 'paste_'.time().'_'.Str::lower(Str::random(8)).'_'.$safeName;
-        $relativeDir = self::DIR.'/'.$businessId;
-        $relativePath = $relativeDir.'/'.$filename;
-
-        $this->util->ensurePublicUploadPermissions(self::DIR.'/'.$businessId, null, true);
-        $absDir = public_path('uploads/'.$relativeDir);
-        if (! is_dir($absDir) && ! @mkdir($absDir, 0755, true) && ! is_dir($absDir)) {
-            throw new \RuntimeException('Could not create media library directory.');
-        }
-        if (@file_put_contents($absDir.DIRECTORY_SEPARATOR.$filename, $clean) === false) {
-            throw new \RuntimeException('Could not store SVG file.');
-        }
-        $this->util->ensurePublicUploadPermissions(self::DIR.'/'.$businessId, $filename);
-
-        $media = StorefrontMedia::create([
-            'business_id' => $businessId,
-            'path' => $relativePath,
-            'original_name' => mb_substr($originalName, 0, 255),
-            'mime' => 'image/svg+xml',
-            'kind' => 'svg',
-            'bytes' => strlen($clean),
-            'checksum' => $checksum,
-            'uploaded_by' => $uploadedBy,
-        ]);
-
-        return ['media' => $media, 'created' => true];
-    }
-
     public function delete(int $businessId, int $id): bool
     {
         $media = $this->findForBusiness($businessId, $id);
@@ -217,7 +161,6 @@ class StorefrontMediaLibraryService
             return false;
         }
 
-        // Soft-delete only — keep the file so a later identical upload can restore the row.
         $media->delete();
 
         return true;
@@ -231,7 +174,7 @@ class StorefrontMediaLibraryService
         return [
             'id' => (int) $media->id,
             'path' => (string) $media->path,
-            'image' => (string) $media->path, // homepage builder uses `image` as storage key
+            'image' => (string) $media->path,
             'original_name' => (string) ($media->original_name ?? ''),
             'mime' => (string) ($media->mime ?? ''),
             'kind' => (string) $media->kind,
@@ -242,24 +185,21 @@ class StorefrontMediaLibraryService
         ];
     }
 
-    public function readSvgMarkup(StorefrontMedia $media): ?string
+    /**
+     * Peek at the start of a file for an <svg tag — never load/sanitize the whole document.
+     */
+    private function peekLooksLikeSvg(string $absolutePath): bool
     {
-        if ($media->kind !== 'svg') {
-            return null;
+        $fh = @fopen($absolutePath, 'rb');
+        if ($fh === false) {
+            return false;
         }
-        $abs = $media->absolutePath();
-        if (! is_readable($abs)) {
-            return null;
-        }
-        $size = @filesize($abs);
-        if (! is_int($size) || $size < 1 || $size > 120000) {
-            return null;
-        }
-        $raw = @file_get_contents($abs);
-        if (! is_string($raw) || $raw === '') {
-            return null;
+        $peek = fread($fh, 8192);
+        fclose($fh);
+        if (! is_string($peek) || $peek === '') {
+            return false;
         }
 
-        return app(\App\Services\Storefront\Homepage\HomepageSectionService::class)->sanitizeSvgForUpload($raw);
+        return stripos($peek, '<svg') !== false;
     }
 }

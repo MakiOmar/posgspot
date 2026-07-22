@@ -377,13 +377,16 @@ class HomepageSectionService
                 $settings['items'] = array_map(
                     function ($item) {
                         $row = $this->withMediaUrl(is_array($item) ? $item : []);
+                        // Never rehydrate SVG file contents into PHP (OOM risk on large files).
+                        unset($row['svg_markup'], $row['svg_markup_b64']);
                         $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
-                        $markup = trim((string) ($row['svg_markup'] ?? ''));
-                        if ($kind === 'svg' && $markup === '' && ! empty($row['image'])) {
-                            $fromFile = $this->readUploadedSvgMarkup((string) $row['image']);
-                            if (is_string($fromFile) && $fromFile !== '') {
-                                $row['svg_markup'] = $fromFile;
-                            }
+                        if ($kind === 'svg' && empty($row['image']) && empty($row['url'])) {
+                            $kind = 'image';
+                        }
+                        // Prefer file extension when present.
+                        $path = (string) ($row['image'] ?? '');
+                        if ($path !== '' && preg_match('/\.svg$/i', $path)) {
+                            $kind = 'svg';
                         }
                         if (! isset($row['title']) || ! is_array($row['title'])) {
                             $row['title'] = $this->localeMap($row['title'] ?? null, 120);
@@ -391,9 +394,7 @@ class HomepageSectionService
                         if (! isset($row['description']) || ! is_array($row['description'])) {
                             $row['description'] = $this->localeMap($row['description'] ?? null, 240);
                         }
-                        if (! isset($row['icon_kind'])) {
-                            $row['icon_kind'] = $kind;
-                        }
+                        $row['icon_kind'] = $kind;
                         if (! isset($row['icon_color'])) {
                             $row['icon_color'] = $this->cssColor($row['icon_color'] ?? null, '#f5a623');
                         }
@@ -531,32 +532,17 @@ class HomepageSectionService
                     }
                     $title = $this->pickLocale($item['title'] ?? [], $locale);
                     $description = $this->pickLocale($item['description'] ?? [], $locale);
-                    $kind = $this->normalizeIconKind($item['icon_kind'] ?? null);
-                    $svgMarkup = $kind === 'svg' ? $this->sanitizeSvgMarkup((string) ($item['svg_markup'] ?? '')) : null;
-                    if ($kind === 'svg' && ($svgMarkup === null || $svgMarkup === '') && ! empty($item['image'])) {
-                        $svgMarkup = $this->readUploadedSvgMarkup((string) $item['image']);
-                    }
-                    $iconUrl = $kind === 'image'
-                        ? $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null)
-                        : null;
                     if ($title === '' && $description === '') {
                         return null;
                     }
-                    if ($kind === 'svg' && ($svgMarkup === null || $svgMarkup === '')) {
-                        // Fall back to image if SVG markup missing but a file/url exists.
-                        $iconUrl = $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null);
-                        if ($iconUrl === null) {
-                            // Still allow text-only badges.
-                        } else {
-                            $kind = 'image';
-                        }
-                    }
+                    $iconUrl = $this->mediaPublicUrl($item['image'] ?? null, $item['url'] ?? null);
+                    $path = (string) ($item['image'] ?? '');
+                    $kind = preg_match('/\.svg$/i', $path) ? 'svg' : 'image';
 
                     return [
                         'id' => (string) ($item['id'] ?? ''),
                         'icon_kind' => $kind,
                         'icon_url' => $iconUrl,
-                        'svg_markup' => $svgMarkup,
                         'icon_color' => $this->cssColor($item['icon_color'] ?? null, '#f5a623'),
                         'title' => $title,
                         'description' => $description,
@@ -885,46 +871,20 @@ class HomepageSectionService
             }
             $title = $this->localeMap($row['title'] ?? null, 120);
             $description = $this->localeMap($row['description'] ?? null, 240);
-            $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
             $media = $this->normalizeMediaRow($row);
-            $rawMarkup = (string) ($row['svg_markup'] ?? '');
-            if ($rawMarkup === '' && ! empty($row['svg_markup_b64']) && is_string($row['svg_markup_b64'])) {
-                // Reject oversized base64 before decoding (avoids multi‑MB allocations).
-                if (strlen($row['svg_markup_b64']) <= 200000) {
-                    $decoded = base64_decode($row['svg_markup_b64'], true);
-                    if ($decoded === false) {
-                        $decoded = base64_decode($row['svg_markup_b64'], false);
-                    }
-                    if (is_string($decoded) && $decoded !== '') {
-                        $rawMarkup = $decoded;
-                    }
-                }
-            }
-            $hadInlineMarkup = trim($rawMarkup) !== '';
-            // Pasted markup implies SVG mode even if the dropdown was left on "image".
-            if ($hadInlineMarkup) {
+            $kind = $this->normalizeIconKind($row['icon_kind'] ?? null);
+            $path = (string) ($media['image'] ?? '');
+            if ($path !== '' && preg_match('/\.svg$/i', $path)) {
                 $kind = 'svg';
-            }
-            $svgMarkup = ($kind === 'svg' && $hadInlineMarkup)
-                ? ($this->sanitizeSvgMarkup($rawMarkup) ?? '')
-                : '';
-
-            // Persist ONLY when the request carried new inline markup.
-            // Do not read existing .svg files back into memory and rewrite them on every save
-            // (that path caused production OOM with large SVGs + PCRE sanitization).
-            if ($kind === 'svg' && $svgMarkup !== '') {
-                $storedFile = $this->persistSvgMarkupToUpload($svgMarkup, $businessId);
-                if (is_string($storedFile) && $storedFile !== '') {
-                    $media['image'] = $storedFile;
-                    $media['url'] = '';
-                }
+            } elseif ($kind === 'svg' && $path === '' && $media['url'] === '') {
+                // Inline SVG paste is no longer supported — require a library file/URL.
+                $kind = 'image';
             }
 
             if (
                 $title['en'] === '' && $title['ar'] === ''
                 && $description['en'] === '' && $description['ar'] === ''
                 && $media['image'] === null && $media['url'] === ''
-                && $svgMarkup === ''
             ) {
                 continue;
             }
@@ -933,19 +893,12 @@ class HomepageSectionService
                 $id = 'badge_'.Str::lower(Str::random(6));
             }
 
-            // File-backed storage: never keep inline markup in settings JSON.
-            $storeMarkup = '';
-            if ($kind === 'svg' && $svgMarkup !== '' && empty($media['image'])) {
-                $storeMarkup = $svgMarkup;
-            }
-
             $out[] = [
                 'id' => mb_substr($id, 0, 40),
                 'icon_kind' => $kind,
                 'icon_color' => $this->cssColor($row['icon_color'] ?? null, '#f5a623'),
                 'image' => $media['image'],
                 'url' => $media['url'],
-                'svg_markup' => $storeMarkup,
                 'title' => $title,
                 'description' => $description,
             ];
@@ -966,189 +919,6 @@ class HomepageSectionService
         $value = strtolower(trim((string) $value));
 
         return $value === 'svg' ? 'svg' : 'image';
-    }
-
-    /**
-     * Public wrapper used by homepage media upload for SVG sanitization.
-     */
-    public function sanitizeSvgForUpload(string $svg): ?string
-    {
-        return $this->sanitizeSvgMarkup($svg);
-    }
-
-    private function sanitizeSvgMarkup(string $svg): ?string
-    {
-        // Hard size gate first — never decode/sanitize multi‑MB blobs (OOM risk).
-        if (strlen($svg) > 200000) {
-            return null;
-        }
-
-        // Strip UTF-8 BOM and normalize whitespace.
-        if (str_starts_with($svg, "\xEF\xBB\xBF")) {
-            $svg = substr($svg, 3);
-        }
-        $svg = trim($svg);
-        if ($svg === '') {
-            return null;
-        }
-
-        // Allow pasting data-URI SVGs from design tools.
-        if (preg_match('/^data:image\/svg\+xml\s*[;,]/i', $svg)) {
-            $payload = preg_replace('/^data:image\/svg\+xml\s*/i', '', $svg) ?? '';
-            if (str_starts_with($payload, ';base64,')) {
-                $b64 = substr($payload, 8);
-                if (strlen($b64) > 200000) {
-                    return null;
-                }
-                $decoded = base64_decode($b64, true);
-                $svg = is_string($decoded) ? trim($decoded) : '';
-            } elseif (str_starts_with($payload, ',')) {
-                $svg = trim(rawurldecode(substr($payload, 1)));
-            }
-        }
-
-        if ($svg === '' || strlen($svg) > 120000 || ! preg_match('/<svg\b/i', $svg)) {
-            return null;
-        }
-
-        // Prefer DOM sanitization when available (avoids PCRE catastrophic backtracking on large SVGs).
-        if (class_exists(\DOMDocument::class)) {
-            $previous = libxml_use_internal_errors(true);
-            $dom = new \DOMDocument();
-            $wrapped = '<?xml encoding="UTF-8">'.$svg;
-            $loaded = @$dom->loadHTML($wrapped, LIBXML_NONET | LIBXML_NOWARNING | LIBXML_NOERROR);
-            libxml_clear_errors();
-            libxml_use_internal_errors($previous);
-            if ($loaded) {
-                foreach (['script', 'foreignObject', 'foreignobject'] as $tag) {
-                    $nodes = $dom->getElementsByTagName($tag);
-                    for ($i = $nodes->length - 1; $i >= 0; $i--) {
-                        $node = $nodes->item($i);
-                        if ($node && $node->parentNode) {
-                            $node->parentNode->removeChild($node);
-                        }
-                    }
-                }
-                $svgs = $dom->getElementsByTagName('svg');
-                if ($svgs->length > 0) {
-                    $svgNode = $svgs->item(0);
-                    if ($svgNode instanceof \DOMElement) {
-                        $this->stripUnsafeSvgAttributes($svgNode);
-                        $clean = $dom->saveXML($svgNode);
-                        if (is_string($clean) && preg_match('/<svg\b/i', $clean) && strlen($clean) <= 120000) {
-                            return trim($clean);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Fallback: conservative regex cleanup with bounded backtracking.
-        $prevBacktrack = ini_get('pcre.backtrack_limit');
-        @ini_set('pcre.backtrack_limit', '100000');
-        $svg = preg_replace('/<\?xml[^>]*>/i', '', $svg) ?? $svg;
-        $svg = preg_replace('/<!DOCTYPE[^>]*>/i', '', $svg) ?? $svg;
-        $svg = preg_replace('/<script\b[^>]*>[\s\S]*?<\/script>/i', '', $svg) ?? '';
-        $svg = preg_replace('/<foreignObject\b[^>]*>[\s\S]*?<\/foreignObject>/i', '', $svg) ?? '';
-        $svg = preg_replace('/\son[a-z]+\s*=\s*("[^"]*"|\'[^\']*\')/i', '', $svg) ?? $svg;
-        $svg = preg_replace('/\s(xlink:)?href\s*=\s*("(?!#)[^"]*"|\'(?!#)[^\']*\')/i', '', $svg) ?? $svg;
-        if ($prevBacktrack !== false) {
-            @ini_set('pcre.backtrack_limit', (string) $prevBacktrack);
-        }
-
-        if ($svg === '' || ! preg_match('/<svg\b/i', $svg) || strlen($svg) > 120000) {
-            return null;
-        }
-
-        return trim($svg);
-    }
-
-    private function stripUnsafeSvgAttributes(\DOMElement $el): void
-    {
-        if ($el->hasAttributes()) {
-            $remove = [];
-            foreach ($el->attributes as $attr) {
-                $name = strtolower((string) $attr->name);
-                $value = (string) $attr->value;
-                if (str_starts_with($name, 'on')) {
-                    $remove[] = $attr->name;
-                    continue;
-                }
-                if (($name === 'href' || $name === 'xlink:href') && ! str_starts_with($value, '#')) {
-                    $remove[] = $attr->name;
-                }
-            }
-            foreach ($remove as $name) {
-                $el->removeAttribute($name);
-            }
-        }
-        foreach ($el->childNodes as $child) {
-            if ($child instanceof \DOMElement) {
-                $this->stripUnsafeSvgAttributes($child);
-            }
-        }
-    }
-
-    /**
-     * Persist pasted SVG markup into the media library (checksum-deduped) when business id is known.
-     * Falls back to legacy storefront_homepage/ for edge cases without a business context.
-     */
-    private function persistSvgMarkupToUpload(string $svgMarkup, ?int $businessId = null): ?string
-    {
-        $clean = $this->sanitizeSvgMarkup($svgMarkup);
-        if ($clean === null || $clean === '') {
-            return null;
-        }
-
-        if ($businessId !== null && $businessId > 0) {
-            try {
-                $result = app(StorefrontMediaLibraryService::class)->storeSvgMarkup(
-                    $businessId,
-                    $clean,
-                    auth()->id()
-                );
-
-                return (string) $result['media']->path;
-            } catch (\Throwable $e) {
-                return null;
-            }
-        }
-
-        $dir = public_path(self::UPLOAD_DIR);
-        if (! is_dir($dir) && ! @mkdir($dir, 0755, true) && ! is_dir($dir)) {
-            return null;
-        }
-
-        $filename = 'paste_'.time().'_'.Str::lower(Str::random(8)).'.svg';
-        $path = $dir.DIRECTORY_SEPARATOR.$filename;
-        if (@file_put_contents($path, $clean) === false) {
-            return null;
-        }
-
-        return $filename;
-    }
-
-    private function readUploadedSvgMarkup(string $image): ?string
-    {
-        $rel = $this->resolveUploadRelativePath($image);
-        if ($rel === null || ! preg_match('/\.svg$/i', $rel)) {
-            return null;
-        }
-        $path = public_path('uploads/'.$rel);
-        if (! is_readable($path)) {
-            return null;
-        }
-        $size = @filesize($path);
-        // Skip pathological files that would blow memory during sanitize/present.
-        if (! is_int($size) || $size < 1 || $size > 120000) {
-            return null;
-        }
-        $raw = @file_get_contents($path);
-        if (! is_string($raw) || $raw === '') {
-            return null;
-        }
-
-        return $this->sanitizeSvgMarkup($raw);
     }
 
     private function normalizeBestsellersStyle(mixed $style): string
