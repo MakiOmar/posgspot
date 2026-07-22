@@ -224,6 +224,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Homepage save OOM: surgical JSON replace for oversized settings blobs; scrub `svg_markup` without Eloquent cast; `storefront:scrub-inline-svg` artisan; request size guard + debug logs. |
 | 2026-07-22 | Trust badges: drop inline SVG sanitize/present; icons are media-library URLs only (fixes production OOM). |
 | 2026-07-22 | Storefront media library: `storefront_media` + checksum dedupe under `uploads/storefront_library/{business_id}/`; list/upload/delete API; homepage builder Library picker; homepage uploads migrate to library paths. |
 | 2026-07-22 | Storefront import/export: stream ZIP media (no full extract), compact JSON, batched DB lookups/inserts, short transactions. |

@@ -7,6 +7,8 @@ use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\StorefrontSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Reads and persists storefront settings from the database.
@@ -14,6 +16,12 @@ use Illuminate\Support\Facades\Crypt;
 class StorefrontSettingService
 {
     private const CACHE_KEY = 'storefront_settings_';
+
+    /** Blobs larger than this are treated as poisoned (usually leftover inline SVG) and scrubbed. */
+    private const OVERSIZED_BLOB_BYTES = 1_000_000;
+
+    /** Reject homepage section POST bodies larger than this (library paths are tiny). */
+    public const MAX_HOMEPAGE_SECTIONS_POST_BYTES = 512_000;
 
     public function defaults(): array
     {
@@ -131,16 +139,434 @@ class StorefrontSettingService
     public function get(int $businessId): array
     {
         return Cache::remember(self::CACHE_KEY.$businessId, 300, function () use ($businessId) {
-            $row = StorefrontSetting::where('business_id', $businessId)->first();
+            return $this->loadSettingsArray($businessId);
+        });
+    }
 
-            if (empty($row) || empty($row->value)) {
-                return $this->homepageSections()->ensureSections($this->defaults());
+    /**
+     * Persist homepage sections without Eloquent JSON cast round-trips.
+     * Oversized blobs (legacy inline SVG) are surgically replaced so PHP never
+     * json_encode()s multi‑MB markup (OOM at Casts/Json.php).
+     *
+     * @param  array<int, mixed>  $sections
+     * @return array<int, array<string, mixed>> normalized sections
+     */
+    public function saveHomepageSections(int $businessId, array $sections): array
+    {
+        $normalized = $this->homepageSections()->normalizeSections($sections, $businessId);
+        $encodedSections = json_encode($normalized, JSON_UNESCAPED_UNICODE);
+        if ($encodedSections === false) {
+            throw new \RuntimeException('Could not encode homepage sections.');
+        }
+
+        $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
+        $blobBytes = $this->measureBlobBytes($raw);
+
+        Log::warning('storefront.homepage_sections.save.start', [
+            'business_id' => $businessId,
+            'blob_bytes' => $blobBytes,
+            'sections_bytes' => strlen($encodedSections),
+            'mem_bytes' => memory_get_usage(true),
+            'peak_bytes' => memory_get_peak_usage(true),
+        ]);
+
+        if (is_array($raw)) {
+            $this->stripInlineSvgFromArray($raw);
+            $raw['homepage_sections'] = $normalized;
+            $payload = json_encode(array_replace_recursive($this->defaults(), $raw), JSON_UNESCAPED_UNICODE);
+        } elseif (is_string($raw) && $raw !== '') {
+            if (strlen($raw) >= self::OVERSIZED_BLOB_BYTES) {
+                // Avoid json_decode of multi‑MB poisoned blobs — swap homepage_sections in-place.
+                $payload = $this->replaceJsonKeyValue($raw, 'homepage_sections', $encodedSections);
+                $decodedOk = false;
+                if (is_string($payload)) {
+                    json_decode($payload);
+                    $decodedOk = json_last_error() === JSON_ERROR_NONE;
+                }
+                if (! $decodedOk) {
+                    Log::error('storefront.homepage_sections.save.surgical_replace_failed', [
+                        'business_id' => $businessId,
+                        'json_error' => json_last_error_msg(),
+                    ]);
+                    // Last resort: keep defaults + new sections (preserves nothing from poison blob).
+                    $fresh = $this->defaults();
+                    $fresh['homepage_sections'] = $normalized;
+                    $payload = json_encode($fresh, JSON_UNESCAPED_UNICODE);
+                } elseif (strlen($payload) >= self::OVERSIZED_BLOB_BYTES) {
+                    $payload = $this->stripInlineSvgKeysFromJsonString($payload) ?? $payload;
+                }
+            } else {
+                $data = json_decode($raw, true);
+                if (! is_array($data)) {
+                    $data = [];
+                }
+                $this->stripInlineSvgFromArray($data);
+                $data['homepage_sections'] = $normalized;
+                $payload = json_encode(array_replace_recursive($this->defaults(), $data), JSON_UNESCAPED_UNICODE);
+            }
+        } else {
+            $fresh = $this->defaults();
+            $fresh['homepage_sections'] = $normalized;
+            $payload = json_encode($fresh, JSON_UNESCAPED_UNICODE);
+        }
+
+        if (! is_string($payload) || $payload === '') {
+            throw new \RuntimeException('Could not build storefront settings payload.');
+        }
+
+        Log::warning('storefront.homepage_sections.save.write', [
+            'business_id' => $businessId,
+            'payload_bytes' => strlen($payload),
+            'mem_bytes' => memory_get_usage(true),
+            'peak_bytes' => memory_get_peak_usage(true),
+        ]);
+
+        $this->writeValueJsonString($businessId, $payload);
+        Cache::forget(self::CACHE_KEY.$businessId);
+
+        return $normalized;
+    }
+
+    /**
+     * One-shot scrub of inline SVG keys from the settings blob (ops / artisan).
+     *
+     * @return array{business_id: int, before_bytes: int, after_bytes: int, removed_keys: int}
+     */
+    public function scrubInlineSvgFromStoredSettings(int $businessId): array
+    {
+        $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
+        $before = $this->measureBlobBytes($raw);
+        $removed = 0;
+
+        if (is_array($raw)) {
+            $removed = $this->stripInlineSvgFromArray($raw);
+            $payload = json_encode(array_replace_recursive($this->defaults(), $raw), JSON_UNESCAPED_UNICODE);
+        } elseif (is_string($raw) && $raw !== '') {
+            $working = $raw;
+            if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
+                $stripped = $this->stripInlineSvgKeysFromJsonString($working);
+                if (is_string($stripped)) {
+                    $working = $stripped;
+                }
+            }
+            if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
+                // Still huge — drop homepage_sections (inline SVG lived there); other settings kept.
+                $working = $this->replaceJsonKeyValue($working, 'homepage_sections', '[]') ?? $working;
+            }
+            $data = json_decode($working, true);
+            if (! is_array($data)) {
+                $data = $this->defaults();
+            } else {
+                $removed = $this->stripInlineSvgFromArray($data);
+                $data = array_replace_recursive($this->defaults(), $data);
+            }
+            if (isset($data['homepage_sections'])) {
+                $data['homepage_sections'] = $this->homepageSections()->normalizeSections(
+                    $data['homepage_sections'],
+                    $businessId
+                );
+            }
+            $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
+        } else {
+            return [
+                'business_id' => $businessId,
+                'before_bytes' => 0,
+                'after_bytes' => 0,
+                'removed_keys' => 0,
+            ];
+        }
+
+        if (! is_string($payload)) {
+            throw new \RuntimeException('Scrub failed to encode settings.');
+        }
+
+        $this->writeValueJsonString($businessId, $payload);
+        Cache::forget(self::CACHE_KEY.$businessId);
+
+        return [
+            'business_id' => $businessId,
+            'before_bytes' => $before,
+            'after_bytes' => strlen($payload),
+            'removed_keys' => $removed,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loadSettingsArray(int $businessId): array
+    {
+        $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
+        if ($raw === null || $raw === '' || $raw === []) {
+            return $this->homepageSections()->ensureSections($this->defaults());
+        }
+
+        $blobBytes = $this->measureBlobBytes($raw);
+        if ($blobBytes >= self::OVERSIZED_BLOB_BYTES) {
+            Log::warning('storefront.settings.oversized_blob_auto_scrub', [
+                'business_id' => $businessId,
+                'blob_bytes' => $blobBytes,
+                'mem_bytes' => memory_get_usage(true),
+            ]);
+            // Heal DB so subsequent requests stay small.
+            try {
+                $this->scrubInlineSvgFromStoredSettings($businessId);
+                $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
+            } catch (\Throwable $e) {
+                Log::error('storefront.settings.auto_scrub_failed', [
+                    'business_id' => $businessId,
+                    'error' => $e->getMessage(),
+                ]);
+                // Fall through with surgical empty homepage_sections if still a string.
+                if (is_string($raw)) {
+                    $raw = $this->replaceJsonKeyValue($raw, 'homepage_sections', '[]') ?? '{}';
+                }
+            }
+        }
+
+        if (is_array($raw)) {
+            $this->stripInlineSvgFromArray($raw);
+            $data = $raw;
+        } else {
+            $data = json_decode((string) $raw, true);
+            if (! is_array($data)) {
+                $data = [];
+            }
+            $this->stripInlineSvgFromArray($data);
+        }
+
+        return $this->homepageSections()->ensureSections(
+            $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+        );
+    }
+
+    private function writeValueJsonString(int $businessId, string $payload): void
+    {
+        $now = now();
+        $exists = DB::table('storefront_settings')->where('business_id', $businessId)->exists();
+        if ($exists) {
+            DB::table('storefront_settings')->where('business_id', $businessId)->update([
+                'value' => $payload,
+                'updated_at' => $now,
+            ]);
+        } else {
+            DB::table('storefront_settings')->insert([
+                'business_id' => $businessId,
+                'value' => $payload,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    private function measureBlobBytes(mixed $raw): int
+    {
+        if (is_string($raw)) {
+            return strlen($raw);
+        }
+        if (is_array($raw)) {
+            $encoded = json_encode($raw);
+
+            return is_string($encoded) ? strlen($encoded) : 0;
+        }
+
+        return 0;
+    }
+
+    /**
+     * Recursively remove inline SVG fields from a settings array (in place).
+     *
+     * @param  array<mixed>  $data
+     */
+    private function stripInlineSvgFromArray(array &$data): int
+    {
+        $removed = 0;
+        foreach ($data as $key => &$value) {
+            if (($key === 'svg_markup' || $key === 'svg_markup_b64') && is_string($value)) {
+                unset($data[$key]);
+                $removed++;
+                continue;
+            }
+            if (is_array($value)) {
+                $removed += $this->stripInlineSvgFromArray($value);
+            }
+        }
+        unset($value);
+
+        return $removed;
+    }
+
+    /**
+     * Remove "svg_markup" / "svg_markup_b64" string properties from a JSON document
+     * without json_decode (avoids allocating the huge string values as PHP arrays).
+     */
+    public function stripInlineSvgKeysFromJsonString(string $json): ?string
+    {
+        $keys = ['svg_markup_b64', 'svg_markup'];
+        foreach ($keys as $key) {
+            $json = $this->stripJsonStringProperty($json, $key);
+            if ($json === null) {
+                return null;
+            }
+        }
+        // Clean dangling commas left by removals.
+        $cleaned = preg_replace('/,\s*([}\]])/', '$1', $json);
+
+        return is_string($cleaned) ? $cleaned : $json;
+    }
+
+    private function stripJsonStringProperty(string $json, string $key): ?string
+    {
+        // Require `":` after the key so "svg_markup" does not match inside "svg_markup_b64".
+        $needle = '"'.$key.'":';
+        $offset = 0;
+        $out = '';
+        $len = strlen($json);
+
+        while (($pos = strpos($json, $needle, $offset)) !== false) {
+            $i = $pos + strlen($needle);
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            if ($i >= $len || $json[$i] !== '"') {
+                // Non-string value — skip past the key name only.
+                $out .= substr($json, $offset, ($pos + strlen('"'.$key.'"')) - $offset);
+                $offset = $pos + strlen('"'.$key.'"');
+                continue;
+            }
+            // Parse JSON string value.
+            $i++;
+            while ($i < $len) {
+                $c = $json[$i];
+                if ($c === '\\') {
+                    $i += 2;
+                    continue;
+                }
+                if ($c === '"') {
+                    $i++;
+                    break;
+                }
+                $i++;
+            }
+            while ($i < $len && ctype_space($json[$i])) {
+                $i++;
+            }
+            $tookTrailingComma = false;
+            if ($i < $len && $json[$i] === ',') {
+                $i++;
+                $tookTrailingComma = true;
             }
 
-            return $this->homepageSections()->ensureSections(
-                $this->normalizeLocalized(array_replace_recursive($this->defaults(), $row->value))
-            );
-        });
+            // Drop a preceding comma only when there was no trailing comma.
+            $start = $pos;
+            if (! $tookTrailingComma) {
+                $j = $pos - 1;
+                while ($j >= $offset && ctype_space($json[$j])) {
+                    $j--;
+                }
+                if ($j >= $offset && $json[$j] === ',') {
+                    $start = $j;
+                }
+            }
+
+            $out .= substr($json, $offset, $start - $offset);
+            $offset = $i;
+        }
+
+        $out .= substr($json, $offset);
+
+        return $out;
+    }
+
+    /**
+     * Replace a top-level JSON array/object value for $key without full decode.
+     * Returns null on failure.
+     */
+    public function replaceJsonKeyValue(string $json, string $key, string $newValueJson): ?string
+    {
+        $needle = '"'.$key.'"';
+        $pos = strpos($json, $needle);
+        if ($pos === false) {
+            $json = rtrim($json);
+            if (! str_ends_with($json, '}')) {
+                return null;
+            }
+
+            return substr($json, 0, -1).','.$needle.':'.$newValueJson.'}';
+        }
+
+        $colon = strpos($json, ':', $pos + strlen($needle));
+        if ($colon === false) {
+            return null;
+        }
+        $i = $colon + 1;
+        $len = strlen($json);
+        while ($i < $len && ctype_space($json[$i])) {
+            $i++;
+        }
+        if ($i >= $len) {
+            return null;
+        }
+
+        $start = $i;
+        $c = $json[$i];
+        if ($c === '{' || $c === '[') {
+            $open = $c;
+            $close = $c === '{' ? '}' : ']';
+            $depth = 0;
+            $inString = false;
+            $escape = false;
+            for (; $i < $len; $i++) {
+                $ch = $json[$i];
+                if ($inString) {
+                    if ($escape) {
+                        $escape = false;
+                        continue;
+                    }
+                    if ($ch === '\\') {
+                        $escape = true;
+                        continue;
+                    }
+                    if ($ch === '"') {
+                        $inString = false;
+                    }
+                    continue;
+                }
+                if ($ch === '"') {
+                    $inString = true;
+                    continue;
+                }
+                if ($ch === $open) {
+                    $depth++;
+                } elseif ($ch === $close) {
+                    $depth--;
+                    if ($depth === 0) {
+                        $i++;
+                        break;
+                    }
+                }
+            }
+        } elseif ($c === '"') {
+            $i++;
+            while ($i < $len) {
+                $ch = $json[$i];
+                if ($ch === '\\') {
+                    $i += 2;
+                    continue;
+                }
+                if ($ch === '"') {
+                    $i++;
+                    break;
+                }
+                $i++;
+            }
+        } else {
+            while ($i < $len && ! in_array($json[$i], [',', '}', ']'], true)) {
+                $i++;
+            }
+        }
+
+        return substr($json, 0, $start).$newValueJson.substr($json, $i);
     }
 
     /**
@@ -235,10 +661,17 @@ class StorefrontSettingService
             $existing['newsletter'] ?? []
         );
 
-        $row = StorefrontSetting::updateOrCreate(
-            ['business_id' => $businessId],
-            ['value' => $merged]
-        );
+        $this->stripInlineSvgFromArray($merged);
+
+        // Write via raw JSON string to avoid Eloquent cast allocating a second huge copy.
+        $payload = json_encode($merged, JSON_UNESCAPED_UNICODE);
+        if (! is_string($payload)) {
+            throw new \RuntimeException('Could not encode storefront settings.');
+        }
+        $this->writeValueJsonString($businessId, $payload);
+
+        $row = StorefrontSetting::where('business_id', $businessId)->first()
+            ?? StorefrontSetting::make(['business_id' => $businessId, 'value' => $merged]);
 
         $this->syncSellingLocations($businessId, $merged['selling_location_ids'] ?? []);
         Cache::forget(self::CACHE_KEY.$businessId);
@@ -581,11 +1014,8 @@ class StorefrontSettingService
 
     private function getRaw(int $businessId): array
     {
-        $row = StorefrontSetting::where('business_id', $businessId)->first();
-
-        $raw = empty($row) ? $this->defaults() : array_replace_recursive($this->defaults(), $row->value ?? []);
-
-        return $this->homepageSections()->ensureSections($raw);
+        // Intentionally bypasses cache so secret-merge paths see the latest DB row.
+        return $this->loadSettingsArray($businessId);
     }
 
     private function homepageSections(): HomepageSectionService

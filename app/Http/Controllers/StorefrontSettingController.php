@@ -81,22 +81,55 @@ class StorefrontSettingController extends Controller
         }
 
         $business_id = (int) $request->session()->get('user.business_id');
-        $sections = $request->input('sections');
+        $sectionsInput = $request->input('sections');
+        $postBytes = is_string($sectionsInput)
+            ? strlen($sectionsInput)
+            : strlen((string) json_encode($sectionsInput));
+
+        Log::warning('storefront.homepage_sections.request', [
+            'business_id' => $business_id,
+            'post_bytes' => $postBytes,
+            'mem_bytes' => memory_get_usage(true),
+            'peak_bytes' => memory_get_peak_usage(true),
+        ]);
+
+        if ($postBytes > StorefrontSettingService::MAX_HOMEPAGE_SECTIONS_POST_BYTES) {
+            return response()->json([
+                'success' => false,
+                'msg' => 'Homepage payload too large. Use the media library for icons (no inline SVG).',
+            ], 422);
+        }
+
+        $sections = $sectionsInput;
         if (is_string($sections)) {
             $decoded = json_decode($sections, true);
             $sections = is_array($decoded) ? $decoded : [];
         }
 
-        $current = $this->settings->get($business_id);
-        $current['homepage_sections'] = is_array($sections) ? $sections : [];
-        $this->settings->save($business_id, $current);
+        try {
+            $normalized = $this->settings->saveHomepageSections(
+                $business_id,
+                is_array($sections) ? $sections : []
+            );
+        } catch (\Throwable $e) {
+            Log::error('storefront.homepage_sections.save.failed', [
+                'business_id' => $business_id,
+                'error' => $e->getMessage(),
+                'mem_bytes' => memory_get_usage(true),
+                'peak_bytes' => memory_get_peak_usage(true),
+            ]);
 
-        $saved = $this->settings->get($business_id);
+            return response()->json([
+                'success' => false,
+                'msg' => 'Save failed (server memory). Run: php artisan storefront:scrub-inline-svg',
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
             'msg' => 'Homepage sections saved.',
-            'sections' => $this->homepageSections->presentForAdmin($saved['homepage_sections'] ?? []),
+            // Present the normalized payload — do not re-load the full settings blob.
+            'sections' => $this->homepageSections->presentForAdmin($normalized),
         ]);
     }
 
