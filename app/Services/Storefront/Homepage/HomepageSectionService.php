@@ -850,15 +850,31 @@ class HomepageSectionService
             $rawMarkup = (string) ($row['svg_markup'] ?? '');
             if ($rawMarkup === '' && ! empty($row['svg_markup_b64']) && is_string($row['svg_markup_b64'])) {
                 $decoded = base64_decode($row['svg_markup_b64'], true);
+                if ($decoded === false) {
+                    $decoded = base64_decode($row['svg_markup_b64'], false);
+                }
                 if (is_string($decoded) && $decoded !== '') {
                     $rawMarkup = $decoded;
                 }
+            }
+            // Pasted markup implies SVG mode even if the dropdown was left on "image".
+            if (trim($rawMarkup) !== '') {
+                $kind = 'svg';
             }
             $svgMarkup = $kind === 'svg' ? ($this->sanitizeSvgMarkup($rawMarkup) ?? '') : '';
 
             // If SVG mode but only a local uploaded .svg filename, try reading markup from disk.
             if ($kind === 'svg' && $svgMarkup === '' && ! empty($media['image'])) {
                 $svgMarkup = $this->readUploadedSvgMarkup((string) $media['image']) ?? '';
+            }
+
+            // Persist pasted SVG to a file so later saves don't re-send huge markup (WAF/size).
+            if ($kind === 'svg' && $svgMarkup !== '' && empty($media['image'])) {
+                $storedFile = $this->persistSvgMarkupToUpload($svgMarkup);
+                if (is_string($storedFile) && $storedFile !== '') {
+                    $media['image'] = $storedFile;
+                    $media['url'] = '';
+                }
             }
 
             if (
@@ -925,7 +941,24 @@ class HomepageSectionService
 
     private function sanitizeSvgMarkup(string $svg): ?string
     {
+        // Strip UTF-8 BOM and normalize whitespace.
+        $svg = preg_replace('/^\xEF\xBB\xBF/', '', $svg) ?? $svg;
         $svg = trim($svg);
+        if ($svg === '') {
+            return null;
+        }
+
+        // Allow pasting data-URI SVGs from design tools.
+        if (preg_match('/^data:image\/svg\+xml\s*[;,]/i', $svg)) {
+            $payload = preg_replace('/^data:image\/svg\+xml\s*/i', '', $svg) ?? '';
+            if (str_starts_with($payload, ';base64,')) {
+                $decoded = base64_decode(substr($payload, 8), true);
+                $svg = is_string($decoded) ? trim($decoded) : '';
+            } elseif (str_starts_with($payload, ',')) {
+                $svg = trim(rawurldecode(substr($payload, 1)));
+            }
+        }
+
         if ($svg === '' || ! preg_match('/<svg\b/i', $svg)) {
             return null;
         }
@@ -945,6 +978,30 @@ class HomepageSectionService
         }
 
         return trim($svg);
+    }
+
+    /**
+     * Persist pasted SVG markup as an uploaded file so settings JSON stays small / WAF-safe.
+     */
+    private function persistSvgMarkupToUpload(string $svgMarkup): ?string
+    {
+        $clean = $this->sanitizeSvgMarkup($svgMarkup);
+        if ($clean === null || $clean === '') {
+            return null;
+        }
+
+        $dir = public_path(self::UPLOAD_DIR);
+        if (! is_dir($dir) && ! @mkdir($dir, 0755, true) && ! is_dir($dir)) {
+            return null;
+        }
+
+        $filename = 'paste_'.time().'_'.Str::lower(Str::random(8)).'.svg';
+        $path = $dir.DIRECTORY_SEPARATOR.$filename;
+        if (@file_put_contents($path, $clean) === false) {
+            return null;
+        }
+
+        return $filename;
     }
 
     private function readUploadedSvgMarkup(string $filename): ?string

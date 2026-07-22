@@ -13,8 +13,8 @@
   }
 
   /**
-   * Clone sections for save: move SVG markup to base64 so the POST body has no raw <svg>
-   * tags (WAMP/ModSecurity often returns HTTP 403 on those).
+   * Clone sections for save: prefer file-backed SVG (no raw markup in POST).
+   * Fall back to base64 for paste-only items that were not uploaded yet.
    */
   function encodeSectionsForSave(sections) {
     return sections.map(function (section) {
@@ -25,9 +25,17 @@
         Array.isArray(clone.settings.items)
       ) {
         clone.settings.items = clone.settings.items.map(function (item) {
-          if (typeof item.svg_markup === "string" && item.svg_markup !== "") {
+          var markup = typeof item.svg_markup === "string" ? item.svg_markup : "";
+          // Already uploaded — do not resend markup (WAF/size).
+          if (item.image) {
+            item.svg_markup = "";
+            delete item.svg_markup_b64;
+            return item;
+          }
+          if (markup) {
+            item.icon_kind = "svg";
             try {
-              item.svg_markup_b64 = btoa(unescape(encodeURIComponent(item.svg_markup)));
+              item.svg_markup_b64 = btoa(unescape(encodeURIComponent(markup)));
               item.svg_markup = "";
             } catch (e) {
               // keep raw markup if encode fails
@@ -37,6 +45,37 @@
         });
       }
       return clone;
+    });
+  }
+
+  function uploadPastedSvgMarkup(uploadUrl, markup) {
+    var token = csrf();
+    var blob = new Blob([markup], { type: "image/svg+xml" });
+    var body = new FormData();
+    // Third arg sets the filename for Laravel's UploadedFile.
+    body.append("image", blob, "pasted-badge.svg");
+    return fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        "X-CSRF-TOKEN": token,
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: body,
+      credentials: "same-origin",
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var json = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (e) {
+          json = null;
+        }
+        if (!res.ok || !json || !json.success) {
+          throw new Error((json && json.msg) || "SVG upload failed (HTTP " + res.status + ")");
+        }
+        return json;
+      });
     });
   }
 
@@ -488,30 +527,53 @@
             self.error = "Missing save URL — refresh the page and try again.";
             return;
           }
-          var payload;
-          try {
-            payload = encodeSectionsForSave(self.sections);
-          } catch (err) {
-            self.saving = false;
-            self.error = "Could not prepare sections for save (invalid data).";
-            return;
-          }
-          // form-urlencoded + _token matches other POS AJAX and avoids JSON bodies
-          // with raw <svg> that ModSecurity often blocks with HTTP 403.
-          var body = new URLSearchParams();
-          body.set("_token", token);
-          body.set("sections", JSON.stringify(payload));
-          fetch(saveUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-              Accept: "application/json",
-              "X-CSRF-TOKEN": token,
-              "X-Requested-With": "XMLHttpRequest",
-            },
-            body: body.toString(),
-            credentials: "same-origin",
-          })
+
+          // Upload pasted SVG markup as files first (avoids WAF/size limits on Save homepage).
+          var uploadTasks = [];
+          self.sections.forEach(function (section) {
+            if (section.type !== "trust_badges" || !section.settings || !Array.isArray(section.settings.items)) {
+              return;
+            }
+            section.settings.items.forEach(function (item) {
+              var markup = typeof item.svg_markup === "string" ? item.svg_markup.trim() : "";
+              if (!markup || item.image) {
+                return;
+              }
+              if (!uploadUrl) {
+                return;
+              }
+              item.icon_kind = "svg";
+              uploadTasks.push(
+                uploadPastedSvgMarkup(uploadUrl, markup).then(function (json) {
+                  item.image = json.image;
+                  item.url = "";
+                  item.image_url = json.image_url || "";
+                  if (json.svg_markup) {
+                    item.svg_markup = json.svg_markup;
+                  }
+                })
+              );
+            });
+          });
+
+          Promise.all(uploadTasks)
+            .then(function () {
+              var payload = encodeSectionsForSave(self.sections);
+              var body = new URLSearchParams();
+              body.set("_token", token);
+              body.set("sections", JSON.stringify(payload));
+              return fetch(saveUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+                  Accept: "application/json",
+                  "X-CSRF-TOKEN": token,
+                  "X-Requested-With": "XMLHttpRequest",
+                },
+                body: body.toString(),
+                credentials: "same-origin",
+              });
+            })
             .then(function (res) {
               return res.text().then(function (text) {
                 var json = null;
@@ -572,9 +634,12 @@
                 toastr.success(self.message);
               }
             })
-            .catch(function () {
+            .catch(function (err) {
               self.saving = false;
-              self.error = "Save failed (network error).";
+              self.error = (err && err.message) || "Save failed (network error).";
+              if (typeof toastr !== "undefined") {
+                toastr.error(self.error);
+              }
             });
         },
       },
@@ -689,7 +754,7 @@
                 </template>
 
                 <template v-else-if="section.type === 'trust_badges'">
-                  <p class="help-block">Row of trust / service items (icon + title + description). Up to 8 items. Use SVG icons for recolorable line icons. Click <strong>Save homepage</strong> after editing.</p>
+                  <p class="help-block">Row of trust / service items (icon + title + description). Up to 8 items. Choose <strong>SVG</strong>, paste markup (or upload), then click <strong>Save homepage</strong>. Pasted SVGs are stored as files automatically.</p>
                   <button type="button" class="btn btn-default btn-sm" @click="addTrustBadge(section)" :disabled="section.settings.items.length >= 8">Add item</button>
                   <div v-for="(item, bi) in section.settings.items" :key="item.id" class="sf-hp-media-row sf-hp-trust-item">
                     <div class="sf-hp-trust-preview">

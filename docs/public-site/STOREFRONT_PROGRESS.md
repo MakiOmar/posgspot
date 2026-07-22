@@ -223,6 +223,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-22 | Pasted trust-badge SVG: upload-as-file before save + server-side persist; BOM/data-URI sanitize. |
 | 2026-07-22 | Fix Save homepage HTTP 403: form-urlencoded POST + base64 SVG markup (WAF-safe); CSRF token fallback. |
 | 2026-07-22 | Fix trust badges save UX: homepage builder JSON via script tags; block outer form submit/Enter on Homepage tab; persist 5+ items; file-backed SVG rehydrate. |
 | 2026-07-21 | Trust badges: SVG/image icon kinds + recolorable SVG; all sections get `layout_width` boxed\|full. |

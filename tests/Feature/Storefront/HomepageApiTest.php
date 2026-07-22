@@ -417,10 +417,55 @@ class HomepageApiTest extends TestCase
         ]);
         Cache::flush();
 
+        $saved = app(StorefrontSettingService::class)->get($this->businessId);
+        $trust = collect($saved['homepage_sections'] ?? [])->firstWhere('type', 'trust_badges');
+        $this->assertNotNull($trust);
+        $item = $trust['settings']['items'][0] ?? null;
+        $this->assertIsArray($item);
+        // Pasted SVG should be persisted as an uploaded .svg file.
+        $this->assertNotEmpty($item['image'] ?? null);
+        $this->assertStringEndsWith('.svg', (string) $item['image']);
+        $this->assertFileExists(public_path('uploads/storefront_homepage/'.$item['image']));
+
         $response = $this->getJson('/api/storefront/v1/homepage');
         $response->assertOk()
             ->assertJsonPath('data.sections.0.settings.items.0.icon_kind', 'svg');
         $this->assertStringContainsString('<svg', (string) $response->json('data.sections.0.settings.items.0.svg_markup'));
+    }
+
+    public function test_pasted_svg_markup_forces_svg_kind_and_persists_file(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>';
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_trust',
+                    'type' => 'trust_badges',
+                    'enabled' => true,
+                    'settings' => [
+                        'items' => [
+                            [
+                                'id' => 'badge_paste',
+                                // Intentionally "image" — pasted markup should force svg.
+                                'icon_kind' => 'image',
+                                'svg_markup' => $svg,
+                                'title' => ['en' => 'Paste', 'ar' => ''],
+                                'description' => ['en' => '', 'ar' => ''],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $saved = app(StorefrontSettingService::class)->get($this->businessId);
+        $item = collect($saved['homepage_sections'] ?? [])
+            ->firstWhere('type', 'trust_badges')['settings']['items'][0] ?? null;
+        $this->assertSame('svg', $item['icon_kind'] ?? null);
+        $this->assertNotEmpty($item['image'] ?? null);
+        $this->assertFileExists(public_path('uploads/storefront_homepage/'.$item['image']));
     }
 
     public function test_trust_badges_svg_item_presents_markup_and_color(): void
