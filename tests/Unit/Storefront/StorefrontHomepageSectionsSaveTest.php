@@ -101,4 +101,42 @@ class StorefrontHomepageSectionsSaveTest extends TestCase
         $this->assertStringNotContainsString($poison, (string) $storedStr);
         $this->assertStringContainsString('https://example.com/icon.png', (string) $storedStr);
     }
+
+    public function test_scrub_clears_oversized_strings_and_resets_homepage(): void
+    {
+        $poison = str_repeat('B', 200_000);
+        DB::table('storefront_settings')->updateOrInsert(
+            ['business_id' => $this->businessId],
+            [
+                'value' => json_encode([
+                    'cod_enabled' => true,
+                    'homepage_sections' => [
+                        [
+                            'id' => 'sec_trust',
+                            'type' => 'trust_badges',
+                            'enabled' => true,
+                            'settings' => [
+                                'items' => [
+                                    [
+                                        'id' => 'badge_1',
+                                        'url' => $poison,
+                                        'title' => ['en' => 'X', 'ar' => ''],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ], JSON_UNESCAPED_UNICODE),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        $result = app(StorefrontSettingService::class)->scrubInlineSvgFromStoredSettings($this->businessId);
+        $this->assertLessThan(100_000, $result['after_bytes']);
+        $this->assertNotEmpty($result['cleared_strings']);
+        $stored = DB::table('storefront_settings')->where('business_id', $this->businessId)->value('value');
+        $storedStr = is_string($stored) ? $stored : json_encode($stored);
+        $this->assertStringNotContainsString($poison, (string) $storedStr);
+    }
 }

@@ -171,9 +171,19 @@ class StorefrontSettingService
         ]);
 
         if (is_array($raw)) {
+            // Hydrated JSON array — clear poison before encode (never Eloquent-cast 900MB).
             $this->stripInlineSvgFromArray($raw);
+            $this->stripOversizedStringsFromArray($raw, 50_000);
             $raw['homepage_sections'] = $normalized;
-            $payload = json_encode(array_replace_recursive($this->defaults(), $raw), JSON_UNESCAPED_UNICODE);
+            $merged = array_replace_recursive($this->defaults(), $raw);
+            $merged['homepage_sections'] = $normalized;
+            $this->stripOversizedStringsFromArray($merged, 50_000);
+            $payload = json_encode($merged, JSON_UNESCAPED_UNICODE);
+            if (is_string($payload) && strlen($payload) >= self::OVERSIZED_BLOB_BYTES) {
+                $fresh = $this->defaults();
+                $fresh['homepage_sections'] = $normalized;
+                $payload = json_encode($fresh, JSON_UNESCAPED_UNICODE);
+            }
         } elseif (is_string($raw) && $raw !== '') {
             if (strlen($raw) >= self::OVERSIZED_BLOB_BYTES) {
                 // Avoid json_decode of multi‑MB poisoned blobs — swap homepage_sections in-place.
@@ -228,19 +238,37 @@ class StorefrontSettingService
     }
 
     /**
-     * One-shot scrub of inline SVG keys from the settings blob (ops / artisan).
+     * One-shot scrub of oversized / inline-SVG junk from the settings blob (ops / artisan).
      *
-     * @return array{business_id: int, before_bytes: int, after_bytes: int, removed_keys: int}
+     * @return array{
+     *   business_id: int,
+     *   before_bytes: int,
+     *   after_bytes: int,
+     *   removed_keys: int,
+     *   cleared_strings: array<string, int>,
+     *   reset_homepage_sections: bool,
+     *   raw_type: string
+     * }
      */
     public function scrubInlineSvgFromStoredSettings(int $businessId): array
     {
         $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
         $before = $this->measureBlobBytes($raw);
         $removed = 0;
+        $cleared = [];
+        $resetHomepage = false;
+        $rawType = get_debug_type($raw);
 
         if (is_array($raw)) {
+            // PDO/MySQL often returns JSON columns as arrays — string surgical replace never runs.
             $removed = $this->stripInlineSvgFromArray($raw);
-            $payload = json_encode(array_replace_recursive($this->defaults(), $raw), JSON_UNESCAPED_UNICODE);
+            $cleared = $this->stripOversizedStringsFromArray($raw, 50_000);
+            $raw['homepage_sections'] = [];
+            $resetHomepage = true;
+            $data = array_replace_recursive($this->defaults(), $raw);
+            $data['homepage_sections'] = [];
+            $cleared = array_merge($cleared, $this->stripOversizedStringsFromArray($data, 50_000));
+            $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
         } elseif (is_string($raw) && $raw !== '') {
             $working = $raw;
             if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
@@ -250,34 +278,71 @@ class StorefrontSettingService
                 }
             }
             if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
-                // Still huge — drop homepage_sections (inline SVG lived there); other settings kept.
-                $working = $this->replaceJsonKeyValue($working, 'homepage_sections', '[]') ?? $working;
+                $replaced = $this->replaceJsonKeyValue($working, 'homepage_sections', '[]');
+                if (is_string($replaced)) {
+                    $working = $replaced;
+                    $resetHomepage = true;
+                }
             }
-            $data = json_decode($working, true);
-            if (! is_array($data)) {
+
+            // Still huge after surgical edits — do not json_decode poison; write lean defaults.
+            if (strlen($working) >= self::OVERSIZED_BLOB_BYTES) {
+                Log::warning('storefront.settings.scrub_nuclear_reset', [
+                    'business_id' => $businessId,
+                    'before_bytes' => $before,
+                    'working_bytes' => strlen($working),
+                ]);
                 $data = $this->defaults();
+                $data['homepage_sections'] = [];
+                $resetHomepage = true;
+                $cleared['(nuclear_reset)'] = $before;
+                $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
             } else {
-                $removed = $this->stripInlineSvgFromArray($data);
-                $data = array_replace_recursive($this->defaults(), $data);
+                $data = json_decode($working, true);
+                if (! is_array($data)) {
+                    $data = $this->defaults();
+                } else {
+                    $removed = $this->stripInlineSvgFromArray($data);
+                    $cleared = $this->stripOversizedStringsFromArray($data, 50_000);
+                    $data = array_replace_recursive($this->defaults(), $data);
+                }
+                if ($resetHomepage || $before >= self::OVERSIZED_BLOB_BYTES) {
+                    $data['homepage_sections'] = [];
+                    $resetHomepage = true;
+                } elseif (isset($data['homepage_sections'])) {
+                    $data['homepage_sections'] = $this->homepageSections()->normalizeSections(
+                        $data['homepage_sections'],
+                        $businessId
+                    );
+                }
+                $cleared = array_merge($cleared, $this->stripOversizedStringsFromArray($data, 50_000));
+                $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
             }
-            if (isset($data['homepage_sections'])) {
-                $data['homepage_sections'] = $this->homepageSections()->normalizeSections(
-                    $data['homepage_sections'],
-                    $businessId
-                );
-            }
-            $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
         } else {
             return [
                 'business_id' => $businessId,
                 'before_bytes' => 0,
                 'after_bytes' => 0,
                 'removed_keys' => 0,
+                'cleared_strings' => [],
+                'reset_homepage_sections' => false,
+                'raw_type' => $rawType,
             ];
         }
 
         if (! is_string($payload)) {
             throw new \RuntimeException('Scrub failed to encode settings.');
+        }
+
+        // Never write another multi‑MB blob back.
+        if (strlen($payload) >= self::OVERSIZED_BLOB_BYTES) {
+            Log::warning('storefront.settings.scrub_payload_still_oversized', [
+                'business_id' => $businessId,
+                'payload_bytes' => strlen($payload),
+            ]);
+            $payload = json_encode(array_merge($this->defaults(), ['homepage_sections' => []]), JSON_UNESCAPED_UNICODE);
+            $resetHomepage = true;
+            $cleared['(final_nuclear_reset)'] = $before;
         }
 
         $this->writeValueJsonString($businessId, $payload);
@@ -286,8 +351,44 @@ class StorefrontSettingService
         return [
             'business_id' => $businessId,
             'before_bytes' => $before,
-            'after_bytes' => strlen($payload),
+            'after_bytes' => is_string($payload) ? strlen($payload) : 0,
             'removed_keys' => $removed,
+            'cleared_strings' => $cleared,
+            'reset_homepage_sections' => $resetHomepage,
+            'raw_type' => $rawType,
+        ];
+    }
+
+    /**
+     * Inspect largest string values in the settings blob (no write).
+     *
+     * @return array{business_id: int, blob_bytes: int, raw_type: string, largest: array<string, int>}
+     */
+    public function inspectSettingsBlob(int $businessId, int $limit = 25): array
+    {
+        $raw = DB::table('storefront_settings')->where('business_id', $businessId)->value('value');
+        $blobBytes = $this->measureBlobBytes($raw);
+        $rawType = get_debug_type($raw);
+        $largest = [];
+
+        if (is_array($raw)) {
+            $largest = $this->collectLargestStrings($raw, $limit);
+        } elseif (is_string($raw) && $raw !== '') {
+            foreach (['homepage_sections', 'banners', 'payment_icons'] as $key) {
+                $probe = $this->replaceJsonKeyValue($raw, $key, '[]');
+                if (is_string($probe)) {
+                    $largest[$key] = max(0, strlen($raw) - strlen($probe));
+                }
+            }
+            arsort($largest);
+            $largest = array_slice($largest, 0, $limit, true);
+        }
+
+        return [
+            'business_id' => $businessId,
+            'blob_bytes' => $blobBytes,
+            'raw_type' => $rawType,
+            'largest' => $largest,
         ];
     }
 
@@ -365,12 +466,33 @@ class StorefrontSettingService
             return strlen($raw);
         }
         if (is_array($raw)) {
-            $encoded = json_encode($raw);
-
-            return is_string($encoded) ? strlen($encoded) : 0;
+            // Do not json_encode huge hydrated arrays (would double memory).
+            return $this->estimateArrayBytes($raw);
         }
 
         return 0;
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     */
+    private function estimateArrayBytes(array $data): int
+    {
+        $bytes = 0;
+        foreach ($data as $key => $value) {
+            if (is_string($key)) {
+                $bytes += strlen($key);
+            }
+            if (is_string($value)) {
+                $bytes += strlen($value);
+            } elseif (is_array($value)) {
+                $bytes += $this->estimateArrayBytes($value);
+            } else {
+                $bytes += 8;
+            }
+        }
+
+        return $bytes;
     }
 
     /**
@@ -394,6 +516,55 @@ class StorefrontSettingService
         unset($value);
 
         return $removed;
+    }
+
+    /**
+     * Empty any string values over $maxBytes (in place). Returns path => former byte size.
+     *
+     * @param  array<mixed>  $data
+     * @return array<string, int>
+     */
+    private function stripOversizedStringsFromArray(array &$data, int $maxBytes, string $path = ''): array
+    {
+        $cleared = [];
+        foreach ($data as $key => &$value) {
+            $p = $path === '' ? (string) $key : $path.'.'.$key;
+            if (is_string($value)) {
+                $len = strlen($value);
+                if ($len > $maxBytes) {
+                    $cleared[$p] = $len;
+                    $value = '';
+                }
+            } elseif (is_array($value)) {
+                $cleared = array_merge($cleared, $this->stripOversizedStringsFromArray($value, $maxBytes, $p));
+            }
+        }
+        unset($value);
+
+        return $cleared;
+    }
+
+    /**
+     * @param  array<mixed>  $data
+     * @return array<string, int>
+     */
+    private function collectLargestStrings(array $data, int $limit, string $path = ''): array
+    {
+        $found = [];
+        foreach ($data as $key => $value) {
+            $p = $path === '' ? (string) $key : $path.'.'.$key;
+            if (is_string($value)) {
+                $len = strlen($value);
+                if ($len > 1024) {
+                    $found[$p] = $len;
+                }
+            } elseif (is_array($value)) {
+                $found = array_merge($found, $this->collectLargestStrings($value, $limit, $p));
+            }
+        }
+        arsort($found);
+
+        return array_slice($found, 0, $limit, true);
     }
 
     /**
