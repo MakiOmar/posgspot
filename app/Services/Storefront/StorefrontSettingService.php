@@ -325,10 +325,19 @@ class StorefrontSettingService
                     $removed = $this->stripInlineSvgFromArray($data);
                     $cleared = array_merge($cleared, $this->stripOversizedStringsFromArray($data, 50_000));
                     $data = array_replace_recursive($this->defaults(), $data);
+                    $data = $this->coerceStructuredSettingsKeys($data);
+                }
+                // Poison lived under newsletter (seen in production ~898MB) — always restore clean block after lean.
+                if (isset($cleared['(top) newsletter']) || ! is_array($data['newsletter'] ?? null)) {
+                    $data['newsletter'] = $this->defaults()['newsletter'];
+                    $cleared['newsletter'] = $cleared['newsletter'] ?? ($cleared['(top) newsletter'] ?? 0);
                 }
                 if ($resetHomepage || $before >= self::OVERSIZED_BLOB_BYTES) {
-                    $data['homepage_sections'] = [];
-                    $resetHomepage = true;
+                    // Keep homepage_sections from lean when they were small; only force empty if still poisoned.
+                    if (! is_array($data['homepage_sections'] ?? null)) {
+                        $data['homepage_sections'] = [];
+                        $resetHomepage = true;
+                    }
                 } elseif (isset($data['homepage_sections'])) {
                     $data['homepage_sections'] = $this->homepageSections()->normalizeSections(
                         $data['homepage_sections'],
@@ -1396,6 +1405,35 @@ class StorefrontSettingService
     }
 
     /**
+     * Ensure known object/array settings keys are arrays after lean/scrub (lean may replace a
+     * giant object with "" which would break array_replace_recursive merges).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function coerceStructuredSettingsKeys(array $data): array
+    {
+        $objectKeys = [
+            'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
+            'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
+            'contact', 'catalog', 'theme',
+        ];
+        $defaults = $this->defaults();
+        foreach ($objectKeys as $key) {
+            if (! isset($data[$key]) || ! is_array($data[$key])) {
+                $data[$key] = $defaults[$key] ?? [];
+            }
+        }
+        foreach (['homepage_sections', 'banners', 'payment_icons', 'selling_location_ids'] as $key) {
+            if (! isset($data[$key]) || ! is_array($data[$key])) {
+                $data[$key] = $defaults[$key] ?? [];
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * Encrypt new newsletter secrets; keep existing when form fields are blank.
      *
      * @param  array<string, mixed>  $merged
@@ -1414,9 +1452,30 @@ class StorefrontSettingService
         foreach ($secretPaths as [$provider, $field]) {
             $newValue = $incoming[$provider][$field] ?? null;
             if (! empty($newValue)) {
-                $merged[$provider][$field] = Crypt::encryptString((string) $newValue);
+                $str = (string) $newValue;
+                // Hard cap — prevents multi‑MB junk (e.g. pasted SVG) from being encrypted into settings.
+                if (strlen($str) > 4096) {
+                    Log::warning('storefront.newsletter.secret_rejected_too_large', [
+                        'provider' => $provider,
+                        'field' => $field,
+                        'bytes' => strlen($str),
+                    ]);
+                    $merged[$provider][$field] = $existing[$provider][$field] ?? null;
+                } else {
+                    $merged[$provider][$field] = Crypt::encryptString($str);
+                }
             } else {
-                $merged[$provider][$field] = $existing[$provider][$field] ?? null;
+                $existingVal = $existing[$provider][$field] ?? null;
+                if (is_string($existingVal) && strlen($existingVal) > 20_000) {
+                    Log::warning('storefront.newsletter.existing_secret_dropped_too_large', [
+                        'provider' => $provider,
+                        'field' => $field,
+                        'bytes' => strlen($existingVal),
+                    ]);
+                    $merged[$provider][$field] = null;
+                } else {
+                    $merged[$provider][$field] = $existingVal;
+                }
             }
         }
 

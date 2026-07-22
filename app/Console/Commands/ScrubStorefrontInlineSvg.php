@@ -76,7 +76,8 @@ class ScrubStorefrontInlineSvg extends Command
         }
 
         if (! $inspect) {
-            $this->warn('If homepage was reset, re-build it in Storefront Settings → Homepage (media library only).');
+            $this->warn('If newsletter was cleared, re-enter provider API keys under Storefront Settings → Newsletter.');
+            $this->warn('Homepage sections are kept when small; rebuild only if they were reset.');
             $this->warn('Also run: php artisan cache:clear');
         }
 
