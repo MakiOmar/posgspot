@@ -38,7 +38,7 @@ class InstallmentCreditUtil
     /**
      * Manually create (or import) a pending receivable row.
      *
-     * @param  array  $input  company_id|company_code, location_id|branch, invoice_no, invoice_date, due_date, due_amount, notes
+     * @param  array  $input  company_id|company_code, location_id|branch, invoice_no, invoice_date, due_date, due_amount, actual_received, notes
      * @return InstallmentReceivable
      *
      * @throws \Exception
@@ -67,6 +67,11 @@ class InstallmentCreditUtil
         $due_amount = (float) ($input['due_amount'] ?? 0);
         if ($due_amount <= 0) {
             throw new \Exception(__('installmentcredit::lang.invalid_due_amount'));
+        }
+
+        $actual_received = (float) ($input['actual_received'] ?? $input['actual_received_amount'] ?? $input['amount_received'] ?? 0);
+        if ($actual_received < 0) {
+            $actual_received = 0;
         }
 
         $location_id = $input['location_id'] ?? null;
@@ -129,7 +134,7 @@ class InstallmentCreditUtil
             'due_date' => $due_date,
             'due_amount' => $due_amount,
             'booked_settled_amount' => 0,
-            'actual_received_amount' => 0,
+            'actual_received_amount' => $actual_received,
             'status' => 'pending',
             'notes' => $input['notes'] ?? ($mark_imported ? 'Imported' : 'Manual entry'),
             'is_imported' => $mark_imported ? 1 : 0,
@@ -259,6 +264,77 @@ class InstallmentCreditUtil
             'actual_received_amount' => 0,
             'status' => 'pending',
         ]);
+    }
+
+    /**
+     * Create pending receivables from an existing POS sell invoice number.
+     * Company / amount / branch / dates come from installment payment lines on the sale.
+     *
+     * @return array{receivables: list<InstallmentReceivable>, warnings: list<string>}
+     *
+     * @throws \Exception when invoice is missing or has no BNPL payment lines
+     */
+    public function importReceivablesFromInvoiceId($business_id, string $invoice_no, ?float $actual_received = null): array
+    {
+        $invoice_no = trim($invoice_no);
+        if ($invoice_no === '') {
+            throw new \Exception(__('installmentcredit::lang.ids_import_invoice_required'));
+        }
+
+        $transaction = Transaction::where('business_id', $business_id)
+            ->where('type', 'sell')
+            ->where('invoice_no', $invoice_no)
+            ->with('payment_lines')
+            ->first();
+
+        if (empty($transaction)) {
+            throw new \Exception(__('installmentcredit::lang.ids_import_invoice_not_found', ['invoice' => $invoice_no]));
+        }
+
+        $receivables = [];
+        $warnings = [];
+
+        foreach ($transaction->payment_lines as $payment) {
+            if (! empty($payment->is_return)) {
+                continue;
+            }
+
+            if (! InstallmentCompany::findByPaymentMethod($business_id, $payment->method)) {
+                continue;
+            }
+
+            // Ensure payment has business_id for createReceivableFromPayment
+            if (empty($payment->business_id)) {
+                $payment->business_id = $business_id;
+            }
+
+            $recv = $this->createReceivableFromPayment($payment, $transaction);
+            if ($recv) {
+                $receivables[] = $recv;
+            }
+        }
+
+        if (empty($receivables)) {
+            throw new \Exception(__('installmentcredit::lang.ids_import_no_bnpl_payment', ['invoice' => $invoice_no]));
+        }
+
+        // Optional actual_received is reference-only; apply only when a single receivable was produced.
+        if ($actual_received !== null && $actual_received >= 0) {
+            if (count($receivables) === 1) {
+                $recv = $receivables[0];
+                if ($recv->status !== 'settled') {
+                    $recv->actual_received_amount = $actual_received;
+                    $recv->save();
+                }
+            } else {
+                $warnings[] = __('installmentcredit::lang.ids_import_actual_skipped_multi', ['invoice' => $invoice_no]);
+            }
+        }
+
+        return [
+            'receivables' => $receivables,
+            'warnings' => $warnings,
+        ];
     }
 
     public function cancelReceivableForPayment($payment)

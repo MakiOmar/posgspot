@@ -160,11 +160,31 @@ Open **Installment Credit → Reports**.
 
 ---
 
-## Importing old Excel open balances
+## Importing receivables
 
-Use this once to move **open** rows from `Credit Anlyses.xlsx` (where Total ≠ 0), or any bulk list.
+### IDs only import (preferred for POS invoices)
+
+Use when the sale **already exists** in POS and was paid with an installment company method (Payment mode on the invoice).
 
 1. **Installment Credit → Import Open Balances**.
+2. Under **IDs only import**, download the Excel/CSV sample.
+3. Columns:
+
+| Column | Example | Notes |
+|--------|---------|--------|
+| invoice_no | 12345 | Required; must match a POS sell invoice |
+| actual_received | 9500 | Optional; reference only (applied when the invoice has a single BNPL payment) |
+
+4. Upload the file. Company, due amount, branch, and dates are taken from the invoice’s installment payment line(s).
+5. Check **Pending Receivables**.
+
+Sales with no installment-company payment are skipped (use a POS payment correction, or the open-balances import below).
+
+### Import Open Balances (manual columns)
+
+Use this once to move **open** rows from `Credit Anlyses.xlsx` (where Total ≠ 0), or any bulk list that is **not** tied to a live BNPL payment on the invoice.
+
+1. Same page → **Import Open Balances (manual columns)**.
 2. Download **Download Excel (.xlsx) sample** (recommended) or the CSV template.
 3. Keep the header row; fill data rows:
 
@@ -175,7 +195,8 @@ Use this once to move **open** rows from `Credit Anlyses.xlsx` (where Total ≠ 
 | invoice_no | 12345 | POS invoice if known |
 | branch | Nasr City | Must match (or alias) a business location |
 | company_code | value | `value`, `maylo`, `tru`, `aman`, `forsa`, `seven`, `sohoula` |
-| due_amount | 10000 | Outstanding amount |
+| due_amount | 10000 | Outstanding / booked claim amount |
+| actual_received | 9500 | Optional; reference only (aliases: `amount_received`) |
 | notes | From Excel | Optional |
 
 4. Upload `.xlsx`, `.xls`, or `.csv`.

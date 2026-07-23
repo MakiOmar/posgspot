@@ -39,4 +39,7 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::post('/import', [ImportController::class, 'store']);
         Route::get('/import/template', [ImportController::class, 'template']);
         Route::get('/import/template-xlsx', [ImportController::class, 'templateXlsx']);
+        Route::post('/import/ids', [ImportController::class, 'storeIds']);
+        Route::get('/import/ids-template', [ImportController::class, 'idsTemplate']);
+        Route::get('/import/ids-template-xlsx', [ImportController::class, 'idsTemplateXlsx']);
     });

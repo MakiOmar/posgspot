@@ -63,7 +63,7 @@ class ReportController extends Controller
             $handle = fopen('php://output', 'w');
             fputcsv($handle, [
                 'invoice_date', 'due_date', 'invoice_no', 'branch', 'company',
-                'due_amount', 'booked_settled', 'outstanding', 'status',
+                'due_amount', 'booked_settled', 'actual_received', 'outstanding', 'status',
             ]);
 
             InstallmentReceivable::with(['company', 'location'])
@@ -80,6 +80,7 @@ class ReportController extends Controller
                             $row->company->name ?? '',
                             $row->due_amount,
                             $row->booked_settled_amount,
+                            $row->actual_received_amount,
                             $row->outstanding,
                             $row->status,
                         ]);
