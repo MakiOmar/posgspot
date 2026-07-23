@@ -179,7 +179,17 @@ class ReceivableController extends Controller
         $accounts = Account::forDropdown($business_id, true, false);
         $locations = BusinessLocation::forDropdown($business_id, true);
 
-        return view('installmentcredit::receivables.settle', compact('receivables', 'company', 'accounts', 'locations'));
+        // Auto-fill location only when every selected invoice shares the same branch.
+        $location_ids = $receivables->pluck('location_id')->unique()->filter(fn ($id) => ! empty($id))->values();
+        $default_location_id = $location_ids->count() === 1 ? $location_ids->first() : null;
+
+        return view('installmentcredit::receivables.settle', compact(
+            'receivables',
+            'company',
+            'accounts',
+            'locations',
+            'default_location_id'
+        ));
     }
 
     public function storeSettlement(Request $request)

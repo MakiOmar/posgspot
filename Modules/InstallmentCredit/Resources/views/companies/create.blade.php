@@ -25,6 +25,7 @@
             <div class="form-group">
                 {!! Form::label('default_deposit_account_id', __('installmentcredit::lang.default_deposit_account') . ':') !!}
                 {!! Form::select('default_deposit_account_id', $accounts, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('messages.please_select')]) !!}
+                <p class="help-block">@lang('installmentcredit::lang.default_deposit_account_help')</p>
             </div>
             <div class="form-group">
                 {!! Form::label('fee_mode', __('installmentcredit::lang.fee_mode') . ':') !!}

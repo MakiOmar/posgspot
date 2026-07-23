@@ -21,12 +21,14 @@
                     <div class="form-group">
                         {!! Form::label('account_id', __('lang_v1.payment_account') . ':') !!}
                         {!! Form::select('account_id', $accounts, $company->default_deposit_account_id, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('messages.please_select')]) !!}
+                        <p class="help-block">@lang('installmentcredit::lang.payment_account_settle_help')</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="form-group">
                         {!! Form::label('location_id', __('purchase.business_location') . ':') !!}
-                        {!! Form::select('location_id', $locations, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('messages.please_select')]) !!}
+                        {!! Form::select('location_id', $locations, $default_location_id ?? null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('messages.please_select')]) !!}
+                        <p class="help-block">@lang('installmentcredit::lang.location_settle_help')</p>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -44,7 +46,10 @@
                             <th>@lang('sale.invoice_no')</th>
                             <th>@lang('installmentcredit::lang.outstanding')</th>
                             <th>@lang('installmentcredit::lang.amount_booked')</th>
-                            <th>@lang('installmentcredit::lang.amount_received')</th>
+                            <th>
+                                @lang('installmentcredit::lang.amount_received')
+                                <br><small class="text-muted">@lang('installmentcredit::lang.amount_received_help')</small>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>

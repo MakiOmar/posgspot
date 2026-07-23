@@ -3,7 +3,6 @@
 namespace Modules\InstallmentCredit\Utils;
 
 use App\AccountTransaction;
-use App\ExpenseCategory;
 use App\Transaction;
 use App\Utils\ModuleUtil;
 use App\Utils\TransactionUtil;
@@ -322,7 +321,8 @@ class InstallmentCreditUtil
                 $prepared_lines[] = compact('recv', 'booked', 'received');
             }
 
-            $fee_amount = max(0, $amount_booked - $amount_received);
+            // Actual received is reference-only; no BNPL fee expense from the difference.
+            $fee_amount = 0;
 
             $settlement = InstallmentSettlement::create([
                 'business_id' => $business_id,
@@ -357,10 +357,10 @@ class InstallmentCreditUtil
                 $recv->save();
             }
 
-            // Credit cashbook for actual cash received
-            if (! empty($account_id) && $amount_received > 0 && $this->moduleUtil->isModuleEnabled('account', $business_id)) {
+            // Credit cashbook with booked amount (drives reporting / calculations).
+            if (! empty($account_id) && $amount_booked > 0 && $this->moduleUtil->isModuleEnabled('account', $business_id)) {
                 $at = AccountTransaction::createAccountTransaction([
-                    'amount' => $amount_received,
+                    'amount' => $amount_booked,
                     'account_id' => $account_id,
                     'type' => 'credit',
                     'operation_date' => Carbon::parse($settlement_date)->toDateTimeString(),
@@ -372,65 +372,8 @@ class InstallmentCreditUtil
                 $settlement->save();
             }
 
-            // Post BNPL fee as expense when fee > 0
-            if ($fee_amount > 0) {
-                $expense_txn = $this->createFeeExpense($business_id, $location_id, $fee_amount, $settlement_date, $user_id, $settlement);
-                if ($expense_txn) {
-                    $settlement->fee_expense_transaction_id = $expense_txn->id;
-                    $settlement->save();
-                }
-            }
-
             return $settlement;
         });
-    }
-
-    protected function createFeeExpense($business_id, $location_id, $fee_amount, $settlement_date, $user_id, InstallmentSettlement $settlement)
-    {
-        $category = ExpenseCategory::firstOrCreate(
-            [
-                'business_id' => $business_id,
-                'name' => 'BNPL Fees',
-            ],
-            [
-                'code' => 'BNPL_FEE',
-                'parent_id' => null,
-            ]
-        );
-
-        $ref_count = $this->transactionUtil->setAndGetReferenceCount('expense', $business_id);
-        $ref_no = $this->transactionUtil->generateReferenceNumber('expense', $ref_count, $business_id);
-
-        $transaction = Transaction::create([
-            'business_id' => $business_id,
-            'location_id' => $location_id,
-            'type' => 'expense',
-            'status' => 'final',
-            'payment_status' => 'paid',
-            'transaction_date' => Carbon::parse($settlement_date)->toDateTimeString(),
-            'total_before_tax' => $fee_amount,
-            'final_total' => $fee_amount,
-            'tax_amount' => 0,
-            'expense_category_id' => $category->id,
-            'additional_notes' => 'BNPL fee for installment settlement #'.$settlement->id,
-            'created_by' => $user_id,
-            'ref_no' => $ref_no,
-        ]);
-
-        // If settlement deposited to an account, debit same account for fee (net effect = received)
-        if (! empty($settlement->account_id) && $this->moduleUtil->isModuleEnabled('account', $business_id)) {
-            AccountTransaction::createAccountTransaction([
-                'amount' => $fee_amount,
-                'account_id' => $settlement->account_id,
-                'type' => 'debit',
-                'operation_date' => Carbon::parse($settlement_date)->toDateTimeString(),
-                'created_by' => $user_id,
-                'transaction_id' => $transaction->id,
-                'note' => 'BNPL fee settlement #'.$settlement->id,
-            ]);
-        }
-
-        return $transaction;
     }
 
     public function pendingByBranchCompany($business_id)

@@ -80,7 +80,7 @@ Without this step, the company method will not appear at the till.
 
 ### 4. Settlement bank account (recommended)
 
-On each company (edit under **Installment Companies**), set **Default deposit account** to the bank/cash account where that company usually pays. You can still change account when settling.
+On each company (edit under **Installment Companies**), set **Default deposit account** to the bank/cash account where that company usually pays. That account is **pre-selected** as Payment Account on Record Settlement; you can still change it there.
 
 ---
 
@@ -132,9 +132,10 @@ You need settle or import permission to add manually.
 | Field | Meaning |
 |-------|---------|
 | Settlement date | When you received the money |
-| Payment account | Bank/cash to credit |
-| Booked amount | Full claim (usually = outstanding) |
-| Actual received | Cash that arrived (after company fees) |
+| Payment account | Bank/cash to credit (defaults from company Default Deposit Account) |
+| Business location | Auto-filled when all selected invoices share the same branch; otherwise choose manually |
+| Booked amount | Full claim (usually = outstanding) — used for outstanding, reports, and account credit |
+| Actual received | Optional reference only (not used in reports or cashbook posting) |
 | External ref | Transfer / statement reference (optional) |
 
 5. Save.
@@ -142,8 +143,8 @@ You need settle or import permission to add manually.
 **What happens:**
 
 - Receivable marked **settled** (or reduced if partial booked amount).
-- Chosen **account** is credited with **actual received**.
-- If booked − received &gt; 0, a **BNPL Fees** expense is posted for the difference.
+- Chosen **account** is credited with **booked amount**.
+- Actual received is stored for display only; no BNPL fee expense is posted from any difference.
 
 Review past settlements under **Installment Credit → Settlements**.
 
@@ -215,5 +216,5 @@ See [README.md](README.md) install section (`installmentcredit_version` + permis
 - [ ] Each branch has those methods enabled  
 - [ ] Staff trained: company method on POS → settle later under Pending Receivables  
 - [ ] Open Excel balances imported via Import Open Balances (if any)  
-- [ ] First real settlement tested (bank balance + fee expense look correct)  
+- [ ] First real settlement tested (bank balance credited with **booked amount**)  
 - [ ] Excel no longer used for day-to-day pending tracking  
