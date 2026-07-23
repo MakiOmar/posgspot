@@ -213,7 +213,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - **Homepage shelves** — edit on product **Categories** (`/taxonomies?type=product`): enable shelf, sort, side banner image, heading, banner copy/button/link; public `GET /categories/homepage-shelves`
 - **Product “Featured on storefront”** — `products.is_storefront_featured`; filter with `GET /products?featured=1`
 - **Category / brand images** — optional `image` upload on POS category/brand forms; public API exposes `image_url`
-- **Product gallery** — multi-image upload on POS product create/edit (`product_gallery`, `model_media_type=product_gallery`); when non-empty, `GET /products/{idOrSlug}` `images[]` uses those URLs (else main image). Brochure stays separate.
+- **Product gallery** — multi-image on POS product create/edit: **media library** picker (shared `storefront_media`) and/or direct upload; saved as `model_media_type=product_gallery`. When non-empty, `GET /products/{idOrSlug}` `images[]` uses those URLs (else main image). Brochure stays separate.
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
 - **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact, registration, and newsletter require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable

@@ -166,32 +166,7 @@
             </div>
             <div class="row">
             <div class="col-sm-8">
-              <div class="form-group">
-                {!! Form::label('product_gallery', __('lang_v1.product_gallery') . ':') !!}
-                @php
-                  $productGallery = ($product->media ?? collect())->where('model_media_type', 'product_gallery');
-                @endphp
-                @if($productGallery->isNotEmpty())
-                  <div class="row" style="margin-bottom:8px;">
-                    @foreach($productGallery as $media)
-                      <div class="col-xs-4 col-sm-3 col-md-2" style="margin-bottom:8px;">
-                        <div class="img-thumbnail" style="position:relative;display:inline-block;">
-                          <span class="badge bg-red delete-media" data-href="{{ action([\App\Http\Controllers\ProductController::class, 'deleteMedia'], ['media_id' => $media->id]) }}"><i class="fas fa-times"></i></span>
-                          {!! $media->thumbnail() !!}
-                        </div>
-                      </div>
-                    @endforeach
-                  </div>
-                @endif
-                {!! Form::file('product_gallery[]', ['id' => 'product_gallery', 'accept' => 'image/*', 'multiple' => true, 'class' => 'form-control']); !!}
-                <small>
-                  <p class="help-block">
-                    @lang('lang_v1.product_gallery_help')
-                    <br>@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)])
-                    <br>@lang('lang_v1.aspect_ratio_should_be_1_1')
-                  </p>
-                </small>
-              </div>
+              @include('product.partials.product_gallery_field', ['product' => $product])
             </div>
             <div class="col-sm-4">
               <div class="form-group">
@@ -430,6 +405,7 @@
 
 @section('javascript')
   <script src="{{ asset('js/product.js?v=' . $asset_v) }}"></script>
+  <script src="{{ asset('js/product-gallery-library.js?v=' . $asset_v) }}"></script>
   <script type="text/javascript">
     $(document).ready( function(){
       __page_leave_confirmation('#product_add_form');

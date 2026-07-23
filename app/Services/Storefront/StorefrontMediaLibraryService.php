@@ -2,6 +2,8 @@
 
 namespace App\Services\Storefront;
 
+use App\Media;
+use App\Product;
 use App\StorefrontMedia;
 use App\Utils\Util;
 use Illuminate\Http\UploadedFile;
@@ -164,6 +166,61 @@ class StorefrontMediaLibraryService
         $media->delete();
 
         return true;
+    }
+
+    /**
+     * Copy library image files into product Media rows (model_media_type=product_gallery).
+     * SVGs are skipped — product gallery is raster images only.
+     *
+     * @param  list<int|string>  $libraryIds
+     * @return int Number of Media rows attached
+     */
+    public function attachAsProductGallery(int $businessId, Product $product, array $libraryIds, ?int $uploadedBy = null): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $libraryIds))));
+        if ($ids === []) {
+            return 0;
+        }
+
+        $this->util->ensurePublicUploadPermissions('media', null, true);
+        $mediaDir = public_path('uploads/media');
+        if (! is_dir($mediaDir) && ! @mkdir($mediaDir, 0755, true) && ! is_dir($mediaDir)) {
+            throw new \RuntimeException('Could not create media directory.');
+        }
+
+        $fileNames = [];
+        foreach ($ids as $id) {
+            $lib = $this->findForBusiness($businessId, $id);
+            if (! $lib || ($lib->kind ?? '') === 'svg') {
+                continue;
+            }
+
+            $src = $lib->absolutePath();
+            if (! is_readable($src)) {
+                continue;
+            }
+
+            $original = (string) ($lib->original_name ?: basename((string) $lib->path));
+            $safe = preg_replace('/[^a-zA-Z0-9._-]/', '_', $original) ?: 'gallery.jpg';
+            $fileName = time().'_'.mt_rand().'_'.$safe;
+            $dest = $mediaDir.DIRECTORY_SEPARATOR.$fileName;
+            if (! @copy($src, $dest)) {
+                continue;
+            }
+            $this->util->ensurePublicUploadPermissions('media', $fileName);
+            $fileNames[] = $fileName;
+        }
+
+        if ($fileNames === []) {
+            return 0;
+        }
+
+        $request = new \Illuminate\Http\Request([
+            'uploaded_by' => $uploadedBy ?? auth()->id(),
+        ]);
+        Media::attachMediaToModel($product, $businessId, $fileNames, $request, 'product_gallery');
+
+        return count($fileNames);
     }
 
     /**

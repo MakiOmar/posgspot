@@ -138,7 +138,7 @@ class StorefrontSettingController extends Controller
      */
     public function listMedia(Request $request, StorefrontMediaLibraryService $library)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! $this->canAccessStorefrontMediaLibrary()) {
             return response()->json(['success' => false, 'msg' => 'Unauthorized action.'], 403);
         }
 
@@ -165,7 +165,7 @@ class StorefrontSettingController extends Controller
      */
     public function uploadHomepageMedia(Request $request, StorefrontMediaLibraryService $library)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! $this->canAccessStorefrontMediaLibrary()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -227,6 +227,21 @@ class StorefrontSettingController extends Controller
         }
 
         return response()->json(['success' => true, 'msg' => 'Media deleted.']);
+    }
+
+    /**
+     * Product editors may list/upload library assets for gallery pick; delete stays settings-only.
+     */
+    private function canAccessStorefrontMediaLibrary(): bool
+    {
+        $user = auth()->user();
+
+        return $user
+            && (
+                $user->can('storefront.settings')
+                || $user->can('product.create')
+                || $user->can('product.update')
+            );
     }
 
     public function update(Request $request)

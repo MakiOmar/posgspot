@@ -34,7 +34,7 @@
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); categories/brands expose `image_url`; homepage shelves |
 | Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
-| Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery when set |
+| Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | All active locations; maps URL + coords |
@@ -226,6 +226,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | Product gallery: pick images from storefront media library (copy into `product_gallery` Media on save). |
 | 2026-07-23 | Product gallery on POS create/edit; storefront PDP `images[]` uses gallery when non-empty (excludes brochure). |
 | 2026-07-23 | Storefront favicon setting (Appearance upload/URL → `favicon_url` on `GET /settings`). |
 | 2026-07-23 | `GET /locations` excludes selling locations by default; `?selling_only=1` for checkout pickup. |

@@ -165,17 +165,7 @@
     </div>
     <div class="row">
         <div class="col-sm-8">
-            <div class="form-group">
-                {!! Form::label('product_gallery', __('lang_v1.product_gallery') . ':') !!}
-                {!! Form::file('product_gallery[]', ['id' => 'product_gallery', 'accept' => 'image/*', 'multiple' => true, 'class' => 'form-control']); !!}
-                <small>
-                    <p class="help-block">
-                        @lang('lang_v1.product_gallery_help')
-                        <br>@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)])
-                        <br>@lang('lang_v1.aspect_ratio_should_be_1_1')
-                    </p>
-                </small>
-            </div>
+            @include('product.partials.product_gallery_field')
         </div>
         <div class="col-sm-4">
             <div class="form-group">
@@ -405,6 +395,7 @@
 @section('javascript')
 
 <script src="{{ asset('js/product.js?v=' . $asset_v) }}"></script>
+<script src="{{ asset('js/product-gallery-library.js?v=' . $asset_v) }}"></script>
 
 <script type="text/javascript">
     $(document).ready(function() {

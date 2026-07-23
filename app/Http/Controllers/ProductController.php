@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ProductsCreatedOrModified;
 use App\TransactionSellLine;
+use App\Services\Storefront\StorefrontMediaLibraryService;
 
 class ProductController extends Controller
 {
@@ -556,6 +557,7 @@ class ProductController extends Controller
             }
 
             Media::uploadMedia($product->business_id, $product, $request, 'product_gallery', false, 'product_gallery');
+            $this->attachProductGalleryFromLibrary($product, $request);
             Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
 
             DB::commit();
@@ -889,6 +891,7 @@ class ProductController extends Controller
             }
 
             Media::uploadMedia($product->business_id, $product, $request, 'product_gallery', false, 'product_gallery');
+            $this->attachProductGalleryFromLibrary($product, $request);
             Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
 
             DB::commit();
@@ -1914,6 +1917,24 @@ class ProductController extends Controller
 
             return $output;
         }
+    }
+
+    /**
+     * Attach storefront media-library images as product_gallery Media rows.
+     */
+    private function attachProductGalleryFromLibrary(Product $product, Request $request): void
+    {
+        $ids = $request->input('product_gallery_library_ids', []);
+        if (! is_array($ids) || $ids === []) {
+            return;
+        }
+
+        app(StorefrontMediaLibraryService::class)->attachAsProductGallery(
+            (int) $product->business_id,
+            $product,
+            $ids,
+            auth()->id()
+        );
     }
 
     /**
