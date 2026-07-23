@@ -26,7 +26,7 @@ function normalizeCheckoutCountry(code: string | null | undefined): string {
 
 export const useCheckoutLocations = routeLoader$(async () => {
   try {
-    const { data } = await fetchLocations();
+    const { data } = await fetchLocations(undefined, { sellingOnly: true });
     return data;
   } catch {
     return [];
@@ -322,9 +322,7 @@ export default component$(() => {
   const pickupLocations =
     pickupLocationIds.length > 0
       ? sellingLocations.filter((loc) => pickupLocationIds.includes(loc.id))
-      : sellingLocations.filter(
-          (loc) => loc.enable_pickup && loc.is_selling_location !== false,
-        );
+      : sellingLocations.filter((loc) => loc.enable_pickup);
 
   const countryOptions = geoCountries.value.map((c) => ({
     value: c.code,

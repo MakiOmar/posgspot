@@ -125,8 +125,12 @@ export function fetchHomepage(locale?: string) {
   );
 }
 
-export function fetchLocations(locale?: string) {
-  return storefrontFetch<StoreLocation[]>("/locations", {}, locale);
+export function fetchLocations(
+  locale?: string,
+  options: { sellingOnly?: boolean } = {},
+) {
+  const qs = options.sellingOnly ? "?selling_only=1" : "";
+  return storefrontFetch<StoreLocation[]>(`/locations${qs}`, {}, locale);
 }
 
 export function fetchCategories(locale?: string) {

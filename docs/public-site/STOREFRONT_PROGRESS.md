@@ -32,7 +32,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
-| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = all active POS branches (+ `is_selling_location`); categories/brands expose `image_url`; homepage shelves |
+| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); categories/brands expose `image_url`; homepage shelves |
 | Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug` |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
@@ -225,6 +225,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | `GET /locations` excludes selling locations by default; `?selling_only=1` for checkout pickup. |
 | 2026-07-23 | `GET /locations` returns all active POS locations (not only selling); `is_selling_location` for checkout pickup filter. |
 | 2026-07-23 | Footer: 4 columns — locations + social, 3 editable menus via Settings → Footer / `settings.footer`. |
 | 2026-07-23 | Trust badges: inline sanitized SVG via `RemoteSvg` (fetch + currentColor); remove CSS mask recolor. |

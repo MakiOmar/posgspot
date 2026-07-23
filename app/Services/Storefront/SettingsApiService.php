@@ -94,24 +94,35 @@ class SettingsApiService
     }
 
     /**
-     * Public branch list: all active POS locations (footer, contact, store locator).
-     * Catalog/checkout still use selling_location_ids separately; each row includes
-     * is_selling_location so pickup UI can filter.
+     * Public branch list for footer / contact / store locator, or selling-only for checkout pickup.
+     *
+     * @param  bool  $sellingOnly  When true, only storefront selling locations. When false (default),
+     *                             all active locations except those in selling_location_ids.
+     * @return list<array<string, mixed>>
      */
-    public function getLocations(int $businessId): array
+    public function getLocations(int $businessId, bool $sellingOnly = false): array
     {
-        $sellingIds = array_fill_keys(
-            $this->storefrontSettings->getSellingLocationIds($businessId),
-            true
-        );
+        $sellingIds = $this->storefrontSettings->getSellingLocationIds($businessId);
+        $sellingLookup = array_fill_keys($sellingIds, true);
 
-        return BusinessLocation::where('business_id', $businessId)
+        $query = BusinessLocation::where('business_id', $businessId)
             ->where('is_active', 1)
-            ->orderBy('name')
+            ->orderBy('name');
+
+        if ($sellingOnly) {
+            if ($sellingIds === []) {
+                return [];
+            }
+            $query->whereIn('id', $sellingIds);
+        } elseif ($sellingIds !== []) {
+            $query->whereNotIn('id', $sellingIds);
+        }
+
+        return $query
             ->get()
-            ->map(function ($loc) use ($sellingIds) {
+            ->map(function ($loc) use ($sellingLookup) {
                 $row = $this->formatLocation($loc);
-                $row['is_selling_location'] = isset($sellingIds[(int) $loc->id]);
+                $row['is_selling_location'] = isset($sellingLookup[(int) $loc->id]);
 
                 return $row;
             })

@@ -13,6 +13,10 @@ class LocationController extends StorefrontController
 
     public function index(Request $request)
     {
-        return $this->jsonSuccess($this->settings->getLocations($this->businessId($request)));
+        $sellingOnly = $request->boolean('selling_only');
+
+        return $this->jsonSuccess(
+            $this->settings->getLocations($this->businessId($request), $sellingOnly)
+        );
     }
 }

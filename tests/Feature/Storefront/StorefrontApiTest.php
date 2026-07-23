@@ -299,7 +299,8 @@ class StorefrontApiTest extends TestCase
         $location->save();
 
         app(StorefrontSettingService::class)->save($this->businessId, [
-            'selling_location_ids' => [$location->id],
+            // Public /locations excludes selling locations — keep this branch off the selling list.
+            'selling_location_ids' => [],
         ]);
         \Illuminate\Support\Facades\Cache::flush();
 
@@ -315,7 +316,21 @@ class StorefrontApiTest extends TestCase
         $this->assertNotNull($match, 'Expected location to appear in /locations response.');
         $this->assertArrayNotHasKey('email', $match);
         $this->assertSame(base64_encode($testEmail), $match['email_encoded']);
-        $this->assertTrue($match['is_selling_location'] ?? false);
+        $this->assertFalse($match['is_selling_location'] ?? true);
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $public = $this->getJson('/api/storefront/v1/locations');
+        $publicIds = collect($public->json('data'))->pluck('id')->map(fn ($id) => (int) $id);
+        $this->assertFalse($publicIds->contains((int) $location->id), 'Selling locations must be excluded from default /locations.');
+
+        $selling = $this->getJson('/api/storefront/v1/locations?selling_only=1');
+        $sellingMatch = collect($selling->json('data'))->first(fn ($row) => (int) ($row['id'] ?? 0) === (int) $location->id);
+        $this->assertNotNull($sellingMatch, 'Expected location in /locations?selling_only=1.');
+        $this->assertTrue($sellingMatch['is_selling_location'] ?? false);
     }
 
     public function test_availability_endpoint_structure(): void
@@ -459,7 +474,7 @@ class StorefrontApiTest extends TestCase
 
         StorefrontSetting::updateOrCreate(
             ['business_id' => $this->businessId],
-            ['value' => ['selling_location_ids' => [$location->id]]]
+            ['value' => ['selling_location_ids' => []]]
         );
         \Illuminate\Support\Facades\Cache::flush();
 
