@@ -93,18 +93,28 @@ class SettingsApiService
         ];
     }
 
+    /**
+     * Public branch list: all active POS locations (footer, contact, store locator).
+     * Catalog/checkout still use selling_location_ids separately; each row includes
+     * is_selling_location so pickup UI can filter.
+     */
     public function getLocations(int $businessId): array
     {
-        $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
-        if (empty($locationIds)) {
-            return [];
-        }
+        $sellingIds = array_fill_keys(
+            $this->storefrontSettings->getSellingLocationIds($businessId),
+            true
+        );
 
         return BusinessLocation::where('business_id', $businessId)
-            ->whereIn('id', $locationIds)
             ->where('is_active', 1)
+            ->orderBy('name')
             ->get()
-            ->map(fn ($loc) => $this->formatLocation($loc))
+            ->map(function ($loc) use ($sellingIds) {
+                $row = $this->formatLocation($loc);
+                $row['is_selling_location'] = isset($sellingIds[(int) $loc->id]);
+
+                return $row;
+            })
             ->values()
             ->all();
     }

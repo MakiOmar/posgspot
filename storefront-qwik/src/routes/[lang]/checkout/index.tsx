@@ -322,7 +322,9 @@ export default component$(() => {
   const pickupLocations =
     pickupLocationIds.length > 0
       ? sellingLocations.filter((loc) => pickupLocationIds.includes(loc.id))
-      : sellingLocations.filter((loc) => loc.enable_pickup);
+      : sellingLocations.filter(
+          (loc) => loc.enable_pickup && loc.is_selling_location !== false,
+        );
 
   const countryOptions = geoCountries.value.map((c) => ({
     value: c.code,

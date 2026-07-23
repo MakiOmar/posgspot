@@ -315,6 +315,7 @@ class StorefrontApiTest extends TestCase
         $this->assertNotNull($match, 'Expected location to appear in /locations response.');
         $this->assertArrayNotHasKey('email', $match);
         $this->assertSame(base64_encode($testEmail), $match['email_encoded']);
+        $this->assertTrue($match['is_selling_location'] ?? false);
     }
 
     public function test_availability_endpoint_structure(): void

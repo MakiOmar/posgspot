@@ -202,6 +202,8 @@ export interface StoreLocation {
   /** Base64-encoded location email — decode client-side only (not in SSR mailto/text). */
   email_encoded: string | null;
   enable_pickup: boolean;
+  /** True when the location is in storefront selling_location_ids (catalog / pickup). */
+  is_selling_location?: boolean;
   latitude: number | null;
   longitude: number | null;
   maps_url: string | null;
