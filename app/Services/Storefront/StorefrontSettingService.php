@@ -84,6 +84,11 @@ class StorefrontSettingService
             'theme' => [
                 'accent_color' => '#00d4aa',
             ],
+            // Browser tab icon: uploaded file and/or external URL.
+            'favicon' => [
+                'image' => null,
+                'url' => '',
+            ],
             'sale_badge' => [
                 'mode' => 'percent',
                 'text' => [
@@ -472,10 +477,25 @@ class StorefrontSettingService
         }
 
         return $this->homepageSections()->ensureSections(
-            $this->withNormalizedFooter(
-                $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+            $this->withNormalizedFavicon(
+                $this->withNormalizedFooter(
+                    $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+                )
             )
         );
+    }
+
+    /**
+     * Replace recursively-merged favicon with a clean normalized structure.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withNormalizedFavicon(array $settings): array
+    {
+        $settings['favicon'] = $this->normalizeFavicon($settings['favicon'] ?? null);
+
+        return $settings;
     }
 
     /**
@@ -1044,6 +1064,15 @@ class StorefrontSettingService
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
         }
 
+        if (array_key_exists('favicon', $settings)) {
+            $merged['favicon'] = $this->normalizeFavicon($settings['favicon']);
+        } else {
+            $existingFavicon = $this->getRaw($businessId)['favicon'] ?? null;
+            $merged['favicon'] = $this->normalizeFavicon(
+                is_array($existingFavicon) ? $existingFavicon : $this->defaults()['favicon']
+            );
+        }
+
         if (array_key_exists('footer', $settings)) {
             $merged['footer'] = $this->normalizeFooter($settings['footer']);
         } else {
@@ -1443,7 +1472,7 @@ class StorefrontSettingService
         $objectKeys = [
             'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
             'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
-            'contact', 'catalog', 'theme', 'footer',
+            'contact', 'catalog', 'theme', 'footer', 'favicon',
         ];
         $defaults = $this->defaults();
         foreach ($objectKeys as $key) {
@@ -1678,6 +1707,53 @@ class StorefrontSettingService
             ],
             'columns' => $columns,
         ];
+    }
+
+    /**
+     * Normalize favicon row: uploaded filename under storefront_favicon/ and/or external URL.
+     *
+     * @param  mixed  $favicon
+     * @return array{image: string|null, url: string}
+     */
+    public function normalizeFavicon($favicon): array
+    {
+        if (! is_array($favicon)) {
+            return ['image' => null, 'url' => ''];
+        }
+
+        $image = basename(trim((string) ($favicon['image'] ?? '')));
+        $url = trim((string) ($favicon['url'] ?? ''));
+        if ($image !== '') {
+            return ['image' => $image, 'url' => ''];
+        }
+        if ($url !== '' && preg_match('#^(https?:)?//#i', $url)) {
+            return ['image' => null, 'url' => mb_substr($url, 0, 500)];
+        }
+        if ($url !== '' && str_starts_with($url, '/')) {
+            return ['image' => null, 'url' => mb_substr($url, 0, 500)];
+        }
+
+        return ['image' => null, 'url' => ''];
+    }
+
+    /**
+     * Absolute public URL for the configured storefront favicon, or null to use site default.
+     */
+    public function faviconPublicUrl(?array $favicon): ?string
+    {
+        $row = $this->normalizeFavicon($favicon);
+        if (! empty($row['image'])) {
+            return asset('uploads/storefront_favicon/'.$row['image']);
+        }
+        $url = trim((string) ($row['url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+        if (str_starts_with($url, '//')) {
+            return 'https:'.$url;
+        }
+
+        return $url;
     }
 
     /**

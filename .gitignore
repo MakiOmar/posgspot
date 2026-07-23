@@ -25,6 +25,7 @@ npm-debug.log
 !/public/uploads/storefront_homepage/.htaccess
 /public/uploads/storefront_library/**
 !/public/uploads/storefront_library/.htaccess
+/public/uploads/storefront_favicon/**
 /public/css/
 /public/fonts/
 /public/images/

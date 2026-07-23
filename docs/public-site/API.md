@@ -53,6 +53,7 @@ Public `GET /settings` also exposes:
 - `couriers.bosta.enabled` — true when Bosta is enabled **and** an API key is stored (no key exposed); checkout uses this to collect Bosta `district_id`
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
+- `favicon_url` — absolute URL for the browser tab icon (**Storefront Settings → Appearance → Favicon**); null when unset (Qwik falls back to `/favicon.svg`)
 - `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object).
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
@@ -113,7 +114,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `footer`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `favicon_url`, `footer`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
 | GET | `/homepage` | Ordered enabled homepage sections (`type` + presented `settings`) for Qwik / mobile; catalog data still from product/category/brand endpoints |
 | GET | `/locations` | Active POS branches for public display (**excludes** storefront selling locations). `?selling_only=1` returns only selling locations (checkout pickup). `address` uses **Storefront display address** when set. Includes `is_selling_location`, `enable_pickup`, coords, `maps_url`, `email_encoded`. Powers footer, contact, store locator. |
 | GET | `/geo/countries` | Country list for address forms |
@@ -215,6 +216,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - **Newsletter** (`newsletter`) — enable + provider (`mailchimp` / `mailerlite` / `aweber`) + encrypted API credentials; public `GET /settings` exposes `newsletter.enabled` only
 - **Cloudflare Turnstile** (`turnstile.site_key`, encrypted `turnstile.secret_key`) — when both are set, contact, registration, and newsletter require verification; public `GET /settings` exposes `turnstile.enabled` and `turnstile.site_key` only (never the secret)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
+- **Favicon** (`favicon.image` / `favicon.url`) — upload under `uploads/storefront_favicon/` or external URL; public `GET /settings` exposes `favicon_url` only
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
 - Public `GET /locations` lists active branches **excluding** selling locations (`?selling_only=1` for checkout); uses `email_encoded` per location (no raw `email` field)
 

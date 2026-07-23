@@ -14,6 +14,8 @@ export interface ApiErrorBody {
 export interface StoreSettings {
   business_name: string;
   logo_url: string | null;
+  /** Absolute favicon URL from settings, or null for the built-in /favicon.svg. */
+  favicon_url?: string | null;
   currency: {
     code: string;
     symbol: string;

@@ -442,6 +442,51 @@
                 </div>
 
                 <hr>
+                <h4>Favicon</h4>
+                @php
+                    $favicon = $settings['favicon'] ?? ['image' => null, 'url' => ''];
+                    $faviconImage = is_array($favicon) ? trim((string) ($favicon['image'] ?? '')) : '';
+                    $faviconUrl = is_array($favicon) ? trim((string) ($favicon['url'] ?? '')) : '';
+                    $faviconPreview = $faviconImage !== ''
+                        ? asset('uploads/storefront_favicon/'.$faviconImage)
+                        : ($faviconUrl !== '' ? $faviconUrl : null);
+                @endphp
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Preview</label>
+                            <div style="width:48px;height:48px;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fafafa;">
+                                @if ($faviconPreview)
+                                    <img src="{{ $faviconPreview }}" alt="" style="max-width:40px;max-height:40px;object-fit:contain;">
+                                @else
+                                    <span class="text-muted" style="font-size:11px;">Default</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            {!! Form::label('favicon_image', 'Upload favicon') !!}
+                            {!! Form::file('favicon_image', ['class' => 'form-control', 'accept' => 'image/png,image/jpeg,image/webp,image/svg+xml,image/x-icon,.ico']) !!}
+                            <input type="hidden" name="favicon_existing_image" value="{{ $faviconImage }}">
+                            <p class="help-block">PNG, SVG, WebP, JPEG, or ICO. Square 32×32 or 48×48 works best.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('favicon_url', 'Or external URL') !!}
+                            {!! Form::text('favicon_url', $faviconUrl, ['class' => 'form-control', 'maxlength' => 500, 'placeholder' => 'https://…/favicon.png']) !!}
+                            <p class="help-block">Used only when no uploaded file is set.</p>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('favicon_clear', 1, false) !!} Clear favicon (use storefront default)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <h4>Sale badge (product cards)</h4>
                 <div class="row">
                     <div class="col-md-4">

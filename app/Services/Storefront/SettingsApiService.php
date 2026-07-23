@@ -53,6 +53,9 @@ class SettingsApiService
             'theme' => [
                 'accent_color' => $settings['theme']['accent_color'] ?? '#00d4aa',
             ],
+            'favicon_url' => $this->storefrontSettings->faviconPublicUrl(
+                is_array($settings['favicon'] ?? null) ? $settings['favicon'] : null
+            ),
             'sale_badge' => [
                 'mode' => $saleBadge['mode'] ?? 'percent',
                 'text' => $this->presenter->localizedSetting($saleBadge['text'] ?? 'Sale', $locale, 'Sale'),

@@ -156,6 +156,7 @@
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
+| Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
@@ -225,6 +226,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | Storefront favicon setting (Appearance upload/URL → `favicon_url` on `GET /settings`). |
 | 2026-07-23 | `GET /locations` excludes selling locations by default; `?selling_only=1` for checkout pickup. |
 | 2026-07-23 | `GET /locations` returns all active POS locations (not only selling); `is_selling_location` for checkout pickup filter. |
 | 2026-07-23 | Footer: 4 columns — locations + social, 3 editable menus via Settings → Footer / `settings.footer`. |

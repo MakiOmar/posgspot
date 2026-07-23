@@ -33,6 +33,9 @@ export const RouterHead = component$(() => {
   });
 
   const hasCanonical = head.links.some((link) => link.rel === "canonical");
+  const hasIcon = head.links.some(
+    (link) => link.rel === "icon" || link.rel === "shortcut icon",
+  );
 
   // Staging: force a single noindex meta (overrides route-level robots).
   const meta = ROBOTS_DISALLOW_ALL
@@ -49,7 +52,7 @@ export const RouterHead = component$(() => {
       {/* Prefer route-supplied canonical (locale-aware); fall back to the request URL. */}
       {!hasCanonical ? <link rel="canonical" href={loc.url.href} /> : null}
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      {!hasIcon ? <link rel="icon" type="image/svg+xml" href="/favicon.svg" /> : null}
 
       {loadArabicFont && shouldPreconnectGoogleFonts() ? (
         <>

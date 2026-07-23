@@ -1031,8 +1031,16 @@ button.header-nav-dropdown__trigger {
 }
 
 .pdp-wishlist-toggle {
-  background: var(--gs-surface-2);
-  box-shadow: none;
+  align-self: flex-end;
+  background: #fff;
+  color: #1a222d;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+.pdp-wishlist-toggle:hover,
+.pdp-wishlist-toggle:focus-visible,
+.pdp-wishlist-toggle.wishlist-toggle--active {
+  color: var(--gs-accent);
 }
 
 /* Header mini-cart dropdown */

@@ -105,6 +105,7 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
   const settings = resolveValue(useSiteSettings);
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
   const def = localeDefinition(lang);
+  const faviconUrl = settings.favicon_url?.trim() || "";
 
   return {
     html: {
@@ -112,6 +113,15 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
       dir: def.dir,
     },
     styles: [themeHeadStyleFromSettings(settings)],
+    links: faviconUrl
+      ? [
+          {
+            key: "favicon",
+            rel: "icon",
+            href: faviconUrl,
+          },
+        ]
+      : [],
   };
 };
 
