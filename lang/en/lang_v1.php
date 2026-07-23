@@ -1241,6 +1241,8 @@ return [
     'billing_address' => 'Billing Address',
     'delete_sell' => 'Delete Sell',
     'product_brochure' => 'Product brochure',
+    'product_gallery' => 'Product gallery',
+    'product_gallery_help' => 'Optional extra images for the storefront product page. When set, these replace the default single-image gallery.',
     'whatsapp_text' => 'Whatsapp Text',
     'auto_send_wa_notif' => 'Auto send Whatsapp notification',
     'send_whatsapp' => 'Send Whatsapp notification',

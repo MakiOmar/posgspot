@@ -1151,6 +1151,8 @@ return [
     'billing_address' => 'عنوان وصول الفواتير',
     'delete_sell' => 'حذف البيع',
     'product_brochure' => 'كتيب المنتج',
+    'product_gallery' => 'معرض صور المنتج',
+    'product_gallery_help' => 'صور إضافية اختيارية لصفحة المنتج في المتجر. عند إضافتها تُستخدم بدل المعرض الافتراضي (الصورة الرئيسية فقط).',
     'whatsapp_text' => 'نص Whatsapp',
     'auto_send_wa_notif' => 'إرسال إشعار Whatsapp تلقائيًا',
     'send_whatsapp' => 'إرسال إشعار Whatsapp',

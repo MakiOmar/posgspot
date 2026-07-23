@@ -712,12 +712,7 @@ class CatalogService
             }
         }
 
-        $images = collect([$product->image_url])
-            ->merge($product->media->pluck('display_url'))
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $images = $this->productDetailImages($product);
 
         $category = $product->category;
         $categoryPayload = null;
@@ -787,6 +782,55 @@ class CatalogService
             'qty_available' => (float) $qty,
             'images' => $images,
         ];
+    }
+
+    /**
+     * PDP images: prefer POS product gallery (model_media_type=product_gallery) when non-empty;
+     * otherwise main image_url plus any leftover image media (exclude brochure / gallery leftovers).
+     *
+     * @return list<string>
+     */
+    private function productDetailImages(Product $product): array
+    {
+        $gallery = $product->media
+            ->filter(fn ($m) => ($m->model_media_type ?? null) === 'product_gallery')
+            ->pluck('display_url')
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($gallery->isNotEmpty()) {
+            return $gallery->all();
+        }
+
+        return collect([$product->image_url])
+            ->merge(
+                $product->media
+                    ->filter(function ($m) {
+                        $type = $m->model_media_type ?? null;
+                        if (in_array($type, ['product_brochure', 'product_gallery'], true)) {
+                            return false;
+                        }
+
+                        return $this->looksLikeImageUrl((string) ($m->display_url ?? ''));
+                    })
+                    ->pluck('display_url')
+            )
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function looksLikeImageUrl(string $url): bool
+    {
+        if ($url === '') {
+            return false;
+        }
+
+        $path = strtolower((string) (parse_url($url, PHP_URL_PATH) ?? $url));
+
+        return (bool) preg_match('/\.(jpe?g|png|gif|webp|avif|bmp|svg)(\?|$)/i', $path);
     }
 
     private function isProductInStock(Product $product, array $locationIds): bool

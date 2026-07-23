@@ -555,6 +555,7 @@ class ProductController extends Controller
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
             }
 
+            Media::uploadMedia($product->business_id, $product, $request, 'product_gallery', false, 'product_gallery');
             Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
 
             DB::commit();
@@ -633,7 +634,7 @@ class ProductController extends Controller
         $barcode_types = $this->barcode_types;
 
         $product = Product::where('business_id', $business_id)
-                            ->with(['product_locations'])
+                            ->with(['product_locations', 'media'])
                             ->where('id', $id)
                             ->firstOrFail();
 
@@ -887,6 +888,7 @@ class ProductController extends Controller
                 $this->moduleUtil->getModuleData('after_product_saved', ['product' => $product, 'request' => $request]);
             }
 
+            Media::uploadMedia($product->business_id, $product, $request, 'product_gallery', false, 'product_gallery');
             Media::uploadMedia($product->business_id, $product, $request, 'product_brochure', true);
 
             DB::commit();
