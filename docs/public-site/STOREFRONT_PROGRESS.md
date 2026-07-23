@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-22 |
+| **Last updated** | 2026-07-23 |
 | **Phase** | Phase 1 MVP — COD launch path |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
 
@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 Core wired; wishlist, policies, payment icons, newsletter, cookie consent done |
+| Header / footer spec | 🟡 | Core wired; 4-col footer (locations + editable menus); wishlist, policies, payment icons, newsletter, cookie consent done |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -139,8 +139,8 @@
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
-| Footer contact, social, shop links | ✅ | `site-footer.tsx` (includes store locator) |
-| Footer policies, newsletter, payment icons | ✅ | Newsletter: Mailchimp/MailerLite/AWeber via settings; icons via `payment_icons` |
+| Footer contact, social, shop links | ✅ | 4-col footer: locations (`GET /locations`) + social/WhatsApp; 3 editable menus from `settings.footer` |
+| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; newsletter + `payment_icons` in bottom bar |
 | Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
 ---
@@ -157,6 +157,7 @@
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
+| Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
 | Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
@@ -224,6 +225,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | Footer: 4 columns — locations + social, 3 editable menus via Settings → Footer / `settings.footer`. |
+| 2026-07-23 | Trust badges: inline sanitized SVG via `RemoteSvg` (fetch + currentColor); remove CSS mask recolor. |
 | 2026-07-23 | LiteSpeed-friendly CORS `.htaccess` in `uploads/storefront_homepage` + `storefront_library` (CacheDisable); note LSCache purge. |
 | 2026-07-22 | CORS on `uploads/storefront_*` so cross-origin CSS masks work on the Qwik storefront. |
 | 2026-07-22 | Trust badge SVG recolor via CSS mask + `icon_color` (URL only; no inline markup). |

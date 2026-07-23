@@ -20,6 +20,11 @@ npm-debug.log
 /public/uploads/invoice_logos
 /public/uploads/UltimatePOS
 /public/uploads/temp
+# User-uploaded storefront media (keep CORS .htaccess tracked)
+/public/uploads/storefront_homepage/**
+!/public/uploads/storefront_homepage/.htaccess
+/public/uploads/storefront_library/**
+!/public/uploads/storefront_library/.htaccess
 /public/css/
 /public/fonts/
 /public/images/

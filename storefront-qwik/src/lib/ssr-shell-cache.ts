@@ -15,6 +15,7 @@ const DEFAULT_TTL_MS = 30_000;
 
 const settingsCache = new Map<string, CacheEntry<unknown>>();
 const categoriesCache = new Map<string, CacheEntry<unknown>>();
+const locationsCache = new Map<string, CacheEntry<unknown>>();
 
 function readCache<T>(map: Map<string, CacheEntry<unknown>>, key: string): T | undefined {
   const entry = map.get(key);
@@ -62,5 +63,19 @@ export async function cachedCategories<T>(
   }
   const value = await load();
   writeCache(categoriesCache, locale, value, ttlMs);
+  return value;
+}
+
+export async function cachedLocations<T>(
+  locale: string,
+  load: () => Promise<T>,
+  ttlMs = DEFAULT_TTL_MS,
+): Promise<T> {
+  const hit = readCache<T>(locationsCache, locale);
+  if (hit !== undefined) {
+    return hit;
+  }
+  const value = await load();
+  writeCache(locationsCache, locale, value, ttlMs);
   return value;
 }

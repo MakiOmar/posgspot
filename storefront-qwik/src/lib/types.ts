@@ -63,6 +63,15 @@ export interface StoreSettings {
     label: string;
     icon_url: string;
   }>;
+  /** Editable footer menus (locale-resolved titles/labels). */
+  footer?: {
+    contact_title: string;
+    columns: Array<{
+      id: string;
+      title: string;
+      links: Array<{ id: string; label: string; url: string }>;
+    }>;
+  };
   /** Homepage / category promotional banners. */
   banners: PromoBanner[];
   newsletter: {

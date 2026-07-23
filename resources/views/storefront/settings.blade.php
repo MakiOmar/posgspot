@@ -91,6 +91,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_footer" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-list"></i> Footer
+                </a>
+            </li>
+            <li>
                 <a href="#tab_checkout" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-shopping-cart"></i> Checkout
                 </a>
@@ -654,6 +659,100 @@
                 </div>
             </div>
 
+            {{-- Footer: contact column title + 3 editable link menus --}}
+            <div class="tab-pane" id="tab_footer">
+                @php
+                    $footerSettings = app(\App\Services\Storefront\StorefrontSettingService::class)
+                        ->normalizeFooter($settings['footer'] ?? null);
+                    $footerColumns = $footerSettings['columns'] ?? [];
+                    while (count($footerColumns) < 3) {
+                        $footerColumns[] = [
+                            'id' => 'col_'.(count($footerColumns) + 1),
+                            'title' => ['en' => '', 'ar' => ''],
+                            'links' => [],
+                        ];
+                    }
+                    $footerColumns = array_slice($footerColumns, 0, 3);
+                @endphp
+                <div class="alert alert-info">
+                    Column 1 on the storefront is <strong>business locations</strong> (Storefront display address)
+                    plus social links from the Contact tab. Configure the contact heading and up to
+                    <strong>3 link menus</strong> here. Paths like <code>/account</code> are locale-prefixed automatically.
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('footer_contact_title_en', 'Contact column title (EN)') !!}
+                            {!! Form::text('footer_contact_title_en', $footerSettings['contact_title']['en'] ?? 'Contact Info', ['class' => 'form-control', 'maxlength' => 80]) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('footer_contact_title_ar', 'Contact column title (AR)') !!}
+                            {!! Form::text('footer_contact_title_ar', $footerSettings['contact_title']['ar'] ?? '', ['class' => 'form-control', 'maxlength' => 80, 'dir' => 'rtl']) !!}
+                        </div>
+                    </div>
+                </div>
+                <div id="footer_columns_app">
+                    @foreach ($footerColumns as $ci => $col)
+                        <div class="panel panel-default footer-column-panel" data-col-index="{{ $ci }}">
+                            <div class="panel-heading">
+                                <strong>Menu column {{ $ci + 1 }}</strong>
+                                <input type="hidden" name="footer_columns[{{ $ci }}][id]" value="{{ $col['id'] ?? ('col_'.($ci+1)) }}">
+                            </div>
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Title (EN)</label>
+                                            <input type="text" class="form-control" name="footer_columns[{{ $ci }}][title_en]" value="{{ $col['title']['en'] ?? '' }}" maxlength="80">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Title (AR)</label>
+                                            <input type="text" class="form-control" name="footer_columns[{{ $ci }}][title_ar]" value="{{ $col['title']['ar'] ?? '' }}" maxlength="80" dir="rtl">
+                                        </div>
+                                    </div>
+                                </div>
+                                <table class="table table-condensed table-bordered footer-links-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width:28%">Label (EN)</th>
+                                            <th style="width:28%">Label (AR)</th>
+                                            <th>URL / path</th>
+                                            <th style="width:70px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="footer-links-tbody">
+                                        @foreach (($col['links'] ?? []) as $li => $link)
+                                            <tr class="footer-link-row">
+                                                <td>
+                                                    <input type="hidden" name="footer_columns[{{ $ci }}][links][{{ $li }}][id]" value="{{ $link['id'] ?? '' }}">
+                                                    <input type="text" class="form-control input-sm" name="footer_columns[{{ $ci }}][links][{{ $li }}][label_en]" value="{{ $link['label']['en'] ?? '' }}" maxlength="80">
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control input-sm" name="footer_columns[{{ $ci }}][links][{{ $li }}][label_ar]" value="{{ $link['label']['ar'] ?? '' }}" maxlength="80" dir="rtl">
+                                                </td>
+                                                <td>
+                                                    <input type="text" class="form-control input-sm" name="footer_columns[{{ $ci }}][links][{{ $li }}][url]" value="{{ $link['url'] ?? '' }}" maxlength="500" placeholder="/products or https://…">
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-danger btn-xs remove-footer-link" title="Remove">&times;</button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                                <button type="button" class="btn btn-default btn-xs add-footer-link" data-col="{{ $ci }}">
+                                    <i class="fa fa-plus"></i> Add link
+                                </button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
             {{-- Checkout: promo codes, reward points --}}
             <div class="tab-pane" id="tab_checkout">
                 <h4 id="promo-checkout-settings">Promo codes (storefront checkout)</h4>
@@ -1065,6 +1164,48 @@
         });
 
         $('#payment_icons_tbody').on('click', '.remove-payment-icon', function () {
+            $(this).closest('tr').remove();
+        });
+
+        // Footer menu columns — add / remove links (max 12 per column)
+        function footerLinkRowHtml(colIndex, linkIndex) {
+            return '' +
+                '<tr class="footer-link-row">' +
+                '<td>' +
+                '<input type="hidden" name="footer_columns[' + colIndex + '][links][' + linkIndex + '][id]" value="">' +
+                '<input type="text" class="form-control input-sm" name="footer_columns[' + colIndex + '][links][' + linkIndex + '][label_en]" value="" maxlength="80">' +
+                '</td>' +
+                '<td>' +
+                '<input type="text" class="form-control input-sm" name="footer_columns[' + colIndex + '][links][' + linkIndex + '][label_ar]" value="" maxlength="80" dir="rtl">' +
+                '</td>' +
+                '<td>' +
+                '<input type="text" class="form-control input-sm" name="footer_columns[' + colIndex + '][links][' + linkIndex + '][url]" value="" maxlength="500" placeholder="/products or https://…">' +
+                '</td>' +
+                '<td class="text-center">' +
+                '<button type="button" class="btn btn-danger btn-xs remove-footer-link" title="Remove">&times;</button>' +
+                '</td>' +
+                '</tr>';
+        }
+
+        $('#footer_columns_app').on('click', '.add-footer-link', function () {
+            var $panel = $(this).closest('.footer-column-panel');
+            var colIndex = $panel.data('col-index');
+            var $tbody = $panel.find('.footer-links-tbody');
+            if ($tbody.find('.footer-link-row').length >= 12) {
+                toastr.warning('Maximum 12 links per column.');
+                return;
+            }
+            var next = 0;
+            $tbody.find('input[name*="[links]["][name$="[label_en]"]').each(function () {
+                var m = String($(this).attr('name') || '').match(/\[links\]\[(\d+)\]/);
+                if (m) {
+                    next = Math.max(next, parseInt(m[1], 10) + 1);
+                }
+            });
+            $tbody.append(footerLinkRowHtml(colIndex, next));
+        });
+
+        $('#footer_columns_app').on('click', '.remove-footer-link', function () {
             $(this).closest('tr').remove();
         });
 

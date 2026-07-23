@@ -111,6 +111,8 @@ class StorefrontSettingService
             ],
             // Footer payment method icons (label + uploaded file or external URL).
             'payment_icons' => [],
+            // Footer contact column title + up to 3 editable link menus.
+            'footer' => $this->defaultFooter(),
             // Homepage / category promotional banners (image + link).
             'banners' => [],
             // Ordered homepage section builder (see Homepage\SectionTypeRegistry).
@@ -470,8 +472,23 @@ class StorefrontSettingService
         }
 
         return $this->homepageSections()->ensureSections(
-            $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+            $this->withNormalizedFooter(
+                $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+            )
         );
+    }
+
+    /**
+     * Replace recursively-merged footer with a clean normalized structure.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withNormalizedFooter(array $settings): array
+    {
+        $settings['footer'] = $this->normalizeFooter($settings['footer'] ?? null);
+
+        return $settings;
     }
 
     private function writeValueJsonString(int $businessId, string $payload): void
@@ -1027,6 +1044,16 @@ class StorefrontSettingService
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
         }
 
+        if (array_key_exists('footer', $settings)) {
+            $merged['footer'] = $this->normalizeFooter($settings['footer']);
+        } else {
+            // Main form always posts footer when the Footer tab is present; if omitted, keep existing.
+            $existingFooter = $this->getRaw($businessId)['footer'] ?? null;
+            $merged['footer'] = $this->normalizeFooter(
+                is_array($existingFooter) ? $existingFooter : $this->defaultFooter()
+            );
+        }
+
         if (array_key_exists('banners', $settings)) {
             $merged['banners'] = $this->normalizeBanners($settings['banners']);
         }
@@ -1416,7 +1443,7 @@ class StorefrontSettingService
         $objectKeys = [
             'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
             'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
-            'contact', 'catalog', 'theme',
+            'contact', 'catalog', 'theme', 'footer',
         ];
         $defaults = $this->defaults();
         foreach ($objectKeys as $key) {
@@ -1491,6 +1518,166 @@ class StorefrontSettingService
     private function homepageSections(): HomepageSectionService
     {
         return app(HomepageSectionService::class);
+    }
+
+    /**
+     * Default footer: contact title + 3 link columns (Customer / About Us / Quick Links).
+     *
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function defaultFooter(): array
+    {
+        return [
+            'contact_title' => [
+                'en' => 'Contact Info',
+                'ar' => 'معلومات التواصل',
+            ],
+            'columns' => [
+                [
+                    'id' => 'col_customer',
+                    'title' => ['en' => 'Customer', 'ar' => 'العملاء'],
+                    'links' => [
+                        ['id' => 'lnk_help', 'label' => ['en' => 'Help Center', 'ar' => 'مركز المساعدة'], 'url' => '/faq'],
+                        ['id' => 'lnk_account', 'label' => ['en' => 'My Account', 'ar' => 'حسابي'], 'url' => '/account'],
+                        ['id' => 'lnk_orders', 'label' => ['en' => 'Track My Order', 'ar' => 'تتبع طلبي'], 'url' => '/account/orders'],
+                        ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
+                        ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
+                        ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/account/wishlist'],
+                        ['id' => 'lnk_newsletter', 'label' => ['en' => 'Newsletter', 'ar' => 'النشرة البريدية'], 'url' => '/#newsletter'],
+                    ],
+                ],
+                [
+                    'id' => 'col_about',
+                    'title' => ['en' => 'About Us', 'ar' => 'من نحن'],
+                    'links' => [
+                        ['id' => 'lnk_company', 'label' => ['en' => 'Company Info', 'ar' => 'عن الشركة'], 'url' => '/contact'],
+                        ['id' => 'lnk_stores', 'label' => ['en' => 'Store Location', 'ar' => 'فروعنا'], 'url' => '/stores'],
+                        ['id' => 'lnk_reviews', 'label' => ['en' => 'Reviews', 'ar' => 'التقييمات'], 'url' => '/products'],
+                    ],
+                ],
+                [
+                    'id' => 'col_quick',
+                    'title' => ['en' => 'Quick Links', 'ar' => 'روابط سريعة'],
+                    'links' => [
+                        ['id' => 'lnk_search', 'label' => ['en' => 'Search', 'ar' => 'بحث'], 'url' => '/search'],
+                        ['id' => 'lnk_about', 'label' => ['en' => 'About Us', 'ar' => 'من نحن'], 'url' => '/contact'],
+                        ['id' => 'lnk_contact', 'label' => ['en' => 'Contact Us', 'ar' => 'اتصل بنا'], 'url' => '/contact'],
+                        ['id' => 'lnk_terms', 'label' => ['en' => 'Terms of Service', 'ar' => 'الشروط والأحكام'], 'url' => '/terms-and-conditions'],
+                        ['id' => 'lnk_privacy', 'label' => ['en' => 'Privacy Policy', 'ar' => 'سياسة الخصوصية'], 'url' => '/privacy-policy'],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Normalize footer menus for persistence (max 3 columns, 12 links each).
+     *
+     * @param  mixed  $footer
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function normalizeFooter($footer): array
+    {
+        $defaults = $this->defaultFooter();
+        if (! is_array($footer)) {
+            return $defaults;
+        }
+
+        $contactTitle = $footer['contact_title'] ?? null;
+        if (is_string($contactTitle)) {
+            $contactTitle = ['en' => $contactTitle, 'ar' => ''];
+        }
+        if (! is_array($contactTitle)) {
+            $contactTitle = $defaults['contact_title'];
+        }
+
+        $columnsIn = $footer['columns'] ?? [];
+        if (! is_array($columnsIn)) {
+            $columnsIn = [];
+        }
+
+        $columns = [];
+        foreach (array_slice(array_values($columnsIn), 0, 3) as $col) {
+            if (! is_array($col)) {
+                continue;
+            }
+            $title = $col['title'] ?? null;
+            if (is_string($title)) {
+                $title = ['en' => $title, 'ar' => ''];
+            }
+            if (! is_array($title)) {
+                $title = ['en' => '', 'ar' => ''];
+            }
+            $titleEn = mb_substr(trim((string) ($title['en'] ?? '')), 0, 80);
+            $titleAr = mb_substr(trim((string) ($title['ar'] ?? '')), 0, 80);
+
+            $linksIn = $col['links'] ?? [];
+            if (! is_array($linksIn)) {
+                $linksIn = [];
+            }
+
+            $links = [];
+            foreach (array_slice(array_values($linksIn), 0, 12) as $link) {
+                if (! is_array($link)) {
+                    continue;
+                }
+                $label = $link['label'] ?? null;
+                if (is_string($label)) {
+                    $label = ['en' => $label, 'ar' => ''];
+                }
+                if (! is_array($label)) {
+                    $label = ['en' => '', 'ar' => ''];
+                }
+                $labelEn = mb_substr(trim((string) ($label['en'] ?? '')), 0, 80);
+                $labelAr = mb_substr(trim((string) ($label['ar'] ?? '')), 0, 80);
+                $url = mb_substr(trim((string) ($link['url'] ?? '')), 0, 500);
+                if ($labelEn === '' && $labelAr === '' && $url === '') {
+                    continue;
+                }
+                if ($url === '') {
+                    continue;
+                }
+                $linkId = trim((string) ($link['id'] ?? ''));
+                if ($linkId === '' || strlen($linkId) > 40) {
+                    $linkId = 'lnk_'.substr(md5($labelEn.'|'.$url.uniqid('', true)), 0, 12);
+                }
+                $links[] = [
+                    'id' => $linkId,
+                    'label' => ['en' => $labelEn !== '' ? $labelEn : $url, 'ar' => $labelAr],
+                    'url' => $url,
+                ];
+            }
+
+            if ($titleEn === '' && $titleAr === '' && $links === []) {
+                continue;
+            }
+
+            $colId = trim((string) ($col['id'] ?? ''));
+            if ($colId === '' || strlen($colId) > 40) {
+                $colId = 'col_'.substr(md5($titleEn.uniqid('', true)), 0, 12);
+            }
+
+            $columns[] = [
+                'id' => $colId,
+                'title' => [
+                    'en' => $titleEn !== '' ? $titleEn : 'Menu',
+                    'ar' => $titleAr,
+                ],
+                'links' => $links,
+            ];
+        }
+
+        if ($columns === []) {
+            $columns = $defaults['columns'];
+        }
+
+        return [
+            'contact_title' => [
+                'en' => mb_substr(trim((string) ($contactTitle['en'] ?? '')), 0, 80) ?: $defaults['contact_title']['en'],
+                'ar' => mb_substr(trim((string) ($contactTitle['ar'] ?? '')), 0, 80),
+            ],
+            'columns' => $columns,
+        ];
     }
 
     /**

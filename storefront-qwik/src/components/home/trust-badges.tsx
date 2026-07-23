@@ -1,4 +1,6 @@
 import { component$ } from "@builder.io/qwik";
+import { RemoteSvg } from "~/components/ui/remote-svg";
+import { isSvgUrl } from "~/lib/remote-svg";
 import type { HomepageTrustBadge } from "~/lib/types";
 
 interface TrustBadgesProps {
@@ -28,11 +30,10 @@ function isSvgIcon(item: HomepageTrustBadge): boolean {
   if (item.icon_kind === "svg") {
     return true;
   }
-  const url = item.icon_url || "";
-  return /\.svg(\?|#|$)/i.test(url);
+  return isSvgUrl(item.icon_url);
 }
 
-/** Homepage trust badges — SVG icons use CSS mask + icon_color; rasters use lazy img. */
+/** Homepage trust badges — SVG icons inlined (sanitized) + icon_color; rasters use lazy img. */
 export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
   if (items.length === 0) {
     return null;
@@ -43,20 +44,18 @@ export const TrustBadges = component$<TrustBadgesProps>(({ items }) => {
       <ul class="home-trust-badges__list">
         {items.map((item) => {
           const color = item.icon_color || "#f5a623";
-          const useMask = Boolean(item.icon_url) && isSvgIcon(item);
+          const useInlineSvg = Boolean(item.icon_url) && isSvgIcon(item);
 
           return (
             <li key={item.id || item.title} class="home-trust-badges__item">
-              {useMask ? (
-                <span
-                  class="home-trust-badges__icon home-trust-badges__icon--mask"
-                  role="img"
-                  aria-hidden="true"
-                  style={{
-                    backgroundColor: color,
-                    WebkitMaskImage: `url("${item.icon_url}")`,
-                    maskImage: `url("${item.icon_url}")`,
-                  }}
+              {useInlineSvg && item.icon_url ? (
+                <RemoteSvg
+                  class="home-trust-badges__icon home-trust-badges__icon--svg"
+                  src={item.icon_url}
+                  color={color}
+                  width={48}
+                  height={48}
+                  fallbackImg
                 />
               ) : item.icon_url ? (
                 <img

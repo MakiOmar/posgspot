@@ -9,7 +9,7 @@ import {
   FALLBACK_STORE_SETTINGS,
   type NavCategoriesLoad,
 } from "~/lib/default-site";
-import { API_BASE, fetchCategories, fetchSettings, setActiveContentLocale } from "~/lib/api";
+import { API_BASE, fetchCategories, fetchLocations, fetchSettings, setActiveContentLocale } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { WishlistProvider } from "~/lib/wishlist-context";
@@ -22,9 +22,9 @@ import {
 } from "~/lib/maintenance-gate";
 import { PendingProvider } from "~/lib/pending-context";
 import { SiteShellProvider, useSiteShell } from "~/lib/site-shell-context";
-import { cachedCategories, cachedSettings } from "~/lib/ssr-shell-cache";
+import { cachedCategories, cachedLocations, cachedSettings } from "~/lib/ssr-shell-cache";
 import { themeHeadStyleFromSettings } from "~/lib/theme";
-import type { StoreSettings } from "~/lib/types";
+import type { StoreLocation, StoreSettings } from "~/lib/types";
 
 export const useLangParam = routeLoader$(({ params, redirect }): StoreLocaleCode => {
   if (!isSupportedLocale(params.lang)) {
@@ -88,6 +88,19 @@ export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCate
   }
 });
 
+export const useFooterLocations = routeLoader$(async ({ params }): Promise<StoreLocation[]> => {
+  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
+  try {
+    return await cachedLocations(locale, async () => {
+      const { data } = await fetchLocations(locale);
+      return Array.isArray(data) ? data : [];
+    });
+  } catch (err) {
+    console.error(`[storefront] locations loader failed (API_BASE=${API_BASE})`, err);
+    return [];
+  }
+});
+
 export const head: DocumentHead = ({ resolveValue, params }) => {
   const settings = resolveValue(useSiteSettings);
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -109,7 +122,7 @@ const SiteShellHeader = component$(() => {
 
 const SiteShellFooter = component$(() => {
   const shell = useSiteShell();
-  return <SiteFooter settings={shell.settings} />;
+  return <SiteFooter settings={shell.settings} locations={shell.locations} />;
 });
 
 export default component$(() => {
@@ -117,6 +130,7 @@ export default component$(() => {
   useMaintenanceGate();
   const settings = useSiteSettings();
   const categories = useNavCategories();
+  const locations = useFooterLocations();
   const loc = useLocation();
   const activeLocale = localeFromPathname(loc.url.pathname);
   const activeDir = localeDefinition(activeLocale).dir;
@@ -129,6 +143,7 @@ export default component$(() => {
         key={activeLocale}
         settings={settings.value}
         categories={categories.value}
+        locations={locations.value}
       >
         <AuthProvider>
           <WishlistProvider>

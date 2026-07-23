@@ -80,6 +80,7 @@ class SettingsApiService
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
+            'footer' => $this->footerPayload($settings, $locale),
             'banners' => $this->bannersPayload($settings, $locale),
             'newsletter' => [
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
@@ -208,6 +209,54 @@ class SettingsApiService
         return [
             'enabled' => $enabled,
             'site_key' => $enabled ? $siteKey : null,
+        ];
+    }
+
+    /**
+     * Public footer menus with locale-resolved titles/labels (max 3 columns).
+     *
+     * @return array{
+     *   contact_title: string,
+     *   columns: list<array{id: string, title: string, links: list<array{id: string, label: string, url: string}>}>
+     * }
+     */
+    private function footerPayload(array $settings, string $locale): array
+    {
+        $footer = $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null);
+        $columns = [];
+        foreach ($footer['columns'] as $col) {
+            if (! is_array($col)) {
+                continue;
+            }
+            $links = [];
+            foreach ($col['links'] ?? [] as $link) {
+                if (! is_array($link)) {
+                    continue;
+                }
+                $url = trim((string) ($link['url'] ?? ''));
+                if ($url === '') {
+                    continue;
+                }
+                $links[] = [
+                    'id' => (string) ($link['id'] ?? ''),
+                    'label' => $this->presenter->localizedSetting($link['label'] ?? '', $locale, $url),
+                    'url' => $url,
+                ];
+            }
+            $columns[] = [
+                'id' => (string) ($col['id'] ?? ''),
+                'title' => $this->presenter->localizedSetting($col['title'] ?? '', $locale, 'Menu'),
+                'links' => $links,
+            ];
+        }
+
+        return [
+            'contact_title' => $this->presenter->localizedSetting(
+                $footer['contact_title'] ?? '',
+                $locale,
+                'Contact Info'
+            ),
+            'columns' => $columns,
         ];
     }
 

@@ -309,6 +309,17 @@ class StorefrontSettingController extends Controller
             'digital_gift_card_product_id' => 'nullable|integer|min:1',
             'digital_pos_document_type' => 'nullable|in:sell,quotation',
             'digital_expose_credentials_to_customer' => 'nullable|boolean',
+            'footer_contact_title_en' => 'nullable|string|max:80',
+            'footer_contact_title_ar' => 'nullable|string|max:80',
+            'footer_columns' => 'nullable|array|max:3',
+            'footer_columns.*.id' => 'nullable|string|max:40',
+            'footer_columns.*.title_en' => 'nullable|string|max:80',
+            'footer_columns.*.title_ar' => 'nullable|string|max:80',
+            'footer_columns.*.links' => 'nullable|array|max:12',
+            'footer_columns.*.links.*.id' => 'nullable|string|max:40',
+            'footer_columns.*.links.*.label_en' => 'nullable|string|max:80',
+            'footer_columns.*.links.*.label_ar' => 'nullable|string|max:80',
+            'footer_columns.*.links.*.url' => 'nullable|string|max:500',
         ]);
 
         $payload = [
@@ -402,6 +413,7 @@ class StorefrontSettingController extends Controller
                 'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
             'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
+            'footer' => $this->buildFooterPayload($validated),
             'banners' => $this->buildBannersPayload($request, $validated['banners'] ?? []),
             'newsletter' => [
                 'enabled' => $request->boolean('newsletter_enabled'),
@@ -505,6 +517,52 @@ class StorefrontSettingController extends Controller
             'success' => true,
             'msg' => 'Storefront import complete ('.$sections.'). Secrets left blank were kept unchanged. Catalog overlays/translations apply only when matching slugs/SKUs exist.',
         ]);
+    }
+
+    /**
+     * Build footer menus from Storefront Settings → Footer tab fields.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    private function buildFooterPayload(array $validated): array
+    {
+        $columns = [];
+        foreach ($validated['footer_columns'] ?? [] as $col) {
+            if (! is_array($col)) {
+                continue;
+            }
+            $links = [];
+            foreach ($col['links'] ?? [] as $link) {
+                if (! is_array($link)) {
+                    continue;
+                }
+                $links[] = [
+                    'id' => $link['id'] ?? '',
+                    'label' => [
+                        'en' => $link['label_en'] ?? '',
+                        'ar' => $link['label_ar'] ?? '',
+                    ],
+                    'url' => $link['url'] ?? '',
+                ];
+            }
+            $columns[] = [
+                'id' => $col['id'] ?? '',
+                'title' => [
+                    'en' => $col['title_en'] ?? '',
+                    'ar' => $col['title_ar'] ?? '',
+                ],
+                'links' => $links,
+            ];
+        }
+
+        return [
+            'contact_title' => [
+                'en' => $validated['footer_contact_title_en'] ?? 'Contact Info',
+                'ar' => $validated['footer_contact_title_ar'] ?? '',
+            ],
+            'columns' => $columns,
+        ];
     }
 
     /**
