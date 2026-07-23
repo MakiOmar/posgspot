@@ -168,6 +168,10 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | GET | `/account/orders` | Order history |
 | GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated **and** storefront setting `digital.expose_credentials_to_customer` is on, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). When that setting is off, secrets stay on POS staff note only. Response includes `is_quotation` when checkout created a draft quotation (`digital.pos_document_type=quotation`). |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
+| GET | `/account/reward-points` | Loyalty balance |
+| POST | `/account/reward-points/validate` | Validate redeem amount |
+| POST | `/account/devices` | Register push device — body `{ platform: "ios"\|"android", token, locale? }` (mobile app). Returns `{ id, platform, locale }`. |
+| DELETE | `/account/devices/{token}` | Unregister push token (URL-encoded token). |
 
 ## Wishlist (auth required)
 
@@ -251,4 +255,5 @@ location ~* ^/uploads/storefront_(homepage|library)/ {
 - Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).
 - Customer Sanctum bearer tokens expire after `STOREFRONT_SANCTUM_EXPIRATION_MINUTES` (default **43200** = 30 days). Password reset revokes all active storefront tokens; a new login also replaces any prior token (single active session).
+- Mobile clients should send `X-Storefront-Client: mobile` on Storefront API requests. Push: configure `STOREFRONT_FCM_PROJECT_ID` + `STOREFRONT_FCM_CREDENTIALS_PATH` (service account JSON). Device register/unregister under `/account/devices`. See [`MOBILE.md`](./MOBILE.md).
 - Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry/Google Fonts/Maps, YouTube/Vimeo embeds (`frame-src`), and HTTPS media for self-hosted video; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.

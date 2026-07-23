@@ -38,6 +38,10 @@ class StorefrontPaymentRecorder
 
         $transaction->refresh();
         // Digital allocate + email runs from TransactionUtil::updatePaymentStatus when paid.
+
+        if (! $alreadyPaid && ! empty($transaction->contact_id)) {
+            \App\Jobs\SendStorefrontOrderPush::dispatch((int) $transaction->id, 'paid');
+        }
     }
 
     public function storePaymentMeta(Transaction $transaction, array $meta): void

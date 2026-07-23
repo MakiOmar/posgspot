@@ -48,4 +48,11 @@ return [
     */
     'url' => rtrim((string) env('STOREFRONT_URL', env('APP_URL', 'http://localhost:5173')), '/'),
 
+    /*
+    | FCM HTTP v1 for storefront mobile push (optional).
+    | Set STOREFRONT_FCM_PROJECT_ID and path to a Google service-account JSON.
+    */
+    'fcm_project_id' => (string) env('STOREFRONT_FCM_PROJECT_ID', ''),
+    'fcm_credentials_path' => (string) env('STOREFRONT_FCM_CREDENTIALS_PATH', ''),
+
 ];

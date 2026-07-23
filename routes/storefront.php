@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Storefront\CheckoutController;
 use App\Http\Controllers\Api\Storefront\ContactController;
 use App\Http\Controllers\Api\Storefront\CouponController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
+use App\Http\Controllers\Api\Storefront\DeviceController;
 use App\Http\Controllers\Api\Storefront\DigitalCatalogController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\HomepageController;
@@ -107,5 +108,7 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/orders/{orderId}/invoice', [AccountController::class, 'orderInvoice']);
         Route::get('/reward-points', [AccountController::class, 'rewardPoints']);
         Route::post('/reward-points/validate', [AccountController::class, 'validateRewardRedeem']);
+        Route::post('/devices', [DeviceController::class, 'store']);
+        Route::delete('/devices/{token}', [DeviceController::class, 'destroy'])->where('token', '.*');
     });
 });

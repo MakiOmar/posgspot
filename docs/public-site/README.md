@@ -106,7 +106,7 @@ Browser  →  Qwik City (SSR/SSG)  →  Storefront API (Laravel)  →  POS servi
 | **Storefront API** | Laravel REST — `/api/storefront/v1/*`, versioned and documented | To build |
 | **Public website** | **Qwik** + **Qwik City** + Tailwind CSS + Qwik signals/store + i18n (AR/EN, RTL) | Phase 1 |
 | **Web auth** | Laravel **Sanctum** — SPA cookie or API token for Qwik | To build |
-| **Mobile app** | Native iOS/Android → same Storefront API + **Passport** bearer tokens | Phase 4 |
+| **Mobile app** | React Native (Expo Dev Client) → same Storefront API + **Sanctum** bearer tokens + Fawry RN SDK | Phase 4 — see [`MOBILE.md`](./MOBILE.md) |
 | **Payments** | Gateway checkout from Qwik (and later mobile) → webhook/callback to Laravel | To build |
 | **Search** | Laravel Scout + Meilisearch/Algolia, or DB search for MVP | TBD |
 | **Cache** | Redis for API catalog cache; short TTL on stock endpoints | TBD |
@@ -125,7 +125,7 @@ Browser  →  Qwik City (SSR/SSG)  →  Storefront API (Laravel)  →  POS servi
 | Storefront API | This repo — `Modules/Storefront` or `app/Http/Controllers/Api/Storefront/` | Products, cart, checkout, customer auth, orders |
 | Public website | Separate repo or `/storefront-qwik/` in monorepo | Qwik City, Tailwind CSS, i18n |
 | POS admin | Existing Laravel app | Unchanged — staff-only |
-| Mobile app | Separate repo (later) | iOS/Android — consumes same API |
+| Mobile app | `/storefront-mobile/` in monorepo | React Native Expo Dev Client — same API |
 
 ### Why Qwik for the web storefront
 
@@ -137,20 +137,20 @@ Browser  →  Qwik City (SSR/SSG)  →  Storefront API (Laravel)  →  POS servi
 | **API-first fit** | Qwik fetches from the Laravel Storefront API — same contract the mobile app will use later. |
 | **Progressive enhancement** | Public pages stay fast; interactivity loads only where needed. |
 
-### Mobile app (later)
+### Mobile app (Phase 4)
 
-A **native mobile app** (iOS and Android) will be built **after** the Qwik web storefront and Storefront API are stable. It is not part of the initial web launch but must be planned for from day one when designing the API.
+Canonical docs: [`MOBILE.md`](./MOBILE.md) · progress: [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md).
 
 | Requirement | Detail |
 |-------------|--------|
-| **Shared API** | Mobile uses the **same** `api/storefront/v1/*` endpoints as Qwik — no separate mobile-only backend. |
-| **Authentication** | **Laravel Passport** OAuth2 / personal access tokens for mobile login, refresh tokens, and secure session handling (Passport is already in this POS project). |
-| **Web auth** | **Laravel Sanctum** for Qwik (cookie-based SPA or token-based, depending on domain setup). |
-| **Feature parity (target)** | Browse catalog, cart, checkout, order history, profile, push notifications (order status), reward points. |
-| **Push notifications** | Order shipped/delivered, promotions — via FCM (Android) / APNs (iOS); Laravel queues notification jobs. |
-| **Deep links** | Product and order URLs open correct screen in app (`gamesspoteg://product/{slug}`). |
-| **Payments** | In-app gateway SDK or redirect to secure web checkout — gateway webhooks still hit Laravel. |
-| **Offline / cache** | Cache catalog browsing where sensible; checkout and stock checks always require network. |
+| **Shared API** | Same `api/storefront/v1/*` as Qwik — no separate mobile backend. |
+| **Authentication** | **Laravel Sanctum** bearer tokens on `Contact` (same as web). Passport is **not** used for storefront customers. |
+| **Stack** | React Native + TypeScript, Expo Router, **Expo Development Builds** (not Expo Go — required for Fawry Nitro modules). |
+| **Feature parity (target)** | Full shop parity: catalog, cart, COD + Fawry, digital games/cards, wishlist, rewards, stores, repair, push. |
+| **Push notifications** | Device registry + FCM HTTP v1 (Android + iOS via APNs); Laravel queues on order shipped/paid. |
+| **Deep links** | Universal / App Links to products and orders; custom scheme `gamesspot://` fallback. |
+| **Payments** | Official `@fawry_pay/rn-fawry-pay-sdk` (iOS + Android); Laravel signs sessions — **no merchant secret in the app**; webhooks confirm paid. |
+| **Offline / cache** | Cache catalog lightly; checkout and stock always require network. |
 
 **API design rules (for mobile readiness from Phase 1):**
 
@@ -544,9 +544,9 @@ Features the **back office** must expose or support for the storefront to work.
 |---------------|--------|----------------------------|
 | Contact lookup | Implemented | Extend for customer registration/profile |
 | Reward points validate/redeem | Implemented | Checkout loyalty redemption |
-| Passport auth | Implemented | **Mobile app** customer login (Phase 4) |
-| Sanctum | Available in Laravel | **Qwik web** customer sessions |
-| Storefront catalog / cart / checkout API | **To build** | New `api/storefront/v1/*` module — primary work item |
+| Passport auth | Implemented | Staff / legacy CRM APIs — **not** storefront customers |
+| Sanctum | Implemented on `Contact` | **Qwik web** + **mobile app** customer sessions |
+| Storefront catalog / cart / checkout API | Implemented | `api/storefront/v1/*` — shared by Qwik and mobile |
 | Legacy `api/ecom` routes | Commented out | Do not use; build fresh Storefront API instead |
 | Legacy WooCommerce sync | Out of scope | Not used for public shop |
 
@@ -628,12 +628,12 @@ Features the **back office** must expose or support for the storefront to work.
 
 ### Phase 4 — Mobile app
 
-- Native **iOS** and **Android** app (framework TBD — React Native, Flutter, or native)
-- Reuses **Storefront API v1+** — no duplicate backend
-- Passport bearer-token auth, refresh tokens, biometric login optional
-- Push notifications for order updates and promotions
+- **React Native** (Expo Dev Client) iOS + Android — [`storefront-mobile/`](../../storefront-mobile/)
+- Reuses **Storefront API v1** — Sanctum bearer auth (not Passport)
+- Official **FawryPay RN SDK** for online payments
+- Push notifications for order updates (device tokens + FCM)
 - Deep links to products and orders
-- App store listing (Games Spot branding)
+- App store listing (Games Spot branding) — see [`MOBILE.md`](./MOBILE.md)
 
 ---
 

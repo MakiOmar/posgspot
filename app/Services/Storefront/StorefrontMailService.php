@@ -140,6 +140,10 @@ class StorefrontMailService
         ];
 
         Mail::to($email)->queue(new StorefrontOrderShipped($order));
+
+        if (! empty($transaction->contact_id)) {
+            \App\Jobs\SendStorefrontOrderPush::dispatch((int) $transaction->id, 'shipped');
+        }
     }
 
     /**

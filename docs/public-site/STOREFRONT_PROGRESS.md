@@ -6,8 +6,8 @@
 | | |
 |---|---|
 | **Last updated** | 2026-07-23 |
-| **Phase** | Phase 1 MVP — COD launch path |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done** |
+| **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -219,6 +219,7 @@
 
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
+3. Mobile Phase 4 — link Fawry RN SDK via Dev Client, EAS project IDs, store listings (see [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md))
 
 ---
 
@@ -226,6 +227,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-07-23 | Phase 4 mobile: `storefront-mobile/` Expo app; `POST/DELETE /account/devices`; FCM push job on paid/shipped; docs `MOBILE.md`. |
 | 2026-07-23 | Product gallery: pick images from storefront media library (copy into `product_gallery` Media on save). |
 | 2026-07-23 | Product gallery on POS create/edit; storefront PDP `images[]` uses gallery when non-empty (excludes brochure). |
 | 2026-07-23 | Storefront favicon setting (Appearance upload/URL → `favicon_url` on `GET /settings`). |
