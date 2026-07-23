@@ -604,7 +604,8 @@ class SellController extends Controller
                     $status = '';
 
                     if ($row->type == 'sales_order') {
-                        if ($is_admin && $row->status != 'completed') {
+                        $can_edit_so_status = ($is_admin || auth()->user()->can('so.update')) && $row->status != 'completed';
+                        if ($can_edit_so_status) {
                             $status = '<span class="edit-so-status label '.$sales_order_statuses[$row->status]['class'].'" data-href="'.action([\App\Http\Controllers\SalesOrderController::class, 'getEditSalesOrderStatus'], ['id' => $row->id]).'">'.$sales_order_statuses[$row->status]['label'].'</span>';
                         } else {
                             $status = '<span class="label '.$sales_order_statuses[$row->status]['class'].'" >'.$sales_order_statuses[$row->status]['label'].'</span>';

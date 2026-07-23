@@ -102,8 +102,7 @@ class SalesOrderController extends Controller
      */
     public function getEditSalesOrderStatus(Request $request, $id)
     {
-        $is_admin = $this->businessUtil->is_admin(auth()->user());
-        if (! $is_admin) {
+        if (! $this->canUpdateSalesOrderStatus()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -111,6 +110,8 @@ class SalesOrderController extends Controller
             $business_id = request()->session()->get('user.business_id');
             $transaction = Transaction::where('business_id', $business_id)
                                 ->findOrFail($id);
+
+            $this->authorizeSalesOrderStatusAccess($transaction);
 
             $status = $transaction->status;
             $statuses = $this->sales_order_statuses;
@@ -127,8 +128,7 @@ class SalesOrderController extends Controller
      */
     public function postEditSalesOrderStatus(Request $request, $id)
     {
-        $is_admin = $this->businessUtil->is_admin(auth()->user());
-        if (! $is_admin) {
+        if (! $this->canUpdateSalesOrderStatus()) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -137,6 +137,8 @@ class SalesOrderController extends Controller
                 $business_id = request()->session()->get('user.business_id');
                 $transaction = Transaction::where('business_id', $business_id)
                                 ->findOrFail($id);
+
+                $this->authorizeSalesOrderStatusAccess($transaction);
 
                 $transaction_before = $transaction->replicate();
 
@@ -161,6 +163,33 @@ class SalesOrderController extends Controller
             return $output;
         }
     }
+
+    /**
+     * Whether the current user may change sales order status.
+     */
+    private function canUpdateSalesOrderStatus(): bool
+    {
+        $user = auth()->user();
+
+        return $this->businessUtil->is_admin($user) || $user->can('so.update');
+    }
+
+    /**
+     * Restrict status changes to own orders when the user only has so.view_own.
+     */
+    private function authorizeSalesOrderStatusAccess(Transaction $transaction): void
+    {
+        $user = auth()->user();
+
+        if ($this->businessUtil->is_admin($user) || $user->can('so.view_all')) {
+            return;
+        }
+
+        if ($user->can('so.view_own') && (int) $transaction->created_by !== (int) $user->id) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
+
     /**
      * Return modal with draft account orders of a contact
      *
