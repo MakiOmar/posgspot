@@ -1,11 +1,36 @@
 import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { AuthContact, AuthSession } from "./types";
 
 const AUTH_KEY = "gs-auth-v1";
 
+async function readRaw(): Promise<string | null> {
+  try {
+    return await SecureStore.getItemAsync(AUTH_KEY);
+  } catch {
+    return AsyncStorage.getItem(AUTH_KEY);
+  }
+}
+
+async function writeRaw(value: string): Promise<void> {
+  try {
+    await SecureStore.setItemAsync(AUTH_KEY, value);
+  } catch {
+    await AsyncStorage.setItem(AUTH_KEY, value);
+  }
+}
+
+async function deleteRaw(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(AUTH_KEY);
+  } catch {
+    await AsyncStorage.removeItem(AUTH_KEY);
+  }
+}
+
 export async function loadAuthSession(): Promise<AuthSession | null> {
   try {
-    const raw = await SecureStore.getItemAsync(AUTH_KEY);
+    const raw = await readRaw();
     if (!raw) {
       return null;
     }
@@ -20,11 +45,11 @@ export async function loadAuthSession(): Promise<AuthSession | null> {
 }
 
 export async function saveAuthSession(session: AuthSession): Promise<void> {
-  await SecureStore.setItemAsync(AUTH_KEY, JSON.stringify(session));
+  await writeRaw(JSON.stringify(session));
 }
 
 export async function clearAuthSession(): Promise<void> {
-  await SecureStore.deleteItemAsync(AUTH_KEY);
+  await deleteRaw();
 }
 
 export function contactDisplayName(contact: AuthContact | null | undefined): string {

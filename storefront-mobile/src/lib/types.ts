@@ -55,11 +55,49 @@ export interface ProductSummary {
   name: string;
   slug: string;
   image_url?: string | null;
+  /** Catalog list price (Storefront API). */
+  price?: number;
+  compare_at_price?: number | null;
+  on_sale?: boolean;
+  sale_percent?: number;
+  /** Legacy / detail aliases kept for safety. */
   price_inc_tax?: number;
   storefront_sale_price_inc_tax?: number | null;
   in_stock?: boolean;
   brand?: { id?: number; name?: string; slug?: string };
+  rating_average?: number;
+  rating_count?: number;
   rating?: { average?: number; count?: number };
+}
+
+export interface HomepageHeroSlide {
+  id: string;
+  image_url: string;
+  href: string;
+  kicker?: string;
+  title?: string;
+}
+
+export interface HomepagePromoTile {
+  id: string;
+  image_url: string;
+  href: string;
+  label?: string;
+}
+
+export interface HomepageCategoryShelf {
+  id?: number | string;
+  name?: string;
+  slug?: string;
+  heading?: string;
+  banner_image_url?: string | null;
+  banner_fg_image_url?: string | null;
+  banner_kicker?: string;
+  banner_text?: string;
+  button_text?: string;
+  banner_link?: string;
+  view_more_path?: string;
+  view_more_label?: string;
 }
 
 export interface ProductDetail extends ProductSummary {

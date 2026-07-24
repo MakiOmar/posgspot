@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Link } from "expo-router";
 import type { ProductSummary } from "../lib/types";
+import { absoluteMediaUrl } from "../lib/storefront-href";
 import { useApp } from "../contexts/AppContext";
 
 export function Screen({
@@ -45,7 +46,10 @@ export function ErrorBlock({
     <View style={styles.center}>
       <Text style={styles.error}>{message || t("common.error")}</Text>
       {onRetry ? (
-        <Pressable style={[styles.button, { backgroundColor: accent }]} onPress={onRetry}>
+        <Pressable
+          style={[styles.button, { backgroundColor: accent }]}
+          onPress={onRetry}
+        >
           <Text style={styles.buttonText}>{t("common.retry")}</Text>
         </Pressable>
       ) : null}
@@ -57,18 +61,24 @@ export function PrimaryButton({
   label,
   onPress,
   disabled,
+  style,
+  ...rest
 }: {
   label: string;
-  onPress: () => void;
+  onPress?: () => void;
   disabled?: boolean;
+  style?: object;
+  [key: string]: unknown;
 }) {
   const { accent } = useApp();
   return (
     <Pressable
-      style={[
+      {...rest}
+      style={StyleSheet.flatten([
         styles.button,
         { backgroundColor: accent, opacity: disabled ? 0.5 : 1 },
-      ]}
+        style,
+      ])}
       disabled={disabled}
       onPress={onPress}
     >
@@ -77,24 +87,53 @@ export function PrimaryButton({
   );
 }
 
-export function ProductCard({ product }: { product: ProductSummary }) {
+function productDisplayPrice(product: ProductSummary): number {
+  const sale = product.storefront_sale_price_inc_tax;
+  if (sale != null && Number(sale) > 0) {
+    return Number(sale);
+  }
+  return Number(product.price ?? product.price_inc_tax ?? 0);
+}
+
+export function ProductCard({
+  product,
+  wide = false,
+}: {
+  product: ProductSummary;
+  wide?: boolean;
+}) {
   const { accent } = useApp();
-  const price =
-    product.storefront_sale_price_inc_tax ?? product.price_inc_tax ?? 0;
+  const price = productDisplayPrice(product);
+  const compare =
+    product.compare_at_price != null && Number(product.compare_at_price) > price
+      ? Number(product.compare_at_price)
+      : null;
+  const image = absoluteMediaUrl(product.image_url);
+
   return (
     <Link href={`/products/${product.slug}`} asChild>
-      <Pressable style={styles.card}>
-        {product.image_url ? (
-          <Image source={{ uri: product.image_url }} style={styles.cardImage} />
+      <Pressable
+        style={StyleSheet.flatten([styles.card, wide && styles.cardWide])}
+      >
+        {image ? (
+          <Image source={{ uri: image }} style={styles.cardImage} />
         ) : (
-          <View style={[styles.cardImage, styles.cardImagePlaceholder]} />
+          <View style={styles.cardImagePlaceholder} />
         )}
         <Text numberOfLines={2} style={styles.cardTitle}>
           {product.name}
         </Text>
-        <Text style={[styles.cardPrice, { color: accent }]}>
-          {Number(price).toFixed(2)} EGP
-        </Text>
+        <View style={styles.priceRow}>
+          <Text style={{ ...styles.cardPrice, color: accent }}>
+            {price.toFixed(2)} EGP
+          </Text>
+          {compare ? (
+            <Text style={styles.compare}>{compare.toFixed(2)}</Text>
+          ) : null}
+        </View>
+        {product.in_stock === false ? (
+          <Text style={styles.oos}>Out of stock</Text>
+        ) : null}
       </Pressable>
     </Link>
   );
@@ -120,6 +159,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
   },
+  cardWide: { width: "100%" },
   cardImage: {
     width: "100%",
     height: 120,
@@ -127,7 +167,20 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: "#eee",
   },
-  cardImagePlaceholder: { backgroundColor: "#e5e5e5" },
-  cardTitle: { fontSize: 14, fontWeight: "600", marginBottom: 4 },
+  cardImagePlaceholder: {
+    width: "100%",
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: "#e5e5e5",
+  },
+  cardTitle: { fontSize: 14, fontWeight: "600", marginBottom: 4, minHeight: 36 },
+  priceRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardPrice: { fontSize: 14, fontWeight: "700" },
+  compare: {
+    fontSize: 12,
+    color: "#999",
+    textDecorationLine: "line-through",
+  },
+  oos: { marginTop: 4, fontSize: 12, color: "#B00020" },
 });

@@ -34,6 +34,24 @@ import type {
   StoreSettings,
 } from "../lib/types";
 
+const SETTINGS_TIMEOUT_MS = 12000;
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error("timeout")), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 interface AppContextValue {
   locale: ContentLocale;
   setLocale: (locale: ContentLocale) => void;
@@ -91,12 +109,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
-        const { data } = await fetchSettings(locale);
+        const { data } = await withTimeout(
+          fetchSettings(locale),
+          SETTINGS_TIMEOUT_MS,
+        );
         if (!cancelled) {
           setSettings(data);
         }
       } catch {
-        // offline / API down
+        // offline / API down / timeout — still show the app shell
       } finally {
         if (!cancelled) {
           setLoading(false);

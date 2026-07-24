@@ -1,11 +1,12 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCart } from "../../src/contexts/CartContext";
 import { useApp } from "../../src/contexts/AppContext";
 import { PrimaryButton, Screen } from "../../src/components/ui";
 
 export default function CartScreen() {
   const { t } = useApp();
+  const router = useRouter();
   const { items, subtotal, updateQty, removeItem, count } = useCart();
 
   if (!count) {
@@ -13,9 +14,10 @@ export default function CartScreen() {
       <Screen>
         <View style={styles.center}>
           <Text style={styles.empty}>{t("cart.empty")}</Text>
-          <Link href="/(tabs)/shop" asChild>
-            <PrimaryButton label={t("nav.shop")} onPress={() => undefined} />
-          </Link>
+          <PrimaryButton
+            label={t("nav.shop")}
+            onPress={() => router.push("/(tabs)/shop")}
+          />
         </View>
       </Screen>
     );
@@ -65,9 +67,10 @@ export default function CartScreen() {
       <Text style={styles.subtotal}>
         {t("cart.subtotal")}: {subtotal.toFixed(2)} EGP
       </Text>
-      <Link href="/checkout" asChild>
-        <PrimaryButton label={t("common.checkout")} onPress={() => undefined} />
-      </Link>
+      <PrimaryButton
+        label={t("common.checkout")}
+        onPress={() => router.push("/checkout")}
+      />
     </Screen>
   );
 }

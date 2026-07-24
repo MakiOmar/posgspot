@@ -75,13 +75,20 @@
           "color": "#0B6E4F"
         }
       ],
-      "expo-dev-client",
+      [
+        "expo-dev-client",
+        {
+          "android": {
+            "skipOnboarding": true
+          }
+        }
+      ],
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0B6E4F"
         }
       ]
     ],

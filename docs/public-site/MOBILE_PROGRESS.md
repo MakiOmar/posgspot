@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-23 |
+| **Last updated** | 2026-07-24 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Docs + API gaps + Expo app scaffold with full screen map shipped |
+| **Overall** | Shop screens live; home renders real homepage sections; local Android run fixed |
 
 **Status legend:** Done · Partial · Not started
 
@@ -22,6 +22,7 @@
 | Device tokens + FCM push jobs | Done |
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
 | M1 shop core (browse → COD checkout → orders) | Done |
+| Home section UI (hero, promos, shelves, rails) | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -33,3 +34,4 @@
 | Date | Change |
 |------|--------|
 | 2026-07-23 | Phase 4: docs, `storefront-mobile/` Expo app, device API + push jobs, deep links, shop parity screens, EAS checklist. |
+| 2026-07-24 | Android white-screen fixes (splash gate, babel/reanimated, emulator SwiftShader); home section renderers + real prices/images; polish tabs. |

@@ -1,7 +1,25 @@
 import { Tabs } from "expo-router";
+import type { ComponentProps } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
+
+function TabIcon({
+  name,
+  color,
+}: {
+  name: ComponentProps<typeof FontAwesome>["name"];
+  color: string;
+}) {
+  return (
+    <FontAwesome
+      name={name}
+      size={22}
+      color={color}
+      style={{ marginBottom: -2 }}
+    />
+  );
+}
 
 export default function TabLayout() {
   const { t, accent } = useApp();
@@ -11,15 +29,20 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: "#888",
         headerShown: true,
+        headerShadowVisible: false,
+        headerStyle: { backgroundColor: "#F7F7F5" },
+        tabBarStyle: { backgroundColor: "#fff", borderTopColor: "#eee" },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t("nav.home"),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="home" size={22} color={color} />
+            <TabIcon name="home" color={String(color)} />
           ),
         }}
       />
@@ -28,7 +51,7 @@ export default function TabLayout() {
         options={{
           title: t("nav.shop"),
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="th-large" size={20} color={color} />
+            <TabIcon name="th-large" color={String(color)} />
           ),
         }}
       />
@@ -38,7 +61,7 @@ export default function TabLayout() {
           title: t("nav.cart"),
           tabBarBadge: count > 0 ? count : undefined,
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="shopping-cart" size={22} color={color} />
+            <TabIcon name="shopping-cart" color={String(color)} />
           ),
         }}
       />
@@ -47,7 +70,7 @@ export default function TabLayout() {
         options={{
           title: t("nav.account"),
           tabBarIcon: ({ color }) => (
-            <FontAwesome name="user" size={22} color={color} />
+            <TabIcon name="user" color={String(color)} />
           ),
         }}
       />

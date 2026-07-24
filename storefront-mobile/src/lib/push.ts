@@ -1,20 +1,14 @@
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { registerDevice, unregisterDevice } from "./api";
 import type { ContentLocale } from "./types";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+async function notifications() {
+  return import("expo-notifications");
+}
 
 export async function ensurePushPermission(): Promise<boolean> {
+  const Notifications = await notifications();
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) {
     return true;
@@ -29,7 +23,17 @@ export async function getExpoPushToken(): Promise<string | null> {
     return null;
   }
 
-  // Prefer native device push token for FCM/APNs registration on our API.
+  const Notifications = await notifications();
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+
   try {
     const device = await Notifications.getDevicePushTokenAsync();
     if (device?.data) {
@@ -38,18 +42,22 @@ export async function getExpoPushToken(): Promise<string | null> {
         : JSON.stringify(device.data);
     }
   } catch {
-    // Fall through to Expo push token (useful in Expo Go / without FCM config).
+    // Fall through to Expo push token
   }
 
   const projectId =
     Constants.easConfig?.projectId ??
     (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)
       ?.eas?.projectId;
-  if (!projectId) {
+  if (!projectId || projectId === "replace-with-eas-project-id") {
     return null;
   }
-  const token = await Notifications.getExpoPushTokenAsync({ projectId });
-  return token.data;
+  try {
+    const token = await Notifications.getExpoPushTokenAsync({ projectId });
+    return token.data;
+  } catch {
+    return null;
+  }
 }
 
 export async function syncPushTokenWithApi(
