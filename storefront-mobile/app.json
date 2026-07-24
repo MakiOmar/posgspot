@@ -17,7 +17,9 @@
         "applinks:new.gamesspoteg.com"
       ],
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "CFBundleDisplayName": "GameSpotEG"
       }
     },
@@ -55,7 +57,10 @@
               "pathPrefix": "/ar/account/orders"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "predictiveBackGestureEnabled": false
@@ -91,6 +96,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#000000",
           "imageWidth": 220
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "reactNativeArchitectures": ["arm64-v8a"]
+          }
         }
       ]
     ],
