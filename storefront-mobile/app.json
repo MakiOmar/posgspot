@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Games Spot",
+    "name": "GameSpotEG",
     "slug": "games-spot",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,13 +17,14 @@
         "applinks:new.gamesspoteg.com"
       ],
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "CFBundleDisplayName": "GameSpotEG"
       }
     },
     "android": {
       "package": "com.gamesspoteg.storefront",
       "adaptiveIcon": {
-        "backgroundColor": "#0B6E4F",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -72,7 +73,7 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#0B6E4F"
+          "color": "#FF7A00"
         }
       ],
       [
@@ -88,7 +89,8 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B6E4F"
+          "backgroundColor": "#000000",
+          "imageWidth": 220
         }
       ]
     ],

@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     settings?.theme?.accent_color &&
     /^#[0-9A-Fa-f]{6}$/.test(settings.theme.accent_color)
       ? settings.theme.accent_color
-      : "#0B6E4F";
+      : "#FF7A00";
 
   const value = useMemo<AppContextValue>(
     () => ({
