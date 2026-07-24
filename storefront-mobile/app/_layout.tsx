@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider } from "../src/contexts/AppContext";
 import { CartProvider } from "../src/contexts/CartContext";
+import { WishlistProvider } from "../src/contexts/WishlistContext";
 
 // expo-router also calls preventAutoHide internally; always hide once mounted.
 void SplashScreen.hideAsync().catch(() => undefined);
@@ -20,6 +21,7 @@ export default function RootLayout() {
     <SafeAreaProvider style={styles.root}>
       <AppProvider>
         <CartProvider>
+          <WishlistProvider>
           <Stack
             screenOptions={{
               headerShown: true,
@@ -43,7 +45,10 @@ export default function RootLayout() {
             <Stack.Screen name="checkout/payment" options={{ title: "Payment" }} />
             <Stack.Screen name="login" options={{ title: "Login" }} />
             <Stack.Screen name="register" options={{ title: "Register" }} />
+            <Stack.Screen name="forgot-password" options={{ title: "Forgot password" }} />
+            <Stack.Screen name="reset-password" options={{ title: "Reset password" }} />
             <Stack.Screen name="wishlist" options={{ title: "Wishlist" }} />
+            <Stack.Screen name="account/profile" options={{ title: "Profile" }} />
             <Stack.Screen name="account/orders/index" options={{ title: "Orders" }} />
             <Stack.Screen name="account/orders/[id]" options={{ title: "Order" }} />
             <Stack.Screen name="stores" options={{ title: "Stores" }} />
@@ -55,6 +60,7 @@ export default function RootLayout() {
             <Stack.Screen name="maintenance" options={{ title: "Maintenance", headerShown: false }} />
             <Stack.Screen name="+not-found" options={{ title: "Not found" }} />
           </Stack>
+          </WishlistProvider>
         </CartProvider>
       </AppProvider>
     </SafeAreaProvider>

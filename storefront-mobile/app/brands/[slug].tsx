@@ -1,70 +1,73 @@
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Text } from "react-native";
-import { fetchBrand, fetchProducts } from "../../src/lib/api";
-import type { ProductSummary } from "../../src/lib/types";
+import { ActivityIndicator, FlatList, StyleSheet, Text } from "react-native";
+import { fetchBrand } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
+import { ProductListToolbar } from "../../src/components/catalog/ProductListToolbar";
 import {
   ErrorBlock,
   LoadingBlock,
   ProductCard,
   Screen,
 } from "../../src/components/ui";
+import { useProductList } from "../../src/lib/use-product-list";
+import { paramString } from "../../src/lib/product-path";
 
 export default function BrandScreen() {
-  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const params = useLocalSearchParams<{ slug: string | string[] }>();
+  const slug = paramString(params.slug) || "";
   const { locale, t } = useApp();
-  const [title, setTitle] = useState(slug || "Brand");
-  const [products, setProducts] = useState<ProductSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState(slug);
+  const list = useProductList({ locale, brandSlug: slug || undefined });
 
-  const load = useCallback(async () => {
-    if (!slug) {
-      return;
-    }
-    setLoading(true);
+  const loadTitle = useCallback(async () => {
+    if (!slug) return;
     try {
-      const [brand, list] = await Promise.all([
-        fetchBrand(slug, locale),
-        fetchProducts({ brand_slug: slug, per_page: 24 }, locale),
-      ]);
+      const brand = await fetchBrand(slug, locale);
       setTitle(brand.data.name || slug);
-      setProducts(list.data || []);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("common.error"));
-    } finally {
-      setLoading(false);
+    } catch {
+      setTitle(slug);
     }
-  }, [slug, locale, t]);
+  }, [slug, locale]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  if (loading) {
-    return (
-      <Screen>
-        <LoadingBlock />
-      </Screen>
-    );
-  }
+    void loadTitle();
+  }, [loadTitle]);
 
   return (
     <Screen>
-      <Text style={{ fontSize: 20, fontWeight: "800", marginBottom: 12 }}>
-        {title}
-      </Text>
-      {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
-      <FlatList
-        style={{ flex: 1 }}
-        data={products}
-        keyExtractor={(item) => String(item.id)}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
-        renderItem={({ item }) => <ProductCard product={item} />}
+      <Text style={styles.title}>{title}</Text>
+      <ProductListToolbar
+        sort={list.sort}
+        inStockOnly={list.inStockOnly}
+        onSortChange={list.setSort}
+        onInStockChange={list.setInStockOnly}
       />
+      {list.loading ? (
+        <LoadingBlock />
+      ) : list.error ? (
+        <ErrorBlock message={t("common.error")} onRetry={list.reload} />
+      ) : (
+        <FlatList
+          style={styles.list}
+          data={list.products}
+          keyExtractor={(item) => String(item.id)}
+          numColumns={2}
+          columnWrapperStyle={styles.grid}
+          renderItem={({ item }) => <ProductCard product={item} />}
+          onEndReached={list.loadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            list.loadingMore ? <ActivityIndicator style={{ margin: 12 }} /> : null
+          }
+        />
+      )}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  title: { fontSize: 20, fontWeight: "800", marginBottom: 12 },
+  list: { flex: 1 },
+  grid: { justifyContent: "space-between" },
+});

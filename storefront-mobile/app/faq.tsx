@@ -1,48 +1,34 @@
-import { Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useApp } from "../src/contexts/AppContext";
+import { getFaqEntries } from "../src/lib/content/faq-content";
 import { Screen } from "../src/components/ui";
-
-const FAQ_EN = [
-  {
-    q: "How do I track my order?",
-    a: "Open Account → Orders. Tracking appears when the order is shipped.",
-  },
-  {
-    q: "Do you offer cash on delivery?",
-    a: "Yes, when COD is enabled in store settings.",
-  },
-  {
-    q: "Can I pay with Fawry?",
-    a: "Yes, when online payments are enabled. Use the Fawry option at checkout.",
-  },
-];
-
-const FAQ_AR = [
-  {
-    q: "كيف أتتبع طلبي؟",
-    a: "من حسابي ← الطلبات. يظهر التتبع عند الشحن.",
-  },
-  {
-    q: "هل يوجد دفع عند الاستلام؟",
-    a: "نعم عند تفعيل الخيار من إعدادات المتجر.",
-  },
-  {
-    q: "هل يمكن الدفع عبر فوري؟",
-    a: "نعم عند تفعيل الدفع الإلكتروني واختيار فوري عند إتمام الشراء.",
-  },
-];
 
 export default function FaqScreen() {
   const { locale } = useApp();
-  const items = locale === "ar" ? FAQ_AR : FAQ_EN;
+  const items = getFaqEntries(locale);
+
   return (
-    <Screen>
-      {items.map((item) => (
-        <View key={item.q} style={{ marginBottom: 16 }}>
-          <Text style={{ fontWeight: "800", marginBottom: 4 }}>{item.q}</Text>
-          <Text style={{ lineHeight: 20 }}>{item.a}</Text>
-        </View>
-      ))}
+    <Screen padded={false}>
+      <ScrollView contentContainerStyle={styles.pad}>
+        {items.map((item) => (
+          <View key={item.question} style={styles.item}>
+            <Text style={styles.q}>{item.question}</Text>
+            <Text style={styles.a}>{item.answer}</Text>
+          </View>
+        ))}
+      </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  pad: { padding: 16 },
+  item: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 10,
+  },
+  q: { fontWeight: "800", marginBottom: 6 },
+  a: { lineHeight: 20, color: "#333" },
+});

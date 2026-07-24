@@ -1,8 +1,14 @@
-import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Linking, ScrollView, Text, View } from "react-native";
-import { Redirect } from "expo-router";
-import { fetchOrder } from "../../../src/lib/api";
+import {
+  Alert,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { fetchOrder, fetchOrderInvoiceUrl } from "../../../src/lib/api";
 import type { AccountOrderDetail } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { useCart } from "../../../src/contexts/CartContext";
@@ -13,12 +19,19 @@ import {
   Screen,
 } from "../../../src/components/ui";
 
+function isPaidOrder(paymentStatus: string | undefined): boolean {
+  return (paymentStatus ?? "").trim().toLowerCase() === "paid";
+}
+
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token, t } = useApp();
   const { addItem } = useCart();
+  const router = useRouter();
   const [order, setOrder] = useState<AccountOrderDetail | null>(null);
+  const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -30,6 +43,16 @@ export default function OrderDetailScreen() {
       const { data } = await fetchOrder(token, Number(id));
       setOrder(data);
       setError(null);
+      let printUrl = data.invoice_print_url || null;
+      if (isPaidOrder(data.payment_status) && !printUrl) {
+        try {
+          const invoice = await fetchOrderInvoiceUrl(token, Number(id));
+          printUrl = invoice.data.invoice_print_url;
+        } catch {
+          // Invoice endpoint may be unavailable.
+        }
+      }
+      setInvoiceUrl(isPaidOrder(data.payment_status) ? printUrl : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.error"));
     } finally {
@@ -63,58 +86,64 @@ export default function OrderDetailScreen() {
 
   return (
     <Screen padded={false}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 10 }}>
-        <Text style={{ fontSize: 20, fontWeight: "800" }}>
+      <ScrollView contentContainerStyle={styles.pad}>
+        <Text style={styles.title}>
           {order.invoice_no || order.storefront_order_id || `#${order.id}`}
         </Text>
-        <Text>Payment: {order.payment_status || "—"}</Text>
+        <Text>
+          {t("account.payment")}: {order.payment_status || "—"}
+        </Text>
+        {order.final_total != null ? (
+          <Text>
+            {t("cart.total")}: {Number(order.final_total).toFixed(2)} EGP
+          </Text>
+        ) : null}
         {order.shipping_tracking_number ? (
-          <Text>Tracking: {order.shipping_tracking_number}</Text>
+          <Text>
+            {t("account.tracking")}: {order.shipping_tracking_number}
+          </Text>
         ) : null}
         {order.shipping_tracking_url ? (
           <PrimaryButton
-            label="Open tracking"
+            label={t("account.openTracking")}
             onPress={() => void Linking.openURL(order.shipping_tracking_url!)}
           />
         ) : null}
-        {order.invoice_print_url ? (
+        {invoiceUrl ? (
           <PrimaryButton
-            label="Invoice"
-            onPress={() => void Linking.openURL(order.invoice_print_url!)}
+            label={t("account.invoice")}
+            onPress={() => void Linking.openURL(invoiceUrl)}
           />
         ) : null}
 
-        <Text style={{ fontWeight: "800", marginTop: 8 }}>Lines</Text>
+        <Text style={styles.section}>{t("account.lines")}</Text>
         {(order.lines || []).map((line, index) => (
           <View
             key={`${line.variation_id}-${index}`}
-            style={{
-              backgroundColor: "#fff",
-              padding: 12,
-              borderRadius: 10,
-            }}
+            style={styles.card}
           >
-            <Text style={{ fontWeight: "700" }}>{line.name}</Text>
-            <Text>Qty {line.quantity}</Text>
+            <Text style={styles.cardTitle}>
+              {line.product_name || line.name || `Product #${line.product_id}`}
+            </Text>
+            {line.variation_name ? (
+              <Text style={styles.meta}>{line.variation_name}</Text>
+            ) : null}
+            <Text style={styles.meta}>
+              Qty {line.quantity} ·{" "}
+              {Number(line.unit_price_inc_tax || 0).toFixed(2)} EGP
+            </Text>
           </View>
         ))}
 
         {(order.digital_deliveries || []).length > 0 ? (
           <>
-            <Text style={{ fontWeight: "800", marginTop: 8 }}>
-              Digital deliveries
-            </Text>
+            <Text style={styles.section}>{t("account.digitalDeliveries")}</Text>
             {order.digital_deliveries!.map((d, i) => (
-              <View
-                key={i}
-                style={{
-                  backgroundColor: "#fff",
-                  padding: 12,
-                  borderRadius: 10,
-                }}
-              >
-                <Text style={{ fontWeight: "700" }}>{d.title}</Text>
-                {d.account_email ? <Text>Email: {d.account_email}</Text> : null}
+              <View key={i} style={styles.card}>
+                <Text style={styles.cardTitle}>{d.title}</Text>
+                {d.account_email ? (
+                  <Text>Email: {d.account_email}</Text>
+                ) : null}
                 {d.account_password ? (
                   <Text>Password: {d.account_password}</Text>
                 ) : null}
@@ -125,22 +154,33 @@ export default function OrderDetailScreen() {
         ) : null}
 
         <PrimaryButton
-          label="Reorder"
+          label={reordering ? t("common.loading") : t("account.reorder")}
+          disabled={reordering || !(order.lines || []).length}
           onPress={() => {
             void (async () => {
-              for (const line of order.lines || []) {
-                if (!line.variation_id) {
-                  continue;
+              setReordering(true);
+              try {
+                for (const line of order.lines || []) {
+                  if (!line.variation_id || !line.quantity) {
+                    continue;
+                  }
+                  await addItem({
+                    variationId: line.variation_id,
+                    productId: line.product_id || line.variation_id,
+                    name:
+                      line.product_name ||
+                      line.name ||
+                      `Product #${line.product_id}`,
+                    slug: line.slug || undefined,
+                    imageUrl: line.image_url,
+                    unitPrice: Number(line.unit_price_inc_tax || 0),
+                    quantity: line.quantity,
+                  });
                 }
-                await addItem({
-                  variationId: line.variation_id,
-                  productId: line.product_id || line.variation_id,
-                  name: line.name || "Item",
-                  slug: line.slug,
-                  imageUrl: line.image_url,
-                  unitPrice: 0,
-                  quantity: line.quantity || 1,
-                });
+                Alert.alert(t("account.reorderSuccess"));
+                router.push("/(tabs)/cart");
+              } finally {
+                setReordering(false);
               }
             })();
           }}
@@ -149,3 +189,16 @@ export default function OrderDetailScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  pad: { padding: 16, gap: 10 },
+  title: { fontSize: 20, fontWeight: "800" },
+  section: { fontWeight: "800", marginTop: 8 },
+  card: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 10,
+  },
+  cardTitle: { fontWeight: "700" },
+  meta: { color: "#666", marginTop: 2 },
+});

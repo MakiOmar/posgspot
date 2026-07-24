@@ -50,8 +50,9 @@ export default function TabLayout() {
         name="shop"
         options={{
           title: t("nav.shop"),
+          headerShown: false,
           tabBarIcon: ({ color }) => (
-            <TabIcon name="th-large" color={String(color)} />
+            <TabIcon name="shopping-bag" color={String(color)} />
           ),
         }}
       />
@@ -62,6 +63,15 @@ export default function TabLayout() {
           tabBarBadge: count > 0 ? count : undefined,
           tabBarIcon: ({ color }) => (
             <TabIcon name="shopping-cart" color={String(color)} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: t("nav.wishlist"),
+          tabBarIcon: ({ color }) => (
+            <TabIcon name="heart" color={String(color)} />
           ),
         }}
       />

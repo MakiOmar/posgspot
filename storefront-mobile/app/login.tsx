@@ -44,6 +44,8 @@ export default function LoginScreen() {
         }}
       />
       <View style={{ height: 12 }} />
+      <Link href="/forgot-password">{t("auth.forgotPassword")}</Link>
+      <View style={{ height: 8 }} />
       <Link href="/register">{t("common.register")}</Link>
     </Screen>
   );

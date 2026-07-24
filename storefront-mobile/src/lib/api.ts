@@ -4,6 +4,7 @@ import type {
   AccountOrderDetail,
   ApiEnvelope,
   ApiErrorBody,
+  AuthContact,
   AuthSession,
   Brand,
   CartApiItem,
@@ -12,8 +13,11 @@ import type {
   ContentLocale,
   FawryPaymentSession,
   HomepageSection,
+  ProductAvailability,
   ProductDetail,
+  ProductReviewItem,
   ProductSummary,
+  ReviewEligibility,
   StoreLocation,
   StoreSettings,
   WishlistPayload,
@@ -188,7 +192,7 @@ export function logout(token: string) {
 }
 
 export function fetchProfile(token: string) {
-  return storefrontFetch("/account/profile", {
+  return storefrontFetch<AuthContact>("/account/profile", {
     headers: authHeaders(token),
   });
 }
@@ -205,12 +209,19 @@ export function fetchOrder(token: string, orderId: number) {
   });
 }
 
+export function fetchOrderInvoiceUrl(token: string, orderId: number) {
+  return storefrontFetch<{ invoice_print_url: string }>(
+    `/account/orders/${orderId}/invoice`,
+    { headers: authHeaders(token) },
+  );
+}
+
 export function validateCart(
   items: CartApiItem[],
   extras: Record<string, unknown> = {},
   token?: string | null,
 ) {
-  return storefrontFetch("/cart/validate", {
+  return storefrontFetch<import("./types").CartValidationResult>("/cart/validate", {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({ items, ...extras }),
@@ -282,7 +293,7 @@ export function mergeWishlist(token: string, productIds: number[]) {
 }
 
 export function fetchRewardPoints(token: string) {
-  return storefrontFetch("/account/reward-points", {
+  return storefrontFetch<import("./types").RewardPointsBalance>("/account/reward-points", {
     headers: authHeaders(token),
   });
 }
@@ -309,16 +320,37 @@ export function availableCoupons(
   });
 }
 
-export function fetchDigitalGames(locale?: ContentLocale) {
-  return storefrontFetch("/digital/games", {}, locale);
+export function fetchDigitalGames(
+  platform: "4" | "5" = "4",
+  page = 1,
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<{
+    platform: string;
+    skus: import("./types").DigitalSkus;
+    games: Array<{ id: number; title?: string; name?: string; [key: string]: unknown }>;
+    meta: { current_page: number; last_page: number; per_page: number; total: number | null };
+  }>(`/digital/games?platform=${platform}&page=${page}`, {}, locale);
 }
 
 export function fetchDigitalGame(id: number, locale?: ContentLocale) {
-  return storefrontFetch(`/digital/games/${id}`, {}, locale);
+  return storefrontFetch<{
+    game: Record<string, unknown>;
+    skus: import("./types").DigitalSkus;
+  }>(`/digital/games/${id}`, {}, locale);
 }
 
 export function fetchCardCategories(locale?: ContentLocale) {
-  return storefrontFetch("/digital/card-categories", {}, locale);
+  return storefrontFetch<{
+    categories: Array<{
+      id: number;
+      name?: string;
+      title?: string;
+      price?: number | string;
+      poster_image?: string | null;
+    }>;
+    skus: import("./types").DigitalSkus;
+  }>("/digital/card-categories", {}, locale);
 }
 
 export function submitContact(body: Record<string, unknown>) {
@@ -356,14 +388,117 @@ export function unregisterDevice(authToken: string, pushToken: string) {
   );
 }
 
-export function fetchProductReviews(idOrSlug: string, locale?: ContentLocale) {
-  return storefrontFetch(
-    `/products/${encodeURIComponent(idOrSlug)}/reviews`,
+export function updateProfile(
+  token: string,
+  payload: Record<string, unknown>,
+) {
+  return storefrontFetch<AuthContact>("/account/profile", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function forgotPassword(email: string) {
+  return storefrontFetch<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(payload: {
+  email: string;
+  token: string;
+  password: string;
+  password_confirmation: string;
+}) {
+  return storefrontFetch<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchProductReviews(
+  idOrSlug: string,
+  page = 1,
+  perPage = 10,
+  locale?: ContentLocale,
+) {
+  const qs = `?page=${page}&per_page=${perPage}`;
+  return storefrontFetch<ProductReviewItem[]>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews${qs}`,
     {},
     locale,
   );
 }
 
-export function fetchAvailability(productId: number, locale?: ContentLocale) {
-  return storefrontFetch(`/products/${productId}/availability`, {}, locale);
+export function fetchReviewEligibility(
+  idOrSlug: string,
+  token: string,
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<ReviewEligibility>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews/eligibility`,
+    { headers: authHeaders(token) },
+    locale,
+  );
+}
+
+export function submitProductReview(
+  idOrSlug: string,
+  token: string,
+  payload: { rating: number; title?: string; body: string },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<{ id: number; status: string; message: string }>(
+    `/products/${encodeURIComponent(idOrSlug)}/reviews`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+    locale,
+  );
+}
+
+export function fetchAvailability(
+  productId: number,
+  variationId?: number,
+  locale?: ContentLocale,
+) {
+  const qs = variationId != null ? `?variation_id=${variationId}` : "";
+  return storefrontFetch<ProductAvailability>(
+    `/products/${productId}/availability${qs}`,
+    {},
+    locale,
+  );
+}
+
+export function checkDigitalGameStock(
+  payload: {
+    game_id: number;
+    type: "primary" | "secondary";
+    platform: "4" | "5";
+  },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/check-stock",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+export function checkDigitalCardStock(
+  cardCategoryId: number,
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/check-card-stock",
+    {
+      method: "POST",
+      body: JSON.stringify({ card_category_id: cardCategoryId }),
+    },
+    locale,
+  );
 }

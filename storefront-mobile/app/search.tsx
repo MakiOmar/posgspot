@@ -1,30 +1,14 @@
 import { useState } from "react";
-import { FlatList, StyleSheet, TextInput } from "react-native";
-import { searchProducts } from "../src/lib/api";
-import type { ProductSummary } from "../src/lib/types";
+import { ActivityIndicator, FlatList, StyleSheet, TextInput } from "react-native";
 import { useApp } from "../src/contexts/AppContext";
+import { ProductListToolbar } from "../src/components/catalog/ProductListToolbar";
 import { ErrorBlock, ProductCard, Screen } from "../src/components/ui";
+import { useProductList } from "../src/lib/use-product-list";
 
 export default function SearchScreen() {
   const { locale, t } = useApp();
   const [q, setQ] = useState("");
-  const [products, setProducts] = useState<ProductSummary[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const run = async (query: string) => {
-    setQ(query);
-    if (query.trim().length < 2) {
-      setProducts([]);
-      return;
-    }
-    try {
-      const { data } = await searchProducts(query.trim(), locale);
-      setProducts(data || []);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("common.error"));
-    }
-  };
+  const list = useProductList({ locale, mode: "search", searchQ: q });
 
   return (
     <Screen>
@@ -32,18 +16,29 @@ export default function SearchScreen() {
         style={styles.input}
         placeholder={t("common.search")}
         value={q}
-        onChangeText={(value) => void run(value)}
+        onChangeText={setQ}
         autoFocus
         autoCapitalize="none"
       />
-      {error ? <ErrorBlock message={error} /> : null}
+      <ProductListToolbar
+        sort={list.sort}
+        inStockOnly={list.inStockOnly}
+        onSortChange={list.setSort}
+        onInStockChange={list.setInStockOnly}
+      />
+      {list.error ? <ErrorBlock message={t("common.error")} onRetry={list.reload} /> : null}
       <FlatList
         style={styles.list}
-        data={products}
+        data={list.products}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
-        columnWrapperStyle={{ justifyContent: "space-between" }}
+        columnWrapperStyle={styles.grid}
         renderItem={({ item }) => <ProductCard product={item} />}
+        ListFooterComponent={
+          list.loading || list.loadingMore ? (
+            <ActivityIndicator style={{ margin: 12 }} />
+          ) : null
+        }
       />
     </Screen>
   );
@@ -60,4 +55,5 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   list: { flex: 1 },
+  grid: { justifyContent: "space-between" },
 });

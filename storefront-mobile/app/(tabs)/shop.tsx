@@ -1,80 +1,59 @@
-import { useCallback, useEffect, useState } from "react";
-import { FlatList, StyleSheet, TextInput, View } from "react-native";
-import { fetchProducts } from "../../src/lib/api";
-import type { ProductSummary } from "../../src/lib/types";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { useApp } from "../../src/contexts/AppContext";
+import { StorefrontHeader } from "../../src/components/StorefrontHeader";
+import {
+  ProductListToolbar,
+} from "../../src/components/catalog/ProductListToolbar";
 import {
   ErrorBlock,
   LoadingBlock,
   ProductCard,
   Screen,
 } from "../../src/components/ui";
+import { useProductList } from "../../src/lib/use-product-list";
 
 export default function ShopScreen() {
   const { locale, t } = useApp();
-  const [products, setProducts] = useState<ProductSummary[]>([]);
-  const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await fetchProducts(
-        { per_page: 24, q: q || undefined, sort: "newest" },
-        locale,
-      );
-      setProducts(data || []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("common.error"));
-    } finally {
-      setLoading(false);
-    }
-  }, [locale, q, t]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => void load(), 250);
-    return () => clearTimeout(timer);
-  }, [load]);
+  const list = useProductList({ locale });
 
   return (
-    <Screen>
-      <TextInput
-        value={q}
-        onChangeText={setQ}
-        placeholder={t("common.search")}
-        style={styles.input}
-        autoCapitalize="none"
-      />
-      {loading ? (
-        <LoadingBlock />
-      ) : error ? (
-        <ErrorBlock message={error} onRetry={() => void load()} />
-      ) : (
-        <FlatList
-          style={styles.list}
-          data={products}
-          keyExtractor={(item) => String(item.id)}
-          numColumns={2}
-          columnWrapperStyle={styles.grid}
-          renderItem={({ item }) => <ProductCard product={item} />}
+    <Screen padded={false}>
+      <StorefrontHeader />
+      <View style={styles.body}>
+        <ProductListToolbar
+          sort={list.sort}
+          inStockOnly={list.inStockOnly}
+          onSortChange={list.setSort}
+          onInStockChange={list.setInStockOnly}
         />
-      )}
+        {list.loading ? (
+          <LoadingBlock />
+        ) : list.error ? (
+          <ErrorBlock message={list.error === "error" ? t("common.error") : list.error} onRetry={list.reload} />
+        ) : (
+          <FlatList
+            style={styles.list}
+            data={list.products}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={2}
+            columnWrapperStyle={styles.grid}
+            contentContainerStyle={styles.listPad}
+            renderItem={({ item }) => <ProductCard product={item} />}
+            onEndReached={list.loadMore}
+            onEndReachedThreshold={0.4}
+            ListFooterComponent={
+              list.loadingMore ? <ActivityIndicator style={{ marginVertical: 16 }} /> : null
+            }
+          />
+        )}
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-  },
+  body: { flex: 1, paddingHorizontal: 16 },
   list: { flex: 1 },
+  listPad: { paddingBottom: 16 },
   grid: { justifyContent: "space-between" },
 });

@@ -1,46 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
-import { FlatList, StyleSheet, Text, TextInput } from "react-native";
 import { Stack } from "expo-router";
-import { fetchProducts } from "../../src/lib/api";
-import type { ProductSummary } from "../../src/lib/types";
+import { ActivityIndicator, FlatList, StyleSheet, TextInput, View } from "react-native";
+import { useState } from "react";
 import { useApp } from "../../src/contexts/AppContext";
+import {
+  ProductListToolbar,
+} from "../../src/components/catalog/ProductListToolbar";
 import {
   ErrorBlock,
   LoadingBlock,
   ProductCard,
   Screen,
 } from "../../src/components/ui";
+import { useProductList } from "../../src/lib/use-product-list";
 
-/**
- * Catalog for `/products` (homepage hero/promo CTAs use this path).
- */
 export default function ProductsIndexScreen() {
   const { locale, t } = useApp();
-  const [products, setProducts] = useState<ProductSummary[]>([]);
   const [q, setQ] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await fetchProducts(
-        { per_page: 24, q: q || undefined, sort: "newest" },
-        locale,
-      );
-      setProducts(data || []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("common.error"));
-    } finally {
-      setLoading(false);
-    }
-  }, [locale, q, t]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => void load(), 250);
-    return () => clearTimeout(timer);
-  }, [load]);
+  const list = useProductList({ locale });
 
   return (
     <Screen>
@@ -51,21 +27,38 @@ export default function ProductsIndexScreen() {
         placeholder={t("common.search")}
         style={styles.input}
         autoCapitalize="none"
+        onSubmitEditing={() => {
+          // local filter for quick find within loaded set; toolbar drives API
+        }}
       />
-      {loading ? (
+      <ProductListToolbar
+        sort={list.sort}
+        inStockOnly={list.inStockOnly}
+        onSortChange={list.setSort}
+        onInStockChange={list.setInStockOnly}
+      />
+      {list.loading ? (
         <LoadingBlock />
-      ) : error ? (
-        <ErrorBlock message={error} onRetry={() => void load()} />
+      ) : list.error ? (
+        <ErrorBlock message={t("common.error")} onRetry={list.reload} />
       ) : (
         <FlatList
           style={styles.list}
-          data={products}
+          data={
+            q.trim()
+              ? list.products.filter((p) =>
+                  p.name.toLowerCase().includes(q.trim().toLowerCase()),
+                )
+              : list.products
+          }
           keyExtractor={(item) => String(item.id)}
           numColumns={2}
           columnWrapperStyle={styles.grid}
           renderItem={({ item }) => <ProductCard product={item} />}
-          ListEmptyComponent={
-            <Text style={styles.empty}>{t("common.noProducts")}</Text>
+          onEndReached={list.loadMore}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            list.loadingMore ? <ActivityIndicator style={{ margin: 12 }} /> : null
           }
         />
       )}
@@ -85,5 +78,4 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   grid: { justifyContent: "space-between" },
-  empty: { textAlign: "center", color: "#666", marginTop: 24 },
 });

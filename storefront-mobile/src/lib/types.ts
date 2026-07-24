@@ -38,11 +38,12 @@ export interface StoreSettings {
     provider?: string;
     label?: string;
   };
-  digital?: { enabled?: boolean };
+  digital?: { enabled?: boolean; primary_product_id?: number };
   promo_codes?: {
     enabled_at_checkout?: boolean;
     allow_stacking?: boolean;
   };
+  reward_points?: { enabled?: boolean; name?: string };
   turnstile?: { enabled?: boolean; site_key?: string };
   sale_badge?: { text?: string };
   catalog?: { show_availability_on_cards?: boolean };
@@ -53,7 +54,7 @@ export interface StoreSettings {
 export interface ProductSummary {
   id: number;
   name: string;
-  slug: string;
+  slug: string | null;
   image_url?: string | null;
   /** Catalog list price (Storefront API). */
   price?: number;
@@ -64,6 +65,9 @@ export interface ProductSummary {
   price_inc_tax?: number;
   storefront_sale_price_inc_tax?: number | null;
   in_stock?: boolean;
+  variation_id?: number | null;
+  variation_name?: string | null;
+  has_options?: boolean;
   brand?: { id?: number; name?: string; slug?: string };
   rating_average?: number;
   rating_count?: number;
@@ -101,15 +105,17 @@ export interface HomepageCategoryShelf {
 }
 
 export interface ProductDetail extends ProductSummary {
-  description?: string;
+  description?: string | null;
   images?: string[];
   variations?: Array<{
     id: number;
     name?: string;
+    price?: number;
     price_inc_tax?: number;
     storefront_sale_price_inc_tax?: number | null;
     in_stock?: boolean;
     qty_available?: number;
+    images?: string[];
   }>;
   related_products?: ProductSummary[];
 }
@@ -194,15 +200,21 @@ export interface AccountOrder {
   created_at?: string;
 }
 
+export interface AccountOrderLine {
+  product_id: number;
+  variation_id: number;
+  product_name?: string | null;
+  variation_name?: string | null;
+  name?: string;
+  slug?: string | null;
+  image_url?: string | null;
+  quantity: number;
+  unit_price_inc_tax?: number;
+  line_total?: number;
+}
+
 export interface AccountOrderDetail extends AccountOrder {
-  lines?: Array<{
-    product_id?: number;
-    variation_id?: number;
-    name?: string;
-    quantity?: number;
-    slug?: string;
-    image_url?: string | null;
-  }>;
+  lines?: AccountOrderLine[];
   shipping_tracking_number?: string | null;
   shipping_tracking_url?: string | null;
   digital_deliveries?: Array<{
@@ -213,6 +225,21 @@ export interface AccountOrderDetail extends AccountOrder {
     code?: string;
   }>;
   invoice_print_url?: string | null;
+  subtotal?: number;
+  shipping_charges?: number;
+  discount_amount?: number;
+}
+
+export interface DigitalPosSku {
+  product_id: number;
+  variation_id: number;
+  image_url?: string | null;
+}
+
+export interface DigitalSkus {
+  primary?: DigitalPosSku | null;
+  secondary?: DigitalPosSku | null;
+  gift_card?: DigitalPosSku | null;
 }
 
 export interface StoreLocation {
@@ -230,4 +257,81 @@ export interface StoreLocation {
 export interface WishlistPayload {
   items: ProductSummary[];
   count: number;
+}
+
+export interface ProductAvailabilityLocation {
+  id?: number;
+  name: string;
+  address?: string;
+  in_stock?: boolean;
+  qty_available?: number;
+}
+
+export interface ProductAvailability {
+  product_id?: number;
+  variation_id?: number;
+  locations: ProductAvailabilityLocation[];
+  in_stock_count?: number;
+  cod_available?: boolean;
+}
+
+export interface ProductReviewItem {
+  id: number;
+  rating: number;
+  title?: string | null;
+  body?: string | null;
+  author_name?: string | null;
+  created_at?: string | null;
+  status?: string;
+}
+
+export interface ReviewEligibility {
+  can_review: boolean;
+  reason?: string | null;
+  message?: string | null;
+}
+
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface ShippingRate {
+  id: string;
+  name?: string;
+  label?: string;
+  method_type?: string;
+  amount?: number;
+  price?: number;
+}
+
+export interface CartValidationResult {
+  shipping_rate_id?: string;
+  available_rates?: ShippingRate[];
+  digital_only?: boolean;
+  location_id?: number;
+  subtotal?: number;
+  shipping?: number;
+  discount?: number;
+  coupon_discount?: number;
+  total?: number;
+  items?: Array<{
+    variation_id: number;
+    unit_price?: number;
+    quantity?: number;
+    in_stock?: boolean;
+    name?: string;
+    error?: string;
+  }>;
+  errors?: string[];
+  message?: string;
+}
+
+export interface RewardPointsBalance {
+  balance?: number;
+  points?: number;
+  available?: number;
+  [key: string]: unknown;
 }
