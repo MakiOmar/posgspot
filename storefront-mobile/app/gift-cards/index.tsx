@@ -54,6 +54,7 @@ export default function GiftCardsScreen() {
     <Screen>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={cards}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => {

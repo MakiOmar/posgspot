@@ -13,20 +13,53 @@ export function hrefToAppPath(href: string | null | undefined): string | null {
   }
   try {
     if (/^https?:\/\//i.test(path)) {
-      path = new URL(path).pathname + new URL(path).search;
+      const url = new URL(path);
+      // External domains stay as absolute URLs (open in browser).
+      const apiHost = (() => {
+        try {
+          return new URL(API_BASE).host;
+        } catch {
+          return "";
+        }
+      })();
+      const knownHosts = new Set(
+        [apiHost, "shop.gamesspoteg.com", "new.gamesspoteg.com", "posstaging.gamesspoteg.com"].filter(
+          Boolean,
+        ),
+      );
+      if (url.host && !knownHosts.has(url.host) && !url.host.endsWith("gamesspoteg.com")) {
+        return path;
+      }
+      path = url.pathname + url.search;
     }
   } catch {
     return null;
   }
+
   // Strip locale prefix used by the Qwik site.
   path = path.replace(/^\/(en|ar)(?=\/|$)/i, "") || "/";
   if (!path.startsWith("/")) {
     path = `/${path}`;
   }
-  // Map common web aliases onto app routes.
+
+  // Normalize web aliases onto app routes.
+  path = path.replace(/^\/product\//i, "/products/");
+  path = path.replace(/^\/categories\//i, "/category/");
+  path = path.replace(/^\/brand\//i, "/brands/");
+
+  if (path === "/" || path === "") {
+    return "/";
+  }
   if (path === "/shop" || path.startsWith("/shop?")) {
     return "/(tabs)/shop";
   }
+  if (path === "/cart" || path.startsWith("/cart?")) {
+    return "/(tabs)/cart";
+  }
+  if (path === "/account" || path === "/account/") {
+    return "/(tabs)/account";
+  }
+  // `/products` (no slug) → catalog index; `/products/:slug` stays as PDP.
   return path;
 }
 

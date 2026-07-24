@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, StyleSheet, Text, TextInput } from "react-native";
+import { Stack } from "expo-router";
 import { fetchProducts } from "../../src/lib/api";
 import type { ProductSummary } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
@@ -10,7 +11,10 @@ import {
   Screen,
 } from "../../src/components/ui";
 
-export default function ShopScreen() {
+/**
+ * Catalog for `/products` (homepage hero/promo CTAs use this path).
+ */
+export default function ProductsIndexScreen() {
   const { locale, t } = useApp();
   const [products, setProducts] = useState<ProductSummary[]>([]);
   const [q, setQ] = useState("");
@@ -40,6 +44,7 @@ export default function ShopScreen() {
 
   return (
     <Screen>
+      <Stack.Screen options={{ title: t("nav.shop") }} />
       <TextInput
         value={q}
         onChangeText={setQ}
@@ -59,6 +64,9 @@ export default function ShopScreen() {
           numColumns={2}
           columnWrapperStyle={styles.grid}
           renderItem={({ item }) => <ProductCard product={item} />}
+          ListEmptyComponent={
+            <Text style={styles.empty}>{t("common.noProducts")}</Text>
+          }
         />
       )}
     </Screen>
@@ -77,4 +85,5 @@ const styles = StyleSheet.create({
   },
   list: { flex: 1 },
   grid: { justifyContent: "space-between" },
+  empty: { textAlign: "center", color: "#666", marginTop: 24 },
 });

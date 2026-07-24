@@ -16,6 +16,7 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
+import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import type { ProductDetail } from "../../src/lib/types";
 
 export default function ProductScreen() {
@@ -92,17 +93,16 @@ export default function ProductScreen() {
     variation?.storefront_sale_price_inc_tax ??
     variation?.price_inc_tax ??
     product.storefront_sale_price_inc_tax ??
+    product.price ??
     product.price_inc_tax ??
     0;
+  const image = absoluteMediaUrl(product.images?.[0] || product.image_url);
 
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
-        {product.image_url || product.images?.[0] ? (
-          <Image
-            source={{ uri: product.images?.[0] || product.image_url || "" }}
-            style={styles.image}
-          />
+        {image ? (
+          <Image source={{ uri: image }} style={styles.image} />
         ) : null}
         <Text style={styles.title}>{product.name}</Text>
         <Text style={[styles.price, { color: accent }]}>

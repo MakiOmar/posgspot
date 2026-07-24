@@ -57,6 +57,7 @@ export default function WishlistScreen() {
       <Text style={{ marginBottom: 8 }}>{items.length} items · {locale}</Text>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={items}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}

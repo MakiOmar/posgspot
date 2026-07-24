@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   fetchBrands,
   fetchCategories,
@@ -201,6 +201,7 @@ function ProductRail({
 
 function CategoryRail({ categories }: { categories: Category[] }) {
   const { t } = useApp();
+  const router = useRouter();
   if (!categories.length) {
     return null;
   }
@@ -211,18 +212,20 @@ function CategoryRail({ categories }: { categories: Category[] }) {
         {categories.map((cat) => {
           const image = absoluteMediaUrl(cat.image_url);
           return (
-            <Link key={cat.id} href={`/category/${cat.slug}`} asChild>
-              <Pressable style={styles.catCard}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.catImage} />
-                ) : (
-                  <View style={[styles.catImage, { backgroundColor: "#e8e8e8" }]} />
-                )}
-                <Text numberOfLines={2} style={styles.catName}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            </Link>
+            <Pressable
+              key={cat.id}
+              style={styles.catCard}
+              onPress={() => router.push(`/category/${cat.slug}` as never)}
+            >
+              {image ? (
+                <Image source={{ uri: image }} style={styles.catImage} />
+              ) : (
+                <View style={styles.catImagePlaceholder} />
+              )}
+              <Text numberOfLines={2} style={styles.catName}>
+                {cat.name}
+              </Text>
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -232,6 +235,7 @@ function CategoryRail({ categories }: { categories: Category[] }) {
 
 function BrandRail({ brands }: { brands: Brand[] }) {
   const { t } = useApp();
+  const router = useRouter();
   if (!brands.length) {
     return null;
   }
@@ -242,17 +246,19 @@ function BrandRail({ brands }: { brands: Brand[] }) {
         {brands.map((brand) => {
           const image = absoluteMediaUrl(brand.image_url);
           return (
-            <Link key={brand.id} href={`/brands/${brand.slug}`} asChild>
-              <Pressable style={styles.brandCard}>
-                {image ? (
-                  <Image source={{ uri: image }} style={styles.brandImage} resizeMode="contain" />
-                ) : (
-                  <Text style={styles.brandFallback} numberOfLines={2}>
-                    {brand.name}
-                  </Text>
-                )}
-              </Pressable>
-            </Link>
+            <Pressable
+              key={brand.id}
+              style={styles.brandCard}
+              onPress={() => router.push(`/brands/${brand.slug}` as never)}
+            >
+              {image ? (
+                <Image source={{ uri: image }} style={styles.brandImage} resizeMode="contain" />
+              ) : (
+                <Text style={styles.brandFallback} numberOfLines={2}>
+                  {brand.name}
+                </Text>
+              )}
+            </Pressable>
           );
         })}
       </ScrollView>
@@ -307,6 +313,7 @@ function CategoryShelfBlock({
   products: ProductSummary[];
 }) {
   const { t, accent } = useApp();
+  const router = useRouter();
   const banner = absoluteMediaUrl(shelf.banner_image_url);
   const heading = shelf.heading || shelf.name || t("home.categoryShelf");
   const moreHref = hrefToAppPath(shelf.view_more_path || shelf.banner_link || (shelf.slug ? `/category/${shelf.slug}` : null));
@@ -316,13 +323,11 @@ function CategoryShelfBlock({
       <View style={styles.shelfHeader}>
         <Text style={styles.sectionTitle}>{heading}</Text>
         {moreHref ? (
-          <Link href={moreHref as never} asChild>
-            <Pressable>
-              <Text style={{ color: accent, fontWeight: "600" }}>
-                {shelf.view_more_label || t("home.viewMore")}
-              </Text>
-            </Pressable>
-          </Link>
+          <Pressable onPress={() => router.push(moreHref as never)}>
+            <Text style={{ color: accent, fontWeight: "600" }}>
+              {shelf.view_more_label || t("home.viewMore")}
+            </Text>
+          </Pressable>
         ) : null}
       </View>
       {banner ? (
@@ -588,6 +593,12 @@ const styles = StyleSheet.create({
   railCard: { width: 160 },
   catCard: { width: 110, marginRight: 4 },
   catImage: { width: 110, height: 110, borderRadius: 12, backgroundColor: "#eee" },
+  catImagePlaceholder: {
+    width: 110,
+    height: 110,
+    borderRadius: 12,
+    backgroundColor: "#e8e8e8",
+  },
   catName: { marginTop: 6, fontSize: 13, fontWeight: "600", textAlign: "center" },
   brandCard: {
     width: 100,

@@ -38,6 +38,7 @@ export default function SearchScreen() {
       />
       {error ? <ErrorBlock message={error} /> : null}
       <FlatList
+        style={styles.list}
         data={products}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}
@@ -58,4 +59,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 12,
   },
+  list: { flex: 1 },
 });

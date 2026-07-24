@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import type { ProductSummary } from "../lib/types";
 import { absoluteMediaUrl } from "../lib/storefront-href";
 import { useApp } from "../contexts/AppContext";
@@ -103,6 +103,7 @@ export function ProductCard({
   wide?: boolean;
 }) {
   const { accent } = useApp();
+  const router = useRouter();
   const price = productDisplayPrice(product);
   const compare =
     product.compare_at_price != null && Number(product.compare_at_price) > price
@@ -111,31 +112,30 @@ export function ProductCard({
   const image = absoluteMediaUrl(product.image_url);
 
   return (
-    <Link href={`/products/${product.slug}`} asChild>
-      <Pressable
-        style={StyleSheet.flatten([styles.card, wide && styles.cardWide])}
-      >
-        {image ? (
-          <Image source={{ uri: image }} style={styles.cardImage} />
-        ) : (
-          <View style={styles.cardImagePlaceholder} />
-        )}
-        <Text numberOfLines={2} style={styles.cardTitle}>
-          {product.name}
+    <Pressable
+      style={StyleSheet.flatten([styles.card, wide && styles.cardWide])}
+      onPress={() => router.push(`/products/${product.slug}` as never)}
+    >
+      {image ? (
+        <Image source={{ uri: image }} style={styles.cardImage} />
+      ) : (
+        <View style={styles.cardImagePlaceholder} />
+      )}
+      <Text numberOfLines={2} style={styles.cardTitle}>
+        {product.name}
+      </Text>
+      <View style={styles.priceRow}>
+        <Text style={{ ...styles.cardPrice, color: accent }}>
+          {price.toFixed(2)} EGP
         </Text>
-        <View style={styles.priceRow}>
-          <Text style={{ ...styles.cardPrice, color: accent }}>
-            {price.toFixed(2)} EGP
-          </Text>
-          {compare ? (
-            <Text style={styles.compare}>{compare.toFixed(2)}</Text>
-          ) : null}
-        </View>
-        {product.in_stock === false ? (
-          <Text style={styles.oos}>Out of stock</Text>
+        {compare ? (
+          <Text style={styles.compare}>{compare.toFixed(2)}</Text>
         ) : null}
-      </Pressable>
-    </Link>
+      </View>
+      {product.in_stock === false ? (
+        <Text style={styles.oos}>Out of stock</Text>
+      ) : null}
+    </Pressable>
   );
 }
 

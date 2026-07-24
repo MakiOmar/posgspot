@@ -41,6 +41,7 @@ export default function BrandsScreen() {
     <Screen>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={brands}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (

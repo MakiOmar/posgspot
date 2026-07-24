@@ -26,6 +26,7 @@ export default function CartScreen() {
   return (
     <Screen>
       <FlatList
+        style={styles.list}
         data={items}
         keyExtractor={(item) =>
           item.digital?.line_key || String(item.variationId)
@@ -78,6 +79,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: "center", gap: 16 },
   empty: { textAlign: "center", fontSize: 16, color: "#666" },
+  list: { flex: 1 },
   row: {
     backgroundColor: "#fff",
     borderRadius: 12,

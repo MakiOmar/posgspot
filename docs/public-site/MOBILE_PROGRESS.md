@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-24 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Shop screens live; home renders real homepage sections; local Android run fixed |
+| **Overall** | Shop screens live; homepage CTAs map to `/products` catalog; stack headers + list layouts fixed |
 
 **Status legend:** Done · Partial · Not started
 
@@ -23,6 +23,7 @@
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
 | M1 shop core (browse → COD checkout → orders) | Done |
 | Home section UI (hero, promos, shelves, rails) | Done |
+| Route map (`/products` index, stack headers, FlatList flex) | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -35,3 +36,4 @@
 |------|--------|
 | 2026-07-23 | Phase 4: docs, `storefront-mobile/` Expo app, device API + push jobs, deep links, shop parity screens, EAS checklist. |
 | 2026-07-24 | Android white-screen fixes (splash gate, babel/reanimated, emulator SwiftShader); home section renderers + real prices/images; polish tabs. |
+| 2026-07-24 | Fix dead `/products` CTA route (add catalog index); root Stack headers; FlatList flex; safer href mapping + not-found. |

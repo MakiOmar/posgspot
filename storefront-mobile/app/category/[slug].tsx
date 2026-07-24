@@ -58,6 +58,7 @@ export default function CategoryScreen() {
       </Text>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={products}
         keyExtractor={(item) => String(item.id)}
         numColumns={2}

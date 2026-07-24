@@ -48,6 +48,7 @@ export default function GamesScreen() {
     <Screen>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={games}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (

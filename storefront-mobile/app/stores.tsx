@@ -45,6 +45,7 @@ export default function StoresScreen() {
     <Screen>
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
+        style={{ flex: 1 }}
         data={locations}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
