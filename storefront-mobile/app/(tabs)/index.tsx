@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
-import { Redirect } from "expo-router";
 import { fetchHomepage } from "../../src/lib/api";
 import type { HomepageSection } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
@@ -9,7 +8,7 @@ import { StorefrontHeader } from "../../src/components/StorefrontHeader";
 import { ErrorBlock, LoadingBlock, Screen } from "../../src/components/ui";
 
 export default function HomeScreen() {
-  const { t, locale, settings, loading: appLoading } = useApp();
+  const { t, locale } = useApp();
   const [sections, setSections] = useState<HomepageSection[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,10 +29,6 @@ export default function HomeScreen() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  if (!appLoading && settings?.maintenance_mode) {
-    return <Redirect href="/maintenance" />;
-  }
 
   return (
     <Screen padded={false}>

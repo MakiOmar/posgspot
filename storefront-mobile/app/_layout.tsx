@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BrandSplash } from "../src/components/BrandSplash";
+import { MaintenanceGate } from "../src/components/MaintenanceGate";
 import { AppProvider, useApp } from "../src/contexts/AppContext";
 import { CartProvider } from "../src/contexts/CartContext";
 import { WishlistProvider } from "../src/contexts/WishlistContext";
@@ -47,6 +48,7 @@ export default function RootLayout() {
         <CartProvider>
           <WishlistProvider>
             <SplashGate>
+              <MaintenanceGate>
               <Stack
                 screenOptions={{
                   headerShown: true,
@@ -94,6 +96,7 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="+not-found" options={{ title: "Not found" }} />
               </Stack>
+              </MaintenanceGate>
             </SplashGate>
           </WishlistProvider>
         </CartProvider>

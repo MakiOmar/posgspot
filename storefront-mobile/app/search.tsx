@@ -19,6 +19,7 @@ export default function SearchScreen() {
         onChangeText={setQ}
         autoFocus
         autoCapitalize="none"
+        returnKeyType="search"
       />
       <ProductListToolbar
         sort={list.sort}
@@ -26,7 +27,9 @@ export default function SearchScreen() {
         onSortChange={list.setSort}
         onInStockChange={list.setInStockOnly}
       />
-      {list.error ? <ErrorBlock message={t("common.error")} onRetry={list.reload} /> : null}
+      {list.error ? (
+        <ErrorBlock message={t("common.error")} onRetry={list.reload} />
+      ) : null}
       <FlatList
         style={styles.list}
         data={list.products}
@@ -34,6 +37,8 @@ export default function SearchScreen() {
         numColumns={2}
         columnWrapperStyle={styles.grid}
         renderItem={({ item }) => <ProductCard product={item} />}
+        onEndReached={list.loadMore}
+        onEndReachedThreshold={0.4}
         ListFooterComponent={
           list.loading || list.loadingMore ? (
             <ActivityIndicator style={{ margin: 12 }} />

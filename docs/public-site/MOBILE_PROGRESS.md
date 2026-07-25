@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-25 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Stars, coupon picker, and validated reward redeem |
+| **Overall** | Maintenance gate, expo-image, home/search perf |
 
 **Status legend:** Done · Partial · Not started
 
@@ -39,6 +39,10 @@
 | Star ratings on cards + PDP | Done |
 | Coupon picker (available codes) | Done |
 | Reward points validate + max redeem | Done |
+| Global maintenance gate | Done |
+| expo-image cached remotes | Done |
+| Home shelf concurrency + virtualized rails | Done |
+| Search pagination via `/products?q=` | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -62,3 +66,4 @@
 | 2026-07-25 | PDP: fixed faded bottom bar with qty beside add-to-cart / availability. |
 | 2026-07-25 | PDP: floating share + wishlist chips on gallery (RTL-aware end side). |
 | 2026-07-25 | Stars on cards/PDP; coupon picker; validated reward-points redeem. |
+| 2026-07-25 | Global maintenance gate; expo-image; home fetch pool + FlatList rails; search pagination. |

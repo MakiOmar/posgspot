@@ -5,8 +5,6 @@ import {
   Alert,
   Dimensions,
   FlatList,
-  Image,
-  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -14,6 +12,7 @@ import {
   Text,
   TextInput,
   View,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
@@ -30,6 +29,7 @@ import { useWishlist } from "../../src/contexts/WishlistContext";
 import { AvailabilityModal } from "../../src/components/catalog/AvailabilityModal";
 import { ProductCard } from "../../src/components/catalog/ProductCard";
 import { StarRating } from "../../src/components/catalog/StarRating";
+import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -96,22 +96,16 @@ export default function ProductScreen() {
       setGalleryIndex(0);
 
       const reviewKey = data.slug || String(data.id);
-      try {
-        const rev = await fetchProductReviews(reviewKey, 1, 20, locale);
-        setReviews(Array.isArray(rev.data) ? rev.data : []);
-      } catch {
-        setReviews([]);
-      }
-      if (token) {
-        try {
-          const el = await fetchReviewEligibility(reviewKey, token, locale);
-          setEligibility(el.data);
-        } catch {
-          setEligibility(null);
-        }
-      } else {
-        setEligibility(null);
-      }
+      const [revResult, elResult] = await Promise.all([
+        fetchProductReviews(reviewKey, 1, 20, locale).catch(() => null),
+        token
+          ? fetchReviewEligibility(reviewKey, token, locale).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      setReviews(
+        revResult && Array.isArray(revResult.data) ? revResult.data : [],
+      );
+      setEligibility(elResult?.data ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.error"));
       setProduct(null);
@@ -278,20 +272,14 @@ export default function ProductScreen() {
                 setGalleryIndex(i);
               }}
             >
-              {(images.length ? images : [null]).map((uri, idx) =>
-                uri ? (
-                  <Image
-                    key={`${uri}-${idx}`}
-                    source={{ uri }}
-                    style={styles.image}
-                  />
-                ) : (
-                  <View
-                    key={`ph-${idx}`}
-                    style={[styles.image, styles.imagePh]}
-                  />
-                ),
-              )}
+              {(images.length ? images : [null]).map((uri, idx) => (
+                <RemoteImage
+                  key={`${uri || "ph"}-${idx}`}
+                  uri={uri}
+                  style={styles.image}
+                  placeholderColor="#eee"
+                />
+              ))}
             </ScrollView>
 
             {/* Floating share + wishlist — top-end (right LTR / left RTL) */}
@@ -418,6 +406,8 @@ export default function ProductScreen() {
                 horizontal
                 data={product.related_products}
                 keyExtractor={(item) => String(item.id)}
+                initialNumToRender={3}
+                windowSize={5}
                 renderItem={({ item }) => (
                   <View style={{ width: SCREEN_W * 0.42, marginRight: 10 }}>
                     <ProductCard product={item} wide />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Dimensions,
-  Image,
+  FlatList,
   Linking,
   Pressable,
   ScrollView,
@@ -30,9 +30,31 @@ import type {
   ProductSummary,
 } from "../../lib/types";
 import { useApp } from "../../contexts/AppContext";
+import { RemoteImage } from "../RemoteImage";
 import { ProductCard } from "../ui";
 
 const SCREEN_W = Dimensions.get("window").width;
+
+/** Run async work with a concurrency ceiling (home shelf product fetches). */
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, limit), Math.max(1, items.length)) },
+    async () => {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await mapper(items[i], i);
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
 
 function asSlides(settings: Record<string, unknown>): HomepageHeroSlide[] {
   const raw = settings.slides;
@@ -121,11 +143,7 @@ function HeroSlider({ slides }: { slides: HomepageHeroSlide[] }) {
 
   return (
     <View style={styles.hero}>
-      {image ? (
-        <Image source={{ uri: image }} style={styles.heroImage} resizeMode="cover" />
-      ) : (
-        <View style={[styles.heroImage, { backgroundColor: "#222" }]} />
-      )}
+      <RemoteImage uri={image} style={styles.heroImage} placeholderColor="#222" />
       <View style={styles.heroScrim} />
       <View style={styles.heroContent}>
         {slide.kicker ? (
@@ -163,11 +181,7 @@ function PromoTiles({ tiles }: { tiles: HomepagePromoTile[] }) {
         const image = absoluteMediaUrl(tile.image_url);
         return (
           <AppLink key={tile.id} href={tile.href} style={styles.tile}>
-            {image ? (
-              <Image source={{ uri: image }} style={styles.tileImage} />
-            ) : (
-              <View style={[styles.tileImage, { backgroundColor: "#ddd" }]} />
-            )}
+            <RemoteImage uri={image} style={styles.tileImage} placeholderColor="#ddd" />
             {tile.label ? (
               <Text style={styles.tileLabel} numberOfLines={2}>
                 {tile.label}
@@ -191,17 +205,20 @@ function ProductRail({
   return (
     <View style={styles.sectionBlock}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <ScrollView
+      <FlatList
         horizontal
+        data={products}
+        keyExtractor={(item) => String(item.id)}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.rail}
-      >
-        {products.map((p) => (
-          <View key={p.id} style={styles.railCard}>
-            <ProductCard product={p} wide />
+        initialNumToRender={4}
+        windowSize={5}
+        renderItem={({ item }) => (
+          <View style={styles.railCard}>
+            <ProductCard product={item} wide />
           </View>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 }
@@ -226,11 +243,7 @@ function CategoryRail({ categories }: { categories: Category[] }) {
               style={styles.catCard}
               onPress={() => router.push(`/category/${cat.slug}` as never)}
             >
-              {image ? (
-                <Image source={{ uri: image }} style={styles.catImage} />
-              ) : (
-                <View style={styles.catImagePlaceholder} />
-              )}
+              <RemoteImage uri={image} style={styles.catImage} />
               <Text numberOfLines={2} style={styles.catName}>
                 {cat.name}
               </Text>
@@ -263,11 +276,7 @@ function BrandRail({ brands }: { brands: Brand[] }) {
               onPress={() => router.push(`/brands/${brand.slug}` as never)}
             >
               {image ? (
-                <Image
-                  source={{ uri: image }}
-                  style={styles.brandImage}
-                  resizeMode="contain"
-                />
+                <RemoteImage uri={image} style={styles.brandImage} contentFit="contain" />
               ) : (
                 <Text style={styles.brandFallback} numberOfLines={2}>
                   {brand.name}
@@ -305,7 +314,7 @@ function VideoBlock({ settings }: { settings: Record<string, unknown> }) {
         }}
       >
         {poster ? (
-          <Image source={{ uri: poster }} style={styles.videoPoster} />
+          <RemoteImage uri={poster} style={styles.videoPoster} />
         ) : (
           <View style={[styles.videoPoster, { backgroundColor: "#111" }]} />
         )}
@@ -331,13 +340,10 @@ function TrustBadgesBlock({ items }: { items: HomepageTrustBadge[] }) {
         return (
           <View key={item.id || String(i)} style={styles.trustCard}>
             {icon ? (
-              <Image
-                source={{ uri: icon }}
-                style={[
-                  styles.trustIcon,
-                  item.icon_color ? { tintColor: item.icon_color } : null,
-                ]}
-                resizeMode="contain"
+              <RemoteImage
+                uri={icon}
+                style={styles.trustIcon}
+                contentFit="contain"
               />
             ) : (
               <View
@@ -389,7 +395,7 @@ function PromoBannerBlock({ banner }: { banner: HomepagePromoBanner }) {
       >
         <View style={styles.promoCopy}>
           {logo ? (
-            <Image source={{ uri: logo }} style={styles.promoLogo} />
+            <RemoteImage uri={logo} style={styles.promoLogo} />
           ) : null}
           {banner.top_title ? (
             <Text
@@ -431,7 +437,7 @@ function PromoBannerBlock({ banner }: { banner: HomepagePromoBanner }) {
           ) : null}
         </View>
         {image ? (
-          <Image source={{ uri: image }} style={styles.promoImage} resizeMode="contain" />
+          <RemoteImage uri={image} style={styles.promoImage} contentFit="contain" />
         ) : null}
       </View>
     </View>
@@ -460,7 +466,7 @@ function SiteBannersBlock({
         return (
           <AppLink key={b.id || String(i)} href={b.link} style={styles.siteBanner}>
             {image ? (
-              <Image source={{ uri: image }} style={styles.siteBannerImage} />
+              <RemoteImage uri={image} style={styles.siteBannerImage} />
             ) : null}
             {b.title ? (
               <Text style={styles.siteBannerTitle}>{b.title}</Text>
@@ -514,11 +520,7 @@ function CategoryShelfBlock({
         <AppLink href={shelf.banner_link || shelf.view_more_path}>
           <View style={styles.shelfBanner}>
             {bg ? (
-              <Image
-                source={{ uri: bg }}
-                style={styles.shelfBannerBg}
-                resizeMode="cover"
-              />
+              <RemoteImage uri={bg} style={styles.shelfBannerBg} />
             ) : (
               <View style={[styles.shelfBannerBg, { backgroundColor: "#0a0a0c" }]} />
             )}
@@ -531,11 +533,7 @@ function CategoryShelfBlock({
                 <Text style={styles.shelfBannerTitle}>{shelf.banner_text}</Text>
               ) : null}
               {fg ? (
-                <Image
-                  source={{ uri: fg }}
-                  style={styles.shelfFg}
-                  resizeMode="contain"
-                />
+                <RemoteImage uri={fg} style={styles.shelfFg} contentFit="contain" />
               ) : null}
               <View style={styles.shelfBtn}>
                 <Text style={styles.shelfBtnText}>
@@ -549,11 +547,20 @@ function CategoryShelfBlock({
       ) : null}
 
       {products.length > 0 ? (
-        <View style={styles.productGrid}>
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </View>
+        <FlatList
+          horizontal
+          data={products}
+          keyExtractor={(item) => String(item.id)}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.rail}
+          initialNumToRender={4}
+          windowSize={5}
+          renderItem={({ item }) => (
+            <View style={styles.railCard}>
+              <ProductCard product={item} wide />
+            </View>
+          )}
+        />
       ) : (
         <Text style={styles.emptyShelf}>{t("common.noProducts")}</Text>
       )}
@@ -674,25 +681,23 @@ export function HomepageSections({
             try {
               const { data } = await fetchHomepageShelves(locale);
               const shelves = (data || []).slice(0, meta.shelvesLimit);
-              const rows = await Promise.all(
-                shelves.map(async (shelf) => {
-                  if (!shelf.slug) {
-                    return { shelf, products: [] as ProductSummary[] };
-                  }
-                  try {
-                    const page = await fetchProducts(
-                      {
-                        category_slug: shelf.slug,
-                        per_page: meta.shelvesPer,
-                      },
-                      locale,
-                    );
-                    return { shelf, products: page.data || [] };
-                  } catch {
-                    return { shelf, products: [] as ProductSummary[] };
-                  }
-                }),
-              );
+              const rows = await mapPool(shelves, 3, async (shelf) => {
+                if (!shelf.slug) {
+                  return { shelf, products: [] as ProductSummary[] };
+                }
+                try {
+                  const page = await fetchProducts(
+                    {
+                      category_slug: shelf.slug,
+                      per_page: meta.shelvesPer,
+                    },
+                    locale,
+                  );
+                  return { shelf, products: page.data || [] };
+                } catch {
+                  return { shelf, products: [] as ProductSummary[] };
+                }
+              });
               if (!cancelled) setLegacyShelves(rows);
             } catch {
               if (!cancelled) setLegacyShelves([]);
@@ -701,27 +706,41 @@ export function HomepageSections({
         );
       }
 
-      for (const sec of meta.shelfSecs) {
-        const shelf = (sec.settings.shelf || {}) as HomepageCategoryShelf;
-        const slug = shelf.slug;
-        const per = settingNumber(sec.settings, "products_per_shelf", 6);
-        const key = String(sec.id);
-        if (!slug) continue;
+      const shelfJobs = meta.shelfSecs
+        .map((sec) => {
+          const shelf = (sec.settings.shelf || {}) as HomepageCategoryShelf;
+          const slug = shelf.slug;
+          const per = settingNumber(sec.settings, "products_per_shelf", 6);
+          const key = String(sec.id);
+          if (!slug) return null;
+          return { key, slug, per };
+        })
+        .filter((j): j is { key: string; slug: string; per: number } => !!j);
+
+      if (shelfJobs.length) {
         tasks.push(
-          fetchProducts({ category_slug: slug, per_page: per }, locale)
-            .then((r) => {
-              if (!cancelled) {
-                setShelfProducts((prev) => ({
-                  ...prev,
-                  [key]: r.data || [],
-                }));
+          (async () => {
+            const pairs = await mapPool(shelfJobs, 3, async (job) => {
+              try {
+                const page = await fetchProducts(
+                  { category_slug: job.slug, per_page: job.per },
+                  locale,
+                );
+                return [job.key, page.data || []] as const;
+              } catch {
+                return [job.key, [] as ProductSummary[]] as const;
               }
-            })
-            .catch(() => {
-              if (!cancelled) {
-                setShelfProducts((prev) => ({ ...prev, [key]: [] }));
-              }
-            }),
+            });
+            if (!cancelled) {
+              setShelfProducts((prev) => {
+                const next = { ...prev };
+                for (const [key, products] of pairs) {
+                  next[key] = products;
+                }
+                return next;
+              });
+            }
+          })(),
         );
       }
 

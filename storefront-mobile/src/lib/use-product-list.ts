@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchProducts, searchProducts } from "./api";
+import { fetchProducts } from "./api";
 import type { ContentLocale, ProductSummary } from "./types";
 import {
   sortToApi,
@@ -16,6 +16,10 @@ type Options = {
   pageSize?: number;
 };
 
+/**
+ * Paginated product list for shop / category / brand / search.
+ * Search uses GET /products?q=… (same as Qwik), not the autocomplete /search endpoint.
+ */
 export function useProductList({
   locale,
   mode = "products",
@@ -35,7 +39,12 @@ export function useProductList({
   const [hasMore, setHasMore] = useState(false);
 
   const loadPage = useCallback(
-    async (pageNum: number, append: boolean, sortVal: ProductSort, stockOnly: boolean) => {
+    async (
+      pageNum: number,
+      append: boolean,
+      sortVal: ProductSort,
+      stockOnly: boolean,
+    ) => {
       if (mode === "search" && searchQ.trim().length < 2) {
         setProducts([]);
         setHasMore(false);
@@ -46,31 +55,24 @@ export function useProductList({
       else setLoading(true);
       setError(null);
       try {
-        if (mode === "search") {
-          const { data } = await searchProducts(searchQ.trim(), locale);
-          let list = data || [];
-          if (stockOnly) list = list.filter((p) => p.in_stock !== false);
-          setProducts(list);
-          setHasMore(false);
-        } else {
-          const { data, meta } = await fetchProducts(
-            {
-              per_page: pageSize,
-              page: pageNum,
-              sort: sortToApi(sortVal),
-              in_stock: stockOnly ? 1 : undefined,
-              category_slug: categorySlug,
-              brand_slug: brandSlug,
-              featured: featured ? 1 : undefined,
-            },
-            locale,
-          );
-          const list = data || [];
-          setProducts((prev) => (append ? [...prev, ...list] : list));
-          const last = Number(meta.last_page ?? 1);
-          const current = Number(meta.current_page ?? pageNum);
-          setHasMore(current < last && list.length > 0);
-        }
+        const { data, meta } = await fetchProducts(
+          {
+            per_page: pageSize,
+            page: pageNum,
+            sort: sortToApi(sortVal),
+            in_stock: stockOnly ? 1 : undefined,
+            category_slug: categorySlug,
+            brand_slug: brandSlug,
+            featured: featured ? 1 : undefined,
+            ...(mode === "search" ? { q: searchQ.trim() } : {}),
+          },
+          locale,
+        );
+        const list = data || [];
+        setProducts((prev) => (append ? [...prev, ...list] : list));
+        const last = Number(meta.last_page ?? 1);
+        const current = Number(meta.current_page ?? pageNum);
+        setHasMore(current < last && list.length > 0);
       } catch (e) {
         setError(e instanceof Error ? e.message : "error");
         if (!append) setProducts([]);

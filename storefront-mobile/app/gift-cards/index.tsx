@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
   checkDigitalCardStock,
@@ -8,6 +8,7 @@ import {
 import type { DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
+import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -72,12 +73,10 @@ export default function GiftCardsScreen() {
           const price = Number(item.price || 0);
           return (
             <View style={styles.card}>
-              {item.poster_image ? (
-                <Image
-                  source={{ uri: item.poster_image }}
-                  style={styles.image}
-                />
-              ) : null}
+              <RemoteImage
+                uri={item.poster_image}
+                style={styles.image}
+              />
               <Text style={styles.title}>{title}</Text>
               <Text style={styles.price}>{price.toFixed(2)} EGP</Text>
               <PrimaryButton

@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +16,7 @@ import type { ProductAvailability, ProductSummary } from "../../lib/types";
 import { useApp } from "../../contexts/AppContext";
 import { useCart } from "../../contexts/CartContext";
 import { useWishlist } from "../../contexts/WishlistContext";
+import { RemoteImage } from "../RemoteImage";
 import { AvailabilityModal } from "./AvailabilityModal";
 import { StarRating } from "./StarRating";
 
@@ -146,11 +146,7 @@ export function ProductCard({
     <View style={StyleSheet.flatten([styles.card, wide && styles.cardWide])}>
       <View style={styles.media}>
         <Pressable onPress={openPdp} style={styles.mediaPress}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.cardImage} />
-          ) : (
-            <View style={styles.cardImagePlaceholder} />
-          )}
+          <RemoteImage uri={image} style={styles.cardImage} />
           {product.on_sale ? (
             <View style={[styles.saleBadge, { backgroundColor: accent }]}>
               <Text style={styles.saleText}>

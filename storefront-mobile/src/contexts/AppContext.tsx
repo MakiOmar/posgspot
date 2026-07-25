@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { I18nManager } from "react-native";
@@ -127,6 +128,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
+    // Initial bootstrap only — locale changes handled below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -137,7 +140,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => setUnauthorizedHandler(null);
   }, []);
 
+  // Refresh settings when locale changes after bootstrap (skip duplicate cold-start fetch).
+  const bootstrapped = useRef(false);
   useEffect(() => {
+    if (!bootstrapped.current) {
+      bootstrapped.current = true;
+      return;
+    }
     void refreshSettings().catch(() => undefined);
   }, [locale, refreshSettings]);
 

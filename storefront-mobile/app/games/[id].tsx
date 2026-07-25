@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   checkDigitalGameStock,
   fetchDigitalGame,
@@ -8,6 +8,7 @@ import {
 import type { DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
+import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -186,11 +187,7 @@ export default function GameDetailScreen() {
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
-        {image ? (
-          <Image source={{ uri: image }} style={styles.image} />
-        ) : (
-          <View style={styles.placeholder} />
-        )}
+        <RemoteImage uri={image} style={styles.image} />
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.meta}>
           {t("digital.platformLabel")} PS{platform}
