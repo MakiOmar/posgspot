@@ -22,11 +22,14 @@ import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { SelectField } from "../../src/components/SelectField";
+import { CouponPicker } from "../../src/components/checkout/CouponPicker";
+import { RewardPointsRedeem } from "../../src/components/checkout/RewardPointsRedeem";
 import { PrimaryButton, Screen } from "../../src/components/ui";
 import type {
   BostaDistrict,
   GeoCountry,
   GeoState,
+  RewardPointsBalance,
   ShippingRate,
   StoreLocation,
 } from "../../src/lib/types";
@@ -76,8 +79,11 @@ export default function CheckoutScreen() {
   const [districtLabel, setDistrictLabel] = useState("");
   const [orderNote, setOrderNote] = useState("");
   const [coupon, setCoupon] = useState(params.coupon || "");
-  const [rewardPoints, setRewardPoints] = useState("");
-  const [pointsBalance, setPointsBalance] = useState<number | null>(null);
+  const [rewardPoints, setRewardPoints] = useState(0);
+  const [rewardAmount, setRewardAmount] = useState(0);
+  const [rewardValid, setRewardValid] = useState(true);
+  const [pointsBalance, setPointsBalance] =
+    useState<RewardPointsBalance | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "fawry">("cod");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -213,11 +219,7 @@ export default function CheckoutScreen() {
   useEffect(() => {
     if (!token) return;
     void fetchRewardPoints(token)
-      .then(({ data }) => {
-        setPointsBalance(
-          Number(data.balance ?? data.available ?? data.points ?? 0),
-        );
-      })
+      .then(({ data }) => setPointsBalance(data))
       .catch(() => setPointsBalance(null));
     void fetchLocations(true, locale)
       .then(({ data }) => setPickupLocations(data || []))
@@ -262,6 +264,9 @@ export default function CheckoutScreen() {
       }
       if (pickupMode && !pickupId) {
         throw new Error(t("checkout.requiredPickup"));
+      }
+      if (rewardPoints > 0 && !rewardValid) {
+        throw new Error(t("rewards.fixBeforeOrder"));
       }
 
       const shipping_address = digitalMode
@@ -308,8 +313,8 @@ export default function CheckoutScreen() {
               ? { coupon_codes: [coupon] }
               : { coupon_code: coupon }
             : {}),
-          ...(rewardPoints && token
-            ? { reward_points: Number(rewardPoints) }
+          ...(rewardPoints > 0 && token && rewardValid
+            ? { reward_points: rewardPoints }
             : {}),
           locale,
         },
@@ -348,7 +353,10 @@ export default function CheckoutScreen() {
     );
   }
 
-  const total = Math.max(0, quoteSubtotal + shippingAmount - couponDiscount);
+  const total = Math.max(
+    0,
+    quoteSubtotal + shippingAmount - couponDiscount - rewardAmount,
+  );
 
   return (
     <Screen padded={false}>
@@ -516,27 +524,53 @@ export default function CheckoutScreen() {
               label={t("cart.apply")}
               onPress={() => void applyCoupon()}
             />
+            <CouponPicker
+              items={items}
+              token={token}
+              appliedCodes={coupon.trim() ? [coupon.trim()] : []}
+              onSelect={async (code) => {
+                setCoupon(code);
+                if (!token) {
+                  setMessage(t("checkout.couponNeedLogin"));
+                  return;
+                }
+                try {
+                  await validateCoupons(
+                    { code, items: items.map(toCartApiItem) },
+                    token,
+                  );
+                  await refreshQuote();
+                  setMessage(t("cart.couponApplied"));
+                } catch (e) {
+                  setMessage(
+                    e instanceof Error ? e.message : t("common.error"),
+                  );
+                }
+              }}
+            />
             {!token ? (
               <Text style={styles.hint}>{t("checkout.couponNeedLogin")}</Text>
             ) : null}
           </View>
         ) : null}
 
-        {token && settings?.reward_points?.enabled !== false ? (
-          <>
-            {pointsBalance != null ? (
-              <Text style={styles.hint}>
-                {t("checkout.pointsBalance")}: {pointsBalance}
-              </Text>
-            ) : null}
-            <LabeledInput
-              label={t("checkout.rewardPoints")}
-              value={rewardPoints}
-              onChangeText={setRewardPoints}
-              keyboardType="number-pad"
-              placeholder="0"
-            />
-          </>
+        {token &&
+        settings?.reward_points?.enabled !== false &&
+        pointsBalance ? (
+          <RewardPointsRedeem
+            token={token}
+            balance={pointsBalance}
+            orderTotal={Math.max(
+              0,
+              quoteSubtotal + shippingAmount - couponDiscount,
+            )}
+            pointsToRedeem={rewardPoints}
+            onChange={(points, amount, isValid) => {
+              setRewardPoints(points);
+              setRewardAmount(amount);
+              setRewardValid(isValid || points === 0);
+            }}
+          />
         ) : null}
 
         <Text style={styles.section}>{t("checkout.payment")}</Text>
@@ -576,6 +610,11 @@ export default function CheckoutScreen() {
           {couponDiscount > 0 ? (
             <Text>
               {t("cart.discount")}: −{couponDiscount.toFixed(2)} EGP
+            </Text>
+          ) : null}
+          {rewardAmount > 0 ? (
+            <Text>
+              {t("rewards.discount")} −{rewardAmount.toFixed(2)} EGP
             </Text>
           ) : null}
           <Text style={styles.total}>

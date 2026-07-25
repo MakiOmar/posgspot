@@ -336,12 +336,14 @@ export interface ProductReviewItem {
   author_name?: string | null;
   created_at?: string | null;
   status?: string;
+  is_verified_purchase?: boolean;
 }
 
 export interface ReviewEligibility {
   can_review: boolean;
   reason?: string | null;
   message?: string | null;
+  already_reviewed?: boolean;
 }
 
 export interface PaginationMeta {
@@ -349,6 +351,31 @@ export interface PaginationMeta {
   last_page: number;
   per_page: number;
   total: number;
+}
+
+export interface AppliedCouponInfo {
+  id?: number;
+  code: string;
+  label?: string;
+  type?: string;
+  stack_with_reward_points?: boolean;
+}
+
+export interface AvailableCouponInfo {
+  id: number;
+  code: string;
+  name: string;
+  label: string;
+  type: string;
+  description: string | null;
+  discount_amount: number;
+  free_shipping: boolean;
+  shipping_savings: number;
+  total_savings: number;
+}
+
+export interface AvailableCouponsResult {
+  coupons: AvailableCouponInfo[];
 }
 
 export interface ShippingRate {
@@ -408,8 +435,31 @@ export interface CartValidationResult {
 }
 
 export interface RewardPointsBalance {
+  enabled?: boolean;
+  name?: string;
   balance?: number;
   points?: number;
   available?: number;
-  [key: string]: unknown;
+  used?: number;
+  expired?: number;
+  value?: number;
+  max_redeem_points?: number;
+  amount_per_point?: number;
+  min_redeem_points?: number;
+  max_redeem_points_limit?: number;
+  min_order_total_for_redeem?: number;
+}
+
+export interface RewardPointsValidation {
+  is_valid: boolean;
+  message: string | null;
+  requested_points: number;
+  redeem_amount: number;
+  available_points: number;
+  max_points: number;
+  amount_per_point: number;
+  min_redeem_points: number;
+  max_redeem_points_limit: number;
+  min_order_total_for_redeem: number;
+  order_total: number;
 }

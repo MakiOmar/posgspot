@@ -81,6 +81,28 @@ const en: Record<string, string> = {
   "reviews.submitted": "Review submitted",
   "reviews.notEligible": "You are not eligible to review this product yet.",
   "reviews.signIn": "Sign in to review",
+  "reviews.averageTitle": "{average} out of 5 from {count} reviews",
+  "reviews.countLabel": "{count} reviews",
+  "reviews.verified": "Verified purchase",
+  "coupon.pickerShow": "Select promo code",
+  "coupon.pickerHide": "Hide promo codes",
+  "coupon.pickerLoading": "Loading available promo codes…",
+  "coupon.pickerEmpty": "No promo codes apply to this cart right now.",
+  "coupon.pickerLoadError": "Could not load promo codes.",
+  "coupon.pickerSave": "Save {amount}",
+  "coupon.pickerSavePlusShipping": "Save {amount} incl. shipping",
+  "coupon.pickerFreeShipping": "Free shipping",
+  "coupon.pickerApplied": "Applied",
+  "rewards.defaultName": "Reward points",
+  "rewards.hint": "You have {available} points available",
+  "rewards.hintMax": " (up to {max} redeemable on this order)",
+  "rewards.pointsToRedeem": "Points to redeem",
+  "rewards.useMax": "Use max",
+  "rewards.clear": "Clear",
+  "rewards.checking": "Checking points…",
+  "rewards.discount": "Discount:",
+  "rewards.validateError": "Could not validate reward points. Please try again.",
+  "rewards.fixBeforeOrder": "Please fix reward points before placing your order.",
   "cart.empty": "Your cart is empty",
   "cart.title": "Your cart",
   "cart.subtotal": "Subtotal",
@@ -275,6 +297,28 @@ const ar: Record<string, string> = {
   "reviews.submitted": "تم إرسال التقييم",
   "reviews.notEligible": "لست مؤهلاً لتقييم هذا المنتج بعد.",
   "reviews.signIn": "سجّل الدخول للتقييم",
+  "reviews.averageTitle": "{average} من 5 من {count} تقييمات",
+  "reviews.countLabel": "{count} تقييمات",
+  "reviews.verified": "عملية شراء موثقة",
+  "coupon.pickerShow": "اختر كود خصم",
+  "coupon.pickerHide": "إخفاء أكواد الخصم",
+  "coupon.pickerLoading": "جاري تحميل أكواد الخصم…",
+  "coupon.pickerEmpty": "لا توجد أكواد خصم مناسبة لهذه السلة حاليًا.",
+  "coupon.pickerLoadError": "تعذر تحميل أكواد الخصم.",
+  "coupon.pickerSave": "وفر {amount}",
+  "coupon.pickerSavePlusShipping": "وفر {amount} شامل الشحن",
+  "coupon.pickerFreeShipping": "شحن مجاني",
+  "coupon.pickerApplied": "مُطبَّق",
+  "rewards.defaultName": "نقاط المكافآت",
+  "rewards.hint": "لديك {available} نقطة متاحة",
+  "rewards.hintMax": " (حتى {max} قابلة للاستبدال على هذا الطلب)",
+  "rewards.pointsToRedeem": "النقاط المستخدمة",
+  "rewards.useMax": "استخدم الحد الأقصى",
+  "rewards.clear": "مسح",
+  "rewards.checking": "جاري التحقق…",
+  "rewards.discount": "الخصم:",
+  "rewards.validateError": "تعذر التحقق من نقاط المكافآت. حاول مرة أخرى.",
+  "rewards.fixBeforeOrder": "يرجى تصحيح نقاط المكافآت قبل تأكيد الطلب.",
   "cart.empty": "سلتك فارغة",
   "cart.title": "سلتك",
   "cart.subtotal": "المجموع",
@@ -390,6 +434,16 @@ const ar: Record<string, string> = {
 
 const catalogs: Record<ContentLocale, Record<string, string>> = { en, ar };
 
-export function t(locale: ContentLocale, key: string): string {
-  return catalogs[locale][key] ?? catalogs.en[key] ?? key;
+export function t(
+  locale: ContentLocale,
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  let s = catalogs[locale][key] ?? catalogs.en[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      s = s.split(`{${k}}`).join(String(v));
+    }
+  }
+  return s;
 }

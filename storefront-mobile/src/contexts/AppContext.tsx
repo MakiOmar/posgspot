@@ -55,7 +55,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 interface AppContextValue {
   locale: ContentLocale;
   setLocale: (locale: ContentLocale) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
   settings: StoreSettings | null;
   accent: string;
   loading: boolean;
@@ -186,7 +186,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       locale,
       setLocale: applyLocale,
-      t: (key: string) => translate(locale, key),
+      t: (key: string, vars?: Record<string, string | number>) =>
+        translate(locale, key, vars),
       settings,
       accent,
       loading,

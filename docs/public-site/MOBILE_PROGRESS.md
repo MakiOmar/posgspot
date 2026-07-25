@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-25 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Nav drawer + searchable geo selects; Arabic RTL polish |
+| **Overall** | Stars, coupon picker, and validated reward redeem |
 
 **Status legend:** Done · Partial · Not started
 
@@ -36,6 +36,9 @@
 | Header nav drawer (menu + categories + language) | Done |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
+| Star ratings on cards + PDP | Done |
+| Coupon picker (available codes) | Done |
+| Reward points validate + max redeem | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -58,3 +61,4 @@
 | 2026-07-25 | Nav drawer (menu/categories/lang); searchable geo selects; Arabic RTL; account nav links removed. |
 | 2026-07-25 | PDP: fixed faded bottom bar with qty beside add-to-cart / availability. |
 | 2026-07-25 | PDP: floating share + wishlist chips on gallery (RTL-aware end side). |
+| 2026-07-25 | Stars on cards/PDP; coupon picker; validated reward-points redeem. |

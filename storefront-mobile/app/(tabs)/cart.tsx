@@ -11,6 +11,7 @@ import { toCartApiItem } from "../../src/lib/cart";
 import { useCart } from "../../src/contexts/CartContext";
 import { useApp } from "../../src/contexts/AppContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
+import { CouponPicker } from "../../src/components/checkout/CouponPicker";
 import { PrimaryButton, Screen } from "../../src/components/ui";
 import type { CartValidationResult } from "../../src/lib/types";
 import { useRtl } from "../../src/lib/rtl";
@@ -190,6 +191,36 @@ export default function CartScreen() {
           <PrimaryButton
             label={t("cart.apply")}
             onPress={() => void applyCoupon()}
+          />
+          <CouponPicker
+            items={items}
+            token={token}
+            appliedCodes={coupon.trim() ? [coupon.trim()] : []}
+            onSelect={async (code) => {
+              setCoupon(code);
+              if (!token) {
+                setCouponMsg(t("checkout.couponNeedLogin"));
+                return;
+              }
+              try {
+                const { data } = await validateCoupons(
+                  {
+                    code,
+                    items: items.map(toCartApiItem),
+                  },
+                  token,
+                );
+                const discount = Number(
+                  (data as { coupon_discount?: number })?.coupon_discount ?? 0,
+                );
+                setCouponDiscount(Number.isFinite(discount) ? discount : 0);
+                setCouponMsg(t("cart.couponApplied"));
+              } catch (e) {
+                setCouponMsg(
+                  e instanceof Error ? e.message : t("common.error"),
+                );
+              }
+            }}
           />
           {!token ? (
             <Text style={styles.hint}>{t("checkout.couponNeedLogin")}</Text>

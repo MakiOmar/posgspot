@@ -29,6 +29,7 @@ import { useCart } from "../../src/contexts/CartContext";
 import { useWishlist } from "../../src/contexts/WishlistContext";
 import { AvailabilityModal } from "../../src/components/catalog/AvailabilityModal";
 import { ProductCard } from "../../src/components/catalog/ProductCard";
+import { StarRating } from "../../src/components/catalog/StarRating";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -344,6 +345,19 @@ export default function ProductScreen() {
           >
             {price.toFixed(2)} EGP
           </Text>
+          {(product.rating?.count ?? product.rating_count ?? 0) > 0 ? (
+            <View style={styles.ratingWrap}>
+              <StarRating
+                average={Number(
+                  product.rating?.average ?? product.rating_average ?? 0,
+                )}
+                count={Number(
+                  product.rating?.count ?? product.rating_count ?? 0,
+                )}
+                size="md"
+              />
+            </View>
+          ) : null}
           <Text
             style={[
               styles.stock,
@@ -440,6 +454,9 @@ export default function ProductScreen() {
                   style={[styles.reviewMeta, { textAlign, writingDirection }]}
                 >
                   {r.author_name || "Customer"}
+                  {r.is_verified_purchase
+                    ? ` · ${t("reviews.verified")}`
+                    : ""}
                 </Text>
               </View>
             ))}
@@ -655,6 +672,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   title: { flex: 1, fontSize: 22, fontWeight: "800", marginBottom: 8 },
+  ratingWrap: { paddingHorizontal: 16, marginBottom: 8 },
   price: { fontSize: 20, fontWeight: "700", paddingHorizontal: 16, marginBottom: 4 },
   stock: { paddingHorizontal: 16, fontWeight: "600", marginBottom: 6 },
   meta: { color: "#666", paddingHorizontal: 16, marginBottom: 6 },

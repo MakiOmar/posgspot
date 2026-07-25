@@ -18,6 +18,7 @@ import { useApp } from "../../contexts/AppContext";
 import { useCart } from "../../contexts/CartContext";
 import { useWishlist } from "../../contexts/WishlistContext";
 import { AvailabilityModal } from "./AvailabilityModal";
+import { StarRating } from "./StarRating";
 
 function productDisplayPrice(product: ProductSummary): number {
   const sale = product.storefront_sale_price_inc_tax;
@@ -51,6 +52,12 @@ export function ProductCard({
   );
 
   const price = productDisplayPrice(product);
+  const ratingAvg = Number(
+    product.rating_average ?? product.rating?.average ?? 0,
+  );
+  const ratingCount = Number(
+    product.rating_count ?? product.rating?.count ?? 0,
+  );
   const compare =
     product.compare_at_price != null && Number(product.compare_at_price) > price
       ? Number(product.compare_at_price)
@@ -178,6 +185,11 @@ export function ProductCard({
           {product.name}
         </Text>
       </Pressable>
+      {ratingCount > 0 ? (
+        <View style={styles.ratingRow}>
+          <StarRating average={ratingAvg} count={ratingCount} size="sm" />
+        </View>
+      ) : null}
       <View style={styles.priceRow}>
         <Text style={{ ...styles.cardPrice, color: accent }}>
           {price.toFixed(2)} EGP
@@ -292,6 +304,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
   },
   cardTitle: { fontSize: 14, fontWeight: "600", marginBottom: 4, minHeight: 36 },
+  ratingRow: { marginBottom: 6 },
   priceRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   cardPrice: { fontSize: 14, fontWeight: "700" },
   compare: {

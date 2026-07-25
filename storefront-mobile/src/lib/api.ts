@@ -337,14 +337,34 @@ export function validateCoupons(
 }
 
 export function availableCoupons(
-  body: Record<string, unknown>,
+  body: {
+    items: Array<{ variation_id: number; quantity: number }>;
+    exclude_codes?: string[];
+  },
   token: string,
 ) {
-  return storefrontFetch("/coupons/available", {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify(body),
-  });
+  return storefrontFetch<import("./types").AvailableCouponsResult>(
+    "/coupons/available",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function validateRewardPoints(
+  token: string,
+  payload: { requested_points: number; order_total: number },
+) {
+  return storefrontFetch<import("./types").RewardPointsValidation>(
+    "/account/reward-points/validate",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function fetchDigitalGames(
