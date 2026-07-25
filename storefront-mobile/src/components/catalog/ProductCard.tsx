@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 import { fetchAvailability } from "../../lib/api";
 import { productPath } from "../../lib/product-path";
 import { absoluteMediaUrl } from "../../lib/storefront-href";
+import { toast } from "../../lib/toast";
 import type { ProductAvailability, ProductSummary } from "../../lib/types";
 import { useApp } from "../../contexts/AppContext";
 import { useCart } from "../../contexts/CartContext";
@@ -82,7 +82,7 @@ export function ProductCard({
     try {
       await toggle(product);
     } catch (e) {
-      Alert.alert(
+      toast.error(
         t("common.error"),
         e instanceof Error ? e.message : t("common.error"),
       );
@@ -107,9 +107,9 @@ export function ProductCard({
         unitPrice: price,
         quantity: 1,
       });
-      Alert.alert(t("catalog.addedToCart"), product.name);
+      toast.success(t("catalog.addedToCart"), product.name);
     } catch (e) {
-      Alert.alert(
+      toast.error(
         t("common.error"),
         e instanceof Error ? e.message : t("common.error"),
       );

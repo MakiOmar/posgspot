@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
   checkDigitalCardStock,
@@ -15,6 +15,7 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
+import { toast } from "../../src/lib/toast";
 
 type CardCategory = {
   id: number;
@@ -90,11 +91,11 @@ export default function GiftCardsScreen() {
                   void (async () => {
                     const sku = skus?.gift_card;
                     if (!sku) {
-                      Alert.alert(t("digital.skuMissing"));
+                      toast.error(t("digital.skuMissing"));
                       return;
                     }
                     if (!Number.isFinite(price) || price <= 0) {
-                      Alert.alert(t("digital.unavailable"));
+                      toast.error(t("digital.unavailable"));
                       return;
                     }
                     setPendingId(item.id);
@@ -115,10 +116,10 @@ export default function GiftCardsScreen() {
                           price,
                         },
                       });
-                      Alert.alert(t("digital.addedToCart"));
+                      toast.success(t("digital.addedToCart"));
                       router.push("/(tabs)/cart");
                     } catch (e) {
-                      Alert.alert(
+                      toast.error(
                         e instanceof Error
                           ? e.message
                           : t("digital.stockFailed"),

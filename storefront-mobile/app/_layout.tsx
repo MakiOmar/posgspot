@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { BrandSplash } from "../src/components/BrandSplash";
 import { MaintenanceGate } from "../src/components/MaintenanceGate";
+import { ToastHost } from "../src/components/ToastHost";
 import { AppProvider, useApp } from "../src/contexts/AppContext";
 import { CartProvider } from "../src/contexts/CartContext";
 import { WishlistProvider } from "../src/contexts/WishlistContext";
@@ -97,6 +98,7 @@ export default function RootLayout() {
                 <Stack.Screen name="+not-found" options={{ title: "Not found" }} />
               </Stack>
               </MaintenanceGate>
+              <ToastHost />
             </SplashGate>
           </WishlistProvider>
         </CartProvider>

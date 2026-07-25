@@ -2,7 +2,6 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Dimensions,
   FlatList,
   Pressable,
@@ -40,6 +39,7 @@ import { STOREFRONT_WEB_URL } from "../../src/lib/config";
 import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import { paramString } from "../../src/lib/product-path";
 import { useRtl } from "../../src/lib/rtl";
+import { toast } from "../../src/lib/toast";
 import type {
   ProductAvailability,
   ProductDetail,
@@ -164,10 +164,13 @@ export default function ProductScreen() {
         unitPrice: price,
         quantity: qty,
       });
-      Alert.alert(t("catalog.addedToCart"), product.name);
+      toast.success(t("catalog.addedToCart"), product.name);
       router.push("/(tabs)/cart");
     } catch (e) {
-      Alert.alert(t("common.error"), e instanceof Error ? e.message : t("common.error"));
+      toast.error(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.error"),
+      );
     } finally {
       setAdding(false);
     }
@@ -206,7 +209,7 @@ export default function ProductScreen() {
         const msg = String((e as { message?: string }).message || "");
         if (/cancel|dismiss/i.test(msg)) return;
       }
-      Alert.alert(t("common.error"), t("share.failed"));
+      toast.error(t("common.error"), t("share.failed"));
     }
   };
 
@@ -221,7 +224,7 @@ export default function ProductScreen() {
         { rating: reviewRating, title: reviewTitle.trim() || undefined, body: reviewBody.trim() },
         locale,
       );
-      Alert.alert(t("reviews.submitted"));
+      toast.success(t("reviews.submitted"));
       setReviewBody("");
       setReviewTitle("");
       const rev = await fetchProductReviews(key, 1, 20, locale);
@@ -229,7 +232,10 @@ export default function ProductScreen() {
       const el = await fetchReviewEligibility(key, token, locale);
       setEligibility(el.data);
     } catch (e) {
-      Alert.alert(t("common.error"), e instanceof Error ? e.message : t("common.error"));
+      toast.error(
+        t("common.error"),
+        e instanceof Error ? e.message : t("common.error"),
+      );
     } finally {
       setReviewBusy(false);
     }
@@ -298,9 +304,9 @@ export default function ProductScreen() {
               <Pressable
                 style={styles.wishBtn}
                 onPress={() =>
-                  void toggle(product).catch((e) =>
-                    Alert.alert(t("common.error"), String(e)),
-                  )
+                void toggle(product).catch((e) =>
+                  toast.error(t("common.error"), String(e)),
+                )
                 }
                 accessibilityRole="button"
                 accessibilityLabel={t("nav.wishlist")}

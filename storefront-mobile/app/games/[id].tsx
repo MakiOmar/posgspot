@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   checkDigitalGameStock,
   fetchDigitalGame,
@@ -15,6 +15,7 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
+import { toast } from "../../src/lib/toast";
 
 type Offer = "primary" | "secondary";
 type Platform = "4" | "5";
@@ -115,18 +116,18 @@ export default function GameDetailScreen() {
   const addOffer = async (offer: Offer) => {
     const sku = offer === "primary" ? skus?.primary : skus?.secondary;
     if (!sku) {
-      Alert.alert(t("digital.skuMissing"));
+      toast.error(t("digital.skuMissing"));
       return;
     }
     const price = offer === "primary" ? primaryPrice : secondaryPrice;
     const stock = offer === "primary" ? primaryStock : secondaryStock;
     const offerEnabled = offer === "primary" ? primaryOk : secondaryOk;
     if (!offerEnabled || price <= 0) {
-      Alert.alert(t("digital.unavailable"));
+      toast.error(t("digital.unavailable"));
       return;
     }
     if (stock <= 0) {
-      Alert.alert(t("digital.outOfStock"));
+      toast.error(t("digital.outOfStock"));
       return;
     }
 
@@ -149,7 +150,7 @@ export default function GameDetailScreen() {
         stockData?.is_available === false ||
         (Number.isFinite(liveStock) && liveStock <= 0)
       ) {
-        Alert.alert(t("digital.outOfStock"));
+        toast.error(t("digital.outOfStock"));
         return;
       }
 
@@ -173,10 +174,10 @@ export default function GameDetailScreen() {
           price,
         },
       });
-      Alert.alert(t("digital.addedToCart"));
+      toast.success(t("digital.addedToCart"));
       router.push("/(tabs)/cart");
     } catch (e) {
-      Alert.alert(
+      toast.error(
         e instanceof Error ? e.message : t("digital.stockFailed"),
       );
     } finally {

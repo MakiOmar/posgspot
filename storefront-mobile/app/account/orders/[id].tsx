@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Linking,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import {
   PrimaryButton,
   Screen,
 } from "../../../src/components/ui";
+import { toast } from "../../../src/lib/toast";
 
 function isPaidOrder(paymentStatus: string | undefined): boolean {
   return (paymentStatus ?? "").trim().toLowerCase() === "paid";
@@ -177,7 +177,7 @@ export default function OrderDetailScreen() {
                     quantity: line.quantity,
                   });
                 }
-                Alert.alert(t("account.reorderSuccess"));
+                toast.success(t("account.reorderSuccess"));
                 router.push("/(tabs)/cart");
               } finally {
                 setReordering(false);

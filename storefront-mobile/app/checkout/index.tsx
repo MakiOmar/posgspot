@@ -94,8 +94,9 @@ export default function CheckoutScreen() {
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
   const [digitalOnly, setDigitalOnly] = useState(false);
-  const [pickupLocations, setPickupLocations] = useState<StoreLocation[]>([]);
-  const [pickupId, setPickupId] = useState<number | null>(null);
+  const [locations, setLocations] = useState<StoreLocation[]>([]);
+  /** Fulfillment / pickup branch — API requires location_id on every checkout. */
+  const [locationId, setLocationId] = useState<number | null>(null);
   const [shippingAmount, setShippingAmount] = useState(0);
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [quoteSubtotal, setQuoteSubtotal] = useState(subtotal);
@@ -112,6 +113,19 @@ export default function CheckoutScreen() {
   const useStateSelect = states.length > 0;
   const needDistrict =
     showAddress && bostaEnabled && districts.length > 0 && !districtId;
+
+  const selectableLocations = useMemo(() => {
+    if (!pickupMode) return locations;
+    const ids = Array.isArray(selectedRate?.meta?.location_ids)
+      ? (selectedRate!.meta!.location_ids as number[])
+      : [];
+    if (ids.length > 0) {
+      return locations.filter((loc) => ids.includes(loc.id));
+    }
+    return locations.filter((loc) => loc.enable_pickup);
+  }, [pickupMode, locations, selectedRate]);
+  const showLocationPicker =
+    pickupMode || digitalMode || selectableLocations.length > 1;
 
   const idempotencyKey = useMemo(
     () => `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
@@ -137,7 +151,7 @@ export default function CheckoutScreen() {
             state: effectiveState || undefined,
             city: city || undefined,
           },
-          location_id: pickupId || undefined,
+          location_id: locationId || undefined,
           shipping_rate_id: selectedRateId || undefined,
           ...couponExtras,
         },
@@ -155,8 +169,8 @@ export default function CheckoutScreen() {
       setShippingAmount(Number(rate?.amount ?? rate?.price ?? data.shipping ?? 0));
       setQuoteSubtotal(Number(data.subtotal ?? subtotal));
       setCouponDiscount(Number(data.coupon_discount ?? data.discount ?? 0));
-      if (data.location_id && !pickupId) {
-        setPickupId(data.location_id);
+      if (data.location_id && !locationId) {
+        setLocationId(data.location_id);
       }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : t("common.error"));
@@ -169,7 +183,7 @@ export default function CheckoutScreen() {
     country,
     effectiveState,
     city,
-    pickupId,
+    locationId,
     selectedRateId,
     subtotal,
     t,
@@ -217,14 +231,40 @@ export default function CheckoutScreen() {
   }, [refreshQuote]);
 
   useEffect(() => {
-    if (!token) return;
+    void fetchLocations(true, locale)
+      .then(({ data }) => {
+        const list = data || [];
+        setLocations(list);
+        setLocationId((current) =>
+          current && list.some((loc) => loc.id === current)
+            ? current
+            : list[0]?.id ?? null,
+        );
+      })
+      .catch(() => setLocations([]));
+  }, [locale]);
+
+  useEffect(() => {
+    if (!token) {
+      setPointsBalance(null);
+      return;
+    }
     void fetchRewardPoints(token)
       .then(({ data }) => setPointsBalance(data))
       .catch(() => setPointsBalance(null));
-    void fetchLocations(true, locale)
-      .then(({ data }) => setPickupLocations(data || []))
-      .catch(() => setPickupLocations([]));
-  }, [token, locale]);
+  }, [token]);
+
+  // Keep selection inside the allowed set when switching to pickup.
+  useEffect(() => {
+    if (!selectableLocations.length) return;
+    if (
+      locationId &&
+      selectableLocations.some((loc) => loc.id === locationId)
+    ) {
+      return;
+    }
+    setLocationId(selectableLocations[0].id);
+  }, [pickupMode, selectableLocations, locationId]);
 
   const applyCoupon = async () => {
     if (!token || !coupon.trim()) {
@@ -262,8 +302,17 @@ export default function CheckoutScreen() {
       if (!selectedRateId) {
         throw new Error(t("checkout.noShipping"));
       }
-      if (pickupMode && !pickupId) {
-        throw new Error(t("checkout.requiredPickup"));
+      const fulfillmentLocationId =
+        locationId &&
+        selectableLocations.some((loc) => loc.id === locationId)
+          ? locationId
+          : selectableLocations[0]?.id || locationId;
+      if (!fulfillmentLocationId) {
+        throw new Error(
+          pickupMode
+            ? t("checkout.requiredPickup")
+            : t("checkout.requiredLocation"),
+        );
       }
       if (rewardPoints > 0 && !rewardValid) {
         throw new Error(t("rewards.fixBeforeOrder"));
@@ -298,7 +347,7 @@ export default function CheckoutScreen() {
           idempotency_key: idempotencyKey,
           payment_method: paymentMethod,
           shipping_rate_id: selectedRateId,
-          location_id: pickupId || undefined,
+          location_id: fulfillmentLocationId,
           items: items.map(toCartApiItem),
           customer: {
             first_name: firstName.trim(),
@@ -483,17 +532,19 @@ export default function CheckoutScreen() {
           })
         )}
 
-        {pickupMode && pickupLocations.length > 0 ? (
+        {showLocationPicker && selectableLocations.length > 0 ? (
           <View style={styles.block}>
-            <Text style={styles.section}>{t("checkout.pickup")}</Text>
-            {pickupLocations.map((loc) => (
+            <Text style={styles.section}>
+              {pickupMode ? t("checkout.pickup") : t("checkout.fulfillment")}
+            </Text>
+            {selectableLocations.map((loc) => (
               <Pressable
                 key={loc.id}
                 style={[
                   styles.rate,
-                  pickupId === loc.id && { borderColor: accent },
+                  locationId === loc.id && { borderColor: accent },
                 ]}
-                onPress={() => setPickupId(loc.id)}
+                onPress={() => setLocationId(loc.id)}
               >
                 <Text style={styles.rateName}>{loc.name}</Text>
                 {loc.address ? (
