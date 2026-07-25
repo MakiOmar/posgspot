@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-24 |
+| **Last updated** | 2026-07-25 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Qwik shop/account/content parity waves 1–3 shipped on mobile |
+| **Overall** | Splash rings fixed; cart/checkout labels + country/state parity |
 
 **Status legend:** Done · Partial · Not started
 
@@ -50,4 +50,5 @@
 | 2026-07-24 | Product cards: wishlist heart, add-to-cart / view options / check availability (Qwik parity). |
 | 2026-07-24 | Wave 1 parity: PDP gallery/variations/qty/related/reviews; PLP toolbar; cart validate/coupons; checkout shipping/pickup/points. |
 | 2026-07-24 | Wave 2: account profile, reward points, order reorder+invoice, forgot/reset password. |
-| 2026-07-24 | Wave 3: Qwik about/FAQ/legal content; games PS4/PS5 + stock check; gift-card SKUs; stores selling filter; richer repair results. |
+| 2026-07-25 | Splash: nested opposite arcs around logo via Modal (no leak after dismiss). |
+| 2026-07-25 | Homepage: all section types (promo/trust/shelves); category banners with overlay kicker/title/FG/CTA. |

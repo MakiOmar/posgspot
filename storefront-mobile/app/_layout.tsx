@@ -35,7 +35,7 @@ function SplashGate({ children }: { children: ReactNode }) {
   return (
     <View style={styles.fill}>
       {children}
-      {showSplash ? <BrandSplash /> : null}
+      <BrandSplash visible={showSplash} />
     </View>
   );
 }

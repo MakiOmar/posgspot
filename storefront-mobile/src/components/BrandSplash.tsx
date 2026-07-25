@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { Image, Modal, StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -10,7 +10,8 @@ import Animated, {
 import Svg, { Circle } from "react-native-svg";
 
 const ORANGE = "#FF7A00";
-const SIZE = 300;
+/** Outer stage size — both arcs and logo share this box. */
+const SIZE = 260;
 const CENTER = SIZE / 2;
 
 type ArcRingProps = {
@@ -31,6 +32,7 @@ function ArcRing({
   const arc = circumference * 0.75;
 
   useEffect(() => {
+    progress.value = 0;
     progress.value = withRepeat(
       withTiming(1, { duration: durationMs, easing: Easing.linear }),
       -1,
@@ -45,7 +47,7 @@ function ArcRing({
   }));
 
   return (
-    <Animated.View style={[styles.ring, spinStyle]}>
+    <Animated.View style={[styles.ringLayer, spinStyle]} pointerEvents="none">
       <Svg width={SIZE} height={SIZE}>
         <Circle
           cx={CENTER}
@@ -62,44 +64,63 @@ function ArcRing({
   );
 }
 
+type Props = {
+  visible: boolean;
+};
+
 /**
- * Full-logo branded splash with two opposite-rotating 3/4 arcs.
+ * Full-screen branded splash: logo centered with two nested opposite-rotating ¾ arcs.
+ * Uses Modal so rings cannot leak into the app after dismiss.
  */
-export function BrandSplash() {
+export function BrandSplash({ visible }: Props) {
   return (
-    <View style={styles.root} pointerEvents="auto">
-      <View style={styles.stage}>
-        <ArcRing radius={128} durationMs={2400} strokeWidth={3.5} />
-        <ArcRing radius={110} durationMs={1700} reverse strokeWidth={2.75} />
-        <Image
-          source={require("../../assets/images/splash-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+    <Modal
+      visible={visible}
+      animationType="none"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={() => undefined}
+    >
+      <View style={styles.root}>
+        <View style={styles.stage}>
+          {/* Outer ring */}
+          <ArcRing radius={118} durationMs={2400} strokeWidth={3.5} />
+          {/* Inner ring — opposite direction */}
+          <ArcRing radius={98} durationMs={1700} reverse strokeWidth={2.75} />
+          <Image
+            source={require("../../assets/images/splash-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
       </View>
-    </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
     backgroundColor: "#000000",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 1000,
   },
   stage: {
     width: SIZE,
     height: SIZE,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
-  ring: {
-    ...StyleSheet.absoluteFillObject,
+  ringLayer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: SIZE,
+    height: SIZE,
   },
   logo: {
-    width: SIZE * 0.58,
-    height: SIZE * 0.58,
+    width: SIZE * 0.55,
+    height: SIZE * 0.55,
   },
 });

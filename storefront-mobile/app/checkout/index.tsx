@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   checkout,
+  fetchBostaDistricts,
+  fetchGeoCountries,
+  fetchGeoStates,
   fetchLocations,
   fetchRewardPoints,
   validateCart,
@@ -18,8 +20,35 @@ import {
 import { toCartApiItem } from "../../src/lib/cart";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
+import { LabeledInput } from "../../src/components/LabeledInput";
+import { SelectField } from "../../src/components/SelectField";
 import { PrimaryButton, Screen } from "../../src/components/ui";
-import type { ShippingRate, StoreLocation } from "../../src/lib/types";
+import type {
+  BostaDistrict,
+  GeoCountry,
+  GeoState,
+  ShippingRate,
+  StoreLocation,
+} from "../../src/lib/types";
+
+function normalizeCountry(code: string | undefined | null): string {
+  const raw = (code || "").trim().toUpperCase();
+  if (!raw || raw === "EGYPT" || raw === "EGY") return "EG";
+  return raw.slice(0, 2);
+}
+
+function rateTitle(rate: ShippingRate): string {
+  return rate.title || rate.label || rate.name || rate.id;
+}
+
+function isPickupRate(rate: ShippingRate | undefined): boolean {
+  const t = (rate?.method_type || "").toLowerCase();
+  return t === "local_pickup" || t === "pickup";
+}
+
+function isDigitalRate(rate: ShippingRate | undefined): boolean {
+  return (rate?.method_type || "").toLowerCase() === "digital";
+}
 
 export default function CheckoutScreen() {
   const { t, token, settings, locale, contact, accent } = useApp();
@@ -27,12 +56,25 @@ export default function CheckoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ coupon?: string }>();
 
-  const [name, setName] = useState(contact?.name || "");
+  const nameParts = (contact?.name || "").trim().split(/\s+/);
+  const [firstName, setFirstName] = useState(
+    contact?.first_name || nameParts[0] || "",
+  );
+  const [lastName, setLastName] = useState(
+    contact?.last_name || nameParts.slice(1).join(" ") || "",
+  );
   const [mobile, setMobile] = useState(contact?.mobile || "");
   const [email, setEmail] = useState(contact?.email || "");
+  const [country, setCountry] = useState(
+    normalizeCountry(contact?.country) || "EG",
+  );
+  const [stateCode, setStateCode] = useState(contact?.state || "");
+  const [stateText, setStateText] = useState(contact?.state || "");
+  const [city, setCity] = useState(contact?.city || "Cairo");
   const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [stateName, setStateName] = useState("");
+  const [districtId, setDistrictId] = useState("");
+  const [districtLabel, setDistrictLabel] = useState("");
+  const [orderNote, setOrderNote] = useState("");
   const [coupon, setCoupon] = useState(params.coupon || "");
   const [rewardPoints, setRewardPoints] = useState("");
   const [pointsBalance, setPointsBalance] = useState<number | null>(null);
@@ -40,6 +82,9 @@ export default function CheckoutScreen() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
+  const [states, setStates] = useState<GeoState[]>([]);
+  const [districts, setDistricts] = useState<BostaDistrict[]>([]);
   const [rates, setRates] = useState<ShippingRate[]>([]);
   const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
   const [digitalOnly, setDigitalOnly] = useState(false);
@@ -49,23 +94,27 @@ export default function CheckoutScreen() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [quoteSubtotal, setQuoteSubtotal] = useState(subtotal);
 
+  const bostaEnabled = !!settings?.couriers?.bosta?.enabled;
   const fawryEnabled =
     !!settings?.online_payments?.enabled &&
     settings?.online_payments?.provider === "fawry";
   const codEnabled = settings?.cod_enabled !== false;
+  const selectedRate = rates.find((r) => r.id === selectedRateId);
+  const pickupMode = isPickupRate(selectedRate);
+  const digitalMode = digitalOnly || isDigitalRate(selectedRate);
+  const showAddress = !digitalMode && !pickupMode;
+  const useStateSelect = states.length > 0;
+  const needDistrict =
+    showAddress && bostaEnabled && districts.length > 0 && !districtId;
 
   const idempotencyKey = useMemo(
     () => `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     [],
   );
 
-  const destination = {
-    country: "EG",
-    state: stateName || "Cairo",
-    city: city || "Cairo",
-  };
+  const effectiveState = useStateSelect ? stateCode : stateText;
 
-  const refreshQuote = async () => {
+  const refreshQuote = useCallback(async () => {
     if (!items.length) return;
     try {
       const couponExtras =
@@ -77,7 +126,11 @@ export default function CheckoutScreen() {
       const { data } = await validateCart(
         items.map(toCartApiItem),
         {
-          destination,
+          destination: {
+            country: normalizeCountry(country),
+            state: effectiveState || undefined,
+            city: city || undefined,
+          },
           location_id: pickupId || undefined,
           shipping_rate_id: selectedRateId || undefined,
           ...couponExtras,
@@ -85,25 +138,77 @@ export default function CheckoutScreen() {
         token,
       );
       setDigitalOnly(!!data.digital_only);
-      setRates(data.available_rates || []);
+      const available = data.available_rates || [];
+      setRates(available);
       const rateId =
-        selectedRateId && data.available_rates?.some((r) => r.id === selectedRateId)
+        selectedRateId && available.some((r) => r.id === selectedRateId)
           ? selectedRateId
-          : data.shipping_rate_id || data.available_rates?.[0]?.id || null;
+          : data.shipping_rate_id || available[0]?.id || null;
       setSelectedRateId(rateId);
-      const rate = data.available_rates?.find((r) => r.id === rateId);
+      const rate = available.find((r) => r.id === rateId);
       setShippingAmount(Number(rate?.amount ?? rate?.price ?? data.shipping ?? 0));
       setQuoteSubtotal(Number(data.subtotal ?? subtotal));
       setCouponDiscount(Number(data.coupon_discount ?? data.discount ?? 0));
+      if (data.location_id && !pickupId) {
+        setPickupId(data.location_id);
+      }
     } catch (e) {
       setMessage(e instanceof Error ? e.message : t("common.error"));
     }
-  };
+  }, [
+    items,
+    coupon,
+    token,
+    settings,
+    country,
+    effectiveState,
+    city,
+    pickupId,
+    selectedRateId,
+    subtotal,
+    t,
+  ]);
 
   useEffect(() => {
-    void refreshQuote();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length, stateName, city, pickupId]);
+    void fetchGeoCountries()
+      .then(({ data }) => setCountries(data || []))
+      .catch(() => setCountries([{ code: "EG", name: "Egypt" }]));
+  }, []);
+
+  useEffect(() => {
+    const code = normalizeCountry(country);
+    if (!code) return;
+    void fetchGeoStates(code)
+      .then(({ data }) => {
+        const list = data || [];
+        setStates(list);
+        if (list.length && stateCode && !list.some((s) => s.code === stateCode)) {
+          setStateCode("");
+          setSelectedRateId(null);
+        }
+      })
+      .catch(() => setStates([]));
+  }, [country]);
+
+  useEffect(() => {
+    setDistrictId("");
+    setDistrictLabel("");
+    setDistricts([]);
+    if (!bostaEnabled || !effectiveState || digitalMode || pickupMode) return;
+    void fetchBostaDistricts(effectiveState, locale)
+      .then(({ data }) => {
+        setDistricts(data.districts || []);
+        if (data.city_name && !city) {
+          setCity(data.city_name);
+        }
+      })
+      .catch(() => setDistricts([]));
+  }, [effectiveState, bostaEnabled, digitalMode, pickupMode, locale]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => void refreshQuote(), 350);
+    return () => clearTimeout(timer);
+  }, [refreshQuote]);
 
   useEffect(() => {
     if (!token) return;
@@ -120,18 +225,14 @@ export default function CheckoutScreen() {
   }, [token, locale]);
 
   const applyCoupon = async () => {
-    if (!token || !coupon.trim()) return;
+    if (!token || !coupon.trim()) {
+      setMessage(t("checkout.couponNeedLogin"));
+      return;
+    }
     try {
-      const { data } = await validateCoupons(
+      await validateCoupons(
         { code: coupon.trim(), items: items.map(toCartApiItem) },
         token,
-      );
-      setCouponDiscount(
-        Number(
-          (data as { coupon_discount?: number }).coupon_discount ??
-            (data as { discount?: number }).discount ??
-            0,
-        ),
       );
       await refreshQuote();
       setMessage(t("cart.couponApplied"));
@@ -144,35 +245,64 @@ export default function CheckoutScreen() {
     setBusy(true);
     setMessage(null);
     try {
+      if (!firstName.trim() || !email.trim() || !mobile.trim()) {
+        throw new Error(t("checkout.requiredContact"));
+      }
+      if (showAddress) {
+        if (!country || !effectiveState || !city.trim() || !address.trim()) {
+          throw new Error(t("checkout.requiredAddress"));
+        }
+        if (needDistrict) {
+          throw new Error(t("checkout.requiredDistrict"));
+        }
+      }
       await refreshQuote();
-      const apiItems = items.map(toCartApiItem);
-      if (!selectedRateId && !digitalOnly) {
+      if (!selectedRateId) {
         throw new Error(t("checkout.noShipping"));
       }
-      const rateId = selectedRateId || "digital";
-      const isPickup =
-        rates.find((r) => r.id === selectedRateId)?.method_type === "pickup";
+      if (pickupMode && !pickupId) {
+        throw new Error(t("checkout.requiredPickup"));
+      }
+
+      const shipping_address = digitalMode
+        ? {
+            country: "EG",
+            city: "",
+            state: "",
+            address_line_1: "Digital delivery",
+          }
+        : pickupMode
+          ? {
+              country: normalizeCountry(country),
+              city: city || "",
+              state: effectiveState || "",
+              address_line_1: "Store pickup",
+            }
+          : {
+              country: normalizeCountry(country),
+              city: city.trim(),
+              state: effectiveState,
+              address_line_1: address.trim(),
+              ...(districtId
+                ? { district_id: districtId, district_label: districtLabel }
+                : {}),
+            };
 
       const order = await checkout(
         {
           idempotency_key: idempotencyKey,
           payment_method: paymentMethod,
-          shipping_rate_id: selectedRateId || rateId,
-          location_id: isPickup ? pickupId || undefined : undefined,
-          items: apiItems,
+          shipping_rate_id: selectedRateId,
+          location_id: pickupId || undefined,
+          items: items.map(toCartApiItem),
           customer: {
-            name: name || "Customer",
-            mobile: mobile || undefined,
-            email: email || undefined,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            email: email.trim(),
+            mobile: mobile.trim(),
           },
-          shipping_address: digitalOnly
-            ? { country: "EG" }
-            : {
-                country: "EG",
-                state: destination.state,
-                city: destination.city,
-                address_line_1: address || city || "Address",
-              },
+          shipping_address,
+          ...(orderNote.trim() ? { order_note: orderNote.trim() } : {}),
           ...(coupon && token
             ? settings?.promo_codes?.allow_stacking
               ? { coupon_codes: [coupon] }
@@ -218,106 +348,206 @@ export default function CheckoutScreen() {
     );
   }
 
-  const total = Math.max(
-    0,
-    quoteSubtotal + shippingAmount - couponDiscount,
-  );
+  const total = Math.max(0, quoteSubtotal + shippingAmount - couponDiscount);
 
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
         <Text style={styles.title}>{t("checkout.title")}</Text>
 
-        <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
-        <TextInput style={styles.input} placeholder="Mobile" value={mobile} onChangeText={setMobile} keyboardType="phone-pad" />
-        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} autoCapitalize="none" />
+        <Text style={styles.section}>{t("checkout.contact")}</Text>
+        <LabeledInput
+          label={t("checkout.firstName")}
+          value={firstName}
+          onChangeText={setFirstName}
+        />
+        <LabeledInput
+          label={t("checkout.lastName")}
+          value={lastName}
+          onChangeText={setLastName}
+        />
+        <LabeledInput
+          label={t("checkout.email")}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+        <LabeledInput
+          label={t("checkout.mobile")}
+          value={mobile}
+          onChangeText={setMobile}
+          keyboardType="phone-pad"
+        />
 
-        {!digitalOnly ? (
-          <>
-            <TextInput style={styles.input} placeholder="Address" value={address} onChangeText={setAddress} />
-            <TextInput style={styles.input} placeholder="City" value={city} onChangeText={setCity} />
-            <TextInput style={styles.input} placeholder="Governorate / state" value={stateName} onChangeText={setStateName} />
-          </>
-        ) : (
+        {digitalMode ? (
           <Text style={styles.hint}>{t("checkout.digitalOnly")}</Text>
+        ) : pickupMode ? (
+          <Text style={styles.hint}>{t("checkout.pickupHint")}</Text>
+        ) : (
+          <>
+            <Text style={styles.section}>{t("checkout.shippingAddress")}</Text>
+            <SelectField
+              label={t("checkout.country")}
+              value={country}
+              options={countries.map((c) => ({ value: c.code, label: c.name }))}
+              onChange={(code) => {
+                setCountry(normalizeCountry(code));
+                setStateCode("");
+                setStateText("");
+                setSelectedRateId(null);
+              }}
+            />
+            {useStateSelect ? (
+              <SelectField
+                label={t("checkout.state")}
+                value={stateCode}
+                options={states.map((s) => ({ value: s.code, label: s.name }))}
+                onChange={(code) => {
+                  setStateCode(code);
+                  setSelectedRateId(null);
+                }}
+                placeholder={t("checkout.selectState")}
+              />
+            ) : (
+              <LabeledInput
+                label={t("checkout.state")}
+                value={stateText}
+                onChangeText={(v) => {
+                  setStateText(v);
+                  setSelectedRateId(null);
+                }}
+                placeholder={t("checkout.statePlaceholder")}
+              />
+            )}
+            {bostaEnabled && districts.length > 0 ? (
+              <SelectField
+                label={t("checkout.district")}
+                value={districtId}
+                options={districts.map((d) => ({
+                  value: d.id,
+                  label: d.label,
+                }))}
+                onChange={(id, opt) => {
+                  setDistrictId(id);
+                  setDistrictLabel(opt.label);
+                }}
+                placeholder={t("checkout.selectDistrict")}
+              />
+            ) : null}
+            <LabeledInput
+              label={t("checkout.city")}
+              value={city}
+              onChangeText={setCity}
+            />
+            <LabeledInput
+              label={t("checkout.address")}
+              value={address}
+              onChangeText={setAddress}
+              multiline
+            />
+          </>
         )}
 
-        {rates.length > 0 ? (
-          <View style={styles.block}>
-            <Text style={styles.section}>{t("checkout.shipping")}</Text>
-            {rates.map((rate) => {
-              const active = rate.id === selectedRateId;
-              const amount = Number(rate.amount ?? rate.price ?? 0);
-              return (
-                <Pressable
-                  key={rate.id}
-                  style={[styles.rate, active && { borderColor: accent }]}
-                  onPress={() => {
-                    setSelectedRateId(rate.id);
-                    setShippingAmount(amount);
-                  }}
-                >
-                  <Text style={styles.rateName}>
-                    {rate.label || rate.name || rate.id}
-                  </Text>
-                  <Text>{amount.toFixed(2)} EGP</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
+        <Text style={styles.section}>{t("checkout.shippingMethod")}</Text>
+        {rates.length === 0 ? (
+          <Text style={styles.hint}>{t("checkout.enterStateForRates")}</Text>
+        ) : (
+          rates.map((rate) => {
+            const active = rate.id === selectedRateId;
+            const amount = Number(rate.amount ?? rate.price ?? 0);
+            return (
+              <Pressable
+                key={rate.id}
+                style={[styles.rate, active && { borderColor: accent }]}
+                onPress={() => {
+                  setSelectedRateId(rate.id);
+                  setShippingAmount(amount);
+                }}
+              >
+                <Text style={styles.rateName}>{rateTitle(rate)}</Text>
+                {rate.eta_label ? (
+                  <Text style={styles.hint}>{rate.eta_label}</Text>
+                ) : null}
+                <Text>{amount.toFixed(2)} EGP</Text>
+              </Pressable>
+            );
+          })
+        )}
 
-        {rates.some((r) => r.id === selectedRateId && r.method_type === "pickup") &&
-        pickupLocations.length > 0 ? (
+        {pickupMode && pickupLocations.length > 0 ? (
           <View style={styles.block}>
             <Text style={styles.section}>{t("checkout.pickup")}</Text>
             {pickupLocations.map((loc) => (
               <Pressable
                 key={loc.id}
-                style={[styles.rate, pickupId === loc.id && { borderColor: accent }]}
+                style={[
+                  styles.rate,
+                  pickupId === loc.id && { borderColor: accent },
+                ]}
                 onPress={() => setPickupId(loc.id)}
               >
                 <Text style={styles.rateName}>{loc.name}</Text>
-                {loc.address ? <Text style={styles.hint}>{loc.address}</Text> : null}
+                {loc.address ? (
+                  <Text style={styles.hint}>{loc.address}</Text>
+                ) : null}
               </Pressable>
             ))}
           </View>
         ) : null}
 
-        {token && settings?.promo_codes?.enabled_at_checkout ? (
-          <View style={styles.couponRow}>
-            <TextInput
-              style={[styles.input, { flex: 1, marginBottom: 0 }]}
-              placeholder={t("cart.promoCode")}
+        <LabeledInput
+          label={t("checkout.orderNote")}
+          value={orderNote}
+          onChangeText={setOrderNote}
+          placeholder={t("checkout.orderNotePlaceholder")}
+        />
+
+        {settings?.promo_codes?.enabled_at_checkout ? (
+          <View style={styles.couponBlock}>
+            <LabeledInput
+              label={t("cart.promoCode")}
               value={coupon}
               onChangeText={setCoupon}
               autoCapitalize="characters"
+              placeholder={t("cart.promoCodePlaceholder")}
             />
-            <PrimaryButton label={t("cart.apply")} onPress={() => void applyCoupon()} />
+            <PrimaryButton
+              label={t("cart.apply")}
+              onPress={() => void applyCoupon()}
+            />
+            {!token ? (
+              <Text style={styles.hint}>{t("checkout.couponNeedLogin")}</Text>
+            ) : null}
           </View>
         ) : null}
 
-        {token ? (
+        {token && settings?.reward_points?.enabled !== false ? (
           <>
             {pointsBalance != null ? (
               <Text style={styles.hint}>
                 {t("checkout.pointsBalance")}: {pointsBalance}
               </Text>
             ) : null}
-            <TextInput
-              style={styles.input}
-              placeholder={t("checkout.rewardPoints")}
+            <LabeledInput
+              label={t("checkout.rewardPoints")}
               value={rewardPoints}
               onChangeText={setRewardPoints}
               keyboardType="number-pad"
+              placeholder="0"
             />
           </>
         ) : null}
 
+        <Text style={styles.section}>{t("checkout.payment")}</Text>
         <View style={styles.methods}>
           {codEnabled ? (
             <PrimaryButton
-              label={paymentMethod === "cod" ? `✓ ${t("checkout.cod")}` : t("checkout.cod")}
+              label={
+                paymentMethod === "cod"
+                  ? `✓ ${t("checkout.cod")}`
+                  : t("checkout.cod")
+              }
               onPress={() => setPaymentMethod("cod")}
             />
           ) : null}
@@ -367,19 +597,10 @@ export default function CheckoutScreen() {
 const styles = StyleSheet.create({
   pad: { padding: 16, paddingBottom: 40 },
   title: { fontSize: 22, fontWeight: "800", marginBottom: 12 },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 10,
-  },
-  methods: { marginVertical: 12 },
+  section: { fontWeight: "800", fontSize: 16, marginTop: 8, marginBottom: 10 },
+  methods: { marginVertical: 8 },
   message: { marginVertical: 10, color: "#333" },
-  hint: { color: "#666", marginBottom: 8 },
-  section: { fontWeight: "800", marginBottom: 8 },
+  hint: { color: "#666", marginBottom: 8, lineHeight: 18 },
   block: { marginBottom: 12 },
   rate: {
     backgroundColor: "#fff",
@@ -390,7 +611,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   rateName: { fontWeight: "700", marginBottom: 2 },
-  couponRow: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 10 },
+  couponBlock: { marginBottom: 8 },
   totals: { gap: 4, marginVertical: 12 },
   total: { fontSize: 18, fontWeight: "800", marginTop: 4 },
 });

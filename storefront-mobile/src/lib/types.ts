@@ -21,6 +21,9 @@ export interface AuthContact {
   name?: string;
   email?: string;
   mobile?: string;
+  country?: string;
+  state?: string;
+  city?: string;
 }
 
 export interface AuthSession {
@@ -44,10 +47,19 @@ export interface StoreSettings {
     allow_stacking?: boolean;
   };
   reward_points?: { enabled?: boolean; name?: string };
+  couriers?: { bosta?: { enabled?: boolean } };
   turnstile?: { enabled?: boolean; site_key?: string };
   sale_badge?: { text?: string };
   catalog?: { show_availability_on_cards?: boolean };
   repair?: { lookup_enabled?: boolean; lookup_by_mobile?: boolean };
+  banners?: Array<{
+    id?: string | number;
+    placement?: string;
+    title?: string;
+    link?: string;
+    image_url?: string;
+    category_slug?: string;
+  }>;
   [key: string]: unknown;
 }
 
@@ -96,12 +108,53 @@ export interface HomepageCategoryShelf {
   heading?: string;
   banner_image_url?: string | null;
   banner_fg_image_url?: string | null;
-  banner_kicker?: string;
-  banner_text?: string;
-  button_text?: string;
+  banner_kicker?: string | null;
+  banner_text?: string | null;
+  button_text?: string | null;
   banner_link?: string;
   view_more_path?: string;
-  view_more_label?: string;
+  view_more_label?: string | null;
+}
+
+export interface HomepageTrustBadge {
+  id?: string;
+  icon_kind?: "image" | "svg";
+  icon_url?: string | null;
+  icon_color?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface HomepagePromoBanner {
+  logo_url?: string | null;
+  top_title?: string;
+  main_title?: string;
+  top_title_color?: string;
+  main_title_color?: string;
+  background_color?: string;
+  border_radius?: number;
+  border_color?: string;
+  border_thickness?: number;
+  min_height?: number;
+  image_url?: string | null;
+  button?: {
+    label?: string;
+    link?: string;
+    background_color?: string;
+    text_color?: string;
+    border_radius?: number;
+    show_arrow?: boolean;
+    arrow_color?: string;
+  };
+}
+
+export interface SiteBanner {
+  id?: string | number;
+  placement?: string;
+  title?: string;
+  link?: string;
+  image_url?: string;
+  category_slug?: string;
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -302,9 +355,34 @@ export interface ShippingRate {
   id: string;
   name?: string;
   label?: string;
+  title?: string;
   method_type?: string;
   amount?: number;
   price?: number;
+  eta_label?: string | null;
+  meta?: Record<string, unknown>;
+}
+
+export interface GeoCountry {
+  code: string;
+  name: string;
+}
+
+export interface GeoState {
+  code: string;
+  name: string;
+}
+
+export interface BostaDistrict {
+  id: string;
+  label: string;
+  zone: string | null;
+}
+
+export interface BostaDistrictsResponse {
+  city_code: string | null;
+  city_name: string | null;
+  districts: BostaDistrict[];
 }
 
 export interface CartValidationResult {

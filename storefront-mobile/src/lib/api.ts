@@ -111,6 +111,14 @@ export function fetchHomepage(locale?: ContentLocale) {
   return storefrontFetch<{ sections: HomepageSection[] }>("/homepage", {}, locale);
 }
 
+export function fetchHomepageShelves(locale?: ContentLocale) {
+  return storefrontFetch<import("./types").HomepageCategoryShelf[]>(
+    "/categories/homepage-shelves",
+    {},
+    locale,
+  );
+}
+
 export function fetchProducts(
   query: Record<string, string | number | boolean | undefined> = {},
   locale?: ContentLocale,
@@ -224,7 +232,7 @@ export function validateCart(
   return storefrontFetch<import("./types").CartValidationResult>("/cart/validate", {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ items, ...extras }),
+    body: JSON.stringify({ items, resolve: true, ...extras }),
   });
 }
 
@@ -296,6 +304,25 @@ export function fetchRewardPoints(token: string) {
   return storefrontFetch<import("./types").RewardPointsBalance>("/account/reward-points", {
     headers: authHeaders(token),
   });
+}
+
+export function fetchGeoCountries() {
+  return storefrontFetch<import("./types").GeoCountry[]>("/geo/countries");
+}
+
+export function fetchGeoStates(countryCode: string) {
+  return storefrontFetch<import("./types").GeoState[]>(
+    `/geo/states/${encodeURIComponent(countryCode)}`,
+  );
+}
+
+export function fetchBostaDistricts(stateCode: string, locale?: ContentLocale) {
+  const qs = new URLSearchParams({ state: stateCode });
+  return storefrontFetch<import("./types").BostaDistrictsResponse>(
+    `/geo/bosta-districts?${qs.toString()}`,
+    {},
+    locale,
+  );
 }
 
 export function validateCoupons(
