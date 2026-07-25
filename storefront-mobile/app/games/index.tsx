@@ -1,15 +1,25 @@
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { fetchDigitalGames } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
 import { ErrorBlock, LoadingBlock, Screen } from "../../src/components/ui";
+import { useRtl } from "../../src/lib/rtl";
 
 type Platform = "4" | "5";
 
+function parsePlatform(raw: string | string[] | undefined): Platform {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === "4" ? "4" : "5";
+}
+
 export default function GamesScreen() {
   const { locale, t, settings, accent } = useApp();
-  const [platform, setPlatform] = useState<Platform>("5");
+  const { row, textAlign, writingDirection } = useRtl();
+  const params = useLocalSearchParams<{ platform?: string }>();
+  const [platform, setPlatform] = useState<Platform>(() =>
+    parsePlatform(params.platform),
+  );
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [games, setGames] = useState<
@@ -41,6 +51,12 @@ export default function GamesScreen() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const next = parsePlatform(params.platform);
+    setPlatform((prev) => (prev === next ? prev : next));
+    setPage(1);
+  }, [params.platform]);
+
   if (loading && games.length === 0) {
     return (
       <Screen>
@@ -51,7 +67,7 @@ export default function GamesScreen() {
 
   return (
     <Screen>
-      <View style={styles.platformRow}>
+      <View style={[styles.platformRow, { flexDirection: row }]}>
         {(["5", "4"] as Platform[]).map((p) => {
           const active = platform === p;
           return (
@@ -66,7 +82,7 @@ export default function GamesScreen() {
                 setPlatform(p);
               }}
             >
-              <Text style={styles.chipText}>
+              <Text style={[styles.chipText, { textAlign, writingDirection }]}>
                 {p === "5" ? t("digital.ps5") : t("digital.ps4")}
               </Text>
             </Pressable>
@@ -90,7 +106,7 @@ export default function GamesScreen() {
         ListEmptyComponent={<Text>{t("digital.noGames")}</Text>}
         ListFooterComponent={
           lastPage > 1 ? (
-            <View style={styles.pager}>
+            <View style={[styles.pager, { flexDirection: row }]}>
               <Pressable
                 disabled={page <= 1}
                 onPress={() => setPage((p) => Math.max(1, p - 1))}
@@ -115,7 +131,7 @@ export default function GamesScreen() {
 }
 
 const styles = StyleSheet.create({
-  platformRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
+  platformRow: { gap: 8, marginBottom: 12 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -133,10 +149,10 @@ const styles = StyleSheet.create({
   },
   rowTitle: { fontWeight: "700" },
   pager: {
-    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 16,
+    gap: 8,
   },
   pagerBtn: { fontWeight: "700", color: "#333" },
 });

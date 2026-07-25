@@ -5,9 +5,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useApp } from "../contexts/AppContext";
+import { useRtl } from "../lib/rtl";
 
 export type SelectOption = { value: string; label: string };
 
@@ -19,9 +21,11 @@ type Props = {
   onChange: (value: string, option: SelectOption) => void;
   disabled?: boolean;
   emptyText?: string;
+  /** Enable search filter (default true). */
+  searchable?: boolean;
 };
 
-/** Simple searchable-free picker modal for country / state / district. */
+/** Picker modal for country / state / district with optional search. */
 export function SelectField({
   label,
   placeholder,
@@ -30,23 +34,44 @@ export function SelectField({
   onChange,
   disabled,
   emptyText,
+  searchable = true,
 }: Props) {
   const { accent, t } = useApp();
+  const { textAlign, writingDirection } = useRtl();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const selected = useMemo(
     () => options.find((o) => o.value === value),
     [options, value],
   );
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(q) ||
+        o.value.toLowerCase().includes(q),
+    );
+  }, [options, query]);
+
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, { textAlign, writingDirection }]}>{label}</Text>
       <Pressable
         style={[styles.field, disabled && styles.disabled]}
         disabled={disabled || options.length === 0}
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          setQuery("");
+          setOpen(true);
+        }}
       >
-        <Text style={selected ? styles.value : styles.placeholder}>
+        <Text
+          style={[
+            selected ? styles.value : styles.placeholder,
+            { textAlign, writingDirection },
+          ]}
+        >
           {selected?.label ||
             placeholder ||
             emptyText ||
@@ -57,33 +82,64 @@ export function SelectField({
       <Modal visible={open} animationType="slide" transparent>
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <Text style={styles.sheetTitle}>{label}</Text>
+            <Text style={[styles.sheetTitle, { textAlign, writingDirection }]}>
+              {label}
+            </Text>
+            {searchable ? (
+              <TextInput
+                style={[styles.search, { textAlign, writingDirection }]}
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t("forms.search")}
+                placeholderTextColor="#999"
+                autoFocus
+                autoCapitalize="none"
+                clearButtonMode="while-editing"
+              />
+            ) : null}
             <FlatList
-              data={options}
+              data={filtered}
               keyExtractor={(item) => item.value}
-              style={{ maxHeight: 420 }}
+              keyboardShouldPersistTaps="handled"
+              style={{ maxHeight: 380 }}
               renderItem={({ item }) => {
                 const active = item.value === value;
                 return (
                   <Pressable
                     style={[
                       styles.option,
-                      active && { backgroundColor: "#fff8e8", borderColor: accent },
+                      active && {
+                        backgroundColor: "#fff8e8",
+                        borderColor: accent,
+                      },
                     ]}
                     onPress={() => {
                       onChange(item.value, item);
                       setOpen(false);
+                      setQuery("");
                     }}
                   >
-                    <Text style={styles.optionText}>{item.label}</Text>
+                    <Text
+                      style={[styles.optionText, { textAlign, writingDirection }]}
+                    >
+                      {item.label}
+                    </Text>
                   </Pressable>
                 );
               }}
               ListEmptyComponent={
-                <Text style={styles.empty}>{emptyText || t("forms.noOptions")}</Text>
+                <Text style={styles.empty}>
+                  {emptyText || t("forms.noOptions")}
+                </Text>
               }
             />
-            <Pressable style={styles.cancel} onPress={() => setOpen(false)}>
+            <Pressable
+              style={styles.cancel}
+              onPress={() => {
+                setOpen(false);
+                setQuery("");
+              }}
+            >
               <Text style={styles.cancelText}>{t("common.cancel")}</Text>
             </Pressable>
           </View>
@@ -120,6 +176,17 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   sheetTitle: { fontSize: 18, fontWeight: "800", marginBottom: 12 },
+  search: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    fontSize: 16,
+    color: "#111",
+  },
   option: {
     backgroundColor: "#fff",
     borderRadius: 10,

@@ -7,6 +7,7 @@ import {
   View,
 } from "react-native";
 import { useApp } from "../contexts/AppContext";
+import { useRtl } from "../lib/rtl";
 
 export { ProductCard } from "./catalog/ProductCard";
 
@@ -17,8 +18,17 @@ export function Screen({
   children: React.ReactNode;
   padded?: boolean;
 }) {
+  const { isRtl } = useRtl();
   return (
-    <View style={[styles.screen, padded && styles.padded]}>{children}</View>
+    <View
+      style={[
+        styles.screen,
+        padded && styles.padded,
+        { direction: isRtl ? "rtl" : "ltr" },
+      ]}
+    >
+      {children}
+    </View>
   );
 }
 

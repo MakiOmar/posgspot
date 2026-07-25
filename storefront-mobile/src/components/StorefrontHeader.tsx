@@ -1,9 +1,12 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../contexts/AppContext";
 import { useCart } from "../contexts/CartContext";
+import { useRtl } from "../lib/rtl";
+import { NavDrawer } from "./NavDrawer";
 
 type Props = {
   /** Show search row (home / shop). */
@@ -27,24 +30,31 @@ export function StorefrontHeader({
   const router = useRouter();
   const { t, settings, accent, displayName, token } = useApp();
   const { count } = useCart();
+  const { row, textAlign, writingDirection, end } = useRtl();
+  const [menuOpen, setMenuOpen] = useState(false);
   const brand = settings?.business_name || "Games Spot";
   const welcomeName = token && displayName ? displayName : brand;
 
   return (
     <View style={[styles.wrap, { paddingTop: Math.max(insets.top, 8) }]}>
-      <View style={styles.topRow}>
-        <View style={styles.brandBlock}>
+      <View style={[styles.topRow, { flexDirection: row }]}>
+        <View style={[styles.brandBlock, { flexDirection: row }]}>
           <View style={[styles.avatar, { backgroundColor: accent }]}>
             <FontAwesome name="gamepad" size={18} color="#111" />
           </View>
           <View style={styles.brandText}>
-            <Text style={styles.welcome}>{t("home.welcome")}</Text>
-            <Text style={styles.brand} numberOfLines={1}>
+            <Text style={[styles.welcome, { textAlign, writingDirection }]}>
+              {t("home.welcome")}
+            </Text>
+            <Text
+              style={[styles.brand, { textAlign, writingDirection }]}
+              numberOfLines={1}
+            >
               {welcomeName}
             </Text>
           </View>
         </View>
-        <View style={styles.actions}>
+        <View style={[styles.actions, { flexDirection: row }]}>
           <Pressable
             style={styles.iconBtn}
             onPress={() => router.push("/(tabs)/cart")}
@@ -53,16 +63,21 @@ export function StorefrontHeader({
           >
             <FontAwesome name="shopping-cart" size={20} color="#222" />
             {count > 0 ? (
-              <View style={[styles.badge, { backgroundColor: accent }]}>
+              <View
+                style={[
+                  styles.badge,
+                  { backgroundColor: accent, [end]: 2 },
+                ]}
+              >
                 <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
               </View>
             ) : null}
           </Pressable>
           <Pressable
             style={styles.iconBtn}
-            onPress={() => router.push("/(tabs)/account")}
+            onPress={() => setMenuOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel={t("nav.account")}
+            accessibilityLabel={t("nav.menu")}
           >
             <FontAwesome name="bars" size={20} color="#222" />
           </Pressable>
@@ -70,9 +85,9 @@ export function StorefrontHeader({
       </View>
 
       {showSearch ? (
-        <View style={styles.searchRow}>
+        <View style={[styles.searchRow, { flexDirection: row }]}>
           <Pressable
-            style={styles.searchField}
+            style={[styles.searchField, { flexDirection: row }]}
             onPress={() => {
               if (onSearchChange == null) {
                 router.push("/search");
@@ -82,7 +97,7 @@ export function StorefrontHeader({
             <FontAwesome name="search" size={16} color="#888" />
             {onSearchChange != null ? (
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { textAlign, writingDirection }]}
                 value={searchValue}
                 onChangeText={onSearchChange}
                 placeholder={t("home.searchProducts")}
@@ -92,7 +107,12 @@ export function StorefrontHeader({
                 autoCapitalize="none"
               />
             ) : (
-              <Text style={styles.searchPlaceholder}>
+              <Text
+                style={[
+                  styles.searchPlaceholder,
+                  { textAlign, writingDirection },
+                ]}
+              >
                 {t("home.searchProducts")}
               </Text>
             )}
@@ -107,6 +127,8 @@ export function StorefrontHeader({
           </Pressable>
         </View>
       ) : null}
+
+      <NavDrawer visible={menuOpen} onClose={() => setMenuOpen(false)} />
     </View>
   );
 }
@@ -118,12 +140,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F7F5",
   },
   topRow: {
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  brandBlock: { flexDirection: "row", alignItems: "center", flex: 1, gap: 10 },
+  brandBlock: { alignItems: "center", flex: 1, gap: 10 },
   avatar: {
     width: 42,
     height: 42,
@@ -134,7 +155,7 @@ const styles = StyleSheet.create({
   brandText: { flex: 1 },
   welcome: { fontSize: 12, color: "#888", marginBottom: 2 },
   brand: { fontSize: 18, fontWeight: "800", color: "#111" },
-  actions: { flexDirection: "row", alignItems: "center", gap: 4 },
+  actions: { alignItems: "center", gap: 4 },
   iconBtn: {
     width: 40,
     height: 40,
@@ -144,7 +165,6 @@ const styles = StyleSheet.create({
   badge: {
     position: "absolute",
     top: 4,
-    right: 2,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -153,10 +173,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
   },
   badgeText: { color: "#111", fontSize: 10, fontWeight: "800" },
-  searchRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  searchRow: { alignItems: "center", gap: 10 },
   searchField: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     backgroundColor: "#EFEBE3",

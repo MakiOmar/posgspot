@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useApp } from "../../contexts/AppContext";
+import { useRtl } from "../../lib/rtl";
 
 export type ProductSort = "newest" | "name" | "price_asc" | "price_desc" | "default";
 
@@ -24,10 +25,11 @@ export function ProductListToolbar({
   onInStockChange,
 }: Props) {
   const { t, accent } = useApp();
+  const { row, textAlign, writingDirection } = useRtl();
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.row}>
+      <View style={[styles.row, { flexDirection: row }]}>
         {SORTS.map((s) => {
           const active = sort === s.id;
           return (
@@ -36,7 +38,9 @@ export function ProductListToolbar({
               style={[styles.chip, active && { borderColor: accent, backgroundColor: "#fff8e8" }]}
               onPress={() => onSortChange(s.id)}
             >
-              <Text style={styles.chipText}>{t(s.labelKey)}</Text>
+              <Text style={[styles.chipText, { textAlign, writingDirection }]}>
+                {t(s.labelKey)}
+              </Text>
             </Pressable>
           );
         })}
@@ -45,7 +49,7 @@ export function ProductListToolbar({
         style={[styles.stock, inStockOnly && { borderColor: accent, backgroundColor: "#fff8e8" }]}
         onPress={() => onInStockChange(!inStockOnly)}
       >
-        <Text style={styles.chipText}>
+        <Text style={[styles.chipText, { textAlign, writingDirection }]}>
           {inStockOnly ? `✓ ${t("plp.inStockOnly")}` : t("plp.inStockOnly")}
         </Text>
       </Pressable>
@@ -71,7 +75,7 @@ export function sortToApi(sort: ProductSort): string {
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 12, gap: 8 },
-  row: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  row: { flexWrap: "wrap", gap: 6 },
   chip: {
     borderWidth: 1,
     borderColor: "#ddd",

@@ -13,9 +13,11 @@ import { useApp } from "../../src/contexts/AppContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { PrimaryButton, Screen } from "../../src/components/ui";
 import type { CartValidationResult } from "../../src/lib/types";
+import { useRtl } from "../../src/lib/rtl";
 
 export default function CartScreen() {
   const { t, token, settings } = useApp();
+  const { row, textAlign, writingDirection } = useRtl();
   const router = useRouter();
   const { items, subtotal, updateQty, removeItem, count, setItems } = useCart();
   const [coupon, setCoupon] = useState("");
@@ -115,8 +117,14 @@ export default function CartScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>{t("cart.title")}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <Text style={[styles.title, { textAlign, writingDirection }]}>
+        {t("cart.title")}
+      </Text>
+      {error ? (
+        <Text style={[styles.error, { textAlign, writingDirection }]}>
+          {error}
+        </Text>
+      ) : null}
       <FlatList
         style={styles.list}
         data={items}
@@ -126,16 +134,18 @@ export default function CartScreen() {
         renderItem={({ item }) => (
           <View style={styles.row}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
+              <Text style={[styles.name, { textAlign, writingDirection }]}>
+                {item.name}
+              </Text>
+              <Text style={[styles.meta, { textAlign, writingDirection }]}>
                 {item.unitPrice.toFixed(2)} EGP × {item.quantity}
               </Text>
-              <Text style={styles.lineTotal}>
+              <Text style={[styles.lineTotal, { textAlign, writingDirection }]}>
                 {(item.unitPrice * item.quantity).toFixed(2)} EGP
               </Text>
             </View>
             {!item.digital ? (
-              <View style={styles.qtyRow}>
+              <View style={[styles.qtyRow, { flexDirection: row }]}>
                 <PrimaryButton
                   label="−"
                   style={styles.qtyBtn}
@@ -153,7 +163,9 @@ export default function CartScreen() {
                 />
               </View>
             ) : (
-              <Text style={styles.meta}>{t("cart.digitalQtyFixed")}</Text>
+              <Text style={[styles.meta, { textAlign, writingDirection }]}>
+                {t("cart.digitalQtyFixed")}
+              </Text>
             )}
             <PrimaryButton
               label={t("cart.remove")}
@@ -186,16 +198,18 @@ export default function CartScreen() {
       ) : null}
       {couponMsg ? <Text style={styles.couponMsg}>{couponMsg}</Text> : null}
 
-      <Text style={styles.subtotal}>
+      <Text style={[styles.subtotal, { textAlign, writingDirection }]}>
         {t("cart.subtotal")}: {displaySubtotal.toFixed(2)} EGP
       </Text>
       {couponDiscount > 0 ? (
-        <Text style={styles.discount}>
+        <Text style={[styles.discount, { textAlign, writingDirection }]}>
           {t("cart.discount")}: −{couponDiscount.toFixed(2)} EGP
         </Text>
       ) : null}
-      <Text style={styles.shippingHint}>{t("cart.shippingAtCheckout")}</Text>
-      <Text style={styles.total}>
+      <Text style={[styles.shippingHint, { textAlign, writingDirection }]}>
+        {t("cart.shippingAtCheckout")}
+      </Text>
+      <Text style={[styles.total, { textAlign, writingDirection }]}>
         {t("cart.total")}: {total.toFixed(2)} EGP
       </Text>
       <PrimaryButton
@@ -227,7 +241,7 @@ const styles = StyleSheet.create({
   name: { fontWeight: "700", marginBottom: 4 },
   meta: { color: "#666", marginBottom: 2 },
   lineTotal: { fontWeight: "700" },
-  qtyRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  qtyRow: { alignItems: "center", gap: 8 },
   qtyBtn: { paddingVertical: 8, paddingHorizontal: 14 },
   qty: { minWidth: 24, textAlign: "center", fontWeight: "700" },
   removeBtn: { paddingVertical: 10 },

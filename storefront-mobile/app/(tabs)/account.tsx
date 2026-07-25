@@ -4,11 +4,13 @@ import { Link, useRouter } from "expo-router";
 import { fetchRewardPoints } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
 import { PrimaryButton, Screen } from "../../src/components/ui";
+import { useRtl } from "../../src/lib/rtl";
 
 export default function AccountScreen() {
   const { t, token, displayName, signOut, locale, setLocale, accent, settings } =
     useApp();
   const router = useRouter();
+  const { row, textAlign, writingDirection } = useRtl();
   const [points, setPoints] = useState<number | null>(null);
 
   const loadPoints = useCallback(async () => {
@@ -33,11 +35,11 @@ export default function AccountScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>
+      <Text style={[styles.title, { textAlign, writingDirection }]}>
         {token ? displayName || t("nav.account") : t("account.guest")}
       </Text>
 
-      <View style={styles.langRow}>
+      <View style={[styles.langRow, { flexDirection: row }]}>
         <Pressable
           style={{
             ...styles.lang,
@@ -70,7 +72,10 @@ export default function AccountScreen() {
             onPress={() => router.push("/register")}
           />
           <View style={{ height: 10 }} />
-          <Link href="/forgot-password" style={styles.link}>
+          <Link
+            href="/forgot-password"
+            style={[styles.link, { textAlign, writingDirection }]}
+          >
             {t("auth.forgotPassword")}
           </Link>
         </>
@@ -78,8 +83,16 @@ export default function AccountScreen() {
         <>
           {points != null && settings?.reward_points?.enabled !== false ? (
             <View style={styles.pointsCard}>
-              <Text style={styles.pointsLabel}>{t("account.rewardPoints")}</Text>
-              <Text style={styles.pointsValue}>{points}</Text>
+              <Text
+                style={[styles.pointsLabel, { textAlign, writingDirection }]}
+              >
+                {t("account.rewardPoints")}
+              </Text>
+              <Text
+                style={[styles.pointsValue, { textAlign, writingDirection }]}
+              >
+                {points}
+              </Text>
             </View>
           ) : null}
           <PrimaryButton
@@ -98,31 +111,13 @@ export default function AccountScreen() {
           />
         </>
       )}
-
-      <View style={styles.links}>
-        {[
-          ["/stores", t("common.stores")],
-          ["/contact", t("common.contact")],
-          ["/repair-status", t("common.repair")],
-          ["/gift-cards", t("common.giftCards")],
-          ["/about", t("common.about")],
-          ["/faq", t("common.faq")],
-          ["/legal/terms", t("legal.terms")],
-          ["/legal/privacy", t("legal.privacy")],
-          ["/legal/return", t("legal.return")],
-        ].map(([href, label]) => (
-          <Link key={href} href={href as `/stores`} style={styles.link}>
-            {label}
-          </Link>
-        ))}
-      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "800", marginBottom: 16 },
-  langRow: { flexDirection: "row", gap: 8, marginBottom: 16 },
+  langRow: { gap: 8, marginBottom: 16 },
   lang: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -138,6 +133,5 @@ const styles = StyleSheet.create({
   },
   pointsLabel: { color: "#666", marginBottom: 4 },
   pointsValue: { fontSize: 28, fontWeight: "800" },
-  links: { marginTop: 24, gap: 10 },
   link: { fontSize: 16, color: "#222", paddingVertical: 4 },
 });

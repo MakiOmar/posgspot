@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { useRtl } from "../lib/rtl";
 
 type Props = TextInputProps & {
   label: string;
@@ -7,11 +8,24 @@ type Props = TextInputProps & {
 
 /** Labeled text field used on cart/checkout forms. */
 export function LabeledInput({ label, hint, style, ...rest }: Props) {
+  const { textAlign, writingDirection } = useRtl();
   return (
     <View style={styles.wrap}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
-      <TextInput style={[styles.input, style]} placeholderTextColor="#999" {...rest} />
-      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+      {label ? (
+        <Text style={[styles.label, { textAlign, writingDirection }]}>
+          {label}
+        </Text>
+      ) : null}
+      <TextInput
+        style={[styles.input, { textAlign, writingDirection }, style]}
+        placeholderTextColor="#999"
+        {...rest}
+      />
+      {hint ? (
+        <Text style={[styles.hint, { textAlign, writingDirection }]}>
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
 }

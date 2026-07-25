@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-07-25 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Splash rings fixed; cart/checkout labels + country/state parity |
+| **Overall** | Nav drawer + searchable geo selects; Arabic RTL polish |
 
 **Status legend:** Done · Partial · Not started
 
@@ -33,6 +33,9 @@
 | Wave 1 — Checkout rates / pickup / digital / points / totals | Done |
 | Wave 2 — Profile, rewards, reorder/invoice, forgot/reset password | Done |
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done |
+| Header nav drawer (menu + categories + language) | Done |
+| Searchable country/state/district selects | Done |
+| Arabic RTL layout (header, forms, screens) | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -52,3 +55,6 @@
 | 2026-07-24 | Wave 2: account profile, reward points, order reorder+invoice, forgot/reset password. |
 | 2026-07-25 | Splash: nested opposite arcs around logo via Modal (no leak after dismiss). |
 | 2026-07-25 | Homepage: all section types (promo/trust/shelves); category banners with overlay kicker/title/FG/CTA. |
+| 2026-07-25 | Nav drawer (menu/categories/lang); searchable geo selects; Arabic RTL; account nav links removed. |
+| 2026-07-25 | PDP: fixed faded bottom bar with qty beside add-to-cart / availability. |
+| 2026-07-25 | PDP: floating share + wishlist chips on gallery (RTL-aware end side). |
