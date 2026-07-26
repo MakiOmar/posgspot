@@ -235,6 +235,7 @@ class InstallmentCreditUtil
             if ($existing->status === 'settled') {
                 return $existing;
             }
+            $was_cancelled = $existing->status === 'cancelled';
             $existing->transaction_payment_id = $payment->id;
             $existing->due_amount = $payment->amount;
             $existing->invoice_no = $transaction->invoice_no;
@@ -242,9 +243,12 @@ class InstallmentCreditUtil
             $existing->invoice_date = $invoice_date;
             $existing->due_date = $due_date;
             $existing->status = 'pending';
-            $existing->booked_settled_amount = 0;
-            $existing->actual_received_amount = 0;
-            $existing->settled_on = null;
+            // Only clear settlement progress when reviving a cancelled row
+            if ($was_cancelled) {
+                $existing->booked_settled_amount = 0;
+                $existing->actual_received_amount = 0;
+                $existing->settled_on = null;
+            }
             $existing->save();
 
             return $existing;
@@ -264,6 +268,75 @@ class InstallmentCreditUtil
             'actual_received_amount' => 0,
             'status' => 'pending',
         ]);
+    }
+
+    /**
+     * Reconcile installment receivables with current BNPL payment lines on a sell.
+     * Call after createOrUpdatePaymentLines so sale edits revive cancelled rows and
+     * update amounts/payment ids even when TransactionPaymentAdded did not fire.
+     *
+     * @return list<InstallmentReceivable>
+     */
+    public function syncReceivablesForSellTransaction($transaction): array
+    {
+        if (! $this->isInstalled()) {
+            return [];
+        }
+
+        if (! is_object($transaction)) {
+            $transaction = Transaction::find($transaction);
+        }
+
+        if (empty($transaction) || $transaction->type !== 'sell' || $transaction->status === 'draft') {
+            return [];
+        }
+
+        $business_id = (int) $transaction->business_id;
+        $transaction->loadMissing('payment_lines');
+
+        $active_company_ids = [];
+        $synced = [];
+
+        foreach ($transaction->payment_lines as $payment) {
+            if (! empty($payment->is_return)) {
+                continue;
+            }
+            if (empty($payment->business_id)) {
+                $payment->business_id = $business_id;
+            }
+
+            $company = InstallmentCompany::findByPaymentMethod($business_id, $payment->method);
+            if (! $company) {
+                continue;
+            }
+
+            $active_company_ids[] = (int) $company->id;
+            $recv = $this->createReceivableFromPayment($payment, $transaction);
+            if ($recv) {
+                $synced[] = $recv;
+            }
+        }
+
+        $active_company_ids = array_values(array_unique($active_company_ids));
+
+        // Cancel pending (unsettled) receivables for companies no longer on this invoice.
+        $orphanQuery = InstallmentReceivable::where('business_id', $business_id)
+            ->where('transaction_id', $transaction->id)
+            ->where('status', 'pending');
+
+        if (! empty($active_company_ids)) {
+            $orphanQuery->whereNotIn('company_id', $active_company_ids);
+        }
+
+        foreach ($orphanQuery->get() as $recv) {
+            if ((float) $recv->booked_settled_amount > 0) {
+                continue;
+            }
+            $recv->status = 'cancelled';
+            $recv->save();
+        }
+
+        return $synced;
     }
 
     /**

@@ -860,6 +860,20 @@ class TransactionUtil extends Util
             }
         }
 
+        // Installment Credit: after payment lines settle, sync BNPL receivables
+        // (revives cancelled rows after sale edit; updates amounts when payment_id kept).
+        if ($transaction->type === 'sell' && $transaction->status !== 'draft') {
+            try {
+                $moduleUtil = new ModuleUtil();
+                if ($moduleUtil->isModuleInstalled('InstallmentCredit')) {
+                    (new \Modules\InstallmentCredit\Utils\InstallmentCreditUtil())
+                        ->syncReceivablesForSellTransaction($transaction->fresh(['payment_lines']));
+                }
+            } catch (\Throwable $e) {
+                \Log::error('InstallmentCredit syncReceivablesForSellTransaction: '.$e->getMessage());
+            }
+        }
+
         return true;
     }
 

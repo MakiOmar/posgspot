@@ -99,6 +99,17 @@ On each company (edit under **Installment Companies**), set **Default deposit ac
 
 **Do not** use InstaPay / Vodafone Cash / Wallet for BNPL company sales — those are different payment methods.
 
+### Editing a BNPL sale
+
+If you **edit** a completed sale (change amount, payment method, or re-save payments):
+
+- Pending receivables are **synced** to the current installment payment lines.
+- A receivable that was cancelled when an old payment line was removed is **revived** when the company payment is still (or again) on the invoice.
+- Amounts and the linked payment id are updated to match the sale.
+- If the company payment is removed entirely, the unsettled pending receivable is cancelled (settled history is left alone).
+
+You should not need a manual import just because a sale was edited.
+
 ---
 
 ## Daily use — accounts / admin
@@ -221,6 +232,9 @@ That is a normal payment (cashbook immediately). It will **not** create an insta
 
 **Can one invoice use two companies?**  
 Yes — two payment lines → two receivables for the same invoice number.
+
+**Pending receivable disappeared after editing the sale?**  
+Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once.
 
 **Where is “Companies”?**  
 In the sidebar it is labeled **Installment Companies** (under **Installment Credit**).
