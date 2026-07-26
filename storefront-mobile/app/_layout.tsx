@@ -71,8 +71,12 @@ export default function RootLayout() {
                 <Stack.Screen name="gift-cards/index" options={{ title: "Gift cards" }} />
                 <Stack.Screen name="checkout/index" options={{ title: "Checkout" }} />
                 <Stack.Screen name="checkout/payment" options={{ title: "Payment" }} />
-                <Stack.Screen name="login" options={{ title: "Login" }} />
+                <Stack.Screen name="login" options={{ title: "Sign In" }} />
                 <Stack.Screen name="register" options={{ title: "Register" }} />
+                <Stack.Screen
+                  name="verify-email"
+                  options={{ title: "Verify email" }}
+                />
                 <Stack.Screen
                   name="forgot-password"
                   options={{ title: "Forgot password" }}
@@ -82,7 +86,22 @@ export default function RootLayout() {
                   options={{ title: "Reset password" }}
                 />
                 <Stack.Screen name="wishlist" options={{ title: "Wishlist" }} />
-                <Stack.Screen name="account/profile" options={{ title: "Profile" }} />
+                <Stack.Screen
+                  name="account/profile"
+                  options={{ title: "Personal Info" }}
+                />
+                <Stack.Screen
+                  name="account/password"
+                  options={{ title: "Change password" }}
+                />
+                <Stack.Screen
+                  name="account/address"
+                  options={{ title: "My Address" }}
+                />
+                <Stack.Screen
+                  name="account/rewards"
+                  options={{ title: "Reward Points" }}
+                />
                 <Stack.Screen name="account/orders/index" options={{ title: "Orders" }} />
                 <Stack.Screen name="account/orders/[id]" options={{ title: "Order" }} />
                 <Stack.Screen name="stores" options={{ title: "Stores" }} />

@@ -64,6 +64,9 @@ interface AppContextValue {
   contact: AuthContact | null;
   displayName: string;
   refreshSettings: () => Promise<void>;
+  refreshContact: () => Promise<void>;
+  applySession: (session: AuthSession) => Promise<void>;
+  updateContactLocal: (contact: AuthContact) => Promise<void>;
   signIn: (loginId: string, password: string) => Promise<void>;
   signUp: (body: Record<string, unknown>) => Promise<void>;
   signOut: () => Promise<void>;
@@ -102,7 +105,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (stored && !cancelled) {
           setSession(stored);
           try {
-            await fetchProfile(stored.token);
+            const { data } = await fetchProfile(stored.token);
+            const next = { ...stored, contact: data };
+            await saveAuthSession(next);
+            if (!cancelled) {
+              setSession(next);
+            }
           } catch {
             await clearAuthSession();
             if (!cancelled) {
@@ -159,6 +167,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .catch(() => undefined);
   }, [session?.token, locale]);
 
+  const applySession = useCallback(async (next: AuthSession) => {
+    await saveAuthSession(next);
+    setSession(next);
+  }, []);
+
+  const updateContactLocal = useCallback(
+    async (contact: AuthContact) => {
+      if (!session?.token) return;
+      const next = { ...session, contact };
+      await saveAuthSession(next);
+      setSession(next);
+    },
+    [session],
+  );
+
+  const refreshContact = useCallback(async () => {
+    if (!session?.token) return;
+    const { data } = await fetchProfile(session.token);
+    const next = { ...session, contact: data };
+    await saveAuthSession(next);
+    setSession(next);
+  }, [session]);
+
   const signIn = useCallback(async (loginId: string, password: string) => {
     const { data } = await apiLogin(loginId, password);
     await saveAuthSession(data);
@@ -204,6 +235,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       contact: session?.contact ?? null,
       displayName: contactDisplayName(session?.contact),
       refreshSettings,
+      refreshContact,
+      applySession,
+      updateContactLocal,
       signIn,
       signUp,
       signOut,
@@ -216,6 +250,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loading,
       session,
       refreshSettings,
+      refreshContact,
+      applySession,
+      updateContactLocal,
       signIn,
       signUp,
       signOut,

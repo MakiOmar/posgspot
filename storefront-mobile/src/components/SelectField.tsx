@@ -87,14 +87,15 @@ export function SelectField({
             </Text>
             {searchable ? (
               <TextInput
-                style={[styles.search, { textAlign, writingDirection }]}
+                style={[styles.search, { textAlign, writingDirection, color: "#111" }]}
                 value={query}
                 onChangeText={setQuery}
                 placeholder={t("forms.search")}
-                placeholderTextColor="#999"
+                placeholderTextColor="#888"
                 autoFocus
                 autoCapitalize="none"
                 clearButtonMode="while-editing"
+                underlineColorAndroid="transparent"
               />
             ) : null}
             <FlatList

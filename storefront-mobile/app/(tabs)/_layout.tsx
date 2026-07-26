@@ -78,7 +78,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: t("nav.account"),
+          title: t("account.title"),
           tabBarIcon: ({ color }) => (
             <TabIcon name="user" color={String(color)} />
           ),

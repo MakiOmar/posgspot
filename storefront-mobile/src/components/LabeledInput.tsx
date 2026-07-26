@@ -1,13 +1,18 @@
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { StyleSheet, Text, View, type TextInputProps } from "react-native";
 import { useRtl } from "../lib/rtl";
+import { FormTextInput } from "./FormTextInput";
 
 type Props = TextInputProps & {
-  label: string;
+  /** Visible label above the field (preferred). */
+  label?: string;
   hint?: string;
 };
 
-/** Labeled text field used on cart/checkout forms. */
-export function LabeledInput({ label, hint, style, ...rest }: Props) {
+/**
+ * Form field with label and/or placeholder.
+ * Always uses FormTextInput so typed text stays dark on white backgrounds.
+ */
+export function LabeledInput({ label, hint, style, placeholder, ...rest }: Props) {
   const { textAlign, writingDirection } = useRtl();
   return (
     <View style={styles.wrap}>
@@ -16,9 +21,9 @@ export function LabeledInput({ label, hint, style, ...rest }: Props) {
           {label}
         </Text>
       ) : null}
-      <TextInput
-        style={[styles.input, { textAlign, writingDirection }, style]}
-        placeholderTextColor="#999"
+      <FormTextInput
+        style={style}
+        placeholder={placeholder || label || undefined}
         {...rest}
       />
       {hint ? (
@@ -31,17 +36,7 @@ export function LabeledInput({ label, hint, style, ...rest }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: 10 },
-  label: { fontWeight: "700", marginBottom: 6, color: "#222" },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: "#111",
-  },
+  wrap: { marginBottom: 12 },
+  label: { fontWeight: "700", marginBottom: 6, color: "#222", fontSize: 14 },
   hint: { marginTop: 4, color: "#666", fontSize: 12 },
 });

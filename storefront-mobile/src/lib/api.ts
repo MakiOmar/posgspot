@@ -446,6 +446,67 @@ export function updateProfile(
   });
 }
 
+export function updateAddress(
+  token: string,
+  payload: Record<string, unknown>,
+) {
+  return storefrontFetch<AuthContact>("/account/address", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function verifyEmail(
+  payload: { code: string; email?: string },
+  token?: string | null,
+) {
+  return storefrontFetch<{ message: string; contact: AuthContact }>(
+    "/auth/email/verify",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function resendEmailVerification(
+  payload: { email?: string } = {},
+  token?: string | null,
+) {
+  return storefrontFetch<{ message: string }>("/auth/email/resend", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function changePassword(
+  token: string,
+  payload: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  },
+) {
+  return storefrontFetch<AuthSession>("/account/password", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function requestAccountDeletion(token: string) {
+  return storefrontFetch<{ message: string; contact: AuthContact }>(
+    "/account/delete-request",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export function forgotPassword(email: string) {
   return storefrontFetch<{ message: string }>("/auth/forgot-password", {
     method: "POST",

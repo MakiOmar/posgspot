@@ -97,14 +97,15 @@ export function StorefrontHeader({
             <FontAwesome name="search" size={16} color="#888" />
             {onSearchChange != null ? (
               <TextInput
-                style={[styles.searchInput, { textAlign, writingDirection }]}
+                style={[styles.searchInput, { textAlign, writingDirection, color: "#111" }]}
                 value={searchValue}
                 onChangeText={onSearchChange}
                 placeholder={t("home.searchProducts")}
-                placeholderTextColor="#999"
+                placeholderTextColor="#888"
                 returnKeyType="search"
                 onSubmitEditing={onSearchSubmit}
                 autoCapitalize="none"
+                underlineColorAndroid="transparent"
               />
             ) : (
               <Text
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  searchInput: { flex: 1, fontSize: 15, color: "#222", padding: 0 },
+  searchInput: { flex: 1, fontSize: 15, color: "#111", padding: 0 },
   searchPlaceholder: { flex: 1, fontSize: 15, color: "#999" },
   filterBtn: {
     width: 48,

@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-25 |
+| **Last updated** | 2026-07-26 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Checkout always sends fulfillment location_id |
+| **Overall** | Account hub redesign + email verification |
 
 **Status legend:** Done · Partial · Not started
 
@@ -45,6 +45,10 @@
 | Search pagination via `/products?q=` | Done |
 | Toast feedback (success/error vs Alert) | Done |
 | Checkout sends required `location_id` | Done |
+| Account hub UI (menu rows, avatar) | Done |
+| Email verification OTP (API + mobile) | Done |
+| Change password + delete request | Done |
+| My Address + dedicated Reward Points screens | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -71,3 +75,4 @@
 | 2026-07-25 | Global maintenance gate; expo-image; home fetch pool + FlatList rails; search pagination. |
 | 2026-07-25 | Toast host + imperative API; success/error Alert.alert replaced across shop flows. |
 | 2026-07-25 | Checkout: always load selling location and send required `location_id` (not only for pickup). |
+| 2026-07-26 | Account hub redesign; email OTP verify; change password; delete request; address + rewards screens. |

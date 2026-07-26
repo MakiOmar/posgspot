@@ -9,7 +9,6 @@ import {
   Share,
   StyleSheet,
   Text,
-  TextInput,
   View,
   Platform,
 } from "react-native";
@@ -28,6 +27,7 @@ import { useWishlist } from "../../src/contexts/WishlistContext";
 import { AvailabilityModal } from "../../src/components/catalog/AvailabilityModal";
 import { ProductCard } from "../../src/components/catalog/ProductCard";
 import { StarRating } from "../../src/components/catalog/StarRating";
+import { LabeledInput } from "../../src/components/LabeledInput";
 import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
@@ -475,21 +475,17 @@ export default function ProductScreen() {
                     </Pressable>
                   ))}
                 </View>
-                <TextInput
-                  style={[styles.input, { textAlign, writingDirection }]}
-                  placeholder={t("reviews.titlePlaceholder")}
+                <LabeledInput
+                  label={t("reviews.titlePlaceholder")}
                   value={reviewTitle}
                   onChangeText={setReviewTitle}
                 />
-                <TextInput
-                  style={[
-                    styles.input,
-                    { height: 90, textAlignVertical: "top", textAlign, writingDirection },
-                  ]}
-                  placeholder={t("reviews.bodyPlaceholder")}
+                <LabeledInput
+                  label={t("reviews.bodyPlaceholder")}
                   value={reviewBody}
                   onChangeText={setReviewBody}
                   multiline
+                  style={{ height: 90, textAlignVertical: "top" }}
                 />
                 <PrimaryButton
                   label={reviewBusy ? t("common.loading") : t("reviews.submit")}

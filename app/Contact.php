@@ -28,6 +28,9 @@ class Contact extends Authenticatable
      */
     protected $casts = [
         'shipping_custom_field_details' => 'array',
+        'email_verified_at' => 'datetime',
+        'email_verify_expires_at' => 'datetime',
+        'storefront_delete_requested_at' => 'datetime',
     ];
 
     /**

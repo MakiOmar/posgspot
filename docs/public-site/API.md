@@ -152,19 +152,23 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/auth/register` | Register customer. Optional `turnstile_token` when Turnstile is enabled in storefront settings |
-| POST | `/auth/login` | Login |
+| POST | `/auth/register` | Register customer (`email` + password required; `mobile` optional). Sends email verification OTP. Optional `turnstile_token` when Turnstile is enabled in storefront settings. Response contact includes `email_verified` |
+| POST | `/auth/login` | Login (`login` = email or mobile) |
 | POST | `/auth/logout` | Logout (auth required) |
 | POST | `/auth/forgot-password` | Request reset (email contains link to `{STOREFRONT_URL}/reset-password?email=&token=`) |
 | POST | `/auth/reset-password` | Reset password (`email`, `token`, `password`, `password_confirmation`) |
+| POST | `/auth/email/verify` | Verify email OTP (`code` required; `email` required unless Bearer token present). Sets `email_verified` |
+| POST | `/auth/email/resend` | Resend verification OTP (rate-limited; `email` or Bearer). No account enumeration |
 
 ## Account (auth required)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/account/profile` | Profile |
-| PUT | `/account/profile` | Update profile |
-| PUT | `/account/address` | Update address |
+| GET | `/account/profile` | Profile (`email_verified`, `delete_requested`, address fields) |
+| PUT | `/account/profile` | Update profile (changing email clears verification and sends a new OTP) |
+| PUT | `/account/password` | Change password (`current_password`, `password`, `password_confirmation`). Revokes prior tokens; returns new `token` |
+| POST | `/account/delete-request` | Request account deletion (sets `storefront_delete_requested_at`; does not hard-delete) |
+| PUT | `/account/address` | Update single shipping address |
 | GET | `/account/orders` | Order history |
 | GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated **and** storefront setting `digital.expose_credentials_to_customer` is on, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). When that setting is off, secrets stay on POS staff note only. Response includes `is_quotation` when checkout created a draft quotation (`digital.pos_document_type=quotation`). |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |

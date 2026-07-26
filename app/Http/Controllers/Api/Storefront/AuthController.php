@@ -3,16 +3,17 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Contact;
+use App\Mail\StorefrontPasswordReset;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
-use App\Mail\StorefrontPasswordReset;
-use Illuminate\Support\Facades\Log;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends StorefrontController
 {
@@ -29,7 +30,7 @@ class AuthController extends StorefrontController
             'first_name' => 'required|string|max:191',
             'last_name' => 'nullable|string|max:191',
             'email' => 'required|email|max:191',
-            'mobile' => 'required|string|max:20',
+            'mobile' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
             'dial_code' => 'nullable|string|max:6',
             'turnstile_token' => 'nullable|string',
@@ -41,10 +42,17 @@ class AuthController extends StorefrontController
             return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
         }
 
-        $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['mobile']);
-        $phoneCheck = $this->phoneValidation->validate($data['mobile'], $dialCode);
-        if (! $phoneCheck['valid']) {
-            return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
+        $mobile = isset($data['mobile']) ? trim((string) $data['mobile']) : '';
+        if ($mobile !== '') {
+            $dialCode = $data['dial_code'] ?? $this->inferDialCode($mobile);
+            $phoneCheck = $this->phoneValidation->validate($mobile, $dialCode);
+            if (! $phoneCheck['valid']) {
+                return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
+            }
+            $data['mobile'] = $mobile;
+            $data['dial_code'] = $dialCode;
+        } else {
+            unset($data['mobile']);
         }
 
         $result = $this->authService->register($businessId, $data);
@@ -83,6 +91,66 @@ class AuthController extends StorefrontController
         return $this->jsonSuccess(['message' => 'Logged out.']);
     }
 
+    public function verifyEmail(Request $request)
+    {
+        $data = $request->validate([
+            'code' => 'required|string|size:6',
+            'email' => 'nullable|email|max:191',
+        ]);
+
+        $contact = $this->authService->verifyEmailCode(
+            $this->businessId($request),
+            $data['code'],
+            $this->optionalSanctumContact($request),
+            $data['email'] ?? null
+        );
+
+        return $this->jsonSuccess([
+            'message' => 'Email verified.',
+            'contact' => $this->authService->formatContact($contact),
+        ]);
+    }
+
+    public function resendEmailVerification(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'nullable|email|max:191',
+        ]);
+
+        $businessId = $this->businessId($request);
+        $contact = $this->optionalSanctumContact($request);
+        if (! $contact) {
+            if (empty($data['email'])) {
+                return $this->jsonError('Email is required.', 422, ['email' => ['Email is required.']]);
+            }
+            $contact = Contact::where('business_id', $businessId)
+                ->whereIn('type', ['customer', 'both'])
+                ->where('email', $data['email'])
+                ->first();
+        }
+
+        // Avoid account enumeration for public resend.
+        if ($contact && empty($contact->email_verified_at)) {
+            $this->authService->issueEmailVerificationCode($contact);
+        }
+
+        return $this->jsonSuccess(['message' => 'If verification is needed, a new code has been sent.']);
+    }
+
+    private function optionalSanctumContact(Request $request): ?Contact
+    {
+        $bearer = $request->bearerToken();
+        if (! $bearer) {
+            return null;
+        }
+        $accessToken = PersonalAccessToken::findToken($bearer);
+        if (! $accessToken || ! ($accessToken->tokenable instanceof Contact)) {
+            return null;
+        }
+
+        return $accessToken->tokenable;
+    }
+
     public function forgotPassword(Request $request)
     {
         $data = $request->validate(['email' => 'required|email']);
@@ -102,7 +170,6 @@ class AuthController extends StorefrontController
             try {
                 Mail::to($contact->email)->queue(new StorefrontPasswordReset($contact, $token));
             } catch (\Throwable $e) {
-                // Never fail the public response (no account enumeration); log for operators.
                 Log::warning('Storefront password reset email failed.', [
                     'contact_id' => $contact->id,
                     'error' => $e->getMessage(),

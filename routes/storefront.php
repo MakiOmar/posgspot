@@ -83,6 +83,8 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
         Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+        Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
+        Route::post('/email/resend', [AuthController::class, 'resendEmailVerification']);
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
@@ -102,6 +104,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::middleware('auth:sanctum')->prefix('account')->group(function () {
         Route::get('/profile', [AccountController::class, 'profile']);
         Route::put('/profile', [AccountController::class, 'updateProfile']);
+        Route::put('/password', [AccountController::class, 'updatePassword']);
+        Route::post('/delete-request', [AccountController::class, 'requestDeletion']);
         Route::put('/address', [AccountController::class, 'updateAddress']);
         Route::get('/orders', [AccountController::class, 'orders']);
         Route::get('/orders/{orderId}', [AccountController::class, 'orderDetail']);

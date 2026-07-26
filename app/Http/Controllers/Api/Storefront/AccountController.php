@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Contact;
+use App\Mail\StorefrontAccountDeleteRequest;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
+use App\Services\Storefront\ContactDuplicateService;
 use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\RewardPointsService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AccountController extends StorefrontController
 {
@@ -15,7 +19,8 @@ class AccountController extends StorefrontController
         private CustomerAuthService $authService,
         private CheckoutService $checkoutService,
         private RewardPointsService $rewardPointsService,
-        private PhoneValidationService $phoneValidation
+        private PhoneValidationService $phoneValidation,
+        private ContactDuplicateService $duplicates
     ) {
     }
 
@@ -44,13 +49,79 @@ class AccountController extends StorefrontController
 
         /** @var Contact $contact */
         $contact = $request->user();
+        $businessId = $this->businessId($request);
+        $emailChanged = false;
+
+        if (! empty($data['email']) && strcasecmp((string) $data['email'], (string) $contact->email) !== 0) {
+            if ($this->duplicates->findCustomerByEmail($businessId, $data['email'])) {
+                return $this->jsonError('Email already registered.', 422, ['email' => ['Email already registered.']]);
+            }
+            $emailChanged = true;
+        }
+
         $contact->fill($data);
         if (! empty($data['first_name']) || ! empty($data['last_name'])) {
             $contact->name = trim(($data['first_name'] ?? $contact->first_name).' '.($data['last_name'] ?? $contact->last_name));
         }
         $contact->save();
 
-        return $this->jsonSuccess($this->authService->formatContact($contact));
+        if ($emailChanged) {
+            $this->authService->issueEmailVerificationCode($contact->fresh(), true);
+        }
+
+        return $this->jsonSuccess($this->authService->formatContact($contact->fresh()));
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $data = $request->validate([
+            'current_password' => 'required|string',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $token = $this->authService->changePasswordAndIssueToken(
+            $contact,
+            $data['current_password'],
+            $data['password']
+        );
+
+        return $this->jsonSuccess([
+            'message' => 'Password updated.',
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'contact' => $this->authService->formatContact($contact->fresh()),
+        ]);
+    }
+
+    public function requestDeletion(Request $request)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        if (empty($contact->storefront_delete_requested_at)) {
+            $contact->storefront_delete_requested_at = now();
+            $contact->save();
+
+            try {
+                $to = config('mail.from.address');
+                if ($to) {
+                    Mail::to($to)->queue(new StorefrontAccountDeleteRequest($contact));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Storefront delete-request email failed.', [
+                    'contact_id' => $contact->id,
+                    'error' => $e->getMessage(),
+                ]);
+                report($e);
+            }
+        }
+
+        return $this->jsonSuccess([
+            'message' => 'Deletion request recorded. Our team will process it.',
+            'contact' => $this->authService->formatContact($contact->fresh()),
+        ]);
     }
 
     public function orders(Request $request)

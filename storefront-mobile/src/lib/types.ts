@@ -21,13 +21,19 @@ export interface AuthContact {
   name?: string;
   email?: string;
   mobile?: string;
+  email_verified?: boolean;
+  delete_requested?: boolean;
+  address_line_1?: string;
+  address_line_2?: string;
   country?: string;
   state?: string;
   city?: string;
+  zip_code?: string;
 }
 
 export interface AuthSession {
   token: string;
+  token_type?: string;
   contact: AuthContact;
 }
 

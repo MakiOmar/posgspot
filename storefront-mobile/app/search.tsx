@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TextInput } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet } from "react-native";
 import { useApp } from "../src/contexts/AppContext";
 import { ProductListToolbar } from "../src/components/catalog/ProductListToolbar";
+import { FormTextInput } from "../src/components/FormTextInput";
 import { ErrorBlock, ProductCard, Screen } from "../src/components/ui";
 import { useProductList } from "../src/lib/use-product-list";
 
@@ -12,7 +13,7 @@ export default function SearchScreen() {
 
   return (
     <Screen>
-      <TextInput
+      <FormTextInput
         style={styles.input}
         placeholder={t("common.search")}
         value={q}
@@ -50,15 +51,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 12,
-  },
+  input: { marginBottom: 12 },
   list: { flex: 1 },
   grid: { justifyContent: "space-between" },
 });

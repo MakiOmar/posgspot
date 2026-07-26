@@ -1,10 +1,11 @@
 import { Stack } from "expo-router";
-import { ActivityIndicator, FlatList, StyleSheet, TextInput, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { useState } from "react";
 import { useApp } from "../../src/contexts/AppContext";
 import {
   ProductListToolbar,
 } from "../../src/components/catalog/ProductListToolbar";
+import { FormTextInput } from "../../src/components/FormTextInput";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -21,15 +22,12 @@ export default function ProductsIndexScreen() {
   return (
     <Screen>
       <Stack.Screen options={{ title: t("nav.shop") }} />
-      <TextInput
+      <FormTextInput
         value={q}
         onChangeText={setQ}
         placeholder={t("common.search")}
         style={styles.input}
         autoCapitalize="none"
-        onSubmitEditing={() => {
-          // local filter for quick find within loaded set; toolbar drives API
-        }}
       />
       <ProductListToolbar
         sort={list.sort}
@@ -67,15 +65,7 @@ export default function ProductsIndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-  },
+  input: { marginBottom: 12 },
   list: { flex: 1 },
   grid: { justifyContent: "space-between" },
 });

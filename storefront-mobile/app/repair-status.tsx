@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { repairStatus } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
+import { LabeledInput } from "../src/components/LabeledInput";
 import { PrimaryButton, Screen } from "../src/components/ui";
 
 type RepairRow = {
@@ -62,9 +63,8 @@ export default function RepairStatusScreen() {
           );
         })}
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder={t("repair.searchPlaceholder")}
+      <LabeledInput
+        label={t("repair.searchPlaceholder")}
         value={searchNumber}
         onChangeText={setSearchNumber}
       />
@@ -137,15 +137,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   chipText: { fontWeight: "600" },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 10,
-  },
   message: { marginTop: 12, color: "#666" },
   card: {
     backgroundColor: "#fff",

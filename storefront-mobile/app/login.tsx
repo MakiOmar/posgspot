@@ -1,65 +1,89 @@
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
-import { Link, useRouter } from "expo-router";
+import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useApp } from "../src/contexts/AppContext";
-import { PrimaryButton, Screen } from "../src/components/ui";
+import {
+  AuthScreenShell,
+  authFieldStyles as styles,
+} from "../src/components/auth/AuthScreenShell";
+import { LabeledInput } from "../src/components/LabeledInput";
+import { PrimaryButton } from "../src/components/ui";
+import { useRtl } from "../src/lib/rtl";
 
 export default function LoginScreen() {
-  const { t, signIn } = useApp();
+  const { t, signIn, accent } = useApp();
   const router = useRouter();
+  const { textAlign, writingDirection } = useRtl();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   return (
-    <Screen>
-      <TextInput
-        style={styles.input}
-        placeholder={t("auth.emailOrMobile")}
+    <AuthScreenShell
+      title={t("auth.signIn")}
+      footer={
+        <View style={{ alignItems: "center", gap: 12, width: "100%" }}>
+          <Text style={[styles.link, { textAlign, writingDirection }]}>
+            {t("auth.noAccount")}{" "}
+            <Text
+              style={[styles.linkAccent, { color: accent }]}
+              onPress={() => router.push("/register")}
+            >
+              {t("auth.registerNow")}
+            </Text>
+          </Text>
+          <PrimaryButton
+            label={t("auth.createAccount")}
+            onPress={() => router.push("/register")}
+            style={{ alignSelf: "stretch" }}
+          />
+        </View>
+      }
+    >
+      <LabeledInput
+        label={t("auth.emailOrMobile")}
         value={loginId}
         onChangeText={setLoginId}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
-      <TextInput
-        style={styles.input}
-        placeholder={t("auth.password")}
+      <LabeledInput
+        label={t("auth.password")}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
       />
+      <Pressable
+        style={styles.linkRow}
+        onPress={() => router.push("/forgot-password")}
+      >
+        <Text
+          style={[
+            styles.link,
+            { textAlign: "right", writingDirection, color: accent },
+          ]}
+        >
+          {t("auth.forgotPassword")}
+        </Text>
+      </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton
-        label={busy ? t("common.loading") : t("common.login")}
+        label={busy ? t("common.loading") : t("auth.login")}
         disabled={busy}
         onPress={() => {
           setBusy(true);
           setError(null);
           void signIn(loginId.trim(), password)
-            .then(() => router.replace("/(tabs)/account"))
+            .then(() => {
+              router.replace("/(tabs)/account");
+            })
             .catch((e) =>
               setError(e instanceof Error ? e.message : t("common.error")),
             )
             .finally(() => setBusy(false));
         }}
       />
-      <View style={{ height: 12 }} />
-      <Link href="/forgot-password">{t("auth.forgotPassword")}</Link>
-      <View style={{ height: 8 }} />
-      <Link href="/register">{t("common.register")}</Link>
-    </Screen>
+    </AuthScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    marginBottom: 10,
-  },
-  error: { color: "#B00020", marginBottom: 8 },
-});
