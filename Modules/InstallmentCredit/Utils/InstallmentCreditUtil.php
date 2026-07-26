@@ -452,6 +452,173 @@ class InstallmentCreditUtil
         });
     }
 
+    /**
+     * Undo receivable amounts and linked account postings for a settlement.
+     * Optionally delete the settlement row (lines cascade).
+     */
+    public function reverseSettlement(InstallmentSettlement $settlement, bool $delete = true)
+    {
+        return DB::transaction(function () use ($settlement, $delete) {
+            $settlement = InstallmentSettlement::with('lines')
+                ->where('id', $settlement->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            foreach ($settlement->lines as $line) {
+                $recv = InstallmentReceivable::where('id', $line->receivable_id)
+                    ->lockForUpdate()
+                    ->first();
+                if (empty($recv)) {
+                    continue;
+                }
+
+                $recv->booked_settled_amount = max(
+                    0,
+                    (float) $recv->booked_settled_amount - (float) $line->amount_booked
+                );
+                $recv->actual_received_amount = max(
+                    0,
+                    (float) $recv->actual_received_amount - (float) $line->amount_received
+                );
+
+                if ($recv->outstanding > 0.0001) {
+                    $recv->status = 'pending';
+                    $recv->settled_on = null;
+                }
+                $recv->save();
+            }
+
+            $this->deleteSettlementAccountPostings($settlement);
+
+            if ($delete) {
+                $settlement->lines()->delete();
+                $settlement->delete();
+
+                return null;
+            }
+
+            $settlement->account_transaction_id = null;
+            $settlement->fee_expense_transaction_id = null;
+            $settlement->fee_amount = 0;
+            $settlement->save();
+
+            return $settlement->fresh(['lines']);
+        });
+    }
+
+    /**
+     * Update an existing settlement (header + line amounts) and re-post cashbook.
+     *
+     * @param  array  $lines  [ ['receivable_id' => int, 'amount_booked' => float, 'amount_received' => float], ... ]
+     */
+    public function updateSettlement(InstallmentSettlement $settlement, array $input, array $lines, $user_id)
+    {
+        return DB::transaction(function () use ($settlement, $input, $lines, $user_id) {
+            $business_id = (int) $settlement->business_id;
+            $company_id = (int) $settlement->company_id;
+
+            // Undo previous application; keep settlement id.
+            $this->reverseSettlement($settlement, false);
+
+            $settlement = InstallmentSettlement::where('id', $settlement->id)->lockForUpdate()->firstOrFail();
+            $settlement->lines()->delete();
+
+            $settlement_date = $input['settlement_date'];
+            $account_id = $input['account_id'] ?? null;
+            $external_ref = $input['external_ref'] ?? null;
+            $notes = $input['notes'] ?? null;
+            $location_id = $input['location_id'] ?? null;
+
+            $amount_booked = 0;
+            $amount_received = 0;
+            $prepared_lines = [];
+
+            foreach ($lines as $line) {
+                $recv = InstallmentReceivable::where('business_id', $business_id)
+                    ->where('id', $line['receivable_id'])
+                    ->where('company_id', $company_id)
+                    ->whereIn('status', ['pending', 'settled'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $booked = (float) $line['amount_booked'];
+                $received = (float) $line['amount_received'];
+                $outstanding = $recv->outstanding;
+
+                if ($booked <= 0 || $booked > $outstanding + 0.0001) {
+                    throw new \Exception(__('installmentcredit::lang.invalid_settlement_amount'));
+                }
+
+                $amount_booked += $booked;
+                $amount_received += $received;
+                $prepared_lines[] = compact('recv', 'booked', 'received');
+            }
+
+            $settlement->location_id = $location_id;
+            $settlement->settlement_date = $settlement_date;
+            $settlement->amount_booked = $amount_booked;
+            $settlement->amount_received = $amount_received;
+            $settlement->fee_amount = 0;
+            $settlement->account_id = $account_id;
+            $settlement->external_ref = $external_ref;
+            $settlement->notes = $notes;
+            $settlement->account_transaction_id = null;
+            $settlement->fee_expense_transaction_id = null;
+            $settlement->save();
+
+            foreach ($prepared_lines as $pl) {
+                /** @var InstallmentReceivable $recv */
+                $recv = $pl['recv'];
+                InstallmentSettlementLine::create([
+                    'settlement_id' => $settlement->id,
+                    'receivable_id' => $recv->id,
+                    'amount_booked' => $pl['booked'],
+                    'amount_received' => $pl['received'],
+                ]);
+
+                $recv->booked_settled_amount = (float) $recv->booked_settled_amount + $pl['booked'];
+                $recv->actual_received_amount = (float) $recv->actual_received_amount + $pl['received'];
+                if ($recv->outstanding <= 0.0001) {
+                    $recv->status = 'settled';
+                    $recv->settled_on = Carbon::parse($settlement_date)->endOfDay();
+                } else {
+                    $recv->status = 'pending';
+                    $recv->settled_on = null;
+                }
+                $recv->save();
+            }
+
+            if (! empty($account_id) && $amount_booked > 0 && $this->moduleUtil->isModuleEnabled('account', $business_id)) {
+                $at = AccountTransaction::createAccountTransaction([
+                    'amount' => $amount_booked,
+                    'account_id' => $account_id,
+                    'type' => 'credit',
+                    'operation_date' => Carbon::parse($settlement_date)->toDateTimeString(),
+                    'created_by' => $user_id,
+                    'transaction_id' => null,
+                    'note' => 'Installment settlement #'.$settlement->id.($external_ref ? ' / '.$external_ref : ''),
+                ]);
+                $settlement->account_transaction_id = $at->id;
+                $settlement->save();
+            }
+
+            return $settlement->fresh(['lines', 'company', 'account']);
+        });
+    }
+
+    protected function deleteSettlementAccountPostings(InstallmentSettlement $settlement): void
+    {
+        if (! empty($settlement->account_transaction_id)) {
+            AccountTransaction::where('id', $settlement->account_transaction_id)->delete();
+        }
+
+        if (! empty($settlement->fee_expense_transaction_id)) {
+            $expense_id = $settlement->fee_expense_transaction_id;
+            AccountTransaction::where('transaction_id', $expense_id)->delete();
+            Transaction::where('id', $expense_id)->delete();
+        }
+    }
+
     public function pendingByBranchCompany($business_id)
     {
         return InstallmentReceivable::query()

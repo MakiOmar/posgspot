@@ -68,6 +68,7 @@ return [
     'cannot_delete_company_with_pending' => 'Cannot delete a company with pending receivables.',
     'settle_one_company_only' => 'Select receivables from a single company to settle together.',
     'invalid_settlement_amount' => 'Invalid settlement amount for one or more receivables.',
+    'delete_settlement_confirm' => 'This will reverse booked amounts on the related receivables and remove the cashbook credit for this settlement.',
     'dashboard' => 'Dashboard',
     'pending_total' => 'Pending Total',
     'pending_count' => 'Pending Invoices',

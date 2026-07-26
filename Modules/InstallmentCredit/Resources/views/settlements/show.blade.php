@@ -46,8 +46,42 @@
             </table>
         </div>
         <div class="box-footer">
+            <a href="{{ action([\Modules\InstallmentCredit\Http\Controllers\SettlementController::class, 'edit'], [$settlement->id]) }}" class="tw-dw-btn tw-dw-btn-primary tw-text-white">@lang('messages.edit')</a>
+            <button type="button" data-href="{{ action([\Modules\InstallmentCredit\Http\Controllers\SettlementController::class, 'destroy'], [$settlement->id]) }}" class="tw-dw-btn tw-dw-btn-error tw-text-white delete-settlement">@lang('messages.delete')</button>
             <a href="{{ url('/installment-credit/settlements') }}" class="tw-dw-btn tw-dw-btn-neutral tw-text-white">@lang('messages.back')</a>
         </div>
     </div>
 </section>
+@endsection
+
+@section('javascript')
+<script>
+$(document).on('click', '.delete-settlement', function(e) {
+    e.preventDefault();
+    var url = $(this).data('href');
+    swal({
+        title: LANG.sure,
+        text: {!! json_encode(__('installmentcredit::lang.delete_settlement_confirm')) !!},
+        icon: 'warning',
+        buttons: true,
+        dangerMode: true,
+    }).then(function(willDelete) {
+        if (willDelete) {
+            $.ajax({
+                method: 'DELETE',
+                url: url,
+                dataType: 'json',
+                success: function(result) {
+                    if (result.success) {
+                        toastr.success(result.msg);
+                        window.location.href = '{{ url('/installment-credit/settlements') }}';
+                    } else {
+                        toastr.error(result.msg);
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
 @endsection

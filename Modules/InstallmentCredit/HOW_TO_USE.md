@@ -146,7 +146,7 @@ You need settle or import permission to add manually.
 - Chosen **account** is credited with **booked amount**.
 - Actual received is stored for display only; no BNPL fee expense is posted from any difference.
 
-Review past settlements under **Installment Credit → Settlements**.
+Review past settlements under **Installment Credit → Settlements**. Use **Edit** to change date, account, location, amounts, or notes (cashbook is re-posted). Use **Delete** to reverse booked amounts on receivables and remove the settlement cashbook credit.
 
 ### Reports (replaces Excel Summery / Trans.)
 

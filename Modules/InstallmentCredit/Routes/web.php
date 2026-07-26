@@ -28,6 +28,9 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::post('/receivables/settle', [ReceivableController::class, 'storeSettlement']);
 
         Route::get('/settlements', [SettlementController::class, 'index']);
+        Route::get('/settlements/{id}/edit', [SettlementController::class, 'edit']);
+        Route::put('/settlements/{id}', [SettlementController::class, 'update']);
+        Route::delete('/settlements/{id}', [SettlementController::class, 'destroy']);
         Route::get('/settlements/{id}', [SettlementController::class, 'show']);
 
         Route::get('/reports', [ReportController::class, 'index']);

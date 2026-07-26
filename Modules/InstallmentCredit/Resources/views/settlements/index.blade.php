@@ -30,7 +30,7 @@
 @section('javascript')
 <script>
 $(document).ready(function() {
-    $('#settlements_table').DataTable({
+    var table = $('#settlements_table').DataTable({
         processing: true,
         serverSide: true,
         ajax: '{{ url("/installment-credit/settlements") }}',
@@ -44,6 +44,34 @@ $(document).ready(function() {
             { data: 'external_ref', name: 'external_ref' },
             { data: 'created_by_name', name: 'created_by_name' }
         ]
+    });
+
+    $(document).on('click', '.delete-settlement', function(e) {
+        e.preventDefault();
+        var url = $(this).data('href');
+        swal({
+            title: LANG.sure,
+            text: {!! json_encode(__('installmentcredit::lang.delete_settlement_confirm')) !!},
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then(function(willDelete) {
+            if (willDelete) {
+                $.ajax({
+                    method: 'DELETE',
+                    url: url,
+                    dataType: 'json',
+                    success: function(result) {
+                        if (result.success) {
+                            toastr.success(result.msg);
+                            table.ajax.reload();
+                        } else {
+                            toastr.error(result.msg);
+                        }
+                    }
+                });
+            }
+        });
     });
 });
 </script>
