@@ -1,25 +1,33 @@
 import React from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useApp } from "../contexts/AppContext";
+import { useKeyboardVerticalOffset } from "../lib/keyboard";
 import { useRtl } from "../lib/rtl";
 
 export { ProductCard } from "./catalog/ProductCard";
+export { FormScrollView } from "./FormScrollView";
 
 export function Screen({
   children,
   padded = true,
+  /** Lift content above the soft keyboard (default on). */
+  avoidKeyboard = true,
 }: {
   children: React.ReactNode;
   padded?: boolean;
+  avoidKeyboard?: boolean;
 }) {
   const { isRtl } = useRtl();
-  return (
+  const keyboardOffset = useKeyboardVerticalOffset();
+  const body = (
     <View
       style={[
         styles.screen,
@@ -29,6 +37,20 @@ export function Screen({
     >
       {children}
     </View>
+  );
+
+  if (!avoidKeyboard) {
+    return body;
+  }
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={keyboardOffset}
+    >
+      {body}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -96,6 +118,7 @@ export function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: "#F7F7F5" },
   padded: { padding: 16 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },

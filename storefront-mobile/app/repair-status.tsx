@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { repairStatus } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
-import { PrimaryButton, Screen } from "../src/components/ui";
+import { FormScrollView, PrimaryButton, Screen } from "../src/components/ui";
 
 type RepairRow = {
   status?: string;
@@ -45,7 +45,8 @@ export default function RepairStatusScreen() {
   ];
 
   return (
-    <Screen>
+    <Screen padded={false} avoidKeyboard={false}>
+      <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
       <View style={styles.typeRow}>
         {types.map(([value, label]) => {
           const active = searchType === value;
@@ -122,6 +123,7 @@ export default function RepairStatusScreen() {
           {r.notes ? <Text>{r.notes}</Text> : null}
         </View>
       ))}
+      </FormScrollView>
     </Screen>
   );
 }

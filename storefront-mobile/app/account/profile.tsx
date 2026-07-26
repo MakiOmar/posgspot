@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,6 +19,7 @@ import { LabeledInput } from "../../src/components/LabeledInput";
 import { PhoneInput } from "../../src/components/PhoneInput";
 import {
   ErrorBlock,
+  FormScrollView,
   LoadingBlock,
   PrimaryButton,
   Screen,
@@ -101,9 +101,9 @@ export default function ProfileScreen() {
   }
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} avoidKeyboard={false}>
       <Stack.Screen options={headerOpts} />
-      <ScrollView contentContainerStyle={styles.pad}>
+      <FormScrollView contentContainerStyle={styles.pad}>
         <Text style={[styles.lead, { textAlign, writingDirection }]}>
           {t("account.editPersonal")}
         </Text>
@@ -247,7 +247,7 @@ export default function ProfileScreen() {
               : t("account.deleteRequest")}
           </Text>
         </Pressable>
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   );
 }

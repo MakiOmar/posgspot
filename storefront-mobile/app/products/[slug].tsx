@@ -31,6 +31,7 @@ import { LabeledInput } from "../../src/components/LabeledInput";
 import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
+  FormScrollView,
   LoadingBlock,
   PrimaryButton,
   Screen,
@@ -261,12 +262,13 @@ export default function ProductScreen() {
   const stickyPad = 88 + Math.max(insets.bottom, 8);
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} avoidKeyboard={false}>
       <Stack.Screen options={{ title: product.name }} />
       <View style={styles.body}>
-        <ScrollView
+        <FormScrollView
           style={styles.scroll}
           contentContainerStyle={[styles.pad, { paddingBottom: stickyPad }]}
+          bottomInset={stickyPad}
         >
           <View style={styles.galleryWrap}>
             <ScrollView
@@ -504,7 +506,7 @@ export default function ProductScreen() {
               />
             ) : null}
           </View>
-        </ScrollView>
+        </FormScrollView>
 
         {variationId ? (
           <View

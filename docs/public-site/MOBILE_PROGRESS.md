@@ -55,6 +55,7 @@
 | Orders paginated (20) + list invoice download | Done |
 | Account stack back buttons | Done |
 | Personal Info load loop fix | Done |
+| Keyboard-safe forms (avoid soft keyboard cover) | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -83,3 +84,4 @@
 | 2026-07-25 | Checkout: always load selling location and send required `location_id` (not only for pickup). |
 | 2026-07-26 | Account hub redesign; email OTP verify; change password; delete request; address + rewards screens. |
 | 2026-07-26 | Fix profile load loop; address geo selects; dial login tabs; orders pagination + invoice. |
+| 2026-07-26 | Keyboard-safe forms: FormScrollView + Screen avoider; Android resize; select-sheet KAV. |

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -24,7 +23,7 @@ import { LabeledInput } from "../../src/components/LabeledInput";
 import { SelectField } from "../../src/components/SelectField";
 import { CouponPicker } from "../../src/components/checkout/CouponPicker";
 import { RewardPointsRedeem } from "../../src/components/checkout/RewardPointsRedeem";
-import { PrimaryButton, Screen } from "../../src/components/ui";
+import { PrimaryButton, FormScrollView, Screen } from "../../src/components/ui";
 import type {
   BostaDistrict,
   GeoCountry,
@@ -408,8 +407,8 @@ export default function CheckoutScreen() {
   );
 
   return (
-    <Screen padded={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+    <Screen padded={false} avoidKeyboard={false}>
+      <FormScrollView contentContainerStyle={styles.pad} bottomInset={64}>
         <Text style={styles.title}>{t("checkout.title")}</Text>
 
         <Text style={styles.section}>{t("checkout.contact")}</Text>
@@ -679,7 +678,7 @@ export default function CheckoutScreen() {
           disabled={busy}
           onPress={() => void placeOrder()}
         />
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   );
 }

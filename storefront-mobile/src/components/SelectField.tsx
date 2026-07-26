@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import {
-  FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -83,7 +85,10 @@ export function SelectField({
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent>
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <View style={styles.sheet}>
             <Text style={[styles.sheetTitle, { textAlign, writingDirection }]}>
               {label || placeholder || t("forms.select")}
@@ -147,7 +152,7 @@ export function SelectField({
               <Text style={styles.cancelText}>{t("common.cancel")}</Text>
             </Pressable>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

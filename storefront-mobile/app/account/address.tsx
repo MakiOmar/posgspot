@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import {
   fetchGeoCountries,
@@ -15,6 +14,7 @@ import { LabeledInput } from "../../src/components/LabeledInput";
 import { SelectField } from "../../src/components/SelectField";
 import {
   ErrorBlock,
+  FormScrollView,
   LoadingBlock,
   PrimaryButton,
   Screen,
@@ -110,9 +110,9 @@ export default function AddressScreen() {
   }
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} avoidKeyboard={false}>
       <Stack.Screen options={headerOpts} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <FormScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {error ? (
           <ErrorBlock message={error} onRetry={() => void load()} />
         ) : null}
@@ -187,7 +187,7 @@ export default function AddressScreen() {
               .finally(() => setBusy(false));
           }}
         />
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   );
 }

@@ -1,7 +1,8 @@
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import type { ReactNode } from "react";
 import { useApp } from "../../contexts/AppContext";
 import { useRtl } from "../../lib/rtl";
+import { FormScrollView } from "../FormScrollView";
 import { Screen } from "../ui";
 
 /** Light branded shell for login / register / verify screens. */
@@ -18,11 +19,8 @@ export function AuthScreenShell({
   const { textAlign, writingDirection } = useRtl();
 
   return (
-    <Screen padded={false}>
-      <ScrollView
-        contentContainerStyle={styles.pad}
-        keyboardShouldPersistTaps="handled"
-      >
+    <Screen padded={false} avoidKeyboard={false}>
+      <FormScrollView contentContainerStyle={styles.pad} bottomInset={64}>
         {/* Brand mark */}
         <View style={styles.logoWrap}>
           <View style={[styles.logoRing, { borderColor: accent }]}>
@@ -40,7 +38,7 @@ export function AuthScreenShell({
         </Text>
         <View style={styles.form}>{children}</View>
         {footer ? <View style={styles.footer}>{footer}</View> : null}
-      </ScrollView>
+      </FormScrollView>
     </Screen>
   );
 }
