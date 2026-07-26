@@ -168,7 +168,8 @@ class AuthController extends StorefrontController
                 ['token' => Hash::make($token), 'created_at' => now()]
             );
             try {
-                Mail::to($contact->email)->queue(new StorefrontPasswordReset($contact, $token));
+                // Sync send so reset works without depending on queue workers.
+                Mail::to($contact->email)->sendNow(new StorefrontPasswordReset($contact, $token));
             } catch (\Throwable $e) {
                 Log::warning('Storefront password reset email failed.', [
                     'contact_id' => $contact->id,

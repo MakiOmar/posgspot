@@ -121,7 +121,9 @@ class CustomerAuthService
         $contact->save();
 
         try {
-            Mail::to($contact->email)->queue(new StorefrontEmailVerification($contact, $code));
+            // Sync send — same path as `storefront:send-verification`.
+            // Queued jobs often never run on shared hosting without a reliable worker.
+            Mail::to($contact->email)->sendNow(new StorefrontEmailVerification($contact, $code));
         } catch (\Throwable $e) {
             Log::warning('Storefront email verification send failed.', [
                 'contact_id' => $contact->id,

@@ -48,7 +48,7 @@ class CustomerAccountAuthTest extends TestCase
         $token = $register->json('data.token');
         $contactId = (int) $register->json('data.contact.id');
 
-        Mail::assertQueued(StorefrontEmailVerification::class);
+        Mail::assertSent(StorefrontEmailVerification::class);
 
         $contact = Contact::findOrFail($contactId);
         $this->assertNotEmpty($contact->email_verify_code_hash);
