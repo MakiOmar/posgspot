@@ -1,5 +1,5 @@
-import { Image, StyleSheet, Text, View } from "react-native";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Image, Keyboard, StyleSheet, Text, View } from "react-native";
 import { useApp } from "../../contexts/AppContext";
 import { useRtl } from "../../lib/rtl";
 import { FormScrollView } from "../FormScrollView";
@@ -17,22 +17,49 @@ export function AuthScreenShell({
 }) {
   const { accent } = useApp();
   const { textAlign, writingDirection } = useRtl();
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardOpen(true),
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardOpen(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   return (
     <Screen padded={false} avoidKeyboard={false}>
-      <FormScrollView contentContainerStyle={styles.pad} bottomInset={64}>
-        {/* Brand mark */}
-        <View style={styles.logoWrap}>
-          <View style={[styles.logoRing, { borderColor: accent }]}>
-            <Image
-              source={require("../../../assets/images/splash-logo.png")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+      <FormScrollView
+        contentContainerStyle={[
+          styles.pad,
+          keyboardOpen && styles.padCompact,
+        ]}
+        bottomInset={keyboardOpen ? 120 : 72}
+        bottomOffset={keyboardOpen ? 100 : 72}
+      >
+        {/* Brand mark — shrinks when keyboard is open so fields stay visible */}
+        {!keyboardOpen ? (
+          <View style={styles.logoWrap}>
+            <View style={[styles.logoRing, { borderColor: accent }]}>
+              <Image
+                source={require("../../../assets/images/splash-logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
           </View>
-        </View>
+        ) : null}
         <Text
-          style={[styles.title, { textAlign, writingDirection, color: "#111" }]}
+          style={[
+            styles.title,
+            keyboardOpen && styles.titleCompact,
+            { textAlign, writingDirection, color: "#111" },
+          ]}
         >
           {title}
         </Text>
@@ -72,6 +99,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     flexGrow: 1,
   },
+  padCompact: {
+    paddingTop: 8,
+  },
   logoWrap: { alignItems: "center", marginBottom: 20 },
   logoRing: {
     width: 96,
@@ -89,6 +119,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     textAlign: "center",
     marginBottom: 24,
+  },
+  titleCompact: {
+    fontSize: 20,
+    marginBottom: 12,
   },
   form: { width: "100%" },
   footer: { marginTop: 24, alignItems: "center" },

@@ -1,15 +1,13 @@
 import React from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useApp } from "../contexts/AppContext";
-import { useKeyboardVerticalOffset } from "../lib/keyboard";
 import { useRtl } from "../lib/rtl";
 
 export { ProductCard } from "./catalog/ProductCard";
@@ -26,7 +24,6 @@ export function Screen({
   avoidKeyboard?: boolean;
 }) {
   const { isRtl } = useRtl();
-  const keyboardOffset = useKeyboardVerticalOffset();
   const body = (
     <View
       style={[
@@ -44,11 +41,7 @@ export function Screen({
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={keyboardOffset}
-    >
+    <KeyboardAvoidingView style={styles.flex} behavior="padding">
       {body}
     </KeyboardAvoidingView>
   );

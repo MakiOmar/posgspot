@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   FlatList,
   Pressable,
   StyleSheet,
@@ -10,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useApp } from "../contexts/AppContext";
 import { useRtl } from "../lib/rtl";
 
@@ -85,10 +84,7 @@ export function SelectField({
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent>
-        <KeyboardAvoidingView
-          style={styles.backdrop}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
+        <KeyboardAvoidingView style={styles.backdrop} behavior="padding">
           <View style={styles.sheet}>
             <Text style={[styles.sheetTitle, { textAlign, writingDirection }]}>
               {label || placeholder || t("forms.select")}

@@ -1,65 +1,58 @@
 import { forwardRef } from "react";
+import { StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  type ScrollViewProps,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
-import { useKeyboardVerticalOffset } from "../lib/keyboard";
+  KeyboardAwareScrollView,
+  type KeyboardAwareScrollViewProps,
+  type KeyboardAwareScrollViewRef,
+} from "react-native-keyboard-controller";
 
-type Props = ScrollViewProps & {
-  /** Extra bottom padding so the last field clears the keyboard/CTA. */
+type Props = KeyboardAwareScrollViewProps & {
+  /** Extra space below the focused field (above keyboard / CTA). */
   bottomInset?: number;
   containerStyle?: StyleProp<ViewStyle>;
 };
 
 /**
- * Keyboard-safe scroll container for forms.
- * Use inside `Screen` with `avoidKeyboard={false}` to avoid nested avoiders.
+ * Form scroll that keeps the focused input above the soft keyboard (iOS + Android).
+ * Prefer `Screen avoidKeyboard={false}` when wrapping with this.
  */
-export const FormScrollView = forwardRef<ScrollView, Props>(function FormScrollView(
-  {
-    children,
-    contentContainerStyle,
-    containerStyle,
-    bottomInset = 48,
-    keyboardShouldPersistTaps = "handled",
-    keyboardDismissMode = "on-drag",
-    showsVerticalScrollIndicator = false,
-    ...rest
-  },
-  ref,
-) {
-  const keyboardOffset = useKeyboardVerticalOffset();
-
-  return (
-    <KeyboardAvoidingView
-      style={[styles.flex, containerStyle]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={keyboardOffset}
-    >
-      <ScrollView
+export const FormScrollView = forwardRef<KeyboardAwareScrollViewRef, Props>(
+  function FormScrollView(
+    {
+      children,
+      contentContainerStyle,
+      containerStyle,
+      bottomInset = 48,
+      bottomOffset,
+      keyboardShouldPersistTaps = "handled",
+      keyboardDismissMode = "interactive",
+      showsVerticalScrollIndicator = false,
+      style,
+      ...rest
+    },
+    ref,
+  ) {
+    return (
+      <KeyboardAwareScrollView
         ref={ref}
-        style={styles.flex}
+        style={[styles.flex, containerStyle, style]}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: bottomInset },
           contentContainerStyle,
         ]}
+        bottomOffset={bottomOffset ?? bottomInset}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         keyboardDismissMode={keyboardDismissMode}
-        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={showsVerticalScrollIndicator}
+        extraKeyboardSpace={16}
         {...rest}
       >
         {children}
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-});
+      </KeyboardAwareScrollView>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },

@@ -4,6 +4,7 @@ import { Stack, SplashScreen } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import { BrandSplash } from "../src/components/BrandSplash";
 import { MaintenanceGate } from "../src/components/MaintenanceGate";
 import { ToastHost } from "../src/components/ToastHost";
@@ -45,20 +46,21 @@ function SplashGate({ children }: { children: ReactNode }) {
 export default function RootLayout() {
   return (
     <SafeAreaProvider style={styles.root}>
-      <AppProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <SplashGate>
-              <MaintenanceGate>
-              <Stack
-                screenOptions={{
-                  headerShown: true,
-                  headerStyle: { backgroundColor: "#F7F7F5" },
-                  headerShadowVisible: false,
-                  headerTintColor: "#111",
-                  contentStyle: { backgroundColor: "#F7F7F5" },
-                }}
-              >
+      <KeyboardProvider>
+        <AppProvider>
+          <CartProvider>
+            <WishlistProvider>
+              <SplashGate>
+                <MaintenanceGate>
+                <Stack
+                  screenOptions={{
+                    headerShown: true,
+                    headerStyle: { backgroundColor: "#F7F7F5" },
+                    headerShadowVisible: false,
+                    headerTintColor: "#111",
+                    contentStyle: { backgroundColor: "#F7F7F5" },
+                  }}
+                >
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="products/index" options={{ title: "Shop" }} />
                 <Stack.Screen name="products/[slug]" options={{ title: "Product" }} />
@@ -116,12 +118,13 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="+not-found" options={{ title: "Not found" }} />
               </Stack>
-              </MaintenanceGate>
-              <ToastHost />
-            </SplashGate>
-          </WishlistProvider>
-        </CartProvider>
-      </AppProvider>
+                </MaintenanceGate>
+                <ToastHost />
+              </SplashGate>
+            </WishlistProvider>
+          </CartProvider>
+        </AppProvider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }
