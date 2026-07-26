@@ -66,6 +66,8 @@ return [
     'map_payment_help' => 'كل شركة تستخدم خانة Custom Payment فارغة. الخانات المعرّفة مسبقاً (InstaPay، Vodafone Cash، Wallet) لا تُعاد استخدامها. فعّل تلك الطرق في كل فرع لنقاط البيع.',
     'installed_success' => 'تم تثبيت وحدة تقسيط الشركات بنجاح.',
     'cannot_delete_company_with_pending' => 'لا يمكن حذف شركة لديها مستحقات معلقة.',
+    'cannot_delete_receivable_with_settlement' => 'لا يمكن حذف مستحق عليه تسويات. احذف أو عدّل التسوية المرتبطة أولاً.',
+    'delete_receivable_confirm' => 'حذف هذا المستحق المعلق؟ لا يمكن التراجع عن ذلك.',
     'settle_one_company_only' => 'اختر مستحقات من شركة واحدة فقط للتسوية معاً.',
     'invalid_settlement_amount' => 'مبلغ تسوية غير صالح لواحد أو أكثر من المستحقات.',
     'delete_settlement_confirm' => 'سيؤدي هذا إلى عكس المبالغ المحجوزة على المستحقات المرتبطة وحذف قيد الحساب لهذه التسوية.',

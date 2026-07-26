@@ -54,6 +54,7 @@
                 <thead>
                     <tr>
                         <th><input type="checkbox" id="select_all_rows"></th>
+                        <th>@lang('messages.action')</th>
                         <th>@lang('sale.invoice_no')</th>
                         <th>@lang('installmentcredit::lang.invoice_date')</th>
                         <th>@lang('installmentcredit::lang.due_date')</th>
@@ -86,6 +87,7 @@ $(document).ready(function() {
         },
         columns: [
             { data: 'mass_select', orderable: false, searchable: false },
+            { data: 'action', orderable: false, searchable: false },
             { data: 'invoice_no', name: 'invoice_no' },
             { data: 'invoice_date', name: 'invoice_date' },
             { data: 'due_date', name: 'due_date' },
@@ -103,6 +105,34 @@ $(document).ready(function() {
 
     $('#select_all_rows').on('change', function() {
         $('.row-select').prop('checked', $(this).is(':checked'));
+    });
+
+    $(document).on('click', '.delete-receivable', function(e) {
+        e.preventDefault();
+        var url = $(this).data('href');
+        swal({
+            title: LANG.sure,
+            text: {!! json_encode(__('installmentcredit::lang.delete_receivable_confirm')) !!},
+            icon: 'warning',
+            buttons: true,
+            dangerMode: true,
+        }).then(function(willDelete) {
+            if (willDelete) {
+                $.ajax({
+                    method: 'DELETE',
+                    url: url,
+                    dataType: 'json',
+                    success: function(result) {
+                        if (result.success) {
+                            toastr.success(result.msg);
+                            table.ajax.reload();
+                        } else {
+                            toastr.error(result.msg);
+                        }
+                    }
+                });
+            }
+        });
     });
 
     $('#btn_settle_selected').click(function() {

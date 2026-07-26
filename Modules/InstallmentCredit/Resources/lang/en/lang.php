@@ -66,6 +66,8 @@ return [
     'installed_success' => 'Installment Credit module installed successfully.',
     'map_payment_help' => 'Each company uses a free Custom Payment slot (custom_pay_N). Slots already labeled (e.g. InstaPay, Vodafone Cash, Wallet) are never reused. Enable those methods on each business location for POS.',
     'cannot_delete_company_with_pending' => 'Cannot delete a company with pending receivables.',
+    'cannot_delete_receivable_with_settlement' => 'Cannot delete a receivable that already has settlement amounts. Reverse or delete the related settlement first.',
+    'delete_receivable_confirm' => 'Delete this pending receivable? This cannot be undone.',
     'settle_one_company_only' => 'Select receivables from a single company to settle together.',
     'invalid_settlement_amount' => 'Invalid settlement amount for one or more receivables.',
     'delete_settlement_confirm' => 'This will reverse booked amounts on the related receivables and remove the cashbook credit for this settlement.',

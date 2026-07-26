@@ -24,6 +24,7 @@ Route::middleware(['web', 'authh', 'auth', 'SetSessionData', 'language', 'timezo
         Route::get('/receivables', [ReceivableController::class, 'index']);
         Route::get('/receivables/create', [ReceivableController::class, 'create']);
         Route::post('/receivables', [ReceivableController::class, 'store']);
+        Route::delete('/receivables/{id}', [ReceivableController::class, 'destroy']);
         Route::get('/receivables/create-settlement', [ReceivableController::class, 'createSettlement']);
         Route::post('/receivables/settle', [ReceivableController::class, 'storeSettlement']);
 

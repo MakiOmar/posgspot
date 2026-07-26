@@ -82,7 +82,17 @@ class ReceivableController extends Controller
 
                     return (int) $row->due_date->diffInDays(now(), false);
                 })
-                ->rawColumns(['mass_select'])
+                ->addColumn('action', function ($row) {
+                    $can_delete = auth()->user()->can('superadmin')
+                        || auth()->user()->can('installment.settle')
+                        || auth()->user()->can('installment.import');
+                    if (! $can_delete) {
+                        return '';
+                    }
+
+                    return '<button type="button" data-href="'.action([ReceivableController::class, 'destroy'], [$row->id]).'" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-error delete-receivable">'.__('messages.delete').'</button>';
+                })
+                ->rawColumns(['mass_select', 'action'])
                 ->make(true);
         }
 
@@ -150,6 +160,46 @@ class ReceivableController extends Controller
         }
 
         return redirect('/installment-credit/receivables')->with('status', $output);
+    }
+
+    /**
+     * Delete a pending receivable that has not been (partially) settled.
+     */
+    public function destroy($id)
+    {
+        $business_id = $this->assertModuleAllowedAny(['installment.settle', 'installment.import']);
+
+        try {
+            $recv = InstallmentReceivable::where('business_id', $business_id)
+                ->where('status', 'pending')
+                ->findOrFail($id);
+
+            if ((float) $recv->booked_settled_amount > 0.0001 || $recv->settlementLines()->exists()) {
+                throw new \Exception(__('installmentcredit::lang.cannot_delete_receivable_with_settlement'));
+            }
+
+            $recv->delete();
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.success'),
+            ];
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().' Line:'.$e->getLine().' Message:'.$e->getMessage());
+            $output = [
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ];
+        }
+
+        if (request()->ajax()) {
+            return response()->json($output);
+        }
+
+        return redirect('/installment-credit/receivables')->with('status', [
+            'success' => ! empty($output['success']) ? 1 : 0,
+            'msg' => $output['msg'],
+        ]);
     }
 
     public function createSettlement(Request $request)
