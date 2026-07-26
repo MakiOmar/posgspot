@@ -6,11 +6,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { fetchOrder, fetchOrderInvoiceUrl } from "../../../src/lib/api";
 import type { AccountOrderDetail } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { useCart } from "../../../src/contexts/CartContext";
+import { HeaderBackButton } from "../../../src/components/account/HeaderBackButton";
+import { HeaderCartButton } from "../../../src/components/account/HeaderCartButton";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -71,6 +73,13 @@ export default function OrderDetailScreen() {
   if (loading) {
     return (
       <Screen>
+        <Stack.Screen
+          options={{
+            title: t("account.orders"),
+            headerLeft: () => <HeaderBackButton />,
+            headerRight: () => <HeaderCartButton />,
+          }}
+        />
         <LoadingBlock />
       </Screen>
     );
@@ -79,6 +88,13 @@ export default function OrderDetailScreen() {
   if (error || !order) {
     return (
       <Screen>
+        <Stack.Screen
+          options={{
+            title: t("account.orders"),
+            headerLeft: () => <HeaderBackButton />,
+            headerRight: () => <HeaderCartButton />,
+          }}
+        />
         <ErrorBlock message={error || undefined} onRetry={() => void load()} />
       </Screen>
     );
@@ -86,6 +102,13 @@ export default function OrderDetailScreen() {
 
   return (
     <Screen padded={false}>
+      <Stack.Screen
+        options={{
+          title: t("account.orders"),
+          headerLeft: () => <HeaderBackButton />,
+          headerRight: () => <HeaderCartButton />,
+        }}
+      />
       <ScrollView contentContainerStyle={styles.pad}>
         <Text style={styles.title}>
           {order.invoice_no || order.storefront_order_id || `#${order.id}`}

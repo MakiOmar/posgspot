@@ -14,8 +14,10 @@ import {
   updateProfile,
 } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
+import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
 import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import { LabeledInput } from "../../src/components/LabeledInput";
+import { PhoneInput } from "../../src/components/PhoneInput";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -25,6 +27,14 @@ import {
 import { useRtl } from "../../src/lib/rtl";
 import { toast } from "../../src/lib/toast";
 
+function splitMobile(mobile: string | undefined): { dial: string; national: string } {
+  const raw = (mobile || "").trim();
+  if (!raw) return { dial: "+20", national: "" };
+  const match = raw.match(/^(\+\d{1,4})(\d+)$/);
+  if (match) return { dial: match[1], national: match[2] };
+  return { dial: "+20", national: raw.replace(/\D/g, "") };
+}
+
 export default function ProfileScreen() {
   const { token, t, accent, updateContactLocal } = useApp();
   const router = useRouter();
@@ -32,7 +42,9 @@ export default function ProfileScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [dialCode, setDialCode] = useState("+20");
+  const [national, setNational] = useState("");
+  const [fullPhone, setFullPhone] = useState("");
   const [emailVerified, setEmailVerified] = useState(true);
   const [deleteRequested, setDeleteRequested] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -40,17 +52,23 @@ export default function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await fetchProfile(token);
       setFirstName(data.first_name || "");
       setLastName(data.last_name || "");
       setEmail(data.email || "");
-      setMobile(data.mobile || "");
+      const split = splitMobile(data.mobile);
+      setDialCode(split.dial);
+      setNational(split.national);
+      setFullPhone(data.mobile || "");
       setEmailVerified(!!data.email_verified);
       setDeleteRequested(!!data.delete_requested);
-      await updateContactLocal(data);
+      void updateContactLocal(data);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.error"));
@@ -67,15 +85,16 @@ export default function ProfileScreen() {
     return <Redirect href="/login" />;
   }
 
+  const headerOpts = {
+    title: t("account.personalInfo"),
+    headerLeft: () => <HeaderBackButton />,
+    headerRight: () => <HeaderCartButton />,
+  };
+
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: t("account.personalInfo"),
-            headerRight: () => <HeaderCartButton />,
-          }}
-        />
+        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -83,12 +102,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen
-        options={{
-          title: t("account.personalInfo"),
-          headerRight: () => <HeaderCartButton />,
-        }}
-      />
+      <Stack.Screen options={headerOpts} />
       <ScrollView contentContainerStyle={styles.pad}>
         <Text style={[styles.lead, { textAlign, writingDirection }]}>
           {t("account.editPersonal")}
@@ -107,11 +121,15 @@ export default function ProfileScreen() {
           value={lastName}
           onChangeText={setLastName}
         />
-        <LabeledInput
+        <PhoneInput
           label={t("auth.mobileOptional")}
-          value={mobile}
-          onChangeText={setMobile}
-          keyboardType="phone-pad"
+          dialCode={dialCode}
+          nationalNumber={national}
+          onChange={({ dialCode: d, nationalNumber: n, fullPhone: f }) => {
+            setDialCode(d);
+            setNational(n);
+            setFullPhone(f);
+          }}
         />
 
         <View style={[styles.inlineField, { flexDirection: row }]}>
@@ -169,7 +187,8 @@ export default function ProfileScreen() {
               first_name: firstName.trim(),
               last_name: lastName.trim(),
               email: email.trim(),
-              mobile: mobile.trim() || undefined,
+              mobile: fullPhone || (national ? `${dialCode}${national}` : undefined),
+              dial_code: dialCode,
             })
               .then(async ({ data }) => {
                 await updateContactLocal(data);

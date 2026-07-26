@@ -3,6 +3,7 @@ import { View } from "react-native";
 import { Redirect, Stack, useRouter } from "expo-router";
 import { changePassword } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
+import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
 import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { PrimaryButton, Screen } from "../../src/components/ui";
@@ -25,6 +26,7 @@ export default function ChangePasswordScreen() {
       <Stack.Screen
         options={{
           title: t("account.changePassword"),
+          headerLeft: () => <HeaderBackButton />,
           headerRight: () => <HeaderCartButton />,
         }}
       />

@@ -249,6 +249,15 @@ export interface FawryPaymentSession {
   base_url?: string;
 }
 
+export interface PhoneCountry {
+  name_en: string;
+  name_ar?: string;
+  dial_code: string;
+  flag?: string;
+  country_code?: string;
+  validation_pattern?: string;
+}
+
 export interface AccountOrder {
   id: number;
   invoice_no?: string;
@@ -257,6 +266,8 @@ export interface AccountOrder {
   payment_status?: string;
   status?: string;
   created_at?: string;
+  transaction_date?: string;
+  invoice_print_url?: string | null;
 }
 
 export interface AccountOrderLine {

@@ -128,8 +128,17 @@ class AccountController extends StorefrontController
     {
         /** @var Contact $contact */
         $contact = $request->user();
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = max(1, min(50, (int) $request->query('per_page', 20)));
 
-        return $this->jsonSuccess($this->checkoutService->listOrdersForContact($this->businessId($request), $contact->id));
+        $result = $this->checkoutService->listOrdersForContact(
+            $this->businessId($request),
+            $contact->id,
+            $page,
+            $perPage
+        );
+
+        return $this->jsonSuccess($result['orders'], $result['meta']);
     }
 
     public function orderDetail(Request $request, int $orderId)

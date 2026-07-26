@@ -14,7 +14,7 @@ import { useRtl } from "../lib/rtl";
 export type SelectOption = { value: string; label: string };
 
 type Props = {
-  label: string;
+  label?: string;
   placeholder?: string;
   value: string;
   options: SelectOption[];
@@ -56,8 +56,10 @@ export function SelectField({
   }, [options, query]);
 
   return (
-    <View style={styles.wrap}>
-      <Text style={[styles.label, { textAlign, writingDirection }]}>{label}</Text>
+    <View style={[styles.wrap, !label && styles.wrapTight]}>
+      {label ? (
+        <Text style={[styles.label, { textAlign, writingDirection }]}>{label}</Text>
+      ) : null}
       <Pressable
         style={[styles.field, disabled && styles.disabled]}
         disabled={disabled || options.length === 0}
@@ -71,6 +73,7 @@ export function SelectField({
             selected ? styles.value : styles.placeholder,
             { textAlign, writingDirection },
           ]}
+          numberOfLines={1}
         >
           {selected?.label ||
             placeholder ||
@@ -83,7 +86,7 @@ export function SelectField({
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
             <Text style={[styles.sheetTitle, { textAlign, writingDirection }]}>
-              {label}
+              {label || placeholder || t("forms.select")}
             </Text>
             {searchable ? (
               <TextInput
@@ -152,6 +155,7 @@ export function SelectField({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: 10 },
+  wrapTight: { marginBottom: 0 },
   label: { fontWeight: "700", marginBottom: 6, color: "#222" },
   field: {
     backgroundColor: "#fff",

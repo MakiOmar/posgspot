@@ -169,7 +169,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | PUT | `/account/password` | Change password (`current_password`, `password`, `password_confirmation`). Revokes prior tokens; returns new `token` |
 | POST | `/account/delete-request` | Request account deletion (sets `storefront_delete_requested_at`; does not hard-delete) |
 | PUT | `/account/address` | Update single shipping address |
-| GET | `/account/orders` | Order history |
+| GET | `/account/orders` | Order history — query `page` (default 1), `per_page` (default 20, max 50). Meta: `current_page`, `last_page`, `per_page`, `total`. Paid orders include `invoice_print_url` when available |
 | GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated **and** storefront setting `digital.expose_credentials_to_customer` is on, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). When that setting is off, secrets stay on POS staff note only. Response includes `is_quotation` when checkout created a draft quotation (`digital.pos_document_type=quotation`). |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 | GET | `/account/reward-points` | Loyalty balance |

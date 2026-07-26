@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { fetchRewardPoints } from "../../src/lib/api";
 import type { RewardPointsBalance } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
+import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
 import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import {
   ErrorBlock,
@@ -21,7 +22,10 @@ export default function RewardsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetchRewardPoints(token);
@@ -42,15 +46,16 @@ export default function RewardsScreen() {
     return <Redirect href="/login" />;
   }
 
+  const headerOpts = {
+    title: t("rewards.title"),
+    headerLeft: () => <HeaderBackButton />,
+    headerRight: () => <HeaderCartButton />,
+  };
+
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: t("rewards.title"),
-            headerRight: () => <HeaderCartButton />,
-          }}
-        />
+        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -61,12 +66,7 @@ export default function RewardsScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen
-        options={{
-          title: t("rewards.title"),
-          headerRight: () => <HeaderCartButton />,
-        }}
-      />
+      <Stack.Screen options={headerOpts} />
       <ScrollView contentContainerStyle={styles.pad}>
         {error ? (
           <ErrorBlock message={error} onRetry={() => void load()} />

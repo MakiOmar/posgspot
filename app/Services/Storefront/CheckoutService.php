@@ -328,6 +328,12 @@ class CheckoutService
 
     public function formatOrderResponse(Transaction $transaction): array
     {
+        $paymentStatus = (string) ($transaction->payment_status ?? '');
+        $invoiceUrl = null;
+        if (strtolower(trim($paymentStatus)) === 'paid') {
+            $invoiceUrl = $this->invoicePrintUrl((int) $transaction->business_id, $transaction);
+        }
+
         return [
             'id' => $transaction->id,
             'storefront_order_id' => $transaction->storefront_order_id,
@@ -338,6 +344,7 @@ class CheckoutService
             'final_total' => (float) $transaction->final_total,
             'transaction_date' => $transaction->transaction_date,
             'shipping_status' => $transaction->shipping_status,
+            'invoice_print_url' => $invoiceUrl,
         ];
     }
 
@@ -389,13 +396,33 @@ class CheckoutService
         return $normalized;
     }
 
-    public function listOrdersForContact(int $businessId, int $contactId): array
-    {
-        return $this->contactOrdersQuery($businessId, $contactId)
+    public function listOrdersForContact(
+        int $businessId,
+        int $contactId,
+        int $page = 1,
+        int $perPage = 20
+    ): array {
+        $perPage = max(1, min(50, $perPage));
+        $page = max(1, $page);
+
+        $paginator = $this->contactOrdersQuery($businessId, $contactId)
             ->orderByDesc('transaction_date')
-            ->get()
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        $items = $paginator->getCollection()
             ->map(fn ($t) => $this->formatOrderResponse($t))
+            ->values()
             ->all();
+
+        return [
+            'orders' => $items,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ];
     }
 
     public function getOrderForContact(int $businessId, int $contactId, int $orderId): ?array

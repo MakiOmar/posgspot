@@ -172,23 +172,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSession(next);
   }, []);
 
-  const updateContactLocal = useCallback(
-    async (contact: AuthContact) => {
-      if (!session?.token) return;
-      const next = { ...session, contact };
-      await saveAuthSession(next);
-      setSession(next);
-    },
-    [session],
-  );
+  // Stable updater — must not depend on `session` or profile load loops forever.
+  const updateContactLocal = useCallback(async (contact: AuthContact) => {
+    setSession((prev) => {
+      if (!prev?.token) return prev;
+      const next = { ...prev, contact };
+      void saveAuthSession(next);
+      return next;
+    });
+  }, []);
 
   const refreshContact = useCallback(async () => {
-    if (!session?.token) return;
-    const { data } = await fetchProfile(session.token);
-    const next = { ...session, contact: data };
-    await saveAuthSession(next);
-    setSession(next);
-  }, [session]);
+    setSession((prev) => {
+      if (!prev?.token) return prev;
+      void (async () => {
+        try {
+          const { data } = await fetchProfile(prev.token);
+          const next = { ...prev, contact: data };
+          await saveAuthSession(next);
+          setSession(next);
+        } catch {
+          // keep current session
+        }
+      })();
+      return prev;
+    });
+  }, []);
 
   const signIn = useCallback(async (loginId: string, password: string) => {
     const { data } = await apiLogin(loginId, password);

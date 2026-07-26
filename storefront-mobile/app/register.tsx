@@ -7,6 +7,7 @@ import {
   authFieldStyles as styles,
 } from "../src/components/auth/AuthScreenShell";
 import { LabeledInput } from "../src/components/LabeledInput";
+import { PhoneInput } from "../src/components/PhoneInput";
 import { PrimaryButton } from "../src/components/ui";
 import { useRtl } from "../src/lib/rtl";
 
@@ -17,7 +18,9 @@ export default function RegisterScreen() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
+  const [dialCode, setDialCode] = useState("+20");
+  const [national, setNational] = useState("");
+  const [fullPhone, setFullPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,11 +58,15 @@ export default function RegisterScreen() {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      <LabeledInput
+      <PhoneInput
         label={t("auth.mobileOptional")}
-        value={mobile}
-        onChangeText={setMobile}
-        keyboardType="phone-pad"
+        dialCode={dialCode}
+        nationalNumber={national}
+        onChange={({ dialCode: d, nationalNumber: n, fullPhone: f }) => {
+          setDialCode(d);
+          setNational(n);
+          setFullPhone(f);
+        }}
       />
       <LabeledInput
         label={t("auth.password")}
@@ -95,8 +102,9 @@ export default function RegisterScreen() {
             password,
             password_confirmation: confirm,
           };
-          if (mobile.trim()) {
-            body.mobile = mobile.trim();
+          if (fullPhone || national) {
+            body.mobile = fullPhone || `${dialCode}${national}`;
+            body.dial_code = dialCode;
           }
           void signUp(body)
             .then(() =>

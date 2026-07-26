@@ -205,10 +205,23 @@ export function fetchProfile(token: string) {
   });
 }
 
-export function fetchOrders(token: string) {
-  return storefrontFetch<AccountOrder[]>("/account/orders", {
+export function fetchOrders(
+  token: string,
+  opts: { page?: number; perPage?: number } = {},
+) {
+  const page = opts.page ?? 1;
+  const perPage = opts.perPage ?? 20;
+  const qs = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
+  return storefrontFetch<AccountOrder[]>(`/account/orders?${qs.toString()}`, {
     headers: authHeaders(token),
   });
+}
+
+export function fetchPhoneCountries() {
+  return storefrontFetch<import("./types").PhoneCountry[]>("/phone-countries");
 }
 
 export function fetchOrder(token: string, orderId: number) {
