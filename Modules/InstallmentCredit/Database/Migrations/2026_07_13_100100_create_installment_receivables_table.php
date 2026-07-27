@@ -29,10 +29,11 @@ class CreateInstallmentReceivablesTable extends Migration
             $table->boolean('is_imported')->default(0);
             $table->timestamps();
 
-            $table->unique(['business_id', 'transaction_id', 'company_id'], 'ic_recv_biz_txn_company_unique');
+            // One receivable per BNPL payment line (manual rows may have null payment_id).
+            $table->unique('transaction_payment_id', 'ic_recv_payment_unique');
             $table->index(['business_id', 'status']);
             $table->index(['business_id', 'due_date']);
-            $table->index('transaction_payment_id');
+            $table->index(['business_id', 'transaction_id', 'company_id']);
         });
     }
 

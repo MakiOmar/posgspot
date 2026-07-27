@@ -230,7 +230,7 @@ class InstallmentCreditUtil
             return null;
         }
 
-        if (empty($payment) || empty($payment->method) || ! empty($payment->is_return)) {
+        if (empty($payment) || empty($payment->id) || empty($payment->method) || ! empty($payment->is_return)) {
             return null;
         }
 
@@ -248,43 +248,57 @@ class InstallmentCreditUtil
             return null;
         }
 
-        $existing = InstallmentReceivable::where('business_id', $business_id)
-            ->where('transaction_id', $transaction->id)
-            ->where('company_id', $company->id)
-            ->first();
-
-        // One receivable per company per invoice: sum ALL BNPL lines for that company
-        // (sale edits often add a second company payment; overwriting with the last line loses amount).
-        $company_payments = $this->bnplPaymentsForCompany($transaction, $company);
-        if ($company_payments->isEmpty()) {
-            $company_payments = collect([$payment]);
-        }
-        $due_amount = (float) $company_payments->sum('amount');
+        $due_amount = (float) $payment->amount;
         if ($due_amount <= 0) {
-            return $existing;
+            return null;
         }
 
-        // Prefer the largest BNPL line as the linked payment; fall back to triggering payment.
-        $primary_payment = $company_payments->sortByDesc(fn ($p) => (float) $p->amount)->first() ?: $payment;
-
-        // Invoice date = sale date; due date from company settlement days (not each payment's paid_on).
-        $invoice_date = Carbon::parse($transaction->transaction_date)->toDateString();
+        // Dates follow this payment line (supports multiple same-company lines on one invoice).
+        $invoice_date = ! empty($payment->paid_on)
+            ? Carbon::parse($payment->paid_on)->toDateString()
+            : Carbon::parse($transaction->transaction_date)->toDateString();
         $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
 
+        // Prefer exact payment-line match (one receivable per BNPL payment).
+        $existing = InstallmentReceivable::where('business_id', $business_id)
+            ->where('transaction_payment_id', $payment->id)
+            ->first();
+
+        // Legacy reclaim: older schema had one row per company; claim it for this payment
+        // when its linked payment is missing/deleted and no other row already owns this payment.
+        if (! $existing) {
+            $active_payment_ids = $this->bnplPaymentsForCompany($transaction, $company)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $existing = InstallmentReceivable::where('business_id', $business_id)
+                ->where('transaction_id', $transaction->id)
+                ->where('company_id', $company->id)
+                ->whereIn('status', ['pending', 'cancelled'])
+                ->where(function ($q) use ($active_payment_ids) {
+                    $q->whereNull('transaction_payment_id');
+                    if (! empty($active_payment_ids)) {
+                        $q->orWhereNotIn('transaction_payment_id', $active_payment_ids);
+                    }
+                })
+                ->orderBy('id')
+                ->first();
+        }
+
         if ($existing) {
-            // Revive cancelled rows when the payment is re-added; never overwrite settled
+            // Never overwrite settled
             if ($existing->status === 'settled') {
                 return $existing;
             }
             $was_cancelled = $existing->status === 'cancelled';
-            $existing->transaction_payment_id = $primary_payment->id;
+            $existing->transaction_payment_id = $payment->id;
             $existing->due_amount = $due_amount;
             $existing->invoice_no = $transaction->invoice_no;
             $existing->location_id = $transaction->location_id;
             $existing->invoice_date = $invoice_date;
             $existing->due_date = $due_date;
             $existing->status = 'pending';
-            // Only clear settlement progress when reviving a cancelled row
             if ($was_cancelled) {
                 $existing->booked_settled_amount = 0;
                 $existing->actual_received_amount = 0;
@@ -300,7 +314,7 @@ class InstallmentCreditUtil
             'location_id' => $transaction->location_id,
             'company_id' => $company->id,
             'transaction_id' => $transaction->id,
-            'transaction_payment_id' => $primary_payment->id,
+            'transaction_payment_id' => $payment->id,
             'invoice_no' => $transaction->invoice_no,
             'invoice_date' => $invoice_date,
             'due_date' => $due_date,
@@ -313,8 +327,7 @@ class InstallmentCreditUtil
 
     /**
      * Reconcile installment receivables with current BNPL payment lines on a sell.
-     * Call after createOrUpdatePaymentLines so sale edits revive cancelled rows and
-     * update amounts/payment ids even when TransactionPaymentAdded did not fire.
+     * One pending receivable per BNPL payment line (same company may appear more than once).
      *
      * @return list<InstallmentReceivable>
      */
@@ -335,11 +348,9 @@ class InstallmentCreditUtil
         $business_id = (int) $transaction->business_id;
         $transaction->loadMissing('payment_lines');
 
-        $active_company_ids = [];
+        $active_payment_ids = [];
         $synced = [];
-        $seen_company_ids = [];
 
-        // One sync pass per company (amounts are summed inside createReceivableFromPayment).
         foreach ($transaction->payment_lines as $payment) {
             if (! empty($payment->is_return)) {
                 continue;
@@ -353,28 +364,23 @@ class InstallmentCreditUtil
                 continue;
             }
 
-            $company_id = (int) $company->id;
-            $active_company_ids[] = $company_id;
-            if (isset($seen_company_ids[$company_id])) {
-                continue;
-            }
-            $seen_company_ids[$company_id] = true;
-
+            $active_payment_ids[] = (int) $payment->id;
             $recv = $this->createReceivableFromPayment($payment, $transaction);
             if ($recv) {
                 $synced[] = $recv;
             }
         }
 
-        $active_company_ids = array_values(array_unique($active_company_ids));
+        $active_payment_ids = array_values(array_unique($active_payment_ids));
 
-        // Cancel pending (unsettled) receivables for companies no longer on this invoice.
+        // Cancel pending (unsettled) auto-receivables whose payment line is gone.
         $orphanQuery = InstallmentReceivable::where('business_id', $business_id)
             ->where('transaction_id', $transaction->id)
-            ->where('status', 'pending');
+            ->where('status', 'pending')
+            ->whereNotNull('transaction_payment_id');
 
-        if (! empty($active_company_ids)) {
-            $orphanQuery->whereNotIn('company_id', $active_company_ids);
+        if (! empty($active_payment_ids)) {
+            $orphanQuery->whereNotIn('transaction_payment_id', $active_payment_ids);
         }
 
         foreach ($orphanQuery->get() as $recv) {

@@ -88,14 +88,14 @@ On each company (edit under **Installment Companies**), set **Default deposit ac
 
 1. Complete the sale as usual.
 2. On payment, choose the **installment company** name (e.g. **Value**), not cash/card.
-3. You may split: part cash + part company (one receivable per company portion).
+3. You may split: part cash + part company, or multiple company lines (one receivable **per BNPL payment line**).
 4. Finish the sale.
 
 **What happens:**
 
 - Invoice shows as **paid** (customer owes nothing).
 - Cash drawer / bank is **not** increased yet.
-- A pending row appears under **Installment Credit → Pending Receivables**.
+- One pending row per installment payment line appears under **Installment Credit → Pending Receivables**.
 
 **Do not** use InstaPay / Vodafone Cash / Wallet for BNPL company sales — those are different payment methods.
 
@@ -103,10 +103,10 @@ On each company (edit under **Installment Companies**), set **Default deposit ac
 
 If you **edit** a completed sale (change amount, payment method, or re-save payments):
 
-- Pending receivables are **synced** to the current installment payment lines.
-- A receivable that was cancelled when an old payment line was removed is **revived** when the company payment is still (or again) on the invoice.
-- Amounts and the linked payment id are updated to match the sale.
-- If the company payment is removed entirely, the unsettled pending receivable is cancelled (settled history is left alone).
+- Pending receivables are **synced** to the current installment payment lines (**one row per BNPL payment**).
+- A receivable that was cancelled when an old payment line was removed is **revived** when that payment (or a replacement line) is on the invoice again.
+- Amounts, dates, and the linked payment id are updated to match each payment line.
+- If a company payment line is removed, its unsettled pending receivable is cancelled (settled history is left alone).
 
 You should not need a manual import just because a sale was edited.
 
@@ -234,7 +234,7 @@ That is a normal payment (cashbook immediately). It will **not** create an insta
 Yes — two payment lines → two receivables for the same invoice number.
 
 **Same company, two payment lines on one invoice?**  
-Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50. There is still **one** pending receivable for that company, with **due amount = sum of both** (11,953.50). Invoice/due dates stay based on the **sale date** + company settlement days (not each payment’s paid-on date).
+Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50 + VALUE 5,000 → **three** pending receivables (one per BNPL payment line). Invoice/due dates follow each payment’s **paid-on** date + company settlement days.
 
 **Pending receivable disappeared after editing the sale?**  
 Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once. On the server you can also run: `php artisan installment:debug-invoice {invoice_no} --sync`.

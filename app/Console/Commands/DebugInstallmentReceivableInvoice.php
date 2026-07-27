@@ -13,8 +13,7 @@ use Modules\InstallmentCredit\Utils\InstallmentCreditUtil;
  * Diagnose why a sell invoice is missing / wrong on Installment Credit → Pending Receivables.
  *
  * Pending list only shows installment_receivables.status = pending.
- * One receivable per company per invoice — due_amount must equal the SUM of all BNPL
- * payment lines for that company (not the last payment only).
+ * One receivable per BNPL payment line (same company may appear more than once).
  */
 class DebugInstallmentReceivableInvoice extends Command
 {
@@ -33,7 +32,7 @@ class DebugInstallmentReceivableInvoice extends Command
         $this->line('');
         $this->info("=== Installment receivable debug: invoice #{$invoiceNo} ===");
         $this->line('Pending list = installment_receivables WHERE status = pending only.');
-        $this->line('Rule: one receivable per company; due_amount = sum of that company\'s BNPL payment lines.');
+        $this->line('Rule: one receivable per BNPL payment line (same company may have multiple rows).');
         $this->line('');
 
         $txQuery = Transaction::query()->where(function ($q) use ($invoiceNo) {
@@ -170,19 +169,16 @@ class DebugInstallmentReceivableInvoice extends Command
         });
 
         $this->line('');
-        $this->comment('BNPL totals by company (expected receivable due_amount):');
-        $expectedByCompany = [];
-        foreach ($bnplPayments->groupBy('method') as $method => $group) {
-            $company = InstallmentCompany::findByPaymentMethod($tx->business_id, $method);
-            $sum = (float) $group->sum('amount');
-            $expectedByCompany[(int) $company->id] = $sum;
+        $this->comment('BNPL payment lines → expected pending receivables (1:1):');
+        foreach ($bnplPayments as $p) {
+            $company = InstallmentCompany::findByPaymentMethod($tx->business_id, $p->method);
             $this->line(sprintf(
-                '  %s (%s): %d line(s) → sum %.4f  [payment ids: %s]',
-                $company->name ?? $method,
-                $method,
-                $group->count(),
-                $sum,
-                $group->pluck('id')->implode(', ')
+                '  payment #%d (%s) %s → due_amount %.4f | paid_on %s',
+                $p->id,
+                $company->name ?? $p->method,
+                $p->payment_ref_no,
+                (float) $p->amount,
+                (string) $p->paid_on
             ));
         }
         if ($bnplPayments->isEmpty()) {
@@ -234,26 +230,34 @@ class DebugInstallmentReceivableInvoice extends Command
             $this->error('✗ No pending receivable — will NOT appear on Pending Receivables list.');
         }
 
-        foreach ($pending->merge($settled) as $r) {
-            $expected = $expectedByCompany[(int) $r->company_id] ?? null;
-            if ($expected === null) {
+        $bnplCount = $bnplPayments->count();
+        $pendingAuto = $pending->filter(fn ($r) => ! empty($r->transaction_payment_id));
+        if ($bnplCount > 0 && $pendingAuto->count() !== $bnplCount) {
+            $this->error(sprintf(
+                '✗ Count mismatch: %d BNPL payment line(s) but %d pending receivable(s) linked to a payment. Expected one pending row per BNPL line.',
+                $bnplCount,
+                $pendingAuto->count()
+            ));
+            $this->line('  Fix: php artisan installment:debug-invoice '.$tx->invoice_no.' --sync');
+        } elseif ($bnplCount > 0 && $pendingAuto->count() === $bnplCount) {
+            $this->info(sprintf('✓ Count OK: %d BNPL payment line(s) → %d pending receivable(s).', $bnplCount, $pendingAuto->count()));
+        }
+
+        foreach ($bnplPayments as $p) {
+            $match = $receivables->first(fn ($r) => (int) $r->transaction_payment_id === (int) $p->id);
+            if (! $match) {
+                $this->error("✗ Missing receivable for payment #{$p->id} amount={$p->amount}");
                 continue;
             }
-            $actual = (float) $r->due_amount;
-            if (abs($actual - $expected) > 0.0001) {
+            if ($match->status !== 'pending' && $match->status !== 'settled') {
+                $this->warn("Payment #{$p->id} linked to receivable #{$match->id} with status={$match->status}");
+            }
+            if ($match->status === 'pending' && abs((float) $match->due_amount - (float) $p->amount) > 0.0001) {
                 $this->error(sprintf(
-                    '✗ Amount mismatch for %s: receivable due_amount=%.4f but BNPL payment sum=%.4f (missing %.4f). Typical after multi-line same-company payments when due_amount was overwritten by the last line.',
-                    $r->company->name ?? $r->company_id,
-                    $actual,
-                    $expected,
-                    $expected - $actual
-                ));
-                $this->line('  Fix: php artisan installment:debug-invoice '.$tx->invoice_no.' --sync');
-            } else {
-                $this->info(sprintf(
-                    '✓ Amount OK for %s: due_amount=%.4f matches BNPL sum.',
-                    $r->company->name ?? $r->company_id,
-                    $actual
+                    '✗ Amount mismatch payment #%d: receivable due_amount=%.4f vs payment amount=%.4f',
+                    $p->id,
+                    (float) $match->due_amount,
+                    (float) $p->amount
                 ));
             }
         }
@@ -291,7 +295,7 @@ class DebugInstallmentReceivableInvoice extends Command
         }
 
         $this->line('');
-        $this->comment('Dates note: invoice_date / due_date come from the sale transaction_date + company settlement days, not from each payment paid_on.');
+        $this->comment('Dates note: invoice_date / due_date follow each payment paid_on + company settlement days.');
         $this->line('');
     }
 }
