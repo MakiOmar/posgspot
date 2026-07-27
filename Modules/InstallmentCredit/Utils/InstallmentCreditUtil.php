@@ -36,6 +36,32 @@ class InstallmentCreditUtil
     }
 
     /**
+     * All non-return payment lines on a sell that belong to a given installment company.
+     *
+     * @return \Illuminate\Support\Collection<int, \App\TransactionPayment>
+     */
+    public function bnplPaymentsForCompany($transaction, InstallmentCompany $company)
+    {
+        $transaction->loadMissing('payment_lines');
+        $key = (string) $company->payment_method_key;
+
+        return $transaction->payment_lines
+            ->filter(function ($payment) use ($key) {
+                return empty($payment->is_return)
+                    && (string) $payment->method === $key;
+            })
+            ->values();
+    }
+
+    /**
+     * Sum BNPL payment amounts for one company on a sell (supports multiple payment lines).
+     */
+    public function sumBnplDueAmountForCompany($transaction, InstallmentCompany $company): float
+    {
+        return (float) $this->bnplPaymentsForCompany($transaction, $company)->sum('amount');
+    }
+
+    /**
      * Manually create (or import) a pending receivable row.
      *
      * @param  array  $input  company_id|company_code, location_id|branch, invoice_no, invoice_date, due_date, due_amount, actual_received, notes
@@ -227,6 +253,21 @@ class InstallmentCreditUtil
             ->where('company_id', $company->id)
             ->first();
 
+        // One receivable per company per invoice: sum ALL BNPL lines for that company
+        // (sale edits often add a second company payment; overwriting with the last line loses amount).
+        $company_payments = $this->bnplPaymentsForCompany($transaction, $company);
+        if ($company_payments->isEmpty()) {
+            $company_payments = collect([$payment]);
+        }
+        $due_amount = (float) $company_payments->sum('amount');
+        if ($due_amount <= 0) {
+            return $existing;
+        }
+
+        // Prefer the largest BNPL line as the linked payment; fall back to triggering payment.
+        $primary_payment = $company_payments->sortByDesc(fn ($p) => (float) $p->amount)->first() ?: $payment;
+
+        // Invoice date = sale date; due date from company settlement days (not each payment's paid_on).
         $invoice_date = Carbon::parse($transaction->transaction_date)->toDateString();
         $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
 
@@ -236,8 +277,8 @@ class InstallmentCreditUtil
                 return $existing;
             }
             $was_cancelled = $existing->status === 'cancelled';
-            $existing->transaction_payment_id = $payment->id;
-            $existing->due_amount = $payment->amount;
+            $existing->transaction_payment_id = $primary_payment->id;
+            $existing->due_amount = $due_amount;
             $existing->invoice_no = $transaction->invoice_no;
             $existing->location_id = $transaction->location_id;
             $existing->invoice_date = $invoice_date;
@@ -259,11 +300,11 @@ class InstallmentCreditUtil
             'location_id' => $transaction->location_id,
             'company_id' => $company->id,
             'transaction_id' => $transaction->id,
-            'transaction_payment_id' => $payment->id,
+            'transaction_payment_id' => $primary_payment->id,
             'invoice_no' => $transaction->invoice_no,
             'invoice_date' => $invoice_date,
             'due_date' => $due_date,
-            'due_amount' => $payment->amount,
+            'due_amount' => $due_amount,
             'booked_settled_amount' => 0,
             'actual_received_amount' => 0,
             'status' => 'pending',
@@ -296,7 +337,9 @@ class InstallmentCreditUtil
 
         $active_company_ids = [];
         $synced = [];
+        $seen_company_ids = [];
 
+        // One sync pass per company (amounts are summed inside createReceivableFromPayment).
         foreach ($transaction->payment_lines as $payment) {
             if (! empty($payment->is_return)) {
                 continue;
@@ -310,7 +353,13 @@ class InstallmentCreditUtil
                 continue;
             }
 
-            $active_company_ids[] = (int) $company->id;
+            $company_id = (int) $company->id;
+            $active_company_ids[] = $company_id;
+            if (isset($seen_company_ids[$company_id])) {
+                continue;
+            }
+            $seen_company_ids[$company_id] = true;
+
             $recv = $this->createReceivableFromPayment($payment, $transaction);
             if ($recv) {
                 $synced[] = $recv;

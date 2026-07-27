@@ -233,8 +233,11 @@ That is a normal payment (cashbook immediately). It will **not** create an insta
 **Can one invoice use two companies?**  
 Yes — two payment lines → two receivables for the same invoice number.
 
+**Same company, two payment lines on one invoice?**  
+Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50. There is still **one** pending receivable for that company, with **due amount = sum of both** (11,953.50). Invoice/due dates stay based on the **sale date** + company settlement days (not each payment’s paid-on date).
+
 **Pending receivable disappeared after editing the sale?**  
-Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once.
+Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once. On the server you can also run: `php artisan installment:debug-invoice {invoice_no} --sync`.
 
 **Where is “Companies”?**  
 In the sidebar it is labeled **Installment Companies** (under **Installment Credit**).
