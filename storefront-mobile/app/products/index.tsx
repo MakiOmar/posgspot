@@ -1,71 +1,36 @@
-import { Stack } from "expo-router";
-import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import { useState } from "react";
+import { Stack } from "expo-router";
+import { StyleSheet } from "react-native";
 import { useApp } from "../../src/contexts/AppContext";
-import {
-  ProductListToolbar,
-} from "../../src/components/catalog/ProductListToolbar";
 import { FormTextInput } from "../../src/components/FormTextInput";
-import {
-  ErrorBlock,
-  LoadingBlock,
-  ProductCard,
-  Screen,
-} from "../../src/components/ui";
-import { useProductList } from "../../src/lib/use-product-list";
+import { ProductGridScreen } from "../../src/components/catalog/ProductGridScreen";
+import { Screen } from "../../src/components/ui";
 
 export default function ProductsIndexScreen() {
   const { locale, t } = useApp();
   const [q, setQ] = useState("");
-  const list = useProductList({ locale });
 
   return (
-    <Screen>
+    <Screen padded={false}>
       <Stack.Screen options={{ title: t("nav.shop") }} />
-      <FormTextInput
-        value={q}
-        onChangeText={setQ}
-        placeholder={t("common.search")}
-        style={styles.input}
-        autoCapitalize="none"
+      <ProductGridScreen
+        locale={locale}
+        mode={q.trim().length >= 2 ? "search" : "products"}
+        searchQ={q}
+        header={
+          <FormTextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder={t("common.search")}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        }
       />
-      <ProductListToolbar
-        sort={list.sort}
-        inStockOnly={list.inStockOnly}
-        onSortChange={list.setSort}
-        onInStockChange={list.setInStockOnly}
-      />
-      {list.loading ? (
-        <LoadingBlock />
-      ) : list.error ? (
-        <ErrorBlock message={t("common.error")} onRetry={list.reload} />
-      ) : (
-        <FlatList
-          style={styles.list}
-          data={
-            q.trim()
-              ? list.products.filter((p) =>
-                  p.name.toLowerCase().includes(q.trim().toLowerCase()),
-                )
-              : list.products
-          }
-          keyExtractor={(item) => String(item.id)}
-          numColumns={2}
-          columnWrapperStyle={styles.grid}
-          renderItem={({ item }) => <ProductCard product={item} />}
-          onEndReached={list.loadMore}
-          onEndReachedThreshold={0.4}
-          ListFooterComponent={
-            list.loadingMore ? <ActivityIndicator style={{ margin: 12 }} /> : null
-          }
-        />
-      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  input: { marginBottom: 12 },
-  list: { flex: 1 },
-  grid: { justifyContent: "space-between" },
+  input: { marginBottom: 12, marginTop: 8 },
 });

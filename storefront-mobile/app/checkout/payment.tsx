@@ -49,6 +49,7 @@ export default function PaymentScreen() {
         "fawry",
         storefrontOrderId,
         locale,
+        token,
       );
       const model = sessionToLaunchModel(
         session,
@@ -75,10 +76,14 @@ export default function PaymentScreen() {
         return;
       }
       try {
-        await confirmPaymentReturn("fawry", {
-          storefront_order_id: storefrontOrderId,
-          payload: result.payload,
-        });
+        await confirmPaymentReturn(
+          "fawry",
+          {
+            storefront_order_id: storefrontOrderId,
+            payload: result.payload,
+          },
+          token,
+        );
       } catch {
         // Webhook may already have confirmed.
       }

@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { fetchOrder, fetchOrderInvoiceUrl } from "../../../src/lib/api";
 import type { AccountOrderDetail } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { useCart } from "../../../src/contexts/CartContext";
-import { HeaderBackButton } from "../../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../../src/components/account/HeaderCartButton";
+import { SecretRevealRow } from "../../../src/components/account/SecretRevealRow";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -27,7 +27,7 @@ function isPaidOrder(paymentStatus: string | undefined): boolean {
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, t } = useApp();
+  const { token, t, accent } = useApp();
   const { addItem } = useCart();
   const router = useRouter();
   const [order, setOrder] = useState<AccountOrderDetail | null>(null);
@@ -35,6 +35,23 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Reduce screenshot risk while digital secrets are on screen (Android FLAG_SECURE).
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    let active = true;
+    void import("expo-screen-capture")
+      .then((mod) => {
+        if (active) return mod.preventScreenCaptureAsync();
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+      void import("expo-screen-capture")
+        .then((mod) => mod.allowScreenCaptureAsync())
+        .catch(() => undefined);
+    };
+  }, []);
 
   const load = useCallback(async () => {
     if (!token || !id) {
@@ -73,13 +90,6 @@ export default function OrderDetailScreen() {
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: t("account.orders"),
-            headerLeft: () => <HeaderBackButton />,
-            headerRight: () => <HeaderCartButton />,
-          }}
-        />
         <LoadingBlock />
       </Screen>
     );
@@ -88,13 +98,6 @@ export default function OrderDetailScreen() {
   if (error || !order) {
     return (
       <Screen>
-        <Stack.Screen
-          options={{
-            title: t("account.orders"),
-            headerLeft: () => <HeaderBackButton />,
-            headerRight: () => <HeaderCartButton />,
-          }}
-        />
         <ErrorBlock message={error || undefined} onRetry={() => void load()} />
       </Screen>
     );
@@ -102,13 +105,6 @@ export default function OrderDetailScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen
-        options={{
-          title: t("account.orders"),
-          headerLeft: () => <HeaderBackButton />,
-          headerRight: () => <HeaderCartButton />,
-        }}
-      />
       <ScrollView contentContainerStyle={styles.pad}>
         <Text style={styles.title}>
           {order.invoice_no || order.storefront_order_id || `#${order.id}`}
@@ -141,10 +137,7 @@ export default function OrderDetailScreen() {
 
         <Text style={styles.section}>{t("account.lines")}</Text>
         {(order.lines || []).map((line, index) => (
-          <View
-            key={`${line.variation_id}-${index}`}
-            style={styles.card}
-          >
+          <View key={`${line.variation_id}-${index}`} style={styles.card}>
             <Text style={styles.cardTitle}>
               {line.product_name || line.name || `Product #${line.product_id}`}
             </Text>
@@ -165,12 +158,26 @@ export default function OrderDetailScreen() {
               <View key={i} style={styles.card}>
                 <Text style={styles.cardTitle}>{d.title}</Text>
                 {d.account_email ? (
-                  <Text>Email: {d.account_email}</Text>
+                  <Text style={styles.meta}>Email: {d.account_email}</Text>
                 ) : null}
                 {d.account_password ? (
-                  <Text>Password: {d.account_password}</Text>
+                  <SecretRevealRow
+                    label="Password"
+                    value={d.account_password}
+                    revealLabel={t("account.revealSecret")}
+                    hideLabel={t("account.hideSecret")}
+                    accent={accent}
+                  />
                 ) : null}
-                {d.code ? <Text>Code: {d.code}</Text> : null}
+                {d.code ? (
+                  <SecretRevealRow
+                    label="Code"
+                    value={d.code}
+                    revealLabel={t("account.revealSecret")}
+                    hideLabel={t("account.hideSecret")}
+                    accent={accent}
+                  />
+                ) : null}
               </View>
             ))}
           </>

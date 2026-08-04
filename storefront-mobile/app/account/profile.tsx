@@ -6,15 +6,13 @@ import {
   Text,
   View,
 } from "react-native";
-import { Redirect, Stack, useRouter, type Href } from "expo-router";
+import { Redirect, useRouter, type Href } from "expo-router";
 import {
   fetchProfile,
   requestAccountDeletion,
   updateProfile,
 } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
-import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { PhoneInput } from "../../src/components/PhoneInput";
 import {
@@ -85,16 +83,9 @@ export default function ProfileScreen() {
     return <Redirect href="/login" />;
   }
 
-  const headerOpts = {
-    title: t("account.personalInfo"),
-    headerLeft: () => <HeaderBackButton />,
-    headerRight: () => <HeaderCartButton />,
-  };
-
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -102,7 +93,6 @@ export default function ProfileScreen() {
 
   return (
     <Screen padded={false} avoidKeyboard={false}>
-      <Stack.Screen options={headerOpts} />
       <FormScrollView contentContainerStyle={styles.pad}>
         <Text style={[styles.lead, { textAlign, writingDirection }]}>
           {t("account.editPersonal")}

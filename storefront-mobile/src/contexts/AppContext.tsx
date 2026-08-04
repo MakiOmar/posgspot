@@ -16,6 +16,7 @@ import {
   register as apiRegister,
   setActiveContentLocale,
   setUnauthorizedHandler,
+  ApiError,
 } from "../lib/api";
 import {
   clearAuthSession,
@@ -111,10 +112,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (!cancelled) {
               setSession(next);
             }
-          } catch {
-            await clearAuthSession();
-            if (!cancelled) {
-              setSession(null);
+          } catch (e) {
+            // Only wipe the session on auth failure — keep token on network/5xx.
+            const status = e instanceof ApiError ? e.status : 0;
+            if (status === 401 || status === 403) {
+              await clearAuthSession();
+              if (!cancelled) {
+                setSession(null);
+              }
             }
           }
         }

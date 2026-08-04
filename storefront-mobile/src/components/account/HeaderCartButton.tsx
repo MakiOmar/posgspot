@@ -1,23 +1,27 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
+import { useApp } from "../../contexts/AppContext";
 import { useCart } from "../../contexts/CartContext";
 
-/** Cart icon with badge for Stack headers. */
+/** Cart icon with badge for Stack headers (matches StorefrontHeader badge style). */
 export function HeaderCartButton() {
   const router = useRouter();
   const { count } = useCart();
+  const { accent, t } = useApp();
 
   return (
     <Pressable
       onPress={() => router.push("/(tabs)/cart")}
       style={styles.wrap}
       hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={t("nav.cart")}
     >
-      <Ionicons name="cart-outline" size={24} color="#111" />
+      <FontAwesome name="shopping-cart" size={20} color="#222" />
       {count > 0 ? (
-        <View style={[styles.badge, { backgroundColor: "#E53935" }]}>
-          <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+        <View style={[styles.badge, { backgroundColor: accent }]}>
+          <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -37,5 +41,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 3,
   },
-  badgeText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  badgeText: { color: "#111", fontSize: 10, fontWeight: "800" },
 });

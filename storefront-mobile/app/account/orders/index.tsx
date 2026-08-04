@@ -8,12 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
-import { Link, Redirect, Stack } from "expo-router";
+import { Link, Redirect } from "expo-router";
 import { fetchOrders } from "../../../src/lib/api";
 import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
-import { HeaderBackButton } from "../../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../../src/components/account/HeaderCartButton";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -71,16 +69,9 @@ export default function OrdersScreen() {
     return <Redirect href="/login" />;
   }
 
-  const headerOpts = {
-    title: t("account.orders"),
-    headerLeft: () => <HeaderBackButton />,
-    headerRight: () => <HeaderCartButton />,
-  };
-
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -88,7 +79,6 @@ export default function OrdersScreen() {
 
   return (
     <Screen>
-      <Stack.Screen options={headerOpts} />
       {error ? (
         <ErrorBlock message={error} onRetry={() => void load(1, false)} />
       ) : null}

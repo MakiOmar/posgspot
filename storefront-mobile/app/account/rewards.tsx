@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { fetchRewardPoints } from "../../src/lib/api";
 import type { RewardPointsBalance } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
-import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -46,16 +44,9 @@ export default function RewardsScreen() {
     return <Redirect href="/login" />;
   }
 
-  const headerOpts = {
-    title: t("rewards.title"),
-    headerLeft: () => <HeaderBackButton />,
-    headerRight: () => <HeaderCartButton />,
-  };
-
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -66,7 +57,6 @@ export default function RewardsScreen() {
 
   return (
     <Screen padded={false}>
-      <Stack.Screen options={headerOpts} />
       <ScrollView contentContainerStyle={styles.pad}>
         {error ? (
           <ErrorBlock message={error} onRetry={() => void load()} />

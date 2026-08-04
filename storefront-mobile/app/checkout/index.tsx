@@ -20,7 +20,8 @@ import { toCartApiItem } from "../../src/lib/cart";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
-import { SelectField } from "../../src/components/SelectField";
+import { CheckoutAddressFields } from "../../src/components/checkout/CheckoutAddressFields";
+import { CheckoutContactFields } from "../../src/components/checkout/CheckoutContactFields";
 import { CouponPicker } from "../../src/components/checkout/CouponPicker";
 import { RewardPointsRedeem } from "../../src/components/checkout/RewardPointsRedeem";
 import { PrimaryButton, FormScrollView, Screen } from "../../src/components/ui";
@@ -411,99 +412,52 @@ export default function CheckoutScreen() {
       <FormScrollView contentContainerStyle={styles.pad} bottomInset={64}>
         <Text style={styles.title}>{t("checkout.title")}</Text>
 
-        <Text style={styles.section}>{t("checkout.contact")}</Text>
-        <LabeledInput
-          label={t("checkout.firstName")}
-          value={firstName}
-          onChangeText={setFirstName}
-        />
-        <LabeledInput
-          label={t("checkout.lastName")}
-          value={lastName}
-          onChangeText={setLastName}
-        />
-        <LabeledInput
-          label={t("checkout.email")}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <LabeledInput
-          label={t("checkout.mobile")}
-          value={mobile}
-          onChangeText={setMobile}
-          keyboardType="phone-pad"
+        <CheckoutContactFields
+          firstName={firstName}
+          lastName={lastName}
+          email={email}
+          mobile={mobile}
+          onFirstNameChange={setFirstName}
+          onLastNameChange={setLastName}
+          onEmailChange={setEmail}
+          onMobileChange={setMobile}
         />
 
-        {digitalMode ? (
-          <Text style={styles.hint}>{t("checkout.digitalOnly")}</Text>
-        ) : pickupMode ? (
-          <Text style={styles.hint}>{t("checkout.pickupHint")}</Text>
-        ) : (
-          <>
-            <Text style={styles.section}>{t("checkout.shippingAddress")}</Text>
-            <SelectField
-              label={t("checkout.country")}
-              value={country}
-              options={countries.map((c) => ({ value: c.code, label: c.name }))}
-              onChange={(code) => {
-                setCountry(normalizeCountry(code));
-                setStateCode("");
-                setStateText("");
-                setSelectedRateId(null);
-              }}
-            />
-            {useStateSelect ? (
-              <SelectField
-                label={t("checkout.state")}
-                value={stateCode}
-                options={states.map((s) => ({ value: s.code, label: s.name }))}
-                onChange={(code) => {
-                  setStateCode(code);
-                  setSelectedRateId(null);
-                }}
-                placeholder={t("checkout.selectState")}
-              />
-            ) : (
-              <LabeledInput
-                label={t("checkout.state")}
-                value={stateText}
-                onChangeText={(v) => {
-                  setStateText(v);
-                  setSelectedRateId(null);
-                }}
-                placeholder={t("checkout.statePlaceholder")}
-              />
-            )}
-            {bostaEnabled && districts.length > 0 ? (
-              <SelectField
-                label={t("checkout.district")}
-                value={districtId}
-                options={districts.map((d) => ({
-                  value: d.id,
-                  label: d.label,
-                }))}
-                onChange={(id, opt) => {
-                  setDistrictId(id);
-                  setDistrictLabel(opt.label);
-                }}
-                placeholder={t("checkout.selectDistrict")}
-              />
-            ) : null}
-            <LabeledInput
-              label={t("checkout.city")}
-              value={city}
-              onChangeText={setCity}
-            />
-            <LabeledInput
-              label={t("checkout.address")}
-              value={address}
-              onChangeText={setAddress}
-              multiline
-            />
-          </>
-        )}
+        <CheckoutAddressFields
+          digitalMode={digitalMode}
+          pickupMode={pickupMode}
+          country={country}
+          countries={countries}
+          useStateSelect={useStateSelect}
+          stateCode={stateCode}
+          stateText={stateText}
+          states={states}
+          bostaEnabled={bostaEnabled}
+          districts={districts}
+          districtId={districtId}
+          city={city}
+          address={address}
+          onCountryChange={(code) => {
+            setCountry(normalizeCountry(code));
+            setStateCode("");
+            setStateText("");
+            setSelectedRateId(null);
+          }}
+          onStateCodeChange={(code) => {
+            setStateCode(code);
+            setSelectedRateId(null);
+          }}
+          onStateTextChange={(v) => {
+            setStateText(v);
+            setSelectedRateId(null);
+          }}
+          onDistrictChange={(id, label) => {
+            setDistrictId(id);
+            setDistrictLabel(label);
+          }}
+          onCityChange={setCity}
+          onAddressChange={setAddress}
+        />
 
         <Text style={styles.section}>{t("checkout.shippingMethod")}</Text>
         {rates.length === 0 ? (

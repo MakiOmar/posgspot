@@ -88,24 +88,7 @@ export default function RootLayout() {
                   options={{ title: "Reset password" }}
                 />
                 <Stack.Screen name="wishlist" options={{ title: "Wishlist" }} />
-                <Stack.Screen
-                  name="account/profile"
-                  options={{ title: "Personal Info" }}
-                />
-                <Stack.Screen
-                  name="account/password"
-                  options={{ title: "Change password" }}
-                />
-                <Stack.Screen
-                  name="account/address"
-                  options={{ title: "My Address" }}
-                />
-                <Stack.Screen
-                  name="account/rewards"
-                  options={{ title: "Reward Points" }}
-                />
-                <Stack.Screen name="account/orders/index" options={{ title: "Orders" }} />
-                <Stack.Screen name="account/orders/[id]" options={{ title: "Order" }} />
+                <Stack.Screen name="account" options={{ headerShown: false }} />
                 <Stack.Screen name="stores" options={{ title: "Stores" }} />
                 <Stack.Screen name="contact" options={{ title: "Contact" }} />
                 <Stack.Screen name="repair-status" options={{ title: "Repair" }} />

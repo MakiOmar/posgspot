@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Redirect, Stack } from "expo-router";
+import { Redirect } from "expo-router";
 import {
   fetchGeoCountries,
   fetchGeoStates,
@@ -8,8 +8,6 @@ import {
 } from "../../src/lib/api";
 import type { GeoCountry, GeoState } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
-import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { SelectField } from "../../src/components/SelectField";
 import {
@@ -94,16 +92,9 @@ export default function AddressScreen() {
     return <Redirect href="/login" />;
   }
 
-  const headerOpts = {
-    title: t("account.addressTitle"),
-    headerLeft: () => <HeaderBackButton />,
-    headerRight: () => <HeaderCartButton />,
-  };
-
   if (loading) {
     return (
       <Screen>
-        <Stack.Screen options={headerOpts} />
         <LoadingBlock />
       </Screen>
     );
@@ -111,7 +102,6 @@ export default function AddressScreen() {
 
   return (
     <Screen padded={false} avoidKeyboard={false}>
-      <Stack.Screen options={headerOpts} />
       <FormScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {error ? (
           <ErrorBlock message={error} onRetry={() => void load()} />

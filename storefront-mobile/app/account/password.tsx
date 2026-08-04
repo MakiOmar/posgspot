@@ -1,9 +1,7 @@
 import { useState } from "react";
-import { Redirect, Stack, useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { changePassword } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
-import { HeaderBackButton } from "../../src/components/account/HeaderBackButton";
-import { HeaderCartButton } from "../../src/components/account/HeaderCartButton";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { FormScrollView, PrimaryButton, Screen } from "../../src/components/ui";
 import { toast } from "../../src/lib/toast";
@@ -22,13 +20,6 @@ export default function ChangePasswordScreen() {
 
   return (
     <Screen padded={false} avoidKeyboard={false}>
-      <Stack.Screen
-        options={{
-          title: t("account.changePassword"),
-          headerLeft: () => <HeaderBackButton />,
-          headerRight: () => <HeaderCartButton />,
-        }}
-      />
       <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
         <LabeledInput
           label={t("account.currentPassword")}

@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-26 |
+| **Last updated** | 2026-08-04 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Account UX: geo/dial selects, paginated orders, login tabs |
+| **Overall** | Quality hardening (security + DRY + performance) |
 
 **Status legend:** Done · Partial · Not started
 
@@ -56,6 +56,9 @@
 | Account stack back buttons | Done |
 | Personal Info load loop fix | Done |
 | Keyboard-safe forms (Keyboard Controller + aware scroll) | Done |
+| Quality hardening — release security | Done |
+| Quality hardening — DRY catalog + account layout | Done |
+| Quality hardening — home/PDP split + fetch timeout | Done |
 | M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
@@ -86,3 +89,4 @@
 | 2026-07-26 | Fix profile load loop; address geo selects; dial login tabs; orders pagination + invoice. |
 | 2026-07-26 | Keyboard-safe forms: FormScrollView + Screen avoider; Android resize; select-sheet KAV. |
 | 2026-07-26 | Keyboard Controller + aware scroll; auth shell collapses logo while typing. |
+| 2026-08-04 | Quality hardening: HTTPS API_BASE in release; SecureStore-only prod auth; 401-only session wipe; masked digital secrets; ProductGridScreen; account stack layout; home/PDP/checkout splits; fetch timeout; cart functional updaters. |

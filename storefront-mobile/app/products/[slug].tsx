@@ -1,11 +1,9 @@
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dimensions,
   FlatList,
   Pressable,
-  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -13,7 +11,6 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import {
   fetchAvailability,
   fetchProduct,
@@ -27,13 +24,13 @@ import { useWishlist } from "../../src/contexts/WishlistContext";
 import { AvailabilityModal } from "../../src/components/catalog/AvailabilityModal";
 import { ProductCard } from "../../src/components/catalog/ProductCard";
 import { StarRating } from "../../src/components/catalog/StarRating";
-import { LabeledInput } from "../../src/components/LabeledInput";
-import { RemoteImage } from "../../src/components/RemoteImage";
+import { ProductGallery } from "../../src/components/pdp/ProductGallery";
+import { ProductReviews } from "../../src/components/pdp/ProductReviews";
+import { ProductStickyBar } from "../../src/components/pdp/ProductStickyBar";
 import {
   ErrorBlock,
   FormScrollView,
   LoadingBlock,
-  PrimaryButton,
   Screen,
 } from "../../src/components/ui";
 import { STOREFRONT_WEB_URL } from "../../src/lib/config";
@@ -58,7 +55,7 @@ export default function ProductScreen() {
   const { isInWishlist, toggle } = useWishlist();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { row, textAlign, writingDirection, end } = useRtl();
+  const { row, textAlign, writingDirection } = useRtl();
 
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [variationId, setVariationId] = useState<number | null>(null);
@@ -270,65 +267,18 @@ export default function ProductScreen() {
           contentContainerStyle={[styles.pad, { paddingBottom: stickyPad }]}
           bottomInset={stickyPad}
         >
-          <View style={styles.galleryWrap}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                const i = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
-                setGalleryIndex(i);
-              }}
-            >
-              {(images.length ? images : [null]).map((uri, idx) => (
-                <RemoteImage
-                  key={`${uri || "ph"}-${idx}`}
-                  uri={uri}
-                  style={styles.image}
-                  placeholderColor="#eee"
-                />
-              ))}
-            </ScrollView>
-
-            {/* Floating share + wishlist — top-end (right LTR / left RTL) */}
-            <View
-              style={[styles.galleryActions, { [end]: 12 }]}
-              pointerEvents="box-none"
-            >
-              <Pressable
-                style={[styles.shareBtn, { backgroundColor: accent }]}
-                onPress={() => void onShare()}
-                accessibilityRole="button"
-                accessibilityLabel={t("share.label")}
-              >
-                <FontAwesome name="share-alt" size={18} color="#111" />
-              </Pressable>
-              <Pressable
-                style={styles.wishBtn}
-                onPress={() =>
-                void toggle(product).catch((e) =>
-                  toast.error(t("common.error"), String(e)),
-                )
-                }
-                accessibilityRole="button"
-                accessibilityLabel={t("nav.wishlist")}
-              >
-                <FontAwesome
-                  name={wished ? "heart" : "heart-o"}
-                  size={18}
-                  color={wished ? "#FF6B8A" : "#fff"}
-                />
-              </Pressable>
-            </View>
-
-            {images.length > 1 ? (
-              <View style={styles.dotsWrap} pointerEvents="none">
-                <Text style={styles.dots}>
-                  {galleryIndex + 1}/{images.length}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          <ProductGallery
+            images={images}
+            galleryIndex={galleryIndex}
+            onGalleryIndexChange={setGalleryIndex}
+            wished={wished}
+            onShare={() => void onShare()}
+            onToggleWishlist={() =>
+              void toggle(product).catch((e) =>
+                toast.error(t("common.error"), String(e)),
+              )
+            }
+          />
 
           <View style={[styles.titleRow, { flexDirection: row }]}>
             <Text style={[styles.title, { textAlign, writingDirection }]}>
@@ -426,167 +376,31 @@ export default function ProductScreen() {
             </View>
           ) : null}
 
-          <View style={styles.reviews}>
-            <Text style={[styles.section, { textAlign, writingDirection }]}>
-              {t("reviews.title")} ({reviews.length})
-            </Text>
-            {reviews.map((r) => (
-              <View key={r.id} style={styles.reviewCard}>
-                <Text style={styles.reviewStars}>
-                  {"★".repeat(r.rating)}
-                  {"☆".repeat(Math.max(0, 5 - r.rating))}
-                </Text>
-                {r.title ? (
-                  <Text
-                    style={[styles.reviewTitle, { textAlign, writingDirection }]}
-                  >
-                    {r.title}
-                  </Text>
-                ) : null}
-                <Text
-                  style={[styles.reviewBody, { textAlign, writingDirection }]}
-                >
-                  {r.body}
-                </Text>
-                <Text
-                  style={[styles.reviewMeta, { textAlign, writingDirection }]}
-                >
-                  {r.author_name || "Customer"}
-                  {r.is_verified_purchase
-                    ? ` · ${t("reviews.verified")}`
-                    : ""}
-                </Text>
-              </View>
-            ))}
-            {token && eligibility?.can_review ? (
-              <View style={styles.reviewForm}>
-                <Text style={[styles.section, { textAlign, writingDirection }]}>
-                  {t("reviews.write")}
-                </Text>
-                <View style={[styles.varRow, { flexDirection: row }]}>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <Pressable key={n} onPress={() => setReviewRating(n)}>
-                      <Text
-                        style={{
-                          fontSize: 22,
-                          color: n <= reviewRating ? accent : "#ccc",
-                        }}
-                      >
-                        ★
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <LabeledInput
-                  label={t("reviews.titlePlaceholder")}
-                  value={reviewTitle}
-                  onChangeText={setReviewTitle}
-                />
-                <LabeledInput
-                  label={t("reviews.bodyPlaceholder")}
-                  value={reviewBody}
-                  onChangeText={setReviewBody}
-                  multiline
-                  style={{ height: 90, textAlignVertical: "top" }}
-                />
-                <PrimaryButton
-                  label={reviewBusy ? t("common.loading") : t("reviews.submit")}
-                  disabled={reviewBusy || !reviewBody.trim()}
-                  onPress={() => void onSubmitReview()}
-                />
-              </View>
-            ) : token && eligibility && !eligibility.can_review ? (
-              <Text style={[styles.meta, { textAlign, writingDirection }]}>
-                {eligibility.message || t("reviews.notEligible")}
-              </Text>
-            ) : !token ? (
-              <PrimaryButton
-                label={t("reviews.signIn")}
-                onPress={() => router.push("/login")}
-              />
-            ) : null}
-          </View>
+          <ProductReviews
+            reviews={reviews}
+            eligibility={eligibility}
+            token={token}
+            reviewRating={reviewRating}
+            reviewTitle={reviewTitle}
+            reviewBody={reviewBody}
+            reviewBusy={reviewBusy}
+            onRatingChange={setReviewRating}
+            onTitleChange={setReviewTitle}
+            onBodyChange={setReviewBody}
+            onSubmit={() => void onSubmitReview()}
+            onSignIn={() => router.push("/login")}
+          />
         </FormScrollView>
 
         {variationId ? (
-          <View
-            style={[
-              styles.sticky,
-              { paddingBottom: Math.max(insets.bottom, 10) },
-            ]}
-            pointerEvents="box-none"
-          >
-            {/* Soft fade into content above the action bar */}
-            <View style={styles.fade} pointerEvents="none">
-              <Svg width={SCREEN_W} height={36}>
-                <Defs>
-                  <LinearGradient id="pdpFade" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor="#F7F7F5" stopOpacity="0" />
-                    <Stop offset="1" stopColor="#F7F7F5" stopOpacity="0.96" />
-                  </LinearGradient>
-                </Defs>
-                <Rect x="0" y="0" width={SCREEN_W} height="36" fill="url(#pdpFade)" />
-              </Svg>
-            </View>
-
-            <View style={styles.stickyInner}>
-              <View style={[styles.actionRow, { flexDirection: row }]}>
-                {inStock ? (
-                  <View style={[styles.qtyCtrl, { flexDirection: row }]}>
-                    <Pressable
-                      style={styles.qtyBtn}
-                      disabled={adding}
-                      onPress={() => setQty((q) => Math.max(1, q - 1))}
-                    >
-                      <Text style={styles.qtyBtnText}>−</Text>
-                    </Pressable>
-                    <Text style={styles.qty}>{qty}</Text>
-                    <Pressable
-                      style={styles.qtyBtn}
-                      disabled={adding}
-                      onPress={() => setQty((q) => q + 1)}
-                    >
-                      <Text style={styles.qtyBtnText}>+</Text>
-                    </Pressable>
-                  </View>
-                ) : null}
-
-                <Pressable
-                  style={[
-                    styles.cta,
-                    {
-                      backgroundColor: accent,
-                      opacity: adding ? 0.6 : 1,
-                    },
-                  ]}
-                  disabled={adding || (!inStock && !variationId)}
-                  onPress={() => {
-                    if (inStock) void onAddToCart();
-                    else void onCheckAvailability();
-                  }}
-                >
-                  <Text style={styles.ctaText} numberOfLines={1}>
-                    {inStock
-                      ? adding
-                        ? t("catalog.addingToCart")
-                        : t("common.addToCart")
-                      : t("catalog.checkAvailability")}
-                  </Text>
-                </Pressable>
-              </View>
-
-              {inStock ? (
-                <Pressable
-                  style={styles.availLink}
-                  onPress={() => void onCheckAvailability()}
-                >
-                  <Text style={[styles.availLinkText, { textAlign }]}>
-                    {t("catalog.checkAvailability")}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-          </View>
+          <ProductStickyBar
+            inStock={inStock}
+            qty={qty}
+            onQtyChange={setQty}
+            adding={adding}
+            onAddToCart={() => void onAddToCart()}
+            onCheckAvailability={() => void onCheckAvailability()}
+          />
         ) : null}
       </View>
 
@@ -605,60 +419,6 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   scroll: { flex: 1 },
   pad: { paddingBottom: 24 },
-  galleryWrap: {
-    position: "relative",
-    width: SCREEN_W,
-    height: 300,
-    backgroundColor: "#eee",
-  },
-  image: { width: SCREEN_W, height: 300, backgroundColor: "#eee" },
-  imagePh: { alignItems: "center", justifyContent: "center" },
-  galleryActions: {
-    position: "absolute",
-    top: 12,
-    gap: 10,
-    alignItems: "center",
-    zIndex: 2,
-  },
-  shareBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.22,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  wishBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(20, 20, 20, 0.55)",
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "rgba(255,255,255,0.25)",
-  },
-  dotsWrap: {
-    position: "absolute",
-    bottom: 10,
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
-  dots: {
-    color: "#fff",
-    backgroundColor: "rgba(0,0,0,0.45)",
-    overflow: "hidden",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: "700",
-  },
   titleRow: {
     alignItems: "flex-start",
     gap: 12,
@@ -682,80 +442,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   varText: { fontWeight: "600", fontSize: 13 },
-  sticky: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  fade: {
-    height: 36,
-    width: "100%",
-  },
-  stickyInner: {
-    backgroundColor: "rgba(247, 247, 245, 0.96)",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "rgba(0,0,0,0.08)",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    gap: 8,
-  },
-  actionRow: {
-    alignItems: "center",
-    gap: 10,
-  },
-  qtyCtrl: {
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-  },
-  qtyBtn: {
-    width: 36,
-    height: 40,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  qtyBtnText: { fontSize: 22, fontWeight: "700", color: "#222" },
-  qty: { minWidth: 28, textAlign: "center", fontWeight: "800", fontSize: 16 },
-  cta: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-  ctaText: { color: "#111", fontWeight: "800", fontSize: 15 },
-  availLink: { alignItems: "center", paddingBottom: 2 },
-  availLinkText: { color: "#555", fontWeight: "600", fontSize: 13 },
   desc: { color: "#333", lineHeight: 22, marginVertical: 16, paddingHorizontal: 16 },
   related: { marginTop: 20, paddingLeft: 16 },
-  reviews: { paddingHorizontal: 16, marginTop: 24 },
-  reviewCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#eee",
-  },
-  reviewStars: { color: "#F5A623", marginBottom: 4 },
-  reviewTitle: { fontWeight: "700", marginBottom: 4 },
-  reviewBody: { color: "#333", lineHeight: 20 },
-  reviewMeta: { color: "#888", fontSize: 12, marginTop: 6 },
-  reviewForm: { marginTop: 12, gap: 8 },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e5e5e5",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
 });

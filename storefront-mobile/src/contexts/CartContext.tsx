@@ -89,41 +89,53 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(
     async (item: CartItem) => {
-      const next = mergeCartItems(items, [item]);
-      await persist(next);
+      let next: CartItem[] = [];
+      setItemsState((prev) => {
+        next = mergeCartItems(prev, [item]);
+        return next;
+      });
+      await saveCartItems(storageKey, next);
     },
-    [items, persist],
+    [storageKey],
   );
 
   const updateQty = useCallback(
     async (variationId: number, quantity: number, digitalKey?: string) => {
-      const next = items
-        .map((item) => {
-          const match = digitalKey
-            ? item.digital?.line_key === digitalKey
-            : !item.digital && item.variationId === variationId;
-          if (!match) {
-            return item;
-          }
-          return { ...item, quantity: Math.max(1, quantity) };
-        })
-        .filter((item) => item.quantity > 0);
-      await persist(next);
+      let next: CartItem[] = [];
+      setItemsState((prev) => {
+        next = prev
+          .map((item) => {
+            const match = digitalKey
+              ? item.digital?.line_key === digitalKey
+              : !item.digital && item.variationId === variationId;
+            if (!match) {
+              return item;
+            }
+            return { ...item, quantity: Math.max(1, quantity) };
+          })
+          .filter((item) => item.quantity > 0);
+        return next;
+      });
+      await saveCartItems(storageKey, next);
     },
-    [items, persist],
+    [storageKey],
   );
 
   const removeItem = useCallback(
     async (variationId: number, digitalKey?: string) => {
-      const next = items.filter((item) => {
-        if (digitalKey) {
-          return item.digital?.line_key !== digitalKey;
-        }
-        return item.digital || item.variationId !== variationId;
+      let next: CartItem[] = [];
+      setItemsState((prev) => {
+        next = prev.filter((item) => {
+          if (digitalKey) {
+            return item.digital?.line_key !== digitalKey;
+          }
+          return item.digital || item.variationId !== variationId;
+        });
+        return next;
       });
-      await persist(next);
+      await saveCartItems(storageKey, next);
     },
-    [items, persist],
+    [storageKey],
   );
 
   const clear = useCallback(async () => {

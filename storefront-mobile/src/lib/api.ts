@@ -59,28 +59,51 @@ export function authHeaders(token: string | null | undefined): Record<string, st
 
 export async function storefrontFetch<T>(
   path: string,
-  options: RequestInit = {},
+  options: RequestInit & { timeoutMs?: number } = {},
   locale?: ContentLocale,
 ): Promise<FetchResult<T>> {
   const url = `${API_BASE}${PREFIX}${path}`;
   const contentLocale = locale ?? activeContentLocale;
+  const { timeoutMs = 30000, ...fetchOptions } = options;
   const headers: Record<string, string> = {
     Accept: "application/json",
     "X-Content-Locale": contentLocale,
     "X-Storefront-Client": CLIENT_HEADER,
-    ...(options.headers as Record<string, string> | undefined),
+    ...(fetchOptions.headers as Record<string, string> | undefined),
   };
 
-  if (options.body && !headers["Content-Type"]) {
+  if (fetchOptions.body && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+      signal: fetchOptions.signal ?? controller.signal,
+    });
+  } catch (e) {
+    clearTimeout(timer);
+    if (e instanceof Error && e.name === "AbortError") {
+      throw new ApiError(408, "Request timed out");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 
-  const json = (await response.json()) as ApiEnvelope<T> | ApiErrorBody;
+  let json: ApiEnvelope<T> | ApiErrorBody;
+  try {
+    json = (await response.json()) as ApiEnvelope<T> | ApiErrorBody;
+  } catch {
+    throw new ApiError(
+      response.status,
+      response.ok ? "Invalid JSON response" : `API ${response.status}`,
+    );
+  }
 
   if (!response.ok || !json.success) {
     const err = json as ApiErrorBody;
@@ -264,9 +287,11 @@ export function fetchPaymentSession(
   provider: string,
   storefrontOrderId: string,
   locale?: ContentLocale,
+  token?: string | null,
 ) {
   return storefrontFetch<FawryPaymentSession>(`/payments/${provider}/session`, {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify({
       storefront_order_id: storefrontOrderId,
       locale: locale ?? activeContentLocale,
@@ -277,9 +302,11 @@ export function fetchPaymentSession(
 export function confirmPaymentReturn(
   provider: string,
   body: Record<string, unknown>,
+  token?: string | null,
 ) {
   return storefrontFetch(`/payments/${provider}/return`, {
     method: "POST",
+    headers: authHeaders(token),
     body: JSON.stringify(body),
   });
 }

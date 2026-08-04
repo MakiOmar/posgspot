@@ -1,11 +1,28 @@
 /**
  * Runtime config for the Games Spot mobile storefront.
  */
-export const API_BASE: string =
-  (process.env.EXPO_PUBLIC_API_BASE || "http://localhost:8000").replace(
-    /\/$/,
-    "",
-  );
+
+function resolveApiBase(): string {
+  const raw = (process.env.EXPO_PUBLIC_API_BASE || "").trim().replace(/\/$/, "");
+
+  if (__DEV__) {
+    return raw || "http://localhost:8000";
+  }
+
+  if (!raw) {
+    throw new Error(
+      "EXPO_PUBLIC_API_BASE is required in release builds (must be https).",
+    );
+  }
+  if (!/^https:\/\//i.test(raw)) {
+    throw new Error(
+      `EXPO_PUBLIC_API_BASE must use https in release builds (got: ${raw}).`,
+    );
+  }
+  return raw;
+}
+
+export const API_BASE: string = resolveApiBase();
 
 export const STOREFRONT_WEB_URL: string = (
   process.env.EXPO_PUBLIC_STOREFRONT_URL || API_BASE
