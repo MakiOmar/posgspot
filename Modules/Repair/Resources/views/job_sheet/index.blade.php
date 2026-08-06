@@ -258,7 +258,8 @@
                             searchable: false
                         }
                     ],
-                    aaSorting: [[2, 'asc']],
+                    // Newest job sheets first (created_at is always the last column)
+                    aaSorting: [[jobSheetColumns.length - 1, 'desc']],
                     columns: jobSheetColumns,
                     fnDrawCallback: function () {
                         __currency_convert_recursively($(customerTableSelector));
@@ -300,7 +301,8 @@
                             searchable: false
                         }
                     ],
-                    aaSorting: [[2, 'asc']],
+                    // Newest job sheets first (created_at is always the last column)
+                    aaSorting: [[jobSheetColumns.length - 1, 'desc']],
                     columns: jobSheetColumns,
                     fnDrawCallback: function () {
                         __currency_convert_recursively($('#job_sheet_table_status_all'));
@@ -334,7 +336,8 @@
                             searchable: false
                         }
                     ],
-                    aaSorting: [[2, 'asc']],
+                    // Newest job sheets first (created_at is always the last column)
+                    aaSorting: [[jobSheetColumns.length - 1, 'desc']],
                     columns: jobSheetColumns,
                     fnDrawCallback: function () {
                         __currency_convert_recursively($(tableSelector));

@@ -107,6 +107,7 @@ class JobSheetController extends Controller
                     )
                     ->leftJoin('users', 'repair_job_sheets.created_by', '=', 'users.id')
                     ->where('repair_job_sheets.business_id', $business_id)
+                    ->orderBy('repair_job_sheets.created_at', 'desc')
                     ->select('delivery_date', 'job_sheet_no', DB::raw("CONCAT(COALESCE(technecian.surname, ''),' ',COALESCE(technecian.first_name, ''),' ',COALESCE(technecian.last_name,'')) as technecian"), DB::raw("CONCAT(COALESCE(users.surname, ''),' ',COALESCE(users.first_name, ''),' ',COALESCE(users.last_name,'')) as added_by"), 'contacts.name as customer' , 'contacts.contact_id', 'contacts.mobile as mobile', 'b.name as brand', 'rdm.name as device_model', 'serial_no', 'estimated_cost', 'rs.name as status', 'repair_job_sheets.id as id', 'repair_job_sheets.created_at as created_at', 'service_type', 'rs.color as status_color', 'bl.name as location', 'rs.is_completed_status', 'device.name as device', 'repair_job_sheets.custom_field_1', 'repair_job_sheets.custom_field_2', 'repair_job_sheets.custom_field_3', 'repair_job_sheets.custom_field_4', 'repair_job_sheets.custom_field_5');
 
             //if user is not admin get only assgined/created_by job sheet
