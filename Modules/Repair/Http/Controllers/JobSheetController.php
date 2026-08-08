@@ -774,23 +774,41 @@ class JobSheetController extends Controller
                     $input['email_subject'] = $request->input('email_subject');
                 }
                 $status_id = $request->input('status_id');
-
                 $status = RepairStatus::find($status_id);
 
-                if ($status->is_completed_status == 1) {
+                if (empty($status)) {
+                    return [
+                        'success' => false,
+                        'msg' => __('messages.something_went_wrong'),
+                    ];
+                }
+
+                // Completed statuses are deferred only when continuing to Add Parts.
+                // Plain "Update" must persist immediately (previously returned success
+                // after session stash only, so the modal closed with no DB change).
+                $deferComplete = $status->is_completed_status == 1
+                    && ! empty($request->input('defer_complete'));
+
+                if ($deferComplete) {
                     $input['job_sheet_id'] = $id;
                     $request->session()->put('repair_status_update_data', $input);
 
-                    return $output = ['success' => true];
+                    return [
+                        'success' => true,
+                        'msg' => __('lang_v1.success'),
+                    ];
                 }
 
+                $request->session()->forget('repair_status_update_data');
                 $this->updateJobsheetStatus($input, $id);
 
-                $output = ['success' => true,
+                $output = [
+                    'success' => true,
                     'msg' => __('lang_v1.success'),
                 ];
-            } catch (Exception $e) {
-                $output = ['success' => false,
+            } catch (\Exception $e) {
+                $output = [
+                    'success' => false,
                     'msg' => __('messages.something_went_wrong'),
                 ];
             }

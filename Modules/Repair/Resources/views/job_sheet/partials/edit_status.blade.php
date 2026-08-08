@@ -20,14 +20,16 @@
 				@include('repair::job_sheet.partials.edit_status_form')
 			</div>
 			<div class="modal-footer">
-				<input type="hidden" id="status_form_redirect">
-				@if($job_sheet->status->is_completed_status != 1)
-					<button type="submit" class="btn btn-danger ladda-button update_status_button hide mark-as-complete-btn" data-href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'addParts'], [$job_sheet->id])}}">@lang( 'repair::lang.add_parts_and_mark_complete' )</button>
+				{{-- Client redirect after AJAX; defer_complete tells backend to stash completed status until parts are saved --}}
+				<input type="hidden" id="status_form_redirect" value="">
+				<input type="hidden" name="defer_complete" id="defer_complete" value="0">
+				@if(empty($job_sheet->status) || $job_sheet->status->is_completed_status != 1)
+					<button type="submit" class="btn btn-danger ladda-button update_status_button hide mark-as-complete-btn" data-href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'addParts'], [$job_sheet->id])}}" data-defer-complete="1">@lang( 'repair::lang.add_parts_and_mark_complete' )</button>
 				@endif
-				
 
-				<button type="submit" class="tw-dw-btn tw-dw-btn-success tw-text-white ladda-button update_status_button mark-as-incomplete-btn" data-href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'addParts'], [$job_sheet->id])}}">@lang( 'repair::lang.save_and_add_parts' )</button>
-				<button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-text-white ladda-button update_status_button mark-as-incomplete-btn" data-href="">@lang( 'messages.update' )</button>
+				<button type="submit" class="tw-dw-btn tw-dw-btn-success tw-text-white ladda-button update_status_button mark-as-incomplete-btn" data-href="{{action([\Modules\Repair\Http\Controllers\JobSheetController::class, 'addParts'], [$job_sheet->id])}}" data-defer-complete="1">@lang( 'repair::lang.save_and_add_parts' )</button>
+				{{-- Update always visible: persists status immediately, including completed statuses --}}
+				<button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-text-white ladda-button update_status_button" data-href="" data-defer-complete="0">@lang( 'messages.update' )</button>
 				<button type="button" class="tw-dw-btn tw-dw-btn-neutral tw-text-white" data-dismiss="modal">@lang( 'messages.close' )</button>
 			</div>
 

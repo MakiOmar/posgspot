@@ -450,20 +450,29 @@
             });
             
             $(document).on('click', '.update_status_button', function(){
-                $('#status_form_redirect').val($(this).data('href'));
-            })
+                var redirectUrl = $(this).data('href') || '';
+                var deferComplete = $(this).data('defer-complete') ? 1 : 0;
+                $('#status_form_redirect').val(redirectUrl);
+                $('#defer_complete').val(deferComplete);
+            });
             $(document).on('submit', 'form#update_status_form', function(e){
                 e.preventDefault();
                 var data = $(this).serialize();
-                var ladda = Ladda.create(document.querySelector('.ladda-button'));
-                ladda.start();
+                var submitBtn = $(this).find('.update_status_button:focus')[0]
+                    || document.querySelector('#status_modal .ladda-button:not(.hide)');
+                var ladda = submitBtn ? Ladda.create(submitBtn) : null;
+                if (ladda) {
+                    ladda.start();
+                }
                 $.ajax({
                     method: $(this).attr("method"),
                     url: $(this).attr("action"),
                     dataType: "json",
                     data: data,
                     success: function(result){
-                        ladda.stop();
+                        if (ladda) {
+                            ladda.stop();
+                        }
                         if(result.success == true){
                             $('#status_modal').modal('hide');
                             if (result.msg) {
@@ -472,11 +481,18 @@
 
                             if ($('#status_form_redirect').val()) {
                                 window.location = $('#status_form_redirect').val();
+                                return;
                             }
                             reloadJobSheetTables();
                         } else {
                             toastr.error(result.msg);
                         }
+                    },
+                    error: function(){
+                        if (ladda) {
+                            ladda.stop();
+                        }
+                        toastr.error(LANG.something_went_wrong);
                     }
                 });
             });
