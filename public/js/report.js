@@ -839,6 +839,7 @@ $(document).ready(function() {
             { data: 'quantity_adjusted', name: 'purchase_lines.quantity_adjusted' },
             { data: 'unit_purchase_price', name: 'purchase_lines.purchase_price_inc_tax' },
             { data: 'subtotal', name: 'subtotal', searchable: false },
+            { data: 'additional_notes', name: 't.additional_notes' },
         ],
         fnDrawCallback: function(oSettings) {
             var footer_subtotal = sum_table_col($('#product_purchase_report_table'), 'row_subtotal');

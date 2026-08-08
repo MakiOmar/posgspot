@@ -1611,6 +1611,7 @@ class ReportController extends Controller
                         't.id as transaction_id',
                         't.ref_no',
                         't.transaction_date as transaction_date',
+                        't.additional_notes as additional_notes',
                         'purchase_lines.purchase_price_inc_tax as unit_purchase_price',
                         DB::raw('(purchase_lines.quantity - purchase_lines.quantity_returned) as purchase_qty'),
                         'purchase_lines.quantity_adjusted',
@@ -1676,7 +1677,10 @@ class ReportController extends Controller
                     return $this->transactionUtil->num_f($row->unit_purchase_price, true);
                 })
                 ->editColumn('supplier', '@if(!empty($supplier_business_name)) {{$supplier_business_name}},<br>@endif {{$supplier}}')
-                ->rawColumns(['ref_no', 'unit_purchase_price', 'subtotal', 'purchase_qty', 'quantity_adjusted', 'supplier'])
+                ->editColumn('additional_notes', function ($row) {
+                    return ! empty($row->additional_notes) ? nl2br(e($row->additional_notes)) : '';
+                })
+                ->rawColumns(['ref_no', 'unit_purchase_price', 'subtotal', 'purchase_qty', 'quantity_adjusted', 'supplier', 'additional_notes'])
                 ->make(true);
         }
 
