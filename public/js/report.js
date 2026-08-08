@@ -831,6 +831,7 @@ $(document).ready(function() {
                 d.brand_id = $('select#ppr_brand_id').val();
             },
         },
+        // Must match thead/tfoot column count (10), including additional notes
         columns: [
             { data: 'product_name', name: 'p.name' },
             { data: 'sub_sku', name: 'v.sub_sku' },
