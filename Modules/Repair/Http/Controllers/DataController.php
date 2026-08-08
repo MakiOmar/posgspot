@@ -56,6 +56,15 @@ class DataController extends Controller
 
         $transaction->save();
 
+        // Keep linked job sheet status in sync with the invoice repair status
+        $jobSheetId = $transaction->repair_job_sheet_id ?? ($input['repair_job_sheet_id'] ?? null);
+        $statusId = $transaction->repair_status_id ?? ($input['repair_status_id'] ?? null);
+        if (! empty($jobSheetId) && ! empty($statusId)) {
+            JobSheet::where('business_id', $transaction->business_id)
+                ->where('id', $jobSheetId)
+                ->update(['status_id' => $statusId]);
+        }
+
         return $transaction;
     }
 

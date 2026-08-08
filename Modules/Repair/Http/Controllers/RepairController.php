@@ -26,6 +26,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Modules\Repair\Entities\DeviceModel;
+use Modules\Repair\Entities\JobSheet;
 use Modules\Repair\Entities\RepairStatus;
 use Modules\Repair\Utils\RepairUtil;
 use Spatie\Activitylog\Models\Activity;
@@ -914,6 +915,13 @@ class RepairController extends Controller
                 $transaction->save();
 
                 $status = RepairStatus::where('business_id', $business_id)->findOrFail($input['repair_status_id_modal']);
+
+                // Keep linked job sheet status in sync with the invoice repair status
+                if (! empty($transaction->repair_job_sheet_id)) {
+                    JobSheet::where('business_id', $business_id)
+                        ->where('id', $transaction->repair_job_sheet_id)
+                        ->update(['status_id' => $input['repair_status_id_modal']]);
+                }
 
                 //Send repair updates
                 if (! empty($request->input('send_sms'))) {
