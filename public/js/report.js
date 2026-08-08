@@ -782,6 +782,8 @@ $(document).ready(function() {
     }
 
     //Product Purchase Report
+    // Only init when the table exists (this file is shared across report pages)
+    if ($('#product_purchase_report_table').length) {
     if ($('#product_pr_date_filter').length == 1) {
         $('#product_pr_date_filter').daterangepicker(dateRangeSettings, function(start, end) {
             $('#product_pr_date_filter').val(
@@ -892,6 +894,7 @@ $(document).ready(function() {
             },
         });
     }
+    } // end product_purchase_report_table
 
     //Product Sell Report
     if ($('table#product_sell_report_table').length == 1) {
