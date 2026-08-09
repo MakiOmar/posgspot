@@ -236,7 +236,7 @@ $(document).ready( function(){
         processing: true,
         serverSide: true,
         fixedHeader:false,
-        aaSorting: [[2, 'asc']],
+        aaSorting: [[1, 'desc']],
         "ajax": {
             "url": "/repair/repair",
             "data": function ( d ) {
@@ -307,7 +307,7 @@ $(document).ready( function(){
         processing: true,
         serverSide: true,
         fixedHeader:false,
-        aaSorting: [[2, 'asc']],
+        aaSorting: [[1, 'desc']],
         "ajax": {
             "url": "/repair/repair",
             "data": function ( d ) {
