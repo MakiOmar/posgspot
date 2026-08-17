@@ -5,6 +5,7 @@ namespace Modules\InstallmentCredit\Entities;
 use App\BusinessLocation;
 use App\Transaction;
 use App\TransactionPayment;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class InstallmentReceivable extends Model
@@ -51,13 +52,47 @@ class InstallmentReceivable extends Model
         return max(0, (float) $this->due_amount - (float) $this->booked_settled_amount);
     }
 
-    public function getDaysDueAttribute()
+    /**
+     * Date used for aging buckets: POS sale date, else invoice date, else due date.
+     */
+    public function agingAnchorDate(): ?Carbon
     {
-        if (empty($this->due_date)) {
-            return null;
+        $txn_date = optional($this->transaction)->transaction_date;
+        if (! empty($txn_date)) {
+            return Carbon::parse($txn_date)->startOfDay();
+        }
+        if (! empty($this->invoice_date)) {
+            return Carbon::parse($this->invoice_date)->startOfDay();
+        }
+        if (! empty($this->due_date)) {
+            return Carbon::parse($this->due_date)->startOfDay();
         }
 
-        return (int) now()->startOfDay()->diffInDays($this->due_date->copy()->startOfDay(), false);
+        return null;
+    }
+
+    /**
+     * Whole calendar days from $from to $asOf (0 if missing or in the future).
+     * Uses DateTime::diff so Carbon 2/3 signed diffInDays cannot collapse overdue rows into 0.
+     */
+    public static function calendarDaysSince($from, $asOf = null): int
+    {
+        if ($from === null || $from === '') {
+            return 0;
+        }
+
+        $from_day = Carbon::parse($from)->startOfDay();
+        $as_of_day = Carbon::parse($asOf ?? Carbon::today())->startOfDay();
+        if ($from_day->greaterThan($as_of_day)) {
+            return 0;
+        }
+
+        return (int) $from_day->diff($as_of_day)->days;
+    }
+
+    public function getDaysDueAttribute()
+    {
+        return self::calendarDaysSince($this->agingAnchorDate());
     }
 
     public function scopePending($query)

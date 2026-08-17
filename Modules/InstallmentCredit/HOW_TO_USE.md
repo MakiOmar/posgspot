@@ -166,7 +166,7 @@ Open **Installment Credit → Reports**.
 | Report | Excel equivalent |
 |--------|------------------|
 | Pending by Branch × Company | Summery |
-| Aging by Company (0–30 … 120+) | Trans. aging |
+| Aging by Company (0–30 … 120+) | Trans. aging (days since sale/invoice date) |
 | Export Pending CSV | Sheet1 open rows |
 
 ---
@@ -234,7 +234,7 @@ That is a normal payment (cashbook immediately). It will **not** create an insta
 Yes — two payment lines → two receivables for the same invoice number.
 
 **Same company, two payment lines on one invoice?**  
-Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50 + VALUE 5,000 → **three** pending receivables (one per BNPL payment line). Invoice/due dates follow each payment’s **paid-on** date + company settlement days.
+Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50 + VALUE 5,000 → **three** pending receivables (one per BNPL payment line). Invoice/due dates follow the sale’s **transaction date** + company settlement days.
 
 **Pending receivable disappeared after editing the sale?**  
 Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once. On the server you can also run: `php artisan installment:debug-invoice {invoice_no} --sync`.

@@ -35,7 +35,7 @@ return [
     'external_ref' => 'External Ref',
     'due_amount' => 'Due Amount',
     'outstanding' => 'Outstanding',
-    'days_due' => 'Days (due vs today)',
+    'days_due' => 'Days outstanding',
     'invoice_date' => 'Invoice Date',
     'due_date' => 'Due Date',
     'reports' => 'Reports',

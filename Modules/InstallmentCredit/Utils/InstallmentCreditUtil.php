@@ -253,10 +253,8 @@ class InstallmentCreditUtil
             return null;
         }
 
-        // Dates follow this payment line (supports multiple same-company lines on one invoice).
-        $invoice_date = ! empty($payment->paid_on)
-            ? Carbon::parse($payment->paid_on)->toDateString()
-            : Carbon::parse($transaction->transaction_date)->toDateString();
+        // Age from the sale date. paid_on is often stamped as "now" when a payment is edited.
+        $invoice_date = Carbon::parse($transaction->transaction_date)->toDateString();
         $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
 
         // Prefer exact payment-line match (one receivable per BNPL payment).
@@ -763,12 +761,75 @@ class InstallmentCreditUtil
             ->get();
     }
 
+    /**
+     * SQL expression for the aging start date (sale → invoice → due).
+     */
+    public static function agingDateSql(string $receivable_table = 'installment_receivables'): string
+    {
+        return 'DATE(COALESCE('
+            .'(SELECT DATE(t.transaction_date) FROM transactions t WHERE t.id = '.$receivable_table.'.transaction_id LIMIT 1), '
+            .$receivable_table.'.invoice_date, '
+            .$receivable_table.'.due_date'
+            .'))';
+    }
+
+    public static function agingBucketKey(int $days): string
+    {
+        if ($days <= 30) {
+            return 'd30';
+        }
+        if ($days <= 60) {
+            return 'd60';
+        }
+        if ($days <= 90) {
+            return 'd90';
+        }
+        if ($days <= 120) {
+            return 'd120';
+        }
+
+        return 'd_gt120';
+    }
+
+    /**
+     * Restrict a pending-receivables query to one aging bucket (0–30 … 120+).
+     */
+    public function applyAgingBucketFilter($query, $aging): void
+    {
+        $expr = self::agingDateSql('installment_receivables');
+        $today = Carbon::today();
+
+        switch ((string) $aging) {
+            case '30':
+                $query->where(function ($q) use ($expr, $today) {
+                    $q->whereRaw($expr.' >= ?', [$today->copy()->subDays(30)->toDateString()])
+                        ->orWhereRaw($expr.' IS NULL');
+                });
+                break;
+            case '60':
+                $query->whereRaw($expr.' < ?', [$today->copy()->subDays(30)->toDateString()])
+                    ->whereRaw($expr.' >= ?', [$today->copy()->subDays(60)->toDateString()]);
+                break;
+            case '90':
+                $query->whereRaw($expr.' < ?', [$today->copy()->subDays(60)->toDateString()])
+                    ->whereRaw($expr.' >= ?', [$today->copy()->subDays(90)->toDateString()]);
+                break;
+            case '120':
+                $query->whereRaw($expr.' < ?', [$today->copy()->subDays(90)->toDateString()])
+                    ->whereRaw($expr.' >= ?', [$today->copy()->subDays(120)->toDateString()]);
+                break;
+            case 'gt120':
+                $query->whereRaw($expr.' < ?', [$today->copy()->subDays(120)->toDateString()]);
+                break;
+        }
+    }
+
     public function agingByCompany($business_id)
     {
         $rows = InstallmentReceivable::query()
             ->where('business_id', $business_id)
             ->where('status', 'pending')
-            ->with('company')
+            ->with(['company', 'transaction'])
             ->get();
 
         $buckets = [];
@@ -787,26 +848,9 @@ class InstallmentCreditUtil
                 ];
             }
             $outstanding = $row->outstanding;
-            // Positive = days past due; not-yet-due counts in the 0–30 bucket
-            $days_overdue = 0;
-            if ($row->due_date) {
-                $days_overdue = (int) $row->due_date->copy()->startOfDay()->diffInDays(now()->startOfDay(), false);
-                if ($days_overdue < 0) {
-                    $days_overdue = 0;
-                }
-            }
-
-            if ($days_overdue <= 30) {
-                $buckets[$cid]['d30'] += $outstanding;
-            } elseif ($days_overdue <= 60) {
-                $buckets[$cid]['d60'] += $outstanding;
-            } elseif ($days_overdue <= 90) {
-                $buckets[$cid]['d90'] += $outstanding;
-            } elseif ($days_overdue <= 120) {
-                $buckets[$cid]['d120'] += $outstanding;
-            } else {
-                $buckets[$cid]['d_gt120'] += $outstanding;
-            }
+            // Days since sale/invoice date (not days past due_date).
+            $key = self::agingBucketKey(InstallmentReceivable::calendarDaysSince($row->agingAnchorDate()));
+            $buckets[$cid][$key] += $outstanding;
             $buckets[$cid]['total'] += $outstanding;
         }
 

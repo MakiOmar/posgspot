@@ -12,6 +12,7 @@
                 <thead>
                     <tr>
                         <th>@lang('installmentcredit::lang.company')</th>
+                        <!-- Buckets are days since sale/invoice date -->
                         <th>@lang('installmentcredit::lang.aging_30')</th>
                         <th>@lang('installmentcredit::lang.aging_60')</th>
                         <th>@lang('installmentcredit::lang.aging_90')</th>

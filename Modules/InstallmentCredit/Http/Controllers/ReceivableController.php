@@ -6,7 +6,6 @@ use App\Account;
 use App\BusinessLocation;
 use App\Utils\ModuleUtil;
 use App\Utils\Util;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\InstallmentCredit\Entities\InstallmentCompany;
@@ -31,7 +30,7 @@ class ReceivableController extends Controller
         $business_id = $this->assertModuleAllowed('installment.view');
 
         if ($request->ajax()) {
-            $query = InstallmentReceivable::with(['company', 'location'])
+            $query = InstallmentReceivable::with(['company', 'location', 'transaction'])
                 ->where('business_id', $business_id)
                 ->where('status', 'pending');
 
@@ -42,27 +41,7 @@ class ReceivableController extends Controller
                 $query->where('location_id', $request->location_id);
             }
             if ($request->filled('aging')) {
-                $today = Carbon::today();
-                switch ($request->aging) {
-                    case '30':
-                        $query->whereDate('due_date', '>=', $today->copy()->subDays(30));
-                        break;
-                    case '60':
-                        $query->whereDate('due_date', '<', $today->copy()->subDays(30))
-                            ->whereDate('due_date', '>=', $today->copy()->subDays(60));
-                        break;
-                    case '90':
-                        $query->whereDate('due_date', '<', $today->copy()->subDays(60))
-                            ->whereDate('due_date', '>=', $today->copy()->subDays(90));
-                        break;
-                    case '120':
-                        $query->whereDate('due_date', '<', $today->copy()->subDays(90))
-                            ->whereDate('due_date', '>=', $today->copy()->subDays(120));
-                        break;
-                    case 'gt120':
-                        $query->whereDate('due_date', '<', $today->copy()->subDays(120));
-                        break;
-                }
+                $this->installmentUtil->applyAgingBucketFilter($query, $request->aging);
             }
 
             return DataTables::of($query)
@@ -76,11 +55,7 @@ class ReceivableController extends Controller
                 ->editColumn('invoice_date', fn ($row) => $row->invoice_date ? $this->commonUtil->format_date($row->invoice_date) : '')
                 ->editColumn('due_date', fn ($row) => $row->due_date ? $this->commonUtil->format_date($row->due_date) : '')
                 ->addColumn('days_due', function ($row) {
-                    if (! $row->due_date) {
-                        return '';
-                    }
-
-                    return (int) $row->due_date->diffInDays(now(), false);
+                    return (int) $row->days_due;
                 })
                 ->addColumn('action', function ($row) {
                     $can_delete = auth()->user()->can('superadmin')
