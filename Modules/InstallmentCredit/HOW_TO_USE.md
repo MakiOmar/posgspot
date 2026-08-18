@@ -117,10 +117,12 @@ You should not need a manual import just because a sale was edited.
 ### See what companies owe
 
 1. **Installment Credit → Pending Receivables**.
-2. Filter by company, branch, or aging if needed.
+2. Filter by company, branch, aging, or due status (not yet due / overdue) if needed.
 3. **Outstanding** = amount still unpaid by the company (Excel “Total”).
+4. **Due date** = invoice date + company settlement days, starting the day after the invoice (example: 18 Aug with 30 days → 18 Sep).
+5. **Days outstanding** = days past the due date (0 if not yet due).
 
-Or use **Installment Credit → Dashboard** for totals and overdue counts.
+Or use **Installment Credit → Dashboard** for totals. **Pending Invoices** and **Overdue Count** open the matching receivable lists.
 
 ### Add a pending receivable manually
 
@@ -165,7 +167,7 @@ Open **Installment Credit → Reports**.
 
 | Report | Excel equivalent |
 |--------|------------------|
-| Pending by Branch × Company | Summery |
+| Pending by Branch × Company | Summery (every company per branch, including zeros) |
 | Aging by Company (0–30 … 120+) | Trans. aging (days since sale/invoice date) |
 | Export Pending CSV | Sheet1 open rows |
 
@@ -202,7 +204,7 @@ Use this once to move **open** rows from `Credit Anlyses.xlsx` (where Total ≠ 
 | Column | Example | Notes |
 |--------|---------|--------|
 | invoice_date | 2026-05-01 | |
-| due_date | 2026-05-21 | Optional; defaults to invoice + company settlement days |
+| due_date | 2026-05-22 | Optional; defaults to invoice + company settlement days (period starts the day after the invoice) |
 | invoice_no | 12345 | POS invoice if known |
 | branch | Nasr City | Must match (or alias) a business location |
 | company_code | value | `value`, `maylo`, `tru`, `aman`, `forsa`, `seven`, `sohoula` |
@@ -234,7 +236,7 @@ That is a normal payment (cashbook immediately). It will **not** create an insta
 Yes — two payment lines → two receivables for the same invoice number.
 
 **Same company, two payment lines on one invoice?**  
-Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50 + VALUE 5,000 → **three** pending receivables (one per BNPL payment line). Invoice/due dates follow the sale’s **transaction date** + company settlement days.
+Yes — e.g. MAYLO 10,450 + MAYLO 1,503.50 + VALUE 5,000 → **three** pending receivables (one per BNPL payment line). Invoice date follows the sale’s **transaction date**. Due date is that date plus company settlement days, starting the day after the invoice.
 
 **Pending receivable disappeared after editing the sale?**  
 Editing payment lines used to cancel the receivable without always recreating it. The app now **re-syncs** receivables whenever sell payments are saved. Open the sale and save again if an old case is still missing, or use **Import Open Balances → IDs-only** for that invoice once. On the server you can also run: `php artisan installment:debug-invoice {invoice_no} --sync`.

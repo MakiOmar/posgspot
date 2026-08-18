@@ -295,7 +295,7 @@ class DebugInstallmentReceivableInvoice extends Command
         }
 
         $this->line('');
-        $this->comment('Dates note: invoice_date / due_date follow each payment paid_on + company settlement days.');
+        $this->comment('Dates note: invoice_date follows the sale date; due_date is invoice + company settlement days starting the day after the invoice.');
         $this->line('');
     }
 }

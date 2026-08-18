@@ -3,6 +3,7 @@
 namespace Modules\InstallmentCredit\Utils;
 
 use App\AccountTransaction;
+use App\BusinessLocation;
 use App\Transaction;
 use App\Utils\ModuleUtil;
 use App\Utils\TransactionUtil;
@@ -109,10 +110,10 @@ class InstallmentCreditUtil
         $invoice_date = $this->parseFlexibleDate($input['invoice_date'] ?? null);
         $due_date = $this->parseFlexibleDate($input['due_date'] ?? null);
         if (! $due_date && $invoice_date) {
-            $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
+            $due_date = self::dueDateFromInvoiceDate($invoice_date, (int) $company->default_settlement_days);
         }
         if (! $due_date) {
-            $due_date = Carbon::today()->addDays((int) $company->default_settlement_days)->toDateString();
+            $due_date = self::dueDateFromInvoiceDate(Carbon::today()->toDateString(), (int) $company->default_settlement_days);
         }
         if (! $invoice_date) {
             $invoice_date = Carbon::today()->toDateString();
@@ -255,7 +256,7 @@ class InstallmentCreditUtil
 
         // Age from the sale date. paid_on is often stamped as "now" when a payment is edited.
         $invoice_date = Carbon::parse($transaction->transaction_date)->toDateString();
-        $due_date = Carbon::parse($invoice_date)->addDays((int) $company->default_settlement_days)->toDateString();
+        $due_date = self::dueDateFromInvoiceDate($invoice_date, (int) $company->default_settlement_days);
 
         // Prefer exact payment-line match (one receivable per BNPL payment).
         $existing = InstallmentReceivable::where('business_id', $business_id)
@@ -745,9 +746,32 @@ class InstallmentCreditUtil
         }
     }
 
+    /**
+     * Due date is N full days after the invoice date, starting the day after the invoice.
+     * Example: invoice 18 Aug, 30-day term → due 18 Sep (not 17 Sep from addDays(30)).
+     */
+    public static function dueDateFromInvoiceDate($invoiceDate, int $settlementDays): string
+    {
+        $start = Carbon::parse($invoiceDate)->startOfDay();
+        if ($settlementDays <= 0) {
+            return $start->toDateString();
+        }
+
+        return $start->copy()->addDays($settlementDays + 1)->toDateString();
+    }
+
+    /**
+     * Pending totals for every active location × installment company (zeros included).
+     *
+     * @return list<array{location_id: int|null, location_name: string, location_total: float, location_rows: int, companies: list<array{company_id: int, company_name: string, pending_total: float, rows_count: int}>}>
+     */
     public function pendingByBranchCompany($business_id)
     {
-        return InstallmentReceivable::query()
+        $companies = InstallmentCompany::where('business_id', $business_id)
+            ->orderBy('name')
+            ->get();
+
+        $aggregates = InstallmentReceivable::query()
             ->select(
                 'location_id',
                 'company_id',
@@ -757,8 +781,59 @@ class InstallmentCreditUtil
             ->where('business_id', $business_id)
             ->where('status', 'pending')
             ->groupBy('location_id', 'company_id')
-            ->with(['location', 'company'])
             ->get();
+
+        $lookup = [];
+        foreach ($aggregates as $row) {
+            $lookup[(int) $row->location_id.'_'.(int) $row->company_id] = $row;
+        }
+
+        $locations = BusinessLocation::where('business_id', $business_id)
+            ->Active()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $has_unassigned = $aggregates->contains(fn ($row) => empty($row->location_id));
+        $location_list = $locations->all();
+        if ($has_unassigned) {
+            $location_list[] = (object) [
+                'id' => null,
+                'name' => __('installmentcredit::lang.unassigned_location'),
+            ];
+        }
+
+        $groups = [];
+        foreach ($location_list as $location) {
+            $location_id = $location->id;
+            $companies_rows = [];
+            $location_total = 0.0;
+            $location_rows = 0;
+
+            foreach ($companies as $company) {
+                $key = (int) $location_id.'_'.(int) $company->id;
+                $agg = $lookup[$key] ?? null;
+                $pending_total = $agg ? (float) $agg->pending_total : 0.0;
+                $rows_count = $agg ? (int) $agg->rows_count : 0;
+                $location_total += $pending_total;
+                $location_rows += $rows_count;
+                $companies_rows[] = [
+                    'company_id' => (int) $company->id,
+                    'company_name' => $company->name,
+                    'pending_total' => $pending_total,
+                    'rows_count' => $rows_count,
+                ];
+            }
+
+            $groups[] = [
+                'location_id' => $location_id,
+                'location_name' => $location->name,
+                'location_total' => $location_total,
+                'location_rows' => $location_rows,
+                'companies' => $companies_rows,
+            ];
+        }
+
+        return $groups;
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Account;
 use App\BusinessLocation;
 use App\Utils\ModuleUtil;
 use App\Utils\Util;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\InstallmentCredit\Entities\InstallmentCompany;
@@ -43,6 +44,14 @@ class ReceivableController extends Controller
             if ($request->filled('aging')) {
                 $this->installmentUtil->applyAgingBucketFilter($query, $request->aging);
             }
+            if ($request->get('due_status') === 'overdue') {
+                $query->whereDate('due_date', '<', Carbon::today());
+            } elseif ($request->get('due_status') === 'current') {
+                $query->where(function ($q) {
+                    $q->whereNull('due_date')
+                        ->orWhereDate('due_date', '>=', Carbon::today());
+                });
+            }
 
             return DataTables::of($query)
                 ->addColumn('mass_select', function ($row) {
@@ -55,7 +64,16 @@ class ReceivableController extends Controller
                 ->editColumn('invoice_date', fn ($row) => $row->invoice_date ? $this->commonUtil->format_date($row->invoice_date) : '')
                 ->editColumn('due_date', fn ($row) => $row->due_date ? $this->commonUtil->format_date($row->due_date) : '')
                 ->addColumn('days_due', function ($row) {
-                    return (int) $row->days_due;
+                    $days = (int) $row->days_due;
+                    if ($days > 0) {
+                        return '<span class="text-danger">'.$days.'</span>';
+                    }
+
+                    return (string) $days;
+                })
+                ->orderColumn('days_due', function ($query, $order) {
+                    $dir = strtolower((string) $order) === 'desc' ? 'DESC' : 'ASC';
+                    $query->orderByRaw('DATEDIFF(CURDATE(), installment_receivables.due_date) '.$dir);
                 })
                 ->addColumn('action', function ($row) {
                     $can_delete = auth()->user()->can('superadmin')
@@ -67,17 +85,25 @@ class ReceivableController extends Controller
 
                     return '<button type="button" data-href="'.action([ReceivableController::class, 'destroy'], [$row->id]).'" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-error delete-receivable">'.__('messages.delete').'</button>';
                 })
-                ->rawColumns(['mass_select', 'action'])
+                ->setRowClass(function ($row) {
+                    if (! empty($row->due_date) && Carbon::parse($row->due_date)->lt(Carbon::today())) {
+                        return 'danger';
+                    }
+
+                    return '';
+                })
+                ->rawColumns(['mass_select', 'action', 'days_due'])
                 ->make(true);
         }
 
         $companies = InstallmentCompany::forDropdown($business_id, false);
         $locations = BusinessLocation::forDropdown($business_id);
+        $due_status = $request->get('due_status', '');
         $can_add = auth()->user()->can('superadmin')
             || auth()->user()->can('installment.settle')
             || auth()->user()->can('installment.import');
 
-        return view('installmentcredit::receivables.index', compact('companies', 'locations', 'can_add'));
+        return view('installmentcredit::receivables.index', compact('companies', 'locations', 'can_add', 'due_status'));
     }
 
     /**

@@ -28,6 +28,10 @@ class DashboardController extends Controller
 
         $pending_count = InstallmentReceivable::where('business_id', $business_id)
             ->where('status', 'pending')
+            ->where(function ($q) {
+                $q->whereNull('due_date')
+                    ->orWhereDate('due_date', '>=', Carbon::today());
+            })
             ->count();
 
         $overdue_count = InstallmentReceivable::where('business_id', $business_id)

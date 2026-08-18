@@ -24,7 +24,7 @@
                 </div>
                 <div class="col-sm-6">
                     <strong>@lang('installmentcredit::lang.overdue_count'):</strong>
-                    {{ $overdue_count }}
+                    <a href="{{ url('/installment-credit/receivables?due_status=overdue') }}">{{ $overdue_count }}</a>
                 </div>
             </div>
         </div>

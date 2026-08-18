@@ -90,9 +90,12 @@ class InstallmentReceivable extends Model
         return (int) $from_day->diff($as_of_day)->days;
     }
 
+    /**
+     * Days past due date (0 if missing or not yet due).
+     */
     public function getDaysDueAttribute()
     {
-        return self::calendarDaysSince($this->agingAnchorDate());
+        return self::calendarDaysSince($this->due_date);
     }
 
     public function scopePending($query)

@@ -52,4 +52,31 @@ class InstallmentCreditAgingTest extends TestCase
         $this->assertSame(108, InstallmentReceivable::calendarDaysSince($row->agingAnchorDate()));
         $this->assertSame('d120', InstallmentCreditUtil::agingBucketKey(108));
     }
+
+    public function test_due_date_starts_the_day_after_the_invoice(): void
+    {
+        $this->assertSame('2026-09-18', InstallmentCreditUtil::dueDateFromInvoiceDate('2026-08-18', 30));
+        $this->assertSame('2026-05-22', InstallmentCreditUtil::dueDateFromInvoiceDate('2026-05-01', 20));
+        $this->assertSame('2026-08-18', InstallmentCreditUtil::dueDateFromInvoiceDate('2026-08-18', 0));
+        $this->assertSame('2026-08-20', InstallmentCreditUtil::dueDateFromInvoiceDate('2026-08-18', 1));
+    }
+
+    public function test_days_due_counts_from_due_date_not_invoice_date(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-09-20')->startOfDay());
+
+        $row = new InstallmentReceivable();
+        $row->setRawAttributes([
+            'invoice_date' => '2026-08-18',
+            'due_date' => '2026-09-18',
+        ]);
+
+        $this->assertSame(2, $row->days_due);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-18')->startOfDay());
+        $this->assertSame(0, $row->days_due);
+
+        Carbon::setTestNow(Carbon::parse('2026-09-17')->startOfDay());
+        $this->assertSame(0, $row->days_due);
+    }
 }

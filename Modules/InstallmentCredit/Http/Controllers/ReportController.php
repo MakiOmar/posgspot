@@ -32,13 +32,13 @@ class ReportController extends Controller
     public function branchCompany(Request $request)
     {
         $business_id = $this->assertModuleAllowed('installment.reports');
-        $rows = $this->installmentUtil->pendingByBranchCompany($business_id);
+        $groups = $this->installmentUtil->pendingByBranchCompany($business_id);
 
         if ($request->ajax()) {
-            return response()->json(['data' => $rows]);
+            return response()->json(['data' => $groups]);
         }
 
-        return view('installmentcredit::reports.branch_company', compact('rows'));
+        return view('installmentcredit::reports.branch_company', compact('groups'));
     }
 
     public function aging(Request $request)

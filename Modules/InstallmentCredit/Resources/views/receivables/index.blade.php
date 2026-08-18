@@ -32,6 +32,16 @@
                 ], null, ['class' => 'form-control', 'id' => 'filter_aging']) !!}
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                {!! Form::label('filter_due_status', __('installmentcredit::lang.due_status') . ':') !!}
+                {!! Form::select('filter_due_status', [
+                    '' => __('installmentcredit::lang.due_status_all'),
+                    'current' => __('installmentcredit::lang.due_status_current'),
+                    'overdue' => __('installmentcredit::lang.due_status_overdue'),
+                ], $due_status ?? null, ['class' => 'form-control', 'id' => 'filter_due_status']) !!}
+            </div>
+        </div>
     @endcomponent
 
     @component('components.widget', ['class' => 'box-primary'])
@@ -77,12 +87,14 @@ $(document).ready(function() {
     var table = $('#receivables_table').DataTable({
         processing: true,
         serverSide: true,
+        order: [[5, 'desc']],
         ajax: {
             url: '{{ url("/installment-credit/receivables") }}',
             data: function(d) {
                 d.company_id = $('#filter_company_id').val();
                 d.location_id = $('#filter_location_id').val();
                 d.aging = $('#filter_aging').val();
+                d.due_status = $('#filter_due_status').val();
             }
         },
         columns: [
@@ -95,11 +107,11 @@ $(document).ready(function() {
             { data: 'location_name', name: 'location_name' },
             { data: 'company_name', name: 'company_name' },
             { data: 'due_amount', name: 'due_amount' },
-            { data: 'outstanding', name: 'outstanding', searchable: false }
+            { data: 'outstanding', name: 'outstanding', searchable: false, orderable: false }
         ]
     });
 
-    $('#filter_company_id, #filter_location_id, #filter_aging').change(function() {
+    $('#filter_company_id, #filter_location_id, #filter_aging, #filter_due_status').change(function() {
         table.ajax.reload();
     });
 

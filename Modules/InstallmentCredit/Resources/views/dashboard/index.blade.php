@@ -6,7 +6,12 @@
     <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang('installmentcredit::lang.dashboard')</h1>
 </section>
 <section class="content">
+    <style>
+        a.info-box:hover { box-shadow: 0 2px 10px rgba(0,0,0,.18); opacity: 0.95; }
+        a.info-box { text-decoration: none; }
+    </style>
     <div class="row">
+        {{-- Totals stay on the dashboard; invoice counts open the matching receivable list --}}
         <div class="col-md-3 col-sm-6">
             <div class="info-box">
                 <span class="info-box-icon bg-aqua"><i class="fa fa-money-bill"></i></span>
@@ -17,22 +22,22 @@
             </div>
         </div>
         <div class="col-md-3 col-sm-6">
-            <div class="info-box">
+            <a href="{{ url('/installment-credit/receivables?due_status=current') }}" class="info-box" style="display:block;color:inherit;" title="@lang('installmentcredit::lang.due_status_current')">
                 <span class="info-box-icon bg-yellow"><i class="fa fa-file-invoice"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">@lang('installmentcredit::lang.pending_count')</span>
                     <span class="info-box-number">{{ $pending_count }}</span>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3 col-sm-6">
-            <div class="info-box">
+            <a href="{{ url('/installment-credit/receivables?due_status=overdue') }}" class="info-box" style="display:block;color:inherit;" title="@lang('installmentcredit::lang.due_status_overdue')">
                 <span class="info-box-icon bg-red"><i class="fa fa-exclamation-triangle"></i></span>
                 <div class="info-box-content">
                     <span class="info-box-text">@lang('installmentcredit::lang.overdue_count')</span>
                     <span class="info-box-number">{{ $overdue_count }}</span>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3 col-sm-6">
             <div class="info-box">
