@@ -311,6 +311,14 @@ class WoocommerceWebhookController extends Controller
             if (is_array($order_data)) {
                 $order_data = json_decode(json_encode($order_data));
             }
+
+            Log::warning('WOO RECEIVE-ORDER DEBUG', [
+                'business_id' => $business_id,
+                'order_id' => $order_data->id ?? null,
+                'order_number' => $order_data->number ?? null,
+                'status' => $order_data->status ?? null,
+                'keys' => is_object($order_data) ? array_keys((array) $order_data) : [],
+            ]);
             
             if (empty($order_data) || empty($order_data->id)) {
                 return response()->json([

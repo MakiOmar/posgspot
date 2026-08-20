@@ -102,6 +102,14 @@ class AccountsApi extends Controller
 
         $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id, false);
 
+        Log::warning('ACCOUNTS CREATE DEBUG', [
+            'payload_id' => $order->id ?? null,
+            'payload_woo_id' => $order->woocommerce_order_id ?? null,
+            'tx_id' => $transaction->id,
+            'invoice_no' => $transaction->invoice_no,
+            'woo_id_column' => $transaction->woocommerce_order_id,
+        ]);
+
         // Set created_at and updated_at to match transaction_date
         $transaction_date = \Carbon\Carbon::parse($transaction->transaction_date);
         $transaction->created_at = $transaction_date;

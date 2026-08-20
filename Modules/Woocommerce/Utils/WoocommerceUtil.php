@@ -1579,8 +1579,27 @@ class WoocommerceUtil extends Util
         DB::beginTransaction();
 
         $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id, false);
+
+        Log::warning('WOO CREATE DEBUG', [
+            'order_id' => $order->id ?? null,
+            'order_number' => $order->number ?? null,
+            'tx_id_before_woo_id' => $transaction->id,
+            'invoice_no' => $transaction->invoice_no,
+            'woo_id_before_save' => $transaction->woocommerce_order_id,
+            'status' => $transaction->status,
+            'sub_status' => $transaction->sub_status,
+        ]);
+
         $transaction->woocommerce_order_id = $order->id;
         $transaction->save();
+        $transaction->refresh();
+
+        Log::warning('WOO CREATE DEBUG after save', [
+            'tx_id' => $transaction->id,
+            'invoice_no' => $transaction->invoice_no,
+            'woo_id_after_save' => $transaction->woocommerce_order_id,
+            'order_id_assigned' => $order->id ?? 'MISSING',
+        ]);
         //Create sell lines
         $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $input['location_id'], false, null, ['woocommerce_line_items_id' => 'line_item_id'], false);
 
