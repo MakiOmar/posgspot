@@ -779,10 +779,11 @@
 			$payment_body_id = '';
 		}
 	@endphp
-	@if((empty($status) || (!in_array($status, ['quotation', 'draft'])) || $is_enabled_download_pdf) && $sale_type != 'sales_order')
+	{{-- Include sales_order so deposits can be entered on create (invoice-on-full-payment flow) --}}
+	@if((empty($status) || (!in_array($status, ['quotation', 'draft'])) || $is_enabled_download_pdf) || $sale_type == 'sales_order')
 		@can('sell.payments')
 			@component('components.widget', ['class' => 'box-solid', 'id' => $payment_body_id, 'title' => __('purchase.add_payment')])
-			@if($is_enabled_download_pdf)
+			@if($is_enabled_download_pdf && $sale_type != 'sales_order')
 				<div class="well row">
 					<div class="col-md-6">
 						<div class="form-group">
@@ -810,7 +811,7 @@
 					</div>
 				</div>
 			@endif
-			@if(empty($status) || !in_array($status, ['quotation', 'draft']))
+			@if(empty($status) || !in_array($status, ['quotation', 'draft']) || $sale_type == 'sales_order')
 				<div class="payment_row" @if($is_enabled_download_pdf) id="payment_rows_div" @endif>
 					<div class="row">
 						<div class="col-md-12 mb-12">
