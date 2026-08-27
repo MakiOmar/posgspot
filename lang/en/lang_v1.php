@@ -1311,6 +1311,7 @@ return [
     'so_invoice_not_paid' => 'Sales order must be fully paid before creating an invoice',
     'so_invoice_already_invoiced' => 'Sales order has already been fully invoiced',
     'so_unpaid_cannot_convert' => 'Unpaid sales orders cannot be converted to an invoice while "Invoice sales order only when fully paid" is enabled',
+    'add_payment_use_list_action' => 'Use Add Payment from the sales order / sell list (opens a modal). Opening this URL directly is not supported.',
     'lock_sales_order_location' => 'Lock location on Sales Order',
     'lock_sales_order_location_help' => 'When enabled, users with the selected roles will have the location auto-selected and locked when creating a sales order.',
     'sales_order_location_id' => 'Sales Order Location',

@@ -83,11 +83,17 @@
         @endif
     @endcomponent
     <div class="modal fade edit_pso_status_modal" tabindex="-1" role="dialog"></div>
+    {{-- Required for Add Payment / View payments from SO list actions --}}
+    <div class="modal fade payment_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
+    </div>
+    <div class="modal fade edit_payment_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
+    </div>
 </section>
 <!-- /.content -->
 @stop
 @section('javascript')
 @includeIf('sales_order.common_js')
+<script src="{{ asset('js/payment.js?v=' . $asset_v) }}"></script>
 <script type="text/javascript">
 $(document).ready( function(){
     $('#sell_list_filter_date_range').daterangepicker(
