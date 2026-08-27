@@ -71,6 +71,9 @@ class TransactionPaymentController extends Controller
                 abort(403, 'Unauthorized action.');
             }
 
+            $convertMsg = null;
+            $printUrl = null;
+
             if ($transaction->payment_status != 'paid') {
                 $inputs = $request->only(['amount', 'method', 'note', 'card_number', 'card_holder_name',
                     'card_transaction_number', 'card_type', 'card_month', 'card_year', 'card_security',
@@ -95,7 +98,7 @@ class TransactionPaymentController extends Controller
                 }
 
                 $prefix_type = 'purchase_payment';
-                if (in_array($transaction->type, ['sell', 'sell_return'])) {
+                if (in_array($transaction->type, ['sell', 'sell_return', 'sales_order'])) {
                     $prefix_type = 'sell_payment';
                 } elseif (in_array($transaction->type, ['expense', 'expense_refund'])) {
                     $prefix_type = 'expense_payment';
@@ -146,11 +149,30 @@ class TransactionPaymentController extends Controller
                         'transaction_id' => $transaction_id,
                     ]);
                 }
+
+                // Sales order deposit: convert to final invoice when fully paid.
+                if ($transaction->type === 'sales_order' && $payment_status === 'paid') {
+                    $convert = app(\App\Services\SalesOrderInvoiceService::class)
+                        ->convertIfPaid($transaction->fresh());
+                    if (($convert['status'] ?? '') === 'created' && ! empty($convert['sell'])) {
+                        $convertMsg = $convert['msg'];
+                        $printUrl = $this->transactionUtil->getInvoiceUrl(
+                            $convert['sell']->id,
+                            $business_id
+                        ).'?print_on_load=true';
+                    } elseif (($convert['status'] ?? '') === 'skipped'
+                        && ($convert['reason'] ?? '') === 'insufficient_stock') {
+                        $convertMsg = $convert['msg'];
+                    }
+                }
             }
 
             $output = ['success' => true,
-                'msg' => __('purchase.payment_added_success'),
+                'msg' => $convertMsg ?: __('purchase.payment_added_success'),
             ];
+            if (! empty($printUrl)) {
+                $output['print_url'] = $printUrl;
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             $msg = __('messages.something_went_wrong');
@@ -312,6 +334,22 @@ class TransactionPaymentController extends Controller
             $output = ['success' => true,
                 'msg' => __('purchase.payment_updated_success'),
             ];
+
+            // Sales order deposit: convert when edit makes the SO fully paid.
+            if ($transaction && $transaction->type === 'sales_order' && $payment_status === 'paid') {
+                $convert = app(\App\Services\SalesOrderInvoiceService::class)
+                    ->convertIfPaid($transaction->fresh());
+                if (($convert['status'] ?? '') === 'created' && ! empty($convert['sell'])) {
+                    $output['msg'] = $convert['msg'];
+                    $output['print_url'] = $this->transactionUtil->getInvoiceUrl(
+                        $convert['sell']->id,
+                        $business_id
+                    ).'?print_on_load=true';
+                } elseif (($convert['status'] ?? '') === 'skipped'
+                    && ($convert['reason'] ?? '') === 'insufficient_stock') {
+                    $output['msg'] = $convert['msg'];
+                }
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());

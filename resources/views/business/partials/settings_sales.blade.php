@@ -106,6 +106,23 @@
             <div class="form-group">
                 <div class="checkbox">
                     <label>
+                    {{-- Hidden 0 so unchecked saves off; missing key = default on (helper). --}}
+                    {!! Form::hidden('pos_settings[so_invoice_on_full_payment]', 0) !!}
+                    {!! Form::checkbox(
+                        'pos_settings[so_invoice_on_full_payment]',
+                        1,
+                        !isset($pos_settings['so_invoice_on_full_payment']) || !empty($pos_settings['so_invoice_on_full_payment']),
+                        ['class' => 'input-icheck', 'id' => 'so_invoice_on_full_payment']
+                    ); !!} {{ __( 'lang_v1.so_invoice_on_full_payment' ) }}
+                    </label>
+                  @show_tooltip(__('lang_v1.so_invoice_on_full_payment_help'))
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
                     {!! Form::checkbox('pos_settings[lock_sales_order_location]', 1, !empty($pos_settings['lock_sales_order_location']) , [ 'class' => 'input-icheck', 'id' => 'lock_sales_order_location']); !!} {{ __( 'lang_v1.lock_sales_order_location' ) }}
                     </label>
                   @show_tooltip(__('lang_v1.lock_sales_order_location_help'))

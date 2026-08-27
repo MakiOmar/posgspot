@@ -91,7 +91,8 @@
                 'completed' => __('restaurant.completed'),
                 'pending' => __('lang_v1.pending'),
               ];
-              $default_payment_line_status = $transaction->type == 'sales_order' ? 'pending' : 'completed';
+              {{-- SO deposits must be completed (pending does not count toward paid / cashbook) --}}
+              $default_payment_line_status = 'completed';
             @endphp
             {!! Form::label("payment_line_status" , __('sale.payment_status') . ':*') !!}
             <div class="input-group">

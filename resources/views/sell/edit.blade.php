@@ -769,7 +769,8 @@
         			{!! Form::hidden("payment[$loop->index][payment_id]", $payment_line['id']); !!}
         		@endif
 				<div class="payment_row" id="payment_rows_div">
-					@include('sale_pos.partials.payment_row_form', ['row_index' => $loop->index, 'show_date' => true, 'payment_line' => $payment_line, 'show_denomination' => true, 'default_payment_line_status' => $transaction->type == 'sales_order' ? 'pending' : 'completed'])
+					{{-- SO deposits must be completed so cashbook / payment_status count them --}}
+					@include('sale_pos.partials.payment_row_form', ['row_index' => $loop->index, 'show_date' => true, 'payment_line' => $payment_line, 'show_denomination' => true, 'default_payment_line_status' => 'completed'])
 				</div>
 				@endforeach
 			

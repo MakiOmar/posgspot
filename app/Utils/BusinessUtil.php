@@ -532,6 +532,26 @@ class BusinessUtil extends Util
     }
 
     /**
+     * Whether a fully paid sales order should auto-create a final invoice (and stock).
+     * Missing key defaults to on.
+     *
+     * @param  array|string|null  $pos_settings
+     * @return bool
+     */
+    public function isSalesOrderInvoiceOnFullPaymentEnabled($pos_settings = null)
+    {
+        if (is_string($pos_settings)) {
+            $pos_settings = json_decode($pos_settings, true) ?: [];
+        }
+        if (! is_array($pos_settings)) {
+            $pos_settings = [];
+        }
+
+        return ! array_key_exists('so_invoice_on_full_payment', $pos_settings)
+            || ! empty($pos_settings['so_invoice_on_full_payment']);
+    }
+
+    /**
      * Whether sales order location lock applies to the given user.
      *
      * @param  array  $pos_settings

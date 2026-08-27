@@ -82,15 +82,70 @@ class SalesOrderController extends Controller
         $business_id = request()->session()->get('user.business_id');
         $location_id = request()->input('location_id');
 
+        $business = \App\Business::find($business_id);
+        $pos_settings = empty($business->pos_settings)
+            ? $this->businessUtil->defaultPosSettings()
+            : (json_decode($business->pos_settings, true) ?: []);
+        $invoiceOnFullPayment = $this->businessUtil->isSalesOrderInvoiceOnFullPaymentEnabled($pos_settings);
+
         $sales_orders = Transaction::where('business_id', $business_id)
                             ->where('location_id', $location_id)
                             ->where('type', 'sales_order')
                             ->whereIn('status', ['partial', 'ordered'])
                             ->where('contact_id', $customer_id)
+                            ->when($invoiceOnFullPayment, function ($q) {
+                                // Only fully paid SOs with remaining qty (stock-failed retries).
+                                $q->where('payment_status', 'paid');
+                            })
                             ->select('invoice_no as text', 'id')
                             ->get();
 
         return $sales_orders;
+    }
+
+    /**
+     * Retry creating a final invoice from a fully paid sales order.
+     */
+    public function createInvoice(Request $request, $id)
+    {
+        if (! auth()->user()->can('sell.create')
+            && ! auth()->user()->can('direct_sell.access')
+            && ! auth()->user()->can('so.update')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = $request->session()->get('user.business_id');
+        $so = Transaction::where('business_id', $business_id)
+            ->where('type', 'sales_order')
+            ->findOrFail($id);
+
+        $this->authorizeSalesOrderStatusAccess($so);
+
+        $convert = app(\App\Services\SalesOrderInvoiceService::class)->convertIfPaid($so);
+
+        if (($convert['status'] ?? '') === 'created' && ! empty($convert['sell'])) {
+            $output = [
+                'success' => true,
+                'msg' => $convert['msg'],
+                'print_url' => $this->transactionUtil->getInvoiceUrl($convert['sell']->id, $business_id).'?print_on_load=true',
+                'sell_id' => $convert['sell']->id,
+                'invoice_no' => $convert['sell']->invoice_no,
+            ];
+        } else {
+            $output = [
+                'success' => false,
+                'msg' => $convert['msg'] ?? __('messages.something_went_wrong'),
+                'reason' => $convert['reason'] ?? null,
+            ];
+        }
+
+        if ($request->ajax()) {
+            return response()->json($output);
+        }
+
+        return redirect()
+            ->action([\App\Http\Controllers\SalesOrderController::class, 'index'])
+            ->with('status', $output);
     }
 
     /**

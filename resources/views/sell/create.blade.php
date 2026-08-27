@@ -818,7 +818,8 @@
 							{!! Form::hidden('advance_balance', null, ['id' => 'advance_balance', 'data-error-msg' => __('lang_v1.required_advance_balance_not_available')]); !!}
 						</div>
 					</div>
-					@include('sale_pos.partials.payment_row_form', ['row_index' => 0, 'show_date' => true, 'show_denomination' => true, 'default_payment_line_status' => !empty($sale_type) && $sale_type == 'sales_order' ? 'pending' : 'completed'])
+					{{-- SO deposits must be completed so cashbook / payment_status count them --}}
+					@include('sale_pos.partials.payment_row_form', ['row_index' => 0, 'show_date' => true, 'show_denomination' => true, 'default_payment_line_status' => 'completed'])
                 </div>
                 <div class="payment_row">
 					<div class="row">

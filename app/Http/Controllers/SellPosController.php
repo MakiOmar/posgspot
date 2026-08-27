@@ -372,6 +372,39 @@ class SellPosController extends Controller
                     }
                 }
 
+                // Block converting unpaid SOs when invoice-on-full-payment is enabled.
+                if (! empty($input['sales_order_ids'])
+                    && (empty($input['type']) || $input['type'] !== 'sales_order')) {
+                    $business_details_for_so = $this->businessUtil->getDetails($business_id);
+                    $pos_settings_for_so = empty($business_details_for_so->pos_settings)
+                        ? $this->businessUtil->defaultPosSettings()
+                        : (json_decode($business_details_for_so->pos_settings, true) ?: []);
+                    if ($this->businessUtil->isSalesOrderInvoiceOnFullPaymentEnabled($pos_settings_for_so)) {
+                        $unpaidSos = Transaction::where('business_id', $business_id)
+                            ->where('type', 'sales_order')
+                            ->whereIn('id', (array) $input['sales_order_ids'])
+                            ->where(function ($q) {
+                                $q->whereNull('payment_status')
+                                    ->orWhere('payment_status', '!=', 'paid');
+                            })
+                            ->pluck('invoice_no')
+                            ->all();
+                        if (! empty($unpaidSos)) {
+                            $output = [
+                                'success' => 0,
+                                'msg' => __('lang_v1.so_unpaid_cannot_convert'),
+                            ];
+                            if (! $is_direct_sale) {
+                                return $output;
+                            }
+
+                            return redirect()
+                                ->action([\App\Http\Controllers\SellController::class, 'index'])
+                                ->with('status', $output);
+                        }
+                    }
+                }
+
                 //Check if subscribed or not, then check for users quota
                 if (!$this->moduleUtil->isSubscribed($business_id)) {
                     return $this->moduleUtil->expiredResponse();
@@ -510,6 +543,12 @@ class SellPosController extends Controller
                     $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
                 }
 
+                // Sales orders: update payment_status (final sells do this inside status==final).
+                if (! empty($input['type']) && $input['type'] == 'sales_order') {
+                    $payment_status = $this->transactionUtil->updatePaymentStatus($transaction->id, $transaction->final_total);
+                    $transaction->payment_status = $payment_status;
+                }
+
                 //Check for final and do some processing.
                 if ($input['status'] == 'final') {
                     if (!$is_direct_sale) {
@@ -611,22 +650,37 @@ class SellPosController extends Controller
 
                 SellCreatedOrModified::dispatch($transaction);
 
+                // Fully paid SO deposit → auto-create final invoice after commit.
+                $soConvertMsg = null;
+                if (! empty($input['type']) && $input['type'] == 'sales_order'
+                    && ($transaction->payment_status ?? null) === 'paid') {
+                    $convert = app(\App\Services\SalesOrderInvoiceService::class)
+                        ->convertIfPaid($transaction->fresh());
+                    if (($convert['status'] ?? '') === 'created' && ! empty($convert['sell'])) {
+                        $soConvertMsg = $convert['msg'];
+                        $transaction = $convert['sell'];
+                    } elseif (($convert['status'] ?? '') === 'skipped'
+                        && ($convert['reason'] ?? '') === 'insufficient_stock') {
+                        $soConvertMsg = $convert['msg'];
+                    }
+                }
+
                 if ($request->input('is_save_and_print') == 1) {
                     $url = $this->transactionUtil->getInvoiceUrl($transaction->id, $business_id);
 
                     return redirect()->to($url . '?print_on_load=true');
                 }
 
-                $msg = trans('sale.pos_sale_added');
+                $msg = $soConvertMsg ?: trans('sale.pos_sale_added');
                 $receipt = '';
                 $invoice_layout_id = $request->input('invoice_layout_id');
                 $print_invoice = false;
                 if (!$is_direct_sale) {
                     if ($input['status'] == 'draft') {
-                        $msg = trans('sale.draft_added');
+                        $msg = $soConvertMsg ?: trans('sale.draft_added');
 
                         if ($input['is_quotation'] == 1) {
-                            $msg = trans('lang_v1.quotation_added');
+                            $msg = $soConvertMsg ?: trans('lang_v1.quotation_added');
                             $print_invoice = true;
                         }
                     } elseif ($input['status'] == 'final') {
@@ -1407,6 +1461,9 @@ class SellPosController extends Controller
 
                     //Auto send notification
                     $whatsapp_link = $this->notificationUtil->autoSendNotification($business_id, 'new_sale', $transaction, $transaction->contact);
+                } elseif ($transaction->type == 'sales_order') {
+                    $payment_status = $this->transactionUtil->updatePaymentStatus($transaction->id, $transaction->final_total);
+                    $transaction->payment_status = $payment_status;
                 }
 
                 $log_properties = [];
@@ -1429,18 +1486,33 @@ class SellPosController extends Controller
                 DB::commit();
                 $this->fulfillStorefrontDigitalIfPaid((int) $transaction->id);
 
+                // Fully paid SO after edit → auto-create final invoice.
+                $soConvertMsg = null;
+                if ($transaction->type == 'sales_order' && ($transaction->payment_status ?? null) === 'paid') {
+                    $convert = app(\App\Services\SalesOrderInvoiceService::class)
+                        ->convertIfPaid($transaction->fresh());
+                    if (($convert['status'] ?? '') === 'created' && ! empty($convert['sell'])) {
+                        $soConvertMsg = $convert['msg'];
+                    } elseif (($convert['status'] ?? '') === 'skipped'
+                        && ($convert['reason'] ?? '') === 'insufficient_stock') {
+                        $soConvertMsg = $convert['msg'];
+                    }
+                }
+
                 if ($request->input('is_save_and_print') == 1) {
                     $url = $this->transactionUtil->getInvoiceUrl($id, $business_id);
 
                     return redirect()->to($url . '?print_on_load=true');
                 }
 
-                $msg = __('lang_v1.updated_success');
+                $msg = $soConvertMsg ?: __('lang_v1.updated_success');
                 $receipt = '';
                 $can_print_invoice = auth()->user()->can('print_invoice');
                 $invoice_layout_id = $request->input('invoice_layout_id');
 
-                if ($input['status'] == 'draft' && $input['is_quotation'] == 0) {
+                if ($soConvertMsg) {
+                    // Keep convert message as primary feedback.
+                } elseif ($input['status'] == 'draft' && $input['is_quotation'] == 0) {
                     $msg = trans('sale.draft_added');
                 } elseif ($input['status'] == 'draft' && $input['is_quotation'] == 1) {
                     $msg = trans('lang_v1.quotation_updated');

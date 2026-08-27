@@ -41,5 +41,33 @@
 		        }
 		    });
 		});
+
+		// Retry: create final invoice from a fully paid SO (e.g. after stock was short)
+		$(document).on('click', 'a.so-create-invoice', function(e){
+		    e.preventDefault();
+		    var url = $(this).attr('href');
+		    $.ajax({
+		        method: 'POST',
+		        dataType: 'json',
+		        url: url,
+		        data: { _token: $('meta[name="csrf-token"]').attr('content') },
+		        success: function(result){
+		            if (result.success) {
+		                toastr.success(result.msg);
+		                if (typeof(sell_table) != 'undefined') {
+		                    sell_table.ajax.reload();
+		                }
+		                if (typeof(sales_order_table) != 'undefined') {
+		                    sales_order_table.ajax.reload();
+		                }
+		                if (result.print_url) {
+		                    window.open(result.print_url, '_blank');
+		                }
+		            } else {
+		                toastr.error(result.msg);
+		            }
+		        }
+		    });
+		});
 	});	
 </script>
