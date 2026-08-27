@@ -19,7 +19,7 @@
             <strong>
             @if(in_array($transaction->type, ['purchase', 'purchase_return']))
               @lang('purchase.supplier') 
-            @elseif(in_array($transaction->type, ['sell', 'sell_return']))
+            @elseif(in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))
               @lang('contact.customer') 
             @endif
             </strong>:{{ $transaction->contact->full_name_with_business }}<br>
@@ -29,7 +29,7 @@
         @endif
         <div class="col-md-4">
           <div class="well">
-          @if(in_array($transaction->type, ['sell', 'sell_return']))
+          @if(in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))
             <strong>@lang('sale.invoice_no'): </strong>{{ $transaction->invoice_no }}
           @else
             <strong>@lang('purchase.ref_no'): </strong>{{ $transaction->ref_no }}

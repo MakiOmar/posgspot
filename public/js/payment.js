@@ -1,11 +1,24 @@
 $(document).ready(function() {
     $(document).on('click', '.add_payment_modal', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+        var url = $(this).data('href') || $(this).attr('href');
+        if (!url || url === '#') {
+            return false;
+        }
         var container = $('.payment_modal');
+        if (!container.length) {
+            toastr.error('Payment modal is missing on this page. Please refresh and try again.');
+            return false;
+        }
 
         $.ajax({
-            url: $(this).attr('href'),
+            url: url,
             dataType: 'json',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                Accept: 'application/json',
+            },
             success: function(result) {
                 if (result.status == 'due') {
                     container.html(result.view).modal('show');
@@ -29,7 +42,15 @@ $(document).ready(function() {
                     toastr.error(result.msg);
                 }
             },
+            error: function(xhr) {
+                var msg = 'Unable to open Add Payment.';
+                if (xhr.responseJSON && xhr.responseJSON.msg) {
+                    msg = xhr.responseJSON.msg;
+                }
+                toastr.error(msg);
+            },
         });
+        return false;
     });
     $(document).on('click', '.edit_payment', function(e) {
         e.preventDefault();
@@ -52,18 +73,34 @@ $(document).ready(function() {
 
     $(document).on('click', '.view_payment_modal', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+        var url = $(this).data('href') || $(this).attr('href');
+        if (!url || url === '#') {
+            return false;
+        }
         var container = $('.payment_modal');
+        if (!container.length) {
+            toastr.error('Payment modal is missing on this page. Please refresh and try again.');
+            return false;
+        }
 
         $.ajax({
-            url: $(this).attr('href'),
+            url: url,
             dataType: 'html',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            },
             success: function(result) {
                 $(container)
                     .html(result)
                     .modal('show');
                 __currency_convert_recursively(container);
             },
+            error: function() {
+                toastr.error('Unable to open payments.');
+            },
         });
+        return false;
     });
     $(document).on('click', '.delete_payment', function(e) {
         swal({

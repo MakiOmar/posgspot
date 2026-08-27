@@ -482,13 +482,14 @@ class SellController extends Controller
                             $html .= '<li><a href="#" data-href="'.action([\App\Http\Controllers\NotificationController::class, 'getTemplate'], ['transaction_id' => $row->id, 'template_for' => 'new_sale']).'" class="btn-modal" data-container=".view_modal"><i class="fa fa-envelope" aria-hidden="true"></i>'.__('lang_v1.new_sale_notification').'</a></li>';
                         } elseif ($row->type == 'sales_order') {
                             // Payments + retry invoice for deposit SOs
+                            // Use href="#" + data-href so the browser never navigates if JS fails to intercept
                             if (auth()->user()->can('sell.payments') ||
                                 auth()->user()->can('edit_sell_payment') ||
                                 auth()->user()->can('delete_sell_payment')) {
                                 if ($row->payment_status != 'paid') {
-                                    $html .= '<li><a href="'.action([\App\Http\Controllers\TransactionPaymentController::class, 'addPayment'], [$row->id]).'" class="add_payment_modal"><i class="fas fa-money-bill-alt"></i> '.__('purchase.add_payment').'</a></li>';
+                                    $html .= '<li><a href="#" data-href="'.action([\App\Http\Controllers\TransactionPaymentController::class, 'addPayment'], [$row->id]).'" class="add_payment_modal"><i class="fas fa-money-bill-alt"></i> '.__('purchase.add_payment').'</a></li>';
                                 }
-                                $html .= '<li><a href="'.action([\App\Http\Controllers\TransactionPaymentController::class, 'show'], [$row->id]).'" class="view_payment_modal"><i class="fas fa-money-bill-alt"></i> '.__('purchase.view_payments').'</a></li>';
+                                $html .= '<li><a href="#" data-href="'.action([\App\Http\Controllers\TransactionPaymentController::class, 'show'], [$row->id]).'" class="view_payment_modal"><i class="fas fa-money-bill-alt"></i> '.__('purchase.view_payments').'</a></li>';
                             }
 
                             if ($row->payment_status == 'paid' && (float) ($row->so_qty_remaining ?? 0) > 0

@@ -93,7 +93,8 @@
 @stop
 @section('javascript')
 @includeIf('sales_order.common_js')
-<script src="{{ asset('js/payment.js?v=' . $asset_v) }}"></script>
+{{-- Cache-bust payment.js so SO list Add Payment handler stays current --}}
+<script src="{{ asset('js/payment.js?v=' . $asset_v . '-so-pay') }}"></script>
 <script type="text/javascript">
 $(document).ready( function(){
     $('#sell_list_filter_date_range').daterangepicker(

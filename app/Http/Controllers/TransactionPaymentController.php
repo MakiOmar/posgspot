@@ -437,7 +437,12 @@ class TransactionPaymentController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if (request()->ajax()) {
+        // Modal payload for list "Add Payment" (AJAX / JSON Accept)
+        $wants_modal = request()->ajax()
+            || request()->wantsJson()
+            || request()->header('X-Requested-With') === 'XMLHttpRequest';
+
+        if ($wants_modal) {
             $business_id = request()->session()->get('user.business_id');
 
             $transaction = Transaction::where('business_id', $business_id)
