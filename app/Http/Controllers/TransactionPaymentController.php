@@ -433,25 +433,63 @@ class TransactionPaymentController extends Controller
      */
     public function addPayment($transaction_id)
     {
+        // TEMP DEBUG — remove after live blank-page investigation
+        $debug = [
+            'hit' => true,
+            'transaction_id' => (int) $transaction_id,
+            'is_ajax' => request()->ajax(),
+            'wants_json' => request()->wantsJson(),
+            'x_requested_with' => request()->header('X-Requested-With'),
+            'user_id' => auth()->id(),
+            'business_id' => request()->session()->get('user.business_id'),
+            'can_sell_payments' => auth()->user() ? auth()->user()->can('sell.payments') : null,
+            'can_purchase_payments' => auth()->user() ? auth()->user()->can('purchase.payments') : null,
+            'step' => 'start',
+        ];
+        \Log::info('addPayment DEBUG start', $debug);
+
         if (! auth()->user()->can('purchase.payments') && ! auth()->user()->can('sell.payments') && ! auth()->user()->can('all_expense.access') && ! auth()->user()->can('view_own_expense') && !auth()->user()->can('hms.add_booking_payment')) {
+            \Log::warning('addPayment DEBUG 403', $debug);
             abort(403, 'Unauthorized action.');
         }
 
-        if (request()->ajax()) {
-            $business_id = request()->session()->get('user.business_id');
+        $business_id = request()->session()->get('user.business_id');
+        $debug['business_id'] = $business_id;
 
+        try {
             $transaction = Transaction::where('business_id', $business_id)
                                         ->with(['contact', 'location'])
                                         ->findOrFail($transaction_id);
-            if ($transaction->payment_status != 'paid') {
+            $debug['step'] = 'transaction_loaded';
+            $debug['type'] = $transaction->type;
+            $debug['payment_status'] = $transaction->payment_status;
+            $debug['final_total'] = $transaction->final_total;
+            $debug['invoice_no'] = $transaction->invoice_no;
+            $debug['has_location'] = ! empty($transaction->location);
+            $debug['has_contact'] = ! empty($transaction->contact);
+
+            if ($transaction->payment_status == 'paid') {
+                $debug['step'] = 'already_paid';
+                \Log::info('addPayment DEBUG already paid', $debug);
+                $output = [
+                    'status' => 'paid',
+                    'view' => '',
+                    'msg' => __('purchase.amount_already_paid'),
+                    '_debug' => $debug,
+                ];
+            } else {
                 $show_advance = in_array($transaction->type, ['sell', 'purchase']) ? true : false;
                 $payment_types = $this->transactionUtil->payment_types($transaction->location, $show_advance);
+                $debug['step'] = 'payment_types_ok';
+                $debug['payment_types_count'] = is_array($payment_types) ? count($payment_types) : null;
 
                 $paid_amount = $this->transactionUtil->getTotalPaid($transaction_id);
                 $amount = $transaction->final_total - $paid_amount;
                 if ($amount < 0) {
                     $amount = 0;
                 }
+                $debug['paid_amount'] = $paid_amount;
+                $debug['amount_due'] = $amount;
 
                 $amount_formated = $this->transactionUtil->num_f($amount);
 
@@ -460,21 +498,62 @@ class TransactionPaymentController extends Controller
                 $payment_line->method = 'cash';
                 $payment_line->paid_on = \Carbon::now()->toDateTimeString();
 
-                //Accounts
                 $accounts = $this->moduleUtil->accountsDropdown($business_id, true, false, true);
+                $debug['step'] = 'accounts_ok';
+                $debug['accounts_count'] = is_countable($accounts) ? count($accounts) : null;
 
                 $view = view('transaction_payment.payment_row')
-                ->with(compact('transaction', 'payment_types', 'payment_line', 'amount_formated', 'accounts'))->render();
+                    ->with(compact('transaction', 'payment_types', 'payment_line', 'amount_formated', 'accounts'))
+                    ->render();
+                $debug['step'] = 'view_rendered';
+                $debug['view_length'] = strlen($view);
 
-                $output = ['status' => 'due',
-                    'view' => $view, ];
-            } else {
-                $output = ['status' => 'paid',
-                    'view' => '',
-                    'msg' => __('purchase.amount_already_paid'),  ];
+                $output = [
+                    'status' => 'due',
+                    'view' => $view,
+                    '_debug' => $debug,
+                ];
             }
 
-            return json_encode($output);
+            \Log::info('addPayment DEBUG success', $debug);
+
+            // Non-AJAX browser open: show HTML so the page is never blank while debugging.
+            if (! request()->ajax()) {
+                return response(
+                    '<pre style="padding:16px;font:14px/1.4 monospace;background:#111;color:#0f0;">'
+                    .'addPayment DEBUG (non-ajax — modal is AJAX-only normally)'."\n"
+                    .e(json_encode($debug, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+                    .'</pre>'
+                    .'<hr><p>If status=due, modal HTML length = '.($debug['view_length'] ?? 0).'</p>'
+                    .(isset($output['view']) ? $output['view'] : '<p>'.e($output['msg'] ?? '').'</p>'),
+                    200
+                );
+            }
+
+            return response()->json($output);
+        } catch (\Throwable $e) {
+            $debug['step'] = 'exception';
+            $debug['exception'] = $e->getMessage();
+            $debug['file'] = $e->getFile().':'.$e->getLine();
+            \Log::error('addPayment DEBUG exception', $debug + ['trace' => $e->getTraceAsString()]);
+
+            if (! request()->ajax()) {
+                return response(
+                    '<pre style="padding:16px;font:14px/1.4 monospace;background:#300;color:#fff;">'
+                    .'addPayment DEBUG EXCEPTION'."\n"
+                    .e(json_encode($debug, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))
+                    ."\n\n".$e->getMessage()
+                    ."\n".$e->getFile().':'.$e->getLine()
+                    .'</pre>',
+                    500
+                );
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'msg' => $e->getMessage(),
+                '_debug' => $debug,
+            ], 500);
         }
     }
 
