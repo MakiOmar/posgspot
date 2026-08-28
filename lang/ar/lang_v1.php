@@ -1217,6 +1217,7 @@ return [
     'so_create_invoice' => 'إنشاء فاتورة',
     'so_invoice_created' => 'تم إنشاء الفاتورة :invoice_no من طلب المبيعات',
     'so_payments_moved_to_invoice' => 'تم نقل العربون إلى الفاتورة :invoice_no (بدون تكرار المخزون أو دفتر النقدية).',
+    'payment_line_status' => 'حالة سطر الدفع',
     'so_invoice_stock_insufficient' => 'تعذر إنشاء الفاتورة: المخزون غير كافٍ لمنتج أو أكثر',
     'so_invoice_not_paid' => 'يجب سداد طلب المبيعات بالكامل قبل إنشاء الفاتورة',
     'so_invoice_already_invoiced' => 'تم فوترة طلب المبيعات بالكامل مسبقاً',

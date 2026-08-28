@@ -40,7 +40,13 @@
         @endif
         <div class="col-md-3">
             <div class="form-group">
-                {!! Form::label('so_list_payment_line_status', __('sale.payment_status') . ':') !!}
+                {!! Form::label('so_list_payment_status', __('sale.payment_status') . ':') !!}
+                {!! Form::select('so_list_payment_status', $payment_statuses, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                {!! Form::label('so_list_payment_line_status', __('lang_v1.payment_line_status') . ':') !!}
                 {!! Form::select('so_list_payment_line_status', $payment_line_statuses, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
             </div>
         </div>
@@ -73,6 +79,7 @@
                         <th>@lang('sale.location')</th>
                         <th>@lang('sale.status')</th>
                         <th>@lang('sale.payment_status')</th>
+                        <th>@lang('lang_v1.payment_line_status')</th>
                         <th>@lang('lang_v1.shipping_status')</th>
                         <th>@lang('lang_v1.quantity_remaining')</th>
                         <th>@lang('lang_v1.added_by')</th>
@@ -135,6 +142,10 @@ $(document).ready( function(){
                     d.shipping_status = $('#so_list_shipping_status').val();
                 }
 
+                if ($('#so_list_payment_status').length) {
+                    d.payment_status = $('#so_list_payment_status').val();
+                }
+
                 if ($('#so_list_payment_line_status').length) {
                     d.payment_line_status = $('#so_list_payment_line_status').val();
                 }
@@ -145,7 +156,7 @@ $(document).ready( function(){
             }
         },
         columnDefs: [ {
-            "targets": 8,
+            "targets": 9,
             "orderable": false,
             "searchable": false
         } ],
@@ -157,13 +168,14 @@ $(document).ready( function(){
             { data: 'mobile', name: 'contacts.mobile'},
             { data: 'business_location', name: 'bl.name'},
             { data: 'status', name: 'status'},
+            { data: 'payment_status', name: 'payment_status'},
             { data: 'payment_line_status', name: 'payment_line_status', "searchable": false, "orderable": false},
             { data: 'shipping_status', name: 'shipping_status'},
             { data: 'so_qty_remaining', name: 'so_qty_remaining', "searchable": false},
             { data: 'added_by', name: 'u.first_name'},
         ]
     });
-    $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_line_status',  function() {
+    $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_status, #so_list_payment_line_status',  function() {
         sell_table.ajax.reload();
     });
 });

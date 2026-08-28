@@ -73,8 +73,21 @@ class SalesOrderController extends Controller
             'pending' => __('lang_v1.pending'),
         ];
 
+        $payment_statuses = [
+            'paid' => __('lang_v1.paid'),
+            'due' => __('lang_v1.due'),
+            'partial' => __('lang_v1.partial'),
+        ];
+
         return view('sales_order.index')
-            ->with(compact('business_locations', 'customers', 'shipping_statuses', 'sales_order_statuses', 'payment_line_statuses'));
+            ->with(compact(
+                'business_locations',
+                'customers',
+                'shipping_statuses',
+                'sales_order_statuses',
+                'payment_line_statuses',
+                'payment_statuses'
+            ));
     }
 
     public function getSalesOrders($customer_id)

@@ -1308,6 +1308,7 @@ return [
     'so_create_invoice' => 'Create invoice',
     'so_invoice_created' => 'Invoice :invoice_no created from sales order',
     'so_payments_moved_to_invoice' => 'Deposits were moved to invoice :invoice_no (no stock/cashbook double-post).',
+    'payment_line_status' => 'Payment line status',
     'so_invoice_stock_insufficient' => 'Cannot create invoice: insufficient stock for one or more products',
     'so_invoice_not_paid' => 'Sales order must be fully paid before creating an invoice',
     'so_invoice_already_invoiced' => 'Sales order has already been fully invoiced',
