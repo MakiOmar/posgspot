@@ -216,11 +216,49 @@ class TransactionPaymentController extends Controller
             }
 
             $payments = $payments_query->get();
+            $linked_invoice = null;
+
+            // After SO→invoice conversion, deposits are moved to the final sell.
+            // Still show them here (read-only) and repair SO payment_status if needed.
+            if ($transaction
+                && $transaction->type === 'sales_order'
+                && $payments->isEmpty()) {
+                $linked_invoice = Transaction::where('business_id', $transaction->business_id)
+                    ->where('type', 'sell')
+                    ->whereJsonContains('sales_order_ids', (int) $transaction->id)
+                    ->first();
+
+                if (empty($linked_invoice)) {
+                    // Fallback for non-JSON / string storage of sales_order_ids
+                    $linked_invoice = Transaction::where('business_id', $transaction->business_id)
+                        ->where('type', 'sell')
+                        ->whereNotNull('sales_order_ids')
+                        ->get()
+                        ->first(function ($sell) use ($transaction) {
+                            return in_array($transaction->id, $sell->sales_order_ids ?? [], true)
+                                || in_array((string) $transaction->id, array_map('strval', $sell->sales_order_ids ?? []), true);
+                        });
+                }
+
+                if (! empty($linked_invoice)) {
+                    $payments_query = TransactionPayment::where('transaction_id', $linked_invoice->id);
+                    if ($accounts_enabled) {
+                        $payments_query->with(['payment_account']);
+                    }
+                    $payments = $payments_query->get();
+
+                    if (($transaction->payment_status ?? null) !== 'paid') {
+                        $transaction->payment_status = 'paid';
+                        $transaction->save();
+                    }
+                }
+            }
+
             $location_id = ! empty($transaction->location_id) ? $transaction->location_id : null;
             $payment_types = $this->transactionUtil->payment_types($location_id, true);
 
             return view('transaction_payment.show_payments')
-                    ->with(compact('transaction', 'payments', 'payment_types', 'accounts_enabled'));
+                    ->with(compact('transaction', 'payments', 'payment_types', 'accounts_enabled', 'linked_invoice'));
         }
     }
 

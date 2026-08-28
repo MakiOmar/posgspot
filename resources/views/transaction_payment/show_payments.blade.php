@@ -7,7 +7,7 @@
                 (
                 @if(in_array($transaction->type, ['purchase', 'expense', 'purchase_return', 'payroll']))    
                     @lang('purchase.ref_no'): {{ $transaction->ref_no }} 
-                @elseif(in_array($transaction->type, ['sell', 'sell_return']))
+                @elseif(in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))
                     @lang('sale.invoice_no'): {{ $transaction->invoice_no }}
                 @elseif (in_array($transaction->type, ['hms_booking']))
                     @lang('hms::lang.booking_Id'): {{ $transaction->ref_no }}
@@ -17,7 +17,7 @@
             <h4 class="modal-title visible-print-block">
                 @if(in_array($transaction->type, ['purchase', 'expense', 'purchase_return', 'payroll'])) 
                     @lang('purchase.ref_no'): {{ $transaction->ref_no }}
-                @elseif($transaction->type == 'sell')
+                @elseif(in_array($transaction->type, ['sell', 'sales_order']))
                     @lang('sale.invoice_no'): {{ $transaction->invoice_no }}
                 @elseif (in_array($transaction->type, ['hms_booking']))
                     @lang('hms::lang.booking_Id'): {{ $transaction->ref_no }}
@@ -132,6 +132,16 @@
                 </div>
             @endif
 
+            @if(!empty($linked_invoice))
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            @lang('lang_v1.so_payments_moved_to_invoice', ['invoice_no' => $linked_invoice->invoice_no])
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @can('send_notification')
                 @if($transaction->type == 'purchase')
                     <div class="row no-print">
@@ -157,10 +167,10 @@
                     <br>
                 @endif
             @endcan
-            @if($transaction->payment_status != 'paid')
+            @if($transaction->payment_status != 'paid' && empty($linked_invoice))
                 <div class="row">
                     <div class="col-md-12">
-                        @if((auth()->user()->can('hms.add_booking_payment') && (in_array($transaction->type, ['hms_booking']))) || (auth()->user()->can('purchase.payments') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('sell.payments') && (in_array($transaction->type, ['sell', 'sell_return']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) &&  $transaction->type == 'expense') )
+                        @if((auth()->user()->can('hms.add_booking_payment') && (in_array($transaction->type, ['hms_booking']))) || (auth()->user()->can('purchase.payments') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('sell.payments') && (in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) &&  $transaction->type == 'expense') )
                             <a href="{{ action([\App\Http\Controllers\TransactionPaymentController::class, 'addPayment'], [$transaction->id]) }}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-primary pull-right add_payment_modal no-print"><i class="fa fa-plus" aria-hidden="true"></i> @lang("purchase.add_payment")</a>
                         @endif
                     </div>
@@ -192,14 +202,14 @@
                                 <td>{{$payment->payment_account->name ?? ''}}</td>
                               @endif
                               <td class="no-print" style="display: flex;">
-                              @if((in_array($transaction->type, ['hms_booking']) && auth()->user()->can('hms.edit_booking_payment')) || (auth()->user()->can('edit_purchase_payment') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('edit_sell_payment') && (in_array($transaction->type, ['sell', 'sell_return']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) && $transaction->type == 'expense') )
+                              @if(empty($linked_invoice) && ((in_array($transaction->type, ['hms_booking']) && auth()->user()->can('hms.edit_booking_payment')) || (auth()->user()->can('edit_purchase_payment') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('edit_sell_payment') && (in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) && $transaction->type == 'expense')) )
                                     @if($payment->method != 'advance')
                                         <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-info edit_payment" 
                                     data-href="{{action([\App\Http\Controllers\TransactionPaymentController::class, 'edit'], [$payment->id]) }}"><i class="glyphicon glyphicon-edit"></i></button>
                                     @endif
                                 @endif
 
-                                @if((in_array($transaction->type, ['hms_booking']) && auth()->user()->can('hms.delete_booking_payment')) || (auth()->user()->can('delete_purchase_payment') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('delete_sell_payment') && (in_array($transaction->type, ['sell', 'sell_return']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) && $transaction->type == 'expense') )
+                                @if(empty($linked_invoice) && ((in_array($transaction->type, ['hms_booking']) && auth()->user()->can('hms.delete_booking_payment')) || (auth()->user()->can('delete_purchase_payment') && (in_array($transaction->type, ['purchase', 'purchase_return']))) || (auth()->user()->can('delete_sell_payment') && (in_array($transaction->type, ['sell', 'sell_return', 'sales_order']))) || ((auth()->user()->can('all_expense.access') || auth()->user()->can('view_own_expense')) && $transaction->type == 'expense')) )
                                     &nbsp; <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-error delete_payment" 
                                     data-href="{{ action([\App\Http\Controllers\TransactionPaymentController::class, 'destroy'], [$payment->id]) }}"
                                     ><i class="fa fa-trash" aria-hidden="true"></i></button>

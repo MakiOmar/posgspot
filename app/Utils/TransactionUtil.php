@@ -3049,6 +3049,13 @@ class TransactionUtil extends Util
         $payments = $transaction->payment_lines->where('is_return', 0);
 
         if ($payments->isEmpty()) {
+            // Sales order deposits are moved to the final invoice when paid —
+            // empty lines + paid status means completed, not pending.
+            if (($transaction->type ?? null) === 'sales_order'
+                && ($transaction->payment_status ?? null) === 'paid') {
+                return 'completed';
+            }
+
             return 'pending';
         }
 

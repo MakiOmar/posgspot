@@ -249,7 +249,12 @@ class SalesOrderInvoiceService
         }
 
         $this->transactionUtil->updatePaymentStatus($sell->id, $sell->final_total);
-        $this->transactionUtil->updatePaymentStatus($so->id, $so->final_total);
+
+        // Deposits were moved off the SO — do not recalculate from empty payment lines
+        // (that incorrectly sets payment_status back to due / clears history UX).
+        $so->payment_status = 'paid';
+        $so->save();
+
         $this->transactionUtil->updateSalesOrderStatus([$so->id]);
 
         $this->transactionUtil->activityLog($sell, 'added');

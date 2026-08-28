@@ -1307,6 +1307,7 @@ return [
     'so_invoice_on_full_payment_help' => 'Deposits stay on the sales order (no stock change, no tax invoice). When the order is fully paid, create the invoice and decrease stock automatically. Turn off to allow invoicing unpaid sales orders from Add Sale.',
     'so_create_invoice' => 'Create invoice',
     'so_invoice_created' => 'Invoice :invoice_no created from sales order',
+    'so_payments_moved_to_invoice' => 'Deposits were moved to invoice :invoice_no (no stock/cashbook double-post).',
     'so_invoice_stock_insufficient' => 'Cannot create invoice: insufficient stock for one or more products',
     'so_invoice_not_paid' => 'Sales order must be fully paid before creating an invoice',
     'so_invoice_already_invoiced' => 'Sales order has already been fully invoiced',

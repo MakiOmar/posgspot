@@ -246,6 +246,8 @@ class SalesOrderDepositInvoiceTest extends TestCase
 
         $so = $so->fresh();
         $this->assertSame('completed', $so->status);
+        // Still paid after deposits moved to the invoice (must not recalculate as due).
+        $this->assertSame('paid', $so->payment_status);
     }
 
     public function test_full_payment_with_insufficient_stock_skips_conversion(): void
