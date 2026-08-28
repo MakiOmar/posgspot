@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Business;
+use App\AccountTransaction;
 use App\Product;
 use App\Transaction;
 use App\TransactionPayment;
@@ -233,10 +234,19 @@ class SalesOrderInvoiceService
         $this->transactionUtil->mapPurchaseSell($mapBusiness, $sell->sell_lines, 'purchase');
 
         // Move completed payments from SO → sell (do NOT fire TransactionPaymentAdded).
-        TransactionPayment::where('transaction_id', $so->id)
+        $movedPaymentIds = TransactionPayment::where('transaction_id', $so->id)
             ->where('payment_line_status', 'completed')
             ->where('is_return', 0)
-            ->update(['transaction_id' => $sell->id]);
+            ->pluck('id');
+
+        if ($movedPaymentIds->isNotEmpty()) {
+            TransactionPayment::whereIn('id', $movedPaymentIds)
+                ->update(['transaction_id' => $sell->id]);
+
+            // Keep cashbook rows aligned with the final invoice (no second credit).
+            AccountTransaction::whereIn('transaction_payment_id', $movedPaymentIds)
+                ->update(['transaction_id' => $sell->id]);
+        }
 
         $this->transactionUtil->updatePaymentStatus($sell->id, $sell->final_total);
         $this->transactionUtil->updatePaymentStatus($so->id, $so->final_total);

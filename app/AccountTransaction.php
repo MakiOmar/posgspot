@@ -35,6 +35,7 @@ class AccountTransaction extends Model
     {
         $account_transaction_types = [
             'sell' => 'credit',
+            'sales_order' => 'credit',
             'purchase' => 'debit',
             'expense' => 'debit',
             'purchase_return' => 'credit',
@@ -44,7 +45,7 @@ class AccountTransaction extends Model
             'hms_booking' => 'credit',
         ];
 
-        return $account_transaction_types[$tansaction_type];
+        return $account_transaction_types[$tansaction_type] ?? null;
     }
 
     /**
