@@ -11,6 +11,43 @@
   --pc: 100% 0 0 !important;
   --fallback-p: #f98007 !important;
   --fallback-pc: #ffffff !important;
+  /* Keep POS/admin light even when the OS is in dark mode (DaisyUI otherwise paints native search fields black) */
+  color-scheme: light !important;
+  --b1: 100% 0 0 !important;
+  --fallback-b1: #ffffff !important;
+}
+
+/* Select2 search/results: white panel (DaisyUI color-scheme:dark makes input[type=search] black) */
+.select2-dropdown,
+.select2-container--default .select2-dropdown,
+.select2-container--default .select2-results,
+.select2-container--default .select2-results > .select2-results__options,
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple,
+.select2-container--default .select2-search--dropdown .select2-search__field,
+.select2-container--default .select2-search--inline .select2-search__field,
+.select2-dropdown .select2-search__field,
+.select2-search__field,
+.select2-container--default .select2-results__option,
+.select2-container--default .select2-results__message,
+.select2-container--default .select2-results__option.loading-results,
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  background-color: #fff !important;
+  color: #333 !important;
+  color-scheme: light;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered,
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: #444 !important;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+  border-color: #888 transparent transparent transparent !important;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single .select2-selection__arrow b {
+  border-color: transparent transparent #888 transparent !important;
 }
 
 /* Tailwind gradient headers (not solid fills) */
@@ -209,8 +246,14 @@ ul.dt-button-collection {
   color: #f98007 !important;
 }
 
+.select2-container--default .select2-results__option[aria-selected=true] {
+  background-color: #eee !important;
+  color: #333 !important;
+}
+
 .select2-container--default .select2-results__option--highlighted[aria-selected] {
   background-color: #f98007 !important;
+  color: #fff !important;
 }
 
 .select2-container--default.select2-container--open .select2-selection--single,
