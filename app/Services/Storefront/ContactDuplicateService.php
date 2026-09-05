@@ -30,8 +30,7 @@ class ContactDuplicateService
 
     public function findCustomerByMobile(int $businessId, string $mobile, ?string $dialCode = null): ?Contact
     {
-        $needle = $this->phoneValidation->canonicalNationalDigits($mobile, $dialCode);
-        if ($needle === '') {
+        if ($this->phoneValidation->nationalDigitNeedles($mobile, $dialCode) === []) {
             return null;
         }
 
@@ -42,7 +41,7 @@ class ContactDuplicateService
             ->get(['id', 'mobile', 'email', 'type']);
 
         foreach ($contacts as $contact) {
-            if ($this->phoneValidation->canonicalNationalDigits($contact->mobile) === $needle) {
+            if ($this->phoneValidation->mobilesMatch((string) $contact->mobile, $mobile, $dialCode)) {
                 return $contact;
             }
         }

@@ -157,4 +157,55 @@ class PhoneValidationService
 
         return '+20';
     }
+
+    /**
+     * Candidate national-digit forms for loose matching (with/without country code or leading 0).
+     *
+     * @return list<string>
+     */
+    public function nationalDigitNeedles(string $mobile, ?string $preferredDialCode = null): array
+    {
+        $needles = [];
+        $push = function (string $value) use (&$needles): void {
+            if ($value !== '') {
+                $needles[$value] = true;
+            }
+        };
+
+        $push($this->canonicalNationalDigits($mobile, $preferredDialCode));
+        $push($this->canonicalNationalDigits($mobile));
+
+        $digits = preg_replace('/\D/', '', $mobile) ?? '';
+        if ($digits === '') {
+            return array_keys($needles);
+        }
+
+        // Digits alone (e.g. 201062828881) should still strip a known dial code.
+        $push($this->canonicalNationalDigits('+'.$digits));
+
+        $dialCodes = array_values(array_unique(array_filter([
+            $preferredDialCode,
+            $this->inferDialCodeFromMobile('+'.$digits),
+            '+20',
+        ])));
+
+        foreach ($dialCodes as $dial) {
+            $push($this->canonicalNationalDigits($mobile, $dial));
+            $push($this->canonicalNationalDigits($digits, $dial));
+        }
+
+        return array_keys($needles);
+    }
+
+    public function mobilesMatch(string $stored, string $search, ?string $preferredDialCode = null): bool
+    {
+        $searchNeedles = $this->nationalDigitNeedles($search, $preferredDialCode);
+        if ($searchNeedles === []) {
+            return false;
+        }
+
+        $storedNeedles = $this->nationalDigitNeedles($stored, $preferredDialCode);
+
+        return count(array_intersect($searchNeedles, $storedNeedles)) > 0;
+    }
 }

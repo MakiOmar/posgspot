@@ -2,6 +2,7 @@
 
 namespace App\Services\Storefront;
 
+use App\Contact;
 use App\Support\StorefrontLocale;
 use App\Utils\ModuleUtil;
 use Carbon\Carbon;
@@ -14,8 +15,10 @@ use Spatie\Activitylog\Models\Activity;
  */
 class RepairStatusLookupService
 {
-    public function __construct(private ModuleUtil $moduleUtil)
-    {
+    public function __construct(
+        private ModuleUtil $moduleUtil,
+        private PhoneValidationService $phoneValidation
+    ) {
     }
 
     public function isAvailable(int $businessId): bool
@@ -72,16 +75,11 @@ class RepairStatusLookupService
                 if (! $this->lookupByMobileEnabled()) {
                     return [];
                 }
-                $digits = preg_replace('/\D+/', '', $searchNumber) ?? '';
-                $query->where(function ($q) use ($searchNumber, $digits) {
-                    $q->where('contacts.mobile', $searchNumber);
-                    if ($digits !== '') {
-                        $q->orWhereRaw(
-                            "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(contacts.mobile, '+', ''), '-', ''), ' ', ''), '(', ''), ')', '') = ?",
-                            [$digits]
-                        );
-                    }
-                });
+                $contactIds = $this->contactIdsMatchingMobile($businessId, $searchNumber);
+                if ($contactIds === []) {
+                    return [];
+                }
+                $query->whereIn('repair_job_sheets.contact_id', $contactIds);
             } else {
                 return [];
             }
@@ -112,6 +110,47 @@ class RepairStatusLookupService
         } finally {
             app()->setLocale($previousLocale);
         }
+    }
+
+    /**
+     * Match contacts whose mobile equals the search in any common local/international form.
+     *
+     * @return list<int>
+     */
+    private function contactIdsMatchingMobile(int $businessId, string $searchNumber): array
+    {
+        $searchNeedles = $this->phoneValidation->nationalDigitNeedles($searchNumber);
+        if ($searchNeedles === []) {
+            return [];
+        }
+
+        $jobSheetContactIds = JobSheet::query()
+            ->where('business_id', $businessId)
+            ->whereNotNull('contact_id')
+            ->distinct()
+            ->pluck('contact_id');
+
+        if ($jobSheetContactIds->isEmpty()) {
+            return [];
+        }
+
+        $matched = [];
+        Contact::query()
+            ->whereIn('id', $jobSheetContactIds)
+            ->whereNotNull('mobile')
+            ->where('mobile', '!=', '')
+            ->select(['id', 'mobile'])
+            ->orderBy('id')
+            ->chunkById(500, function ($contacts) use ($searchNeedles, &$matched): void {
+                foreach ($contacts as $contact) {
+                    $storedNeedles = $this->phoneValidation->nationalDigitNeedles((string) $contact->mobile);
+                    if (count(array_intersect($searchNeedles, $storedNeedles)) > 0) {
+                        $matched[] = (int) $contact->id;
+                    }
+                }
+            });
+
+        return array_values(array_unique($matched));
     }
 
     /**

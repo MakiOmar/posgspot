@@ -48,7 +48,7 @@
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
-| Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags |
+| Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags; mobile match with/without country code |
 | Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
@@ -227,6 +227,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-05 | Repair status mobile lookup: match with/without country code or leading `0` (`+2010…` / `010…` / `10…`). |
 | 2026-09-05 | Storefront ZIP import/export: pack full media library + favicon; remap library business id; restore `storefront_media` rows; show media copy stats on import. |
 | 2026-08-18 | Header: search/lang/cart overlays sit above the nav bar; opening one dropdown closes the others; search type select (products / PS4+PS5 games / gift cards). Repair status defaults to mobile number with a matching placeholder. |
 | 2026-07-23 | Phase 4 mobile: `storefront-mobile/` Expo app; `POST/DELETE /account/devices`; FCM push job on paid/shipped; docs `MOBILE.md`. |

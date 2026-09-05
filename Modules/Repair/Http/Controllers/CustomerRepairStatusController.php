@@ -2,6 +2,7 @@
 
 namespace Modules\Repair\Http\Controllers;
 
+use App\Services\Storefront\PhoneValidationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -11,6 +12,10 @@ use Spatie\Activitylog\Models\Activity;
 
 class CustomerRepairStatusController extends Controller
 {
+    public function __construct(private PhoneValidationService $phoneValidation)
+    {
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -67,7 +72,28 @@ class CustomerRepairStatusController extends Controller
                 } elseif (! empty($search_type) && $search_type == 'invoice_no') {
                     $query->where('transactions.invoice_no', $search_number);
                 } elseif (! empty($search_type) && $search_type == 'mobile_num') {
-                    $query->where('contacts.mobile', $search_number);
+                    $matchedIds = [];
+                    $contacts = \App\Contact::query()
+                        ->whereNotNull('mobile')
+                        ->where('mobile', '!=', '')
+                        ->whereIn('id', function ($sub) {
+                            $sub->select('contact_id')
+                                ->from('repair_job_sheets')
+                                ->whereNotNull('contact_id');
+                        })
+                        ->get(['id', 'mobile']);
+
+                    foreach ($contacts as $contact) {
+                        if ($this->phoneValidation->mobilesMatch((string) $contact->mobile, (string) $search_number)) {
+                            $matchedIds[] = (int) $contact->id;
+                        }
+                    }
+
+                    if ($matchedIds === []) {
+                        $query->whereRaw('1 = 0');
+                    } else {
+                        $query->whereIn('repair_job_sheets.contact_id', array_values(array_unique($matchedIds)));
+                    }
                 }
 
                 if (! empty($request->input('serial_no'))) {

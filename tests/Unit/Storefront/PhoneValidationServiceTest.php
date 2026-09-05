@@ -74,4 +74,23 @@ class PhoneValidationServiceTest extends TestCase
         $b = $this->service->canonicalNationalDigits('01012345678');
         $this->assertSame($a, $b);
     }
+
+    public function test_mobiles_match_with_or_without_country_code(): void
+    {
+        $stored = '+201062828881';
+
+        $this->assertTrue($this->service->mobilesMatch($stored, '+201062828881'));
+        $this->assertTrue($this->service->mobilesMatch($stored, '201062828881'));
+        $this->assertTrue($this->service->mobilesMatch($stored, '01062828881'));
+        $this->assertTrue($this->service->mobilesMatch($stored, '1062828881'));
+        $this->assertFalse($this->service->mobilesMatch($stored, '01099999999'));
+    }
+
+    public function test_national_digit_needles_include_local_and_intl_forms(): void
+    {
+        $needles = $this->service->nationalDigitNeedles('01062828881');
+
+        $this->assertContains('1062828881', $needles);
+        $this->assertTrue($this->service->mobilesMatch('+201062828881', '01062828881'));
+    }
 }
