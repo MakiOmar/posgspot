@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-08-18 |
+| **Last updated** | 2026-09-05 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -150,7 +150,7 @@
 | Item | Status | Path |
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
-| Settings JSON import / export | ✅ | Full ZIP bundle (`storefront_bundle` v2): settings + shipping + media + coupons + catalog overlays + translations; legacy JSON still works |
+| Settings JSON import / export | ✅ | Full ZIP bundle (`storefront_bundle` v2): settings + shipping + media files + media library rows + coupons + catalog overlays + translations; library paths remapped to target business; legacy JSON still works (no media) |
 | Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
 | Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Couriers section; `digital.*` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
@@ -227,6 +227,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-05 | Storefront ZIP import/export: pack full media library + favicon; remap library business id; restore `storefront_media` rows; show media copy stats on import. |
 | 2026-08-18 | Header: search/lang/cart overlays sit above the nav bar; opening one dropdown closes the others; search type select (products / PS4+PS5 games / gift cards). Repair status defaults to mobile number with a matching placeholder. |
 | 2026-07-23 | Phase 4 mobile: `storefront-mobile/` Expo app; `POST/DELETE /account/devices`; FCM push job on paid/shipped; docs `MOBILE.md`. |
 | 2026-07-23 | Product gallery: pick images from storefront media library (copy into `product_gallery` Media on save). |

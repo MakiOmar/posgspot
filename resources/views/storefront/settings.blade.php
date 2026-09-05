@@ -41,8 +41,9 @@
                 <div class="modal-body">
                     <p class="text-muted">
                         Upload a <strong>.zip</strong> exported from <strong>Export storefront</strong>
-                        (settings, shipping zones, media, storefront coupons, category/brand overlays, translations).
-                        Legacy settings-only <strong>.json</strong> files are still accepted.
+                        (settings, shipping zones, media files, media library, storefront coupons, category/brand overlays, translations).
+                        Re-export from the source site after this update so the ZIP includes the full media library folder.
+                        Legacy settings-only <strong>.json</strong> files are still accepted (no media files).
                         Secrets are never included in exports; blank secrets leave current values unchanged.
                         Orders, wishlist, and reviews are not imported.
                         Catalog overlays and translations apply only when matching product/category/brand slugs or SKUs already exist.

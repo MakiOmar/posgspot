@@ -11,6 +11,7 @@ use App\Coupon;
 use App\Product;
 use App\ProductTranslation;
 use App\Services\Storefront\Shipping\ShippingZoneRepository;
+use App\StorefrontMedia;
 use App\StorefrontShippingClass;
 use App\StorefrontShippingMethod;
 use App\StorefrontShippingZone;
@@ -43,6 +44,7 @@ class StorefrontBundleService
         'storefront_library',
         'storefront_payment_icons',
         'storefront_banners',
+        'storefront_favicon',
         'img',
     ];
 
@@ -52,7 +54,16 @@ class StorefrontBundleService
         'storefront_library' => true,
         'storefront_payment_icons' => true,
         'storefront_banners' => true,
+        'storefront_favicon' => true,
         'img' => true,
+    ];
+
+    /** Setting keys that may hold an uploads-relative media path (or bare filename). */
+    private const MEDIA_REF_KEYS = [
+        'image',
+        'shelf_banner',
+        'shelf_fg_image',
+        'poster',
     ];
 
     public function __construct(
@@ -82,7 +93,7 @@ class StorefrontBundleService
 
         try {
             $manifest = $this->buildManifest($businessId);
-            $mediaFiles = $this->collectMediaFiles($manifest);
+            $mediaFiles = $this->collectMediaFiles($manifest, $businessId);
 
             // Compact JSON on disk — avoid holding both the array and a pretty-printed string.
             if (file_put_contents(
@@ -179,7 +190,9 @@ class StorefrontBundleService
             }
 
             // Stream media straight into uploads/ — no full archive extract (disk + RAM).
-            $mediaStats = $this->importMediaFromZip($zip);
+            // Remap storefront_library/{exportBiz}/… → storefront_library/{importBiz}/…
+            $sourceBusinessId = isset($manifest['business_id']) ? (int) $manifest['business_id'] : 0;
+            $mediaStats = $this->importMediaFromZip($zip, $businessId, $sourceBusinessId);
         } finally {
             $zip->close();
         }
@@ -187,11 +200,10 @@ class StorefrontBundleService
         $result = $this->importManifest($businessId, $manifest, null);
         unset($manifest);
 
-        if (($mediaStats['copied'] ?? 0) > 0 || ($mediaStats['skipped'] ?? 0) > 0) {
-            $result['details']['media'] = $mediaStats;
-            if (! in_array('media', $result['sections'], true)) {
-                array_unshift($result['sections'], 'media');
-            }
+        // Always report media outcome so operators can see copied vs skipped.
+        $result['details']['media'] = $mediaStats;
+        if (! in_array('media', $result['sections'], true)) {
+            array_unshift($result['sections'], 'media');
         }
 
         return $result;
@@ -217,18 +229,25 @@ class StorefrontBundleService
 
         $sections = [];
         $details = [];
+        $sourceBusinessId = isset($manifest['business_id']) ? (int) $manifest['business_id'] : 0;
 
         // File I/O stays outside the DB transaction to avoid long row locks.
         if ($mediaDir !== null && is_dir($mediaDir)) {
-            $details['media'] = $this->importMediaFromDirectory($mediaDir);
+            $details['media'] = $this->importMediaFromDirectory($mediaDir, $businessId, $sourceBusinessId);
             $sections[] = 'media';
         }
 
         $locationIdMap = $this->buildLocationIdMap($businessId, $manifest['locations'] ?? []);
 
-        DB::transaction(function () use ($businessId, $manifest, $locationIdMap, &$sections, &$details) {
+        DB::transaction(function () use ($businessId, $manifest, $locationIdMap, $sourceBusinessId, &$sections, &$details) {
             if (isset($manifest['settings']) && is_array($manifest['settings'])) {
                 $settingsPayload = $this->remapSettingsLocationIds($manifest['settings'], $locationIdMap);
+                // Point library paths at the importing business when IDs differ.
+                $settingsPayload = $this->remapLibraryPathsInTree(
+                    $settingsPayload,
+                    $sourceBusinessId,
+                    $businessId
+                );
                 $details['settings'] = $this->settings->importFromPayload($businessId, [
                     'format' => StorefrontSettingService::EXPORT_FORMAT,
                     'version' => StorefrontSettingService::EXPORT_VERSION,
@@ -254,12 +273,26 @@ class StorefrontBundleService
             }
 
             if (isset($manifest['catalog_overlays']) && is_array($manifest['catalog_overlays'])) {
+                $overlays = $this->remapLibraryPathsInTree(
+                    $manifest['catalog_overlays'],
+                    $sourceBusinessId,
+                    $businessId
+                );
                 $details['catalog_overlays'] = $this->importCatalogOverlays(
                     $businessId,
-                    $manifest['catalog_overlays'],
+                    $overlays,
                     $classIdMap
                 );
                 $sections[] = 'catalog_overlays';
+            }
+
+            if (isset($manifest['media_library']) && is_array($manifest['media_library'])) {
+                $details['media_library'] = $this->importMediaLibraryRows(
+                    $businessId,
+                    $manifest['media_library'],
+                    $sourceBusinessId
+                );
+                $sections[] = 'media_library';
             }
 
             if (isset($manifest['translations']) && is_array($manifest['translations'])) {
@@ -293,6 +326,7 @@ class StorefrontBundleService
             'shipping' => $this->exportShipping($businessId),
             'coupons' => $this->exportCoupons($businessId),
             'catalog_overlays' => $this->exportCatalogOverlays($businessId),
+            'media_library' => $this->exportMediaLibrary($businessId),
             'translations' => $this->exportTranslations($businessId),
         ];
     }
@@ -695,7 +729,7 @@ class StorefrontBundleService
      * @param  array<string, mixed>  $manifest
      * @return array<string, string> relative path inside media/ => absolute path
      */
-    private function collectMediaFiles(array $manifest): array
+    private function collectMediaFiles(array $manifest, int $businessId): array
     {
         $refs = [];
         $this->collectImageRefs($manifest['settings'] ?? [], $refs);
@@ -714,23 +748,35 @@ class StorefrontBundleService
                 $refs[$val] = true;
             }
         }
+        foreach (($manifest['media_library'] ?? []) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $val = trim((string) ($row['path'] ?? ''));
+            if ($val !== '') {
+                $refs[$val] = true;
+            }
+        }
 
         $files = [];
         $uploadsRoot = public_path('uploads');
 
         foreach (array_keys($refs) as $ref) {
-            $ref = str_replace('\\', '/', trim((string) $ref));
-            $ref = ltrim($ref, '/');
-            if ($ref === '' || str_contains($ref, '..')) {
+            $ref = $this->normalizeMediaRef((string) $ref);
+            if ($ref === null) {
                 continue;
             }
 
             // Library / explicit relative path under uploads/
             if (str_contains($ref, '/')) {
-                if (
-                    ! str_starts_with($ref, 'storefront_library/')
-                    && ! str_starts_with($ref, 'storefront_homepage/')
-                ) {
+                $allowedPrefix = false;
+                foreach (array_keys(self::MEDIA_DIR_LOOKUP) as $dir) {
+                    if (str_starts_with($ref, $dir.'/')) {
+                        $allowedPrefix = true;
+                        break;
+                    }
+                }
+                if (! $allowedPrefix) {
                     continue;
                 }
                 $absolute = $uploadsRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $ref);
@@ -756,7 +802,57 @@ class StorefrontBundleService
             }
         }
 
+        // Always pack the whole media library folder for this business (not only refs in settings).
+        $libraryDir = $uploadsRoot.DIRECTORY_SEPARATOR.'storefront_library'.DIRECTORY_SEPARATOR.$businessId;
+        if (is_dir($libraryDir)) {
+            foreach (scandir($libraryDir) ?: [] as $file) {
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
+                $safe = basename($file);
+                if ($safe !== $file) {
+                    continue;
+                }
+                $absolute = $libraryDir.DIRECTORY_SEPARATOR.$safe;
+                if (is_file($absolute)) {
+                    $files['storefront_library/'.$businessId.'/'.$safe] = $absolute;
+                }
+            }
+        }
+
         return $files;
+    }
+
+    /**
+     * Turn a stored image value into an uploads-relative path when possible.
+     */
+    private function normalizeMediaRef(string $ref): ?string
+    {
+        $ref = str_replace('\\', '/', trim($ref));
+        if ($ref === '' || str_contains($ref, '..') || str_starts_with($ref, 'data:')) {
+            return null;
+        }
+
+        // Absolute / site URLs → extract /uploads/{dir}/… when it is a known storefront dir.
+        if (preg_match('#^https?://#i', $ref) || str_starts_with($ref, '/')) {
+            $path = parse_url($ref, PHP_URL_PATH);
+            if (! is_string($path) || $path === '') {
+                return null;
+            }
+            $path = str_replace('\\', '/', $path);
+            if (! preg_match('#/uploads/(.+)$#i', $path, $m)) {
+                return null;
+            }
+            $ref = ltrim($m[1], '/');
+        } else {
+            $ref = ltrim($ref, '/');
+        }
+
+        if ($ref === '' || str_contains($ref, '..')) {
+            return null;
+        }
+
+        return $ref;
     }
 
     /**
@@ -770,13 +866,11 @@ class StorefrontBundleService
         }
 
         foreach ($node as $key => $value) {
-            if (is_string($key) && in_array($key, ['image', 'shelf_banner', 'shelf_fg_image'], true)
-                && is_string($value)
-                && $value !== ''
-                && ! str_starts_with($value, 'data:')
-                && ! preg_match('#^https?://#i', $value)
-            ) {
-                $out[$value] = true;
+            if (is_string($key) && in_array($key, self::MEDIA_REF_KEYS, true) && is_string($value) && $value !== '') {
+                $normalized = $this->normalizeMediaRef($value);
+                if ($normalized !== null) {
+                    $out[$normalized] = true;
+                }
             } elseif (is_array($value)) {
                 $this->collectImageRefs($value, $out);
             }
@@ -785,13 +879,15 @@ class StorefrontBundleService
 
     /**
      * Copy media entries from an open ZIP directly into public/uploads.
+     * Library files are always written under the *importing* business id.
      *
-     * @return array{copied: int, skipped: int}
+     * @return array{copied: int, skipped: int, remapped_library: int}
      */
-    private function importMediaFromZip(ZipArchive $zip): array
+    private function importMediaFromZip(ZipArchive $zip, int $targetBusinessId, int $sourceBusinessId): array
     {
         $copied = 0;
         $skipped = 0;
+        $remappedLibrary = 0;
         $uploadsRoot = public_path('uploads');
         $num = $zip->numFiles;
 
@@ -830,7 +926,12 @@ class StorefrontBundleService
                     $skipped++;
                     continue;
                 }
-                $targetDir = $uploadsRoot.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.$parts[1];
+                $zipBizId = (int) $parts[1];
+                $destBizId = $targetBusinessId > 0 ? $targetBusinessId : $zipBizId;
+                if ($destBizId !== $zipBizId) {
+                    $remappedLibrary++;
+                }
+                $targetDir = $uploadsRoot.DIRECTORY_SEPARATOR.$dir.DIRECTORY_SEPARATOR.$destBizId;
             } else {
                 if (count($parts) !== 2) {
                     $skipped++;
@@ -876,16 +977,23 @@ class StorefrontBundleService
             }
         }
 
-        return ['copied' => $copied, 'skipped' => $skipped];
+        return [
+            'copied' => $copied,
+            'skipped' => $skipped,
+            'remapped_library' => $remappedLibrary,
+            'source_business_id' => $sourceBusinessId,
+            'target_business_id' => $targetBusinessId,
+        ];
     }
 
     /**
-     * @return array{copied: int, skipped: int}
+     * @return array{copied: int, skipped: int, remapped_library: int}
      */
-    private function importMediaFromDirectory(string $mediaDir): array
+    private function importMediaFromDirectory(string $mediaDir, int $targetBusinessId, int $sourceBusinessId): array
     {
         $copied = 0;
         $skipped = 0;
+        $remappedLibrary = 0;
 
         foreach (self::MEDIA_DIRS as $dir) {
             $sourceDir = $mediaDir.DIRECTORY_SEPARATOR.$dir;
@@ -902,7 +1010,12 @@ class StorefrontBundleService
                     if (! is_dir($bizSource)) {
                         continue;
                     }
-                    $targetDir = public_path('uploads/'.$dir.'/'.$bizFolder);
+                    $zipBizId = (int) $bizFolder;
+                    $destBizId = $targetBusinessId > 0 ? $targetBusinessId : $zipBizId;
+                    if ($destBizId !== $zipBizId) {
+                        $remappedLibrary++;
+                    }
+                    $targetDir = public_path('uploads/'.$dir.'/'.$destBizId);
                     if (! is_dir($targetDir)) {
                         @mkdir($targetDir, 0755, true);
                     }
@@ -955,7 +1068,162 @@ class StorefrontBundleService
             }
         }
 
-        return ['copied' => $copied, 'skipped' => $skipped];
+        return [
+            'copied' => $copied,
+            'skipped' => $skipped,
+            'remapped_library' => $remappedLibrary,
+            'source_business_id' => $sourceBusinessId,
+            'target_business_id' => $targetBusinessId,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function exportMediaLibrary(int $businessId): array
+    {
+        $out = [];
+        foreach (
+            StorefrontMedia::query()
+                ->where('business_id', $businessId)
+                ->orderBy('id')
+                ->toBase()
+                ->select(['path', 'original_name', 'mime', 'kind', 'bytes', 'checksum', 'alt'])
+                ->cursor() as $row
+        ) {
+            $out[] = [
+                'path' => (string) $row->path,
+                'original_name' => (string) ($row->original_name ?? ''),
+                'mime' => (string) ($row->mime ?? ''),
+                'kind' => (string) ($row->kind ?? 'image'),
+                'bytes' => (int) ($row->bytes ?? 0),
+                'checksum' => (string) ($row->checksum ?? ''),
+                'alt' => $row->alt !== null ? (string) $row->alt : null,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{inserted: int, updated: int, skipped: int}
+     */
+    private function importMediaLibraryRows(int $targetBusinessId, array $rows, int $sourceBusinessId): array
+    {
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $now = now();
+
+        foreach (array_chunk($rows, self::INSERT_CHUNK) as $chunk) {
+            foreach ($chunk as $row) {
+                if (! is_array($row)) {
+                    $skipped++;
+                    continue;
+                }
+                $checksum = trim((string) ($row['checksum'] ?? ''));
+                $path = trim((string) ($row['path'] ?? ''));
+                if ($checksum === '' || $path === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                $path = $this->remapLibraryPathString($path, $sourceBusinessId, $targetBusinessId);
+                $kind = (string) ($row['kind'] ?? 'image');
+                if ($kind !== 'svg') {
+                    $kind = 'image';
+                }
+
+                $existing = StorefrontMedia::withTrashed()
+                    ->where('business_id', $targetBusinessId)
+                    ->where('checksum', $checksum)
+                    ->first();
+
+                $payload = [
+                    'path' => $path,
+                    'original_name' => mb_substr((string) ($row['original_name'] ?? ''), 0, 255),
+                    'mime' => mb_substr((string) ($row['mime'] ?? ''), 0, 120),
+                    'kind' => $kind,
+                    'bytes' => max(0, (int) ($row['bytes'] ?? 0)),
+                    'alt' => isset($row['alt']) ? mb_substr((string) $row['alt'], 0, 255) : null,
+                    'updated_at' => $now,
+                    'deleted_at' => null,
+                ];
+
+                if ($existing) {
+                    $existing->fill($payload);
+                    $existing->save();
+                    $updated++;
+                } else {
+                    StorefrontMedia::query()->create(array_merge($payload, [
+                        'business_id' => $targetBusinessId,
+                        'checksum' => $checksum,
+                        'created_at' => $now,
+                    ]));
+                    $inserted++;
+                }
+            }
+        }
+
+        return compact('inserted', 'updated', 'skipped');
+    }
+
+    /**
+     * Rewrite storefront_library/{source}/… → storefront_library/{target}/… in nested settings.
+     *
+     * @param  mixed  $node
+     * @return mixed
+     */
+    private function remapLibraryPathsInTree(mixed $node, int $sourceBusinessId, int $targetBusinessId): mixed
+    {
+        if ($targetBusinessId < 1) {
+            return $node;
+        }
+        if ($sourceBusinessId > 0 && $sourceBusinessId === $targetBusinessId) {
+            return $node;
+        }
+
+        if (is_string($node)) {
+            return $this->remapLibraryPathString($node, $sourceBusinessId, $targetBusinessId);
+        }
+
+        if (! is_array($node)) {
+            return $node;
+        }
+
+        $out = [];
+        foreach ($node as $key => $value) {
+            $out[$key] = $this->remapLibraryPathsInTree($value, $sourceBusinessId, $targetBusinessId);
+        }
+
+        return $out;
+    }
+
+    private function remapLibraryPathString(string $value, int $sourceBusinessId, int $targetBusinessId): string
+    {
+        if ($targetBusinessId < 1) {
+            return $value;
+        }
+
+        $normalized = $this->normalizeMediaRef($value);
+        $candidate = $normalized ?? str_replace('\\', '/', $value);
+
+        // Prefer exact source→target remap; otherwise force any library folder onto the target business.
+        if ($sourceBusinessId > 0) {
+            $prefix = 'storefront_library/'.$sourceBusinessId.'/';
+            if (str_starts_with($candidate, $prefix)) {
+                return 'storefront_library/'.$targetBusinessId.'/'.substr($candidate, strlen($prefix));
+            }
+        }
+
+        if (preg_match('#^storefront_library/(\d+)/(.+)$#', $candidate, $m)) {
+            if ((int) $m[1] !== $targetBusinessId) {
+                return 'storefront_library/'.$targetBusinessId.'/'.$m[2];
+            }
+        }
+
+        return $value;
     }
 
     /**

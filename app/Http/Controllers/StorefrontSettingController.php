@@ -531,10 +531,36 @@ class StorefrontSettingController extends Controller
         }
 
         $sections = implode(', ', $result['sections'] ?? []);
+        $media = is_array($result['details']['media'] ?? null) ? $result['details']['media'] : null;
+        $mediaMsg = '';
+        if ($media !== null) {
+            $mediaMsg = sprintf(
+                ' Media files: %d copied, %d skipped.',
+                (int) ($media['copied'] ?? 0),
+                (int) ($media['skipped'] ?? 0)
+            );
+            if ((int) ($media['remapped_library'] ?? 0) > 0) {
+                $mediaMsg .= sprintf(
+                    ' Library folder remapped %d→%d.',
+                    (int) ($media['source_business_id'] ?? 0),
+                    (int) ($media['target_business_id'] ?? 0)
+                );
+            }
+        }
+        $library = is_array($result['details']['media_library'] ?? null) ? $result['details']['media_library'] : null;
+        if ($library !== null) {
+            $mediaMsg .= sprintf(
+                ' Media library rows: %d inserted, %d updated, %d skipped.',
+                (int) ($library['inserted'] ?? 0),
+                (int) ($library['updated'] ?? 0),
+                (int) ($library['skipped'] ?? 0)
+            );
+        }
 
         return redirect()->action([self::class, 'edit'])->with('status', [
             'success' => true,
-            'msg' => 'Storefront import complete ('.$sections.'). Secrets left blank were kept unchanged. Catalog overlays/translations apply only when matching slugs/SKUs exist.',
+            'msg' => 'Storefront import complete ('.$sections.').'.$mediaMsg
+                .' Secrets left blank were kept unchanged. Catalog overlays/translations apply only when matching slugs/SKUs exist.',
         ]);
     }
 
