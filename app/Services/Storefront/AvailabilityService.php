@@ -37,11 +37,11 @@ class AvailabilityService
 
         $settings = $this->storefrontSettings->get($businessId);
 
-        // Availability reflects physical stock across ALL active business
-        // locations (warehouses/branches), not just the public selling ones,
-        // so customers can see every branch — including out-of-stock ones.
+        // Availability lists active branches customers may visit — not warehouses
+        // hidden via show_on_storefront, and not limited to selling_location_ids.
         $locations = BusinessLocation::where('business_id', $businessId)
             ->where('is_active', 1)
+            ->visibleOnStorefront()
             ->orderBy('name')
             ->get();
 

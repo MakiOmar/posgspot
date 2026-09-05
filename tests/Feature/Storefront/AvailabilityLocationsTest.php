@@ -9,7 +9,7 @@ use App\Variation;
 use Tests\TestCase;
 
 /**
- * Availability reports stock across ALL active business locations,
+ * Availability lists active locations marked show_on_storefront,
  * independent of the public storefront selling-location selection.
  */
 class AvailabilityLocationsTest extends TestCase
@@ -18,16 +18,17 @@ class AvailabilityLocationsTest extends TestCase
 
     public function test_availability_includes_locations_outside_public_selling_set(): void
     {
-        $activeLocationCount = BusinessLocation::where('business_id', $this->businessId)
+        $visibleLocationCount = BusinessLocation::where('business_id', $this->businessId)
             ->where('is_active', 1)
+            ->visibleOnStorefront()
             ->count();
 
-        if ($activeLocationCount === 0) {
-            $this->markTestSkipped('No active business location in database.');
+        if ($visibleLocationCount === 0) {
+            $this->markTestSkipped('No storefront-visible business location in database.');
         }
 
         // Clear the public selling locations entirely: previously this made
-        // availability return zero locations. It must now still list them all.
+        // availability return zero locations. It must now still list visible ones.
         app(StorefrontSettingService::class)->save($this->businessId, [
             'selling_location_ids' => [],
         ]);
@@ -44,17 +45,60 @@ class AvailabilityLocationsTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonCount($activeLocationCount, 'data.locations');
+            ->assertJsonCount($visibleLocationCount, 'data.locations');
+    }
+
+    public function test_availability_and_locations_exclude_hidden_storefront_branches(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)
+            ->where('is_active', 1)
+            ->first();
+
+        if (! $location) {
+            $this->markTestSkipped('No business location in database.');
+        }
+
+        [$product, $variation] = $this->firstSellableProduct();
+        if ($product === null) {
+            $this->markTestSkipped('No sellable product/variation in database.');
+        }
+
+        $previous = (bool) ($location->show_on_storefront ?? true);
+        $location->show_on_storefront = false;
+        $location->save();
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        try {
+            $locationsResponse = $this->getJson('/api/storefront/v1/locations');
+            $locationsResponse->assertOk();
+            $ids = collect($locationsResponse->json('data'))->pluck('id');
+            $this->assertFalse($ids->contains($location->id));
+
+            $availabilityResponse = $this->getJson(
+                '/api/storefront/v1/products/'.$product->id.'/availability?variation_id='.$variation->id
+            );
+            $availabilityResponse->assertOk();
+            $availabilityIds = collect($availabilityResponse->json('data.locations'))->pluck('location_id');
+            $this->assertFalse($availabilityIds->contains($location->id));
+        } finally {
+            $location->show_on_storefront = $previous;
+            $location->save();
+        }
     }
 
     public function test_availability_rows_expose_in_stock_flag_for_every_location(): void
     {
-        $activeLocationCount = BusinessLocation::where('business_id', $this->businessId)
+        $visibleLocationCount = BusinessLocation::where('business_id', $this->businessId)
             ->where('is_active', 1)
+            ->visibleOnStorefront()
             ->count();
 
-        if ($activeLocationCount === 0) {
-            $this->markTestSkipped('No active business location in database.');
+        if ($visibleLocationCount === 0) {
+            $this->markTestSkipped('No storefront-visible business location in database.');
         }
 
         [$product, $variation] = $this->firstSellableProduct();

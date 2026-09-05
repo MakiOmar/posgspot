@@ -101,6 +101,7 @@ class SettingsApiService
      *
      * @param  bool  $sellingOnly  When true, only storefront selling locations. When false (default),
      *                             all active locations except those in selling_location_ids.
+     *                             Always excludes locations with show_on_storefront = false.
      * @return list<array<string, mixed>>
      */
     public function getLocations(int $businessId, bool $sellingOnly = false): array
@@ -110,6 +111,7 @@ class SettingsApiService
 
         $query = BusinessLocation::where('business_id', $businessId)
             ->where('is_active', 1)
+            ->visibleOnStorefront()
             ->orderBy('name');
 
         if ($sellingOnly) {

@@ -34,7 +34,7 @@ export const ABOUT_CONTENT_EN: AboutPageContent = {
   ],
   historyTitle: "Making history together",
   historyIntro:
-    "Every branch opening and every repair completed is part of our story with the gaming community in Egypt.",
+    "Our stores are more than just retail spaces—they are hubs of excitement, connection, and discovery for gamers of all kinds. Designed with the gaming community in mind, each location offers a unique blend of modern aesthetics and nostalgic charm to create an inviting atmosphere.",
   teamTitle: "Our team",
   team: [
     { name: "Mohamed Salah", role: "CEO & Founder" },

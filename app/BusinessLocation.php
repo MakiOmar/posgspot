@@ -21,6 +21,7 @@ class BusinessLocation extends Model
      */
     protected $casts = [
         'featured_products' => 'array',
+        'show_on_storefront' => 'boolean',
     ];
 
     /**
@@ -104,6 +105,14 @@ class BusinessLocation extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', 1);
+    }
+
+    /**
+     * Locations customers may see on the public storefront (stores, footer, contact, availability).
+     */
+    public function scopeVisibleOnStorefront($query)
+    {
+        return $query->where('show_on_storefront', 1);
     }
 
     /**

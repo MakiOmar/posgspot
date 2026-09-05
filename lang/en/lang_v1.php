@@ -319,6 +319,8 @@ return [
     'longitude' => 'Longitude',
     'storefront_display_address' => 'Storefront display address',
     'storefront_display_address_help' => 'Optional. Shown on the public contact page. If empty, landmark, city, state, country, and zip are combined.',
+    'show_on_storefront' => 'Show on storefront',
+    'show_on_storefront_help' => 'When unchecked, this location is hidden from the public website (footer, stores, contact) and from Check availability. Stock for online selling can still use it if it is a selling location.',
     'total_credit_amt' => 'Total Credit Amount',
     'unit_sell_price' => 'Unit Sell Price',
     'prefixes' => 'Prefixes',

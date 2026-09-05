@@ -28,7 +28,8 @@ class LocalPickupMethodCalculator implements ShippingMethodCalculator
 
         $query = BusinessLocation::where('business_id', $businessId)
             ->where('enable_pickup', 1)
-            ->Active();
+            ->Active()
+            ->visibleOnStorefront();
 
         if (is_array($allowedIds) && count($allowedIds) > 0) {
             $query->whereIn('id', array_map('intval', $allowedIds));

@@ -37,6 +37,17 @@
                         <p class="help-block">@lang('lang_v1.storefront_display_address_help')</p>
                     </div>
                 </div>
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('show_on_storefront', 1, true, ['id' => 'show_on_storefront']); !!}
+                                @lang('lang_v1.show_on_storefront')
+                            </label>
+                        </div>
+                        <p class="help-block">@lang('lang_v1.show_on_storefront_help')</p>
+                    </div>
+                </div>
                 <div class="clearfix"></div>
                 <div class="col-sm-6">
                     <div class="form-group">

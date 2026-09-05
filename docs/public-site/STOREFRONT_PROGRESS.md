@@ -32,12 +32,12 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
-| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); categories/brands expose `image_url`; homepage shelves |
+| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); `show_on_storefront` hides branches from listings + availability; categories/brands expose `image_url`; homepage shelves |
 | Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
-| Per-store availability | ✅ | All active locations; maps URL + coords |
+| Per-store availability | ✅ | Active `show_on_storefront` locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check; destination + `shipping_rate_id` → `available_rates[]` |
 | Checkout → POS transaction | ✅ | Idempotent `storefront_order_id`, guest + auth; requires `shipping_rate_id` |
 | Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; digital-only free rate (`method_type: digital`); legacy flat/threshold migrated; `ShippingQuoteService` |
@@ -168,6 +168,7 @@
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
+| Show on storefront (per location) | ✅ | POS Business Locations checkbox; filters listings + availability + pickup |
 
 ---
 
@@ -227,6 +228,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-05 | Business locations: `show_on_storefront` flag hides branches from `GET /locations`, availability, and local pickup; POS create/edit checkbox. |
 | 2026-09-05 | Repair status mobile lookup: match with/without country code or leading `0` (`+2010…` / `010…` / `10…`). |
 | 2026-09-05 | Storefront ZIP import/export: pack full media library + favicon; remap library business id; restore `storefront_media` rows; show media copy stats on import. |
 | 2026-08-18 | Header: search/lang/cart overlays sit above the nav bar; opening one dropdown closes the others; search type select (products / PS4+PS5 games / gift cards). Repair status defaults to mobile number with a matching placeholder. |

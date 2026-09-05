@@ -12,37 +12,38 @@ export interface AboutTimelineEntry {
   imageAlt?: string;
 }
 
+/** Matches https://gamesspoteg.com/about-us/ branch timeline (years + openings). */
 export const ABOUT_TIMELINE: AboutTimelineEntry[] = [
   {
     year: "2021",
-    title: "Nasr City flagship",
-    text: "Expanded our Nasr City location with a brighter showroom floor, more consoles on display, and faster in-store pickup for online orders.",
+    title: "Nasr City branch founded",
+    text: "We believe in giving each customer access to exceptional products that are expertly created to give only positive experiences.",
     image: "/NASR-CITY-BRUNCH.webp",
-    imageAlt: "Games Spot Nasr City branch interior",
+    imageAlt: "Games Spot Nasr City branch",
   },
   {
-    year: "2020",
-    title: "New Cairo — Mega Mall",
-    text: "Opened on the second floor of Mega Mall on North 90th Street, bringing PlayStation, Xbox, and accessories closer to New Cairo gamers.",
+    year: "2023",
+    title: "New Cairo branch founded",
+    text: "Each store reflects our commitment to bringing the gaming experience to life, offering a place where every visit feels like an adventure.",
     image: "/NEW-CAIRO-BRUNCH.webp",
-    imageAlt: "Games Spot New Cairo Mega Mall branch",
+    imageAlt: "Games Spot New Cairo branch",
   },
   {
-    year: "2019",
-    title: "Sheikh Zayed — Beverly Hills",
-    text: "Launched at West Square Mall in Beverly Hills, Sheikh Zayed—our first major west Cairo branch with full repair desk support.",
+    year: "2024",
+    title: "Beverly Hills branch founded",
+    text: "Designed with the gaming community in mind, each location offers a unique blend of modern aesthetics and nostalgic charm to create an inviting atmosphere.",
     image: "/BEVERLLY-HILLS-BRUNCH.webp",
-    imageAlt: "Games Spot Beverly Hills West Square Mall branch",
+    imageAlt: "Games Spot Beverly Hills branch",
   },
   {
-    year: "2018",
-    title: "Where it all started",
-    text: "Games Spot began with a simple mission: make gaming accessible, affordable, and fun for everyone in Egypt—with honest advice and fair prices.",
+    year: "2025",
+    title: "El Shourouk branch founded",
+    text: "We believe in giving each customer access to exceptional products that are expertly created to give only positive experiences.",
   },
   {
-    year: "2017",
-    title: "The idea takes shape",
-    text: "Our founders mapped out the first store concept—a neighborhood shop built around community, trade-ins, and trusted console repairs.",
+    year: "2026",
+    title: "Alexandria branch founded",
+    text: "Our stores are hubs of excitement, connection, and discovery—bringing the Games Spot experience to Alexandria gamers.",
   },
 ];
 

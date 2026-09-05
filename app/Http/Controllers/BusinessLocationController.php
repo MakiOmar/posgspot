@@ -175,6 +175,7 @@ class BusinessLocationController extends Controller
                 'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id', 'latitude', 'longitude']);
 
             $input = $this->normalizeGeoCoordinates($input);
+            $input['show_on_storefront'] = $request->has('show_on_storefront') ? 1 : 0;
 
             $input['business_id'] = $business_id;
 
@@ -286,6 +287,7 @@ class BusinessLocationController extends Controller
                 'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id', 'latitude', 'longitude' ]);
 
             $input = $this->normalizeGeoCoordinates($input);
+            $input['show_on_storefront'] = $request->has('show_on_storefront') ? 1 : 0;
 
             $business_id = $request->session()->get('user.business_id');
 

@@ -341,13 +341,14 @@ class StorefrontBundleService
             BusinessLocation::where('business_id', $businessId)
                 ->orderBy('id')
                 ->toBase()
-                ->select(['id', 'name', 'storefront_address'])
+                ->select(['id', 'name', 'storefront_address', 'show_on_storefront'])
                 ->cursor() as $loc
         ) {
             $out[] = [
                 'id' => (int) $loc->id,
                 'name' => (string) $loc->name,
                 'storefront_address' => (string) ($loc->storefront_address ?? ''),
+                'show_on_storefront' => (bool) ($loc->show_on_storefront ?? true),
             ];
         }
 
@@ -1300,12 +1301,12 @@ class StorefrontBundleService
     private function importLocationOverlays(int $businessId, array $locations): array
     {
         $byName = BusinessLocation::where('business_id', $businessId)
-            ->get(['id', 'name', 'storefront_address'])
+            ->get(['id', 'name', 'storefront_address', 'show_on_storefront'])
             ->keyBy(fn (BusinessLocation $loc) => mb_strtolower(trim((string) $loc->name)));
 
         $updated = 0;
         foreach ($locations as $row) {
-            if (! is_array($row) || ! array_key_exists('storefront_address', $row)) {
+            if (! is_array($row) || (! array_key_exists('storefront_address', $row) && ! array_key_exists('show_on_storefront', $row))) {
                 continue;
             }
             $name = mb_strtolower(trim((string) ($row['name'] ?? '')));
@@ -1314,7 +1315,12 @@ class StorefrontBundleService
             }
             /** @var BusinessLocation $loc */
             $loc = $byName[$name];
-            $loc->storefront_address = (string) ($row['storefront_address'] ?? '');
+            if (array_key_exists('storefront_address', $row)) {
+                $loc->storefront_address = (string) ($row['storefront_address'] ?? '');
+            }
+            if (array_key_exists('show_on_storefront', $row)) {
+                $loc->show_on_storefront = (bool) $row['show_on_storefront'];
+            }
             $loc->save();
             $updated++;
         }
