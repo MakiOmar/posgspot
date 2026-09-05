@@ -93,9 +93,17 @@ class AccountsApiClient
         }
     }
 
-    public function getGamesByPlatform(string $platform, int $page = 1): array
+    public function getGamesByPlatform(string $platform, int $page = 1, ?string $q = null): array
     {
-        return $this->request('GET', 'api/games/platform/'.$platform, ['page' => $page], false);
+        $query = ['page' => $page];
+        $term = trim((string) $q);
+        if ($term !== '') {
+            // Accounts may honor either key; ignored params are harmless.
+            $query['q'] = $term;
+            $query['search'] = $term;
+        }
+
+        return $this->request('GET', 'api/games/platform/'.$platform, $query, false);
     }
 
     public function getGame(int $id): array

@@ -28,6 +28,7 @@ import type {
   ReviewEligibility,
   RewardPointsBalance,
   RewardPointsValidation,
+  SearchHit,
   StoreLocation,
   StoreSettings,
   WishlistPayload,
@@ -254,12 +255,23 @@ export function fetchAvailability(productId: number, variationId?: number, local
   return storefrontFetch<ProductAvailability>(`/products/${productId}/availability${qs}`, {}, locale);
 }
 
-export function searchProducts(q: string, limit = 8, locale?: string) {
-  return storefrontFetch<ProductSummary[]>(
-    `/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+export function searchCatalog(
+  q: string,
+  limit = 8,
+  type: import("./types").CatalogSearchType = "products",
+  locale?: string,
+) {
+  const typeQs = type !== "products" ? `&type=${encodeURIComponent(type)}` : "";
+  return storefrontFetch<SearchHit[]>(
+    `/search?q=${encodeURIComponent(q)}&limit=${limit}${typeQs}`,
     {},
     locale,
   );
+}
+
+/** @deprecated Use searchCatalog — kept for callers that only search products. */
+export function searchProducts(q: string, limit = 8, locale?: string) {
+  return searchCatalog(q, limit, "products", locale);
 }
 
 export function validateCart(
@@ -687,14 +699,22 @@ export function mergeWishlist(token: string, productIds: number[], locale?: stri
 }
 
 /** Digital games listing by PlayStation platform (4 or 5). */
-export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string) {
+export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string, q?: string) {
+  const params = new URLSearchParams({
+    platform,
+    page: String(page),
+  });
+  const term = q?.trim();
+  if (term) {
+    params.set("q", term);
+  }
   return storefrontFetch<{
     platform: string;
     skus: import("./types").DigitalSkus;
     games: import("./types").DigitalGameSummary[];
     meta: { current_page: number; last_page: number; per_page: number; total: number | null };
     debug?: Record<string, unknown>;
-  }>(`/digital/games?platform=${platform}&page=${page}`, {}, locale);
+  }>(`/digital/games?${params.toString()}`, {}, locale);
 }
 
 export function fetchDigitalGame(id: number, locale?: string) {

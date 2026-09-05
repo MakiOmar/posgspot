@@ -38,14 +38,18 @@ class DigitalCatalogService
         ];
     }
 
-    public function listGames(int $businessId, string $platform, int $page = 1): array
+    public function listGames(int $businessId, string $platform, int $page = 1, ?string $q = null): array
     {
+        $term = trim((string) $q);
         $path = 'api/games/platform/'.$platform;
         $accountsBase = $this->accounts->baseUrl();
         $requestUrl = ($accountsBase !== '' ? $accountsBase.'/' : '').$path.'?page='.$page;
+        if ($term !== '') {
+            $requestUrl .= '&q='.rawurlencode($term);
+        }
         $skus = $this->posSkuMap($businessId);
 
-        $result = $this->accounts->getGamesByPlatform($platform, $page);
+        $result = $this->accounts->getGamesByPlatform($platform, $page, $term !== '' ? $term : null);
         $body = is_array($result['body'] ?? null) ? $result['body'] : [];
         $rawGames = $body['data'] ?? [];
         if (! is_array($rawGames)) {
@@ -55,6 +59,16 @@ class DigitalCatalogService
         $games = $result['success']
             ? array_map(fn ($game) => $this->normalizeGameListItem($game), $rawGames)
             : [];
+
+        if ($term !== '') {
+            $games = array_values(array_filter(
+                $games,
+                fn ($game) => $this->matchesSearchTerm(
+                    [(string) ($game['title'] ?? ''), (string) ($game['code'] ?? '')],
+                    $term
+                )
+            ));
+        }
 
         $reason = $this->emptyGamesReason(
             $accountsBase,
@@ -111,6 +125,86 @@ class DigitalCatalogService
                 'debug' => $debug,
             ],
         ];
+    }
+
+    /**
+     * Autocomplete / search hits for PS4 + PS5 digital games.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchGames(int $businessId, string $q, int $limit = 8, int $maxPages = 1): array
+    {
+        $term = trim($q);
+        if ($term === '' || ! $this->isEnabled($businessId)) {
+            return [];
+        }
+
+        $limit = max(1, $limit);
+        $maxPages = max(1, $maxPages);
+        $hits = [];
+
+        foreach (['4', '5'] as $platform) {
+            for ($page = 1; $page <= $maxPages; $page++) {
+                $result = $this->listGames($businessId, $platform, $page, $term);
+                if (empty($result['success'])) {
+                    break;
+                }
+
+                $games = is_array($result['data']['games'] ?? null) ? $result['data']['games'] : [];
+                foreach ($games as $game) {
+                    if (! is_array($game)) {
+                        continue;
+                    }
+                    $hits[] = $this->formatGameSearchHit($game, $platform);
+                    if (count($hits) >= $limit) {
+                        return $hits;
+                    }
+                }
+
+                $lastPage = (int) ($result['data']['meta']['last_page'] ?? 1);
+                if ($page >= $lastPage) {
+                    break;
+                }
+            }
+        }
+
+        return $hits;
+    }
+
+    /**
+     * Autocomplete / search hits for gift card categories.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function searchGiftCards(int $businessId, string $q, int $limit = 8): array
+    {
+        $term = trim($q);
+        if ($term === '' || ! $this->isEnabled($businessId)) {
+            return [];
+        }
+
+        $result = $this->listCardCategories($businessId);
+        if (empty($result['success'])) {
+            return [];
+        }
+
+        $categories = is_array($result['data']['categories'] ?? null) ? $result['data']['categories'] : [];
+        $hits = [];
+        foreach ($categories as $category) {
+            if (! is_array($category)) {
+                continue;
+            }
+            $name = (string) ($category['name'] ?? '');
+            if (! $this->matchesSearchTerm([$name], $term)) {
+                continue;
+            }
+            $hits[] = $this->formatGiftCardSearchHit($category);
+            if (count($hits) >= $limit) {
+                break;
+            }
+        }
+
+        return $hits;
     }
 
     /**
@@ -357,6 +451,86 @@ class DigitalCatalogService
             'total_secondary_stock' => $secondary['stock'] ?? ($game['total_secondary_stock'] ?? 0),
             'types' => $types,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $game
+     * @return array<string, mixed>
+     */
+    private function formatGameSearchHit(array $game, string $platform): array
+    {
+        $price = 0.0;
+        foreach ([$game['primary_price'] ?? null, $game['secondary_price'] ?? null] as $candidate) {
+            if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
+                $price = (float) $candidate;
+                break;
+            }
+        }
+
+        $id = (int) ($game['id'] ?? 0);
+
+        return [
+            'id' => $id,
+            'name' => (string) ($game['title'] ?? ''),
+            'slug' => null,
+            'sku' => (string) ($game['code'] ?? ''),
+            'type' => 'digital_game',
+            'image_url' => $game['image_url'] ?? null,
+            'variation_id' => null,
+            'variation_name' => 'PS'.$platform,
+            'has_options' => false,
+            'price' => $price,
+            'compare_at_price' => null,
+            'on_sale' => false,
+            'sale_percent' => 0,
+            'in_stock' => ! empty($game['primary_status']) || ! empty($game['secondary_status']),
+            'kind' => 'game',
+            'href' => '/games/'.$id.'?platform='.$platform,
+            'platform' => $platform,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $category
+     * @return array<string, mixed>
+     */
+    private function formatGiftCardSearchHit(array $category): array
+    {
+        $id = (int) ($category['id'] ?? 0);
+        $name = (string) ($category['name'] ?? '');
+
+        return [
+            'id' => $id,
+            'name' => $name,
+            'slug' => null,
+            'sku' => '',
+            'type' => 'gift_card',
+            'image_url' => $category['poster_image'] ?? null,
+            'variation_id' => null,
+            'variation_name' => null,
+            'has_options' => false,
+            'price' => is_numeric($category['price'] ?? null) ? (float) $category['price'] : 0,
+            'compare_at_price' => null,
+            'on_sale' => false,
+            'sale_percent' => 0,
+            'in_stock' => true,
+            'kind' => 'gift_card',
+            'href' => '/gift-cards?q='.rawurlencode($name),
+        ];
+    }
+
+    /**
+     * @param  list<string>  $fields
+     */
+    private function matchesSearchTerm(array $fields, string $term): bool
+    {
+        foreach ($fields as $field) {
+            if ($field !== '' && mb_stripos($field, $term) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

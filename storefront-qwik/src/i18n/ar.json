@@ -51,6 +51,12 @@
   },
   "header": {
     "searchPlaceholder": "ابحث عن ألعاب، أجهزة، إكسسوارات…",
+    "searchPlaceholderGames": "ابحث عن ألعاب PS4 / PS5…",
+    "searchPlaceholderGiftCards": "ابحث عن بطاقات الهدايا…",
+    "searchTypeLabel": "البحث في",
+    "searchTypeProducts": "المنتجات",
+    "searchTypeGames": "الألعاب (PS4/PS5)",
+    "searchTypeGiftCards": "بطاقات الهدايا",
     "searchLabel": "بحث المنتجات",
     "search": "بحث",
     "searchSuggestions": "اقتراحات البحث",
@@ -541,7 +547,11 @@
     "heading": "بحث",
     "prompt": "اكتب اسم منتج أو SKU أو كلمة مفتاحية للعثور على ما تحتاجه.",
     "noResultsFor": "لم يُعثر على منتجات لـ «{query}».",
-    "browseShop": "تصفح كل المنتجات"
+    "noGamesFor": "لم يُعثر على ألعاب PS4/PS5 لـ «{query}».",
+    "noGiftCardsFor": "لم يُعثر على بطاقات هدايا لـ «{query}».",
+    "browseShop": "تصفح كل المنتجات",
+    "browseGames": "تصفح الألعاب الرقمية",
+    "browseGiftCards": "تصفح بطاقات الهدايا"
   },
   "home": {
     "kicker": "العب على مستواك",
@@ -579,6 +589,9 @@
     "mobile": "رقم الموبايل",
     "searchNumber": "رقم البحث",
     "searchPlaceholder": "أمر شغل / فاتورة / موبايل",
+    "jobSheetPlaceholder": "أدخل رقم أمر الشغل",
+    "invoicePlaceholder": "أدخل رقم الفاتورة",
+    "mobilePlaceholder": "أدخل رقم الموبايل",
     "serialNo": "الرقم التسلسلي",
     "serialOptional": "الرقم التسلسلي (اختياري)",
     "search": "بحث",

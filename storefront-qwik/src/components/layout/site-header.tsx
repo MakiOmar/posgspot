@@ -1,4 +1,4 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
+import { $, component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import {
   MenuIcon,
@@ -14,6 +14,11 @@ import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
 import { HEADER_STYLE } from "~/lib/config";
+import {
+  closeHeaderDropdown,
+  toggleHeaderDropdown,
+  useHeaderDropdown,
+} from "~/lib/header-dropdown-context";
 import { buildMainNavLinks } from "~/lib/header-nav";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -26,23 +31,24 @@ interface SiteHeaderProps {
 
 export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories }) => {
   const { locale } = useI18n();
-  const categoriesOpen = useSignal(false);
+  const headerMenu = useHeaderDropdown();
   const auth = useAuth();
   const signedIn = isAuthenticated(auth);
   const isStyleOne = HEADER_STYLE === "one";
   const navLinks = buildMainNavLinks(locale, {
     digitalEnabled: settings.digital?.enabled !== false,
   });
+  const categoriesOpen = headerMenu.openId === "categories";
 
   const phone = settings.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");
 
   const closeCategories$ = $(() => {
-    categoriesOpen.value = false;
+    closeHeaderDropdown(headerMenu, "categories");
   });
 
   const toggleCategories$ = $(() => {
-    categoriesOpen.value = !categoriesOpen.value;
+    toggleHeaderDropdown(headerMenu, "categories");
   });
 
   return (

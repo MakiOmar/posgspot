@@ -47,6 +47,10 @@ export default component$(() => {
   const nav = useNavigate();
   const loc = useLocation();
   const lang = (loc.params.lang || "en") as "en" | "ar";
+  const q = (loc.url.searchParams.get("q") || "").trim().toLowerCase();
+  const categories = q
+    ? list.value.categories.filter((category) => category.name.toLowerCase().includes(q))
+    : list.value.categories;
   const pendingId = useSignal<number | null>(null);
 
   const addCard$ = $(async (categoryId: number, name: string, priceRaw: number | string, posterImage: string | null) => {
@@ -106,11 +110,11 @@ export default component$(() => {
         <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.giftCardsLead")}</p>
       </header>
 
-      {list.value.categories.length === 0 ? (
+      {categories.length === 0 ? (
         <div class="empty-state">{tStatic(lang, "digital.noGiftCards")}</div>
       ) : (
         <div class="product-grid digital-catalog__grid">
-          {list.value.categories.map((category) => (
+          {categories.map((category) => (
             <article key={category.id} class="product-card digital-game-card">
               <div class="product-card__media digital-game-card__media">
                 {category.poster_image ? (

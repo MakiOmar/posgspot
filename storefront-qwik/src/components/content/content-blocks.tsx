@@ -1,5 +1,9 @@
 import { $, component$, useOnDocument, useSignal, type QRL } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
+import {
+  closeHeaderDropdown,
+  useHeaderDropdown,
+} from "~/lib/header-dropdown-context";
 import type { ResolvedNavItem } from "~/lib/header-nav";
 
 interface HeaderNavItemsProps {
@@ -8,10 +12,13 @@ interface HeaderNavItemsProps {
 }
 
 export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClass }) => {
+  const headerMenu = useHeaderDropdown();
   const openKey = useSignal<string | null>(null);
+  const navOpen = headerMenu.openId === "nav";
 
   const close$ = $(() => {
     openKey.value = null;
+    closeHeaderDropdown(headerMenu, "nav");
   });
 
   useOnDocument(
@@ -20,6 +27,7 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".header-nav-dropdown")) {
         openKey.value = null;
+        closeHeaderDropdown(headerMenu, "nav");
       }
     }),
   );
@@ -29,6 +37,7 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
     $((event) => {
       if ((event as KeyboardEvent).key === "Escape") {
         openKey.value = null;
+        closeHeaderDropdown(headerMenu, "nav");
       }
     }),
   );
@@ -38,7 +47,7 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
       {links.map((item) => {
         if (item.children && item.children.length > 0) {
           const key = item.label;
-          const isOpen = openKey.value === key;
+          const isOpen = navOpen && openKey.value === key;
           return (
             <div
               key={key}
@@ -50,7 +59,13 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                 aria-haspopup="menu"
                 aria-expanded={isOpen}
                 onClick$={() => {
-                  openKey.value = openKey.value === key ? null : key;
+                  if (headerMenu.openId === "nav" && openKey.value === key) {
+                    openKey.value = null;
+                    closeHeaderDropdown(headerMenu, "nav");
+                    return;
+                  }
+                  openKey.value = key;
+                  headerMenu.openId = "nav";
                 }}
               >
                 <span>{item.label}</span>

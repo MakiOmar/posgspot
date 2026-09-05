@@ -232,16 +232,18 @@ When hovering a category with children:
 
 | Element | Detail |
 |---------|--------|
-| **Placeholder (EN)** | Search games, consoles, accessories… |
-| **Placeholder (AR)** | ابحث عن ألعاب، أجهزة، إكسسوارات… |
-| **Trigger** | Submit on Enter or search icon click → `/[lang]/search?q=` |
-| **Autocomplete** | Phase 1: product name + SKU; Phase 2: categories, brands, popular terms |
-| **Results dropdown** | Up to 8 products (image, name, price); "View all results" → dedicated search page |
-| **Search page** | `/[lang]/search` — full grid, sort / in-stock filters, pagination (`GET /products?q=`) |
-| **Empty state** | "No products found" + link to shop |
+| **Type select** | Products, Games (PS4/PS5), or Gift cards (hidden when digital catalog is off) |
+| **Placeholder (EN)** | Products: Search games, consoles, accessories… · Games: Search PS4 / PS5 games… · Gift cards: Search gift cards… |
+| **Placeholder (AR)** | Products: ابحث عن ألعاب، أجهزة، إكسسوارات… · Games: ابحث عن ألعاب PS4 / PS5… · Gift cards: ابحث عن بطاقات الهدايا… |
+| **Trigger** | Submit on Enter or search icon click → `/[lang]/search?q=` (`&type=games` / `&type=gift_cards` when not products) |
+| **Autocomplete** | Phase 1: product name + SKU; digital types search Accounts games (both platforms) or gift-card categories |
+| **Results dropdown** | Up to 8 hits (image, name, price); stacks **above** the nav bar; "View all results" → dedicated search page |
+| **Exclusive menus** | Opening search, language, cart, categories, or a nav dropdown closes the others |
+| **Search page** | `/[lang]/search` — products: full grid, sort / in-stock filters, pagination (`GET /products?q=`). Games/gift cards: `/search` autocomplete API |
+| **Empty state** | "No products found" + link to shop (or games / gift cards catalog) |
 | **Mobile** | Same header search; dedicated `/search` page for full results |
 
-**API:** `GET /api/storefront/v1/search?q={query}&limit=8` (autocomplete). Full page uses `GET /products?q=`.
+**API:** `GET /api/storefront/v1/search?q={query}&limit=8&type=products\|games\|gift_cards` (autocomplete). Product full page uses `GET /products?q=`.
 
 ---
 

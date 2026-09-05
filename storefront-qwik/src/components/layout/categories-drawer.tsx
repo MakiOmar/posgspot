@@ -1,4 +1,4 @@
-import { component$, type QRL, type Signal } from "@builder.io/qwik";
+import { component$, type QRL } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { CloseIcon } from "~/components/icons";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -7,7 +7,7 @@ import type { Category } from "~/lib/types";
 
 interface CategoriesDrawerProps {
   categories: Category[];
-  open: Signal<boolean>;
+  open: boolean;
   onClose$: QRL<() => void>;
 }
 
@@ -17,8 +17,8 @@ export const CategoriesDrawer = component$<CategoriesDrawerProps>(
 
     return (
       <div
-        class={`categories-drawer${open.value ? " categories-drawer--open" : ""}`}
-        aria-hidden={!open.value}
+        class={`categories-drawer${open ? " categories-drawer--open" : ""}`}
+        aria-hidden={!open}
       >
         <button
           type="button"

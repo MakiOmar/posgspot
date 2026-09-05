@@ -24,12 +24,14 @@ class DigitalCatalogController extends StorefrontController
         $data = $request->validate([
             'platform' => 'required|in:4,5',
             'page' => 'nullable|integer|min:1',
+            'q' => 'nullable|string|max:120',
         ]);
 
         $result = $this->catalog->listGames(
             $businessId,
             (string) $data['platform'],
-            (int) ($data['page'] ?? 1)
+            (int) ($data['page'] ?? 1),
+            isset($data['q']) ? (string) $data['q'] : null
         );
 
         if (! $result['success']) {

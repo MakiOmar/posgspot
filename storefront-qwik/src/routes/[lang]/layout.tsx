@@ -21,6 +21,7 @@ import {
   isMaintenancePagePath,
 } from "~/lib/maintenance-gate";
 import { PendingProvider } from "~/lib/pending-context";
+import { HeaderDropdownProvider } from "~/lib/header-dropdown-context";
 import { SiteShellProvider, useSiteShell } from "~/lib/site-shell-context";
 import { cachedCategories, cachedLocations, cachedSettings } from "~/lib/ssr-shell-cache";
 import { themeHeadStyleFromSettings } from "~/lib/theme";
@@ -179,8 +180,10 @@ export default component$(() => {
 
   return (
     <PendingProvider>
-      <GlobalPendingIndicator />
-      {shell}
+      <HeaderDropdownProvider>
+        <GlobalPendingIndicator />
+        {shell}
+      </HeaderDropdownProvider>
     </PendingProvider>
   );
 });

@@ -1,4 +1,5 @@
 /** Product listing sort values supported by GET /products. */
+import type { CatalogSearchType } from "./types";
 import type { StoreLocaleCode } from "./i18n/config";
 import { tStatic } from "./i18n/context";
 
@@ -34,12 +35,20 @@ export function parseProductSort(value: string | null | undefined): ProductSort 
   return "default";
 }
 
+export function parseCatalogSearchType(value: string | null | undefined): CatalogSearchType {
+  if (value === "games" || value === "gift_cards") {
+    return value;
+  }
+  return "products";
+}
+
 export interface ProductListFilters {
   sort: ProductSort;
   inStockOnly: boolean;
   q: string;
   categoryId: string;
   page: number;
+  searchType: CatalogSearchType;
 }
 
 export function parseProductListFilters(
@@ -51,6 +60,7 @@ export function parseProductListFilters(
     categoryId: searchParams.get("category_id") || "",
     inStockOnly: searchParams.get("in_stock_only") === "1",
     sort: parseProductSort(searchParams.get("sort")),
+    searchType: parseCatalogSearchType(searchParams.get("type")),
   };
 }
 

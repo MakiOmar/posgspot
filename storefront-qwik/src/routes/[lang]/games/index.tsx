@@ -34,10 +34,11 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const platform = (query.get("platform") === "5" ? "5" : "4") as "4" | "5";
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
-  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&page=${page}`;
+  const q = (query.get("q") || "").trim();
+  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
 
   try {
-    const { data } = await fetchDigitalGames(platform, page, locale);
+    const { data } = await fetchDigitalGames(platform, page, locale, q || undefined);
     const games = (data.games ?? []) as DigitalGameSummary[];
     const debug = {
       ...((data as { debug?: GamesListDebug }).debug ?? {}),
@@ -48,6 +49,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       enabled: true,
       platform,
       page,
+      q,
       games,
       meta: data.meta,
       skus: data.skus as DigitalSkus,
@@ -63,6 +65,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       enabled: true,
       platform,
       page,
+      q,
       games: [] as DigitalGameSummary[],
       meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
       skus: { primary: null, secondary: null, gift_card: null } as DigitalSkus,
@@ -90,6 +93,9 @@ export default component$(() => {
     const params = new URLSearchParams();
     if (platform !== "4") {
       params.set("platform", platform);
+    }
+    if (list.value.q) {
+      params.set("q", list.value.q);
     }
     if (page > 1) {
       params.set("page", String(page));

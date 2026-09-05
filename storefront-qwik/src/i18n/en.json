@@ -51,6 +51,12 @@
   },
   "header": {
     "searchPlaceholder": "Search for games, consoles, accessories…",
+    "searchPlaceholderGames": "Search PS4 / PS5 games…",
+    "searchPlaceholderGiftCards": "Search gift cards…",
+    "searchTypeLabel": "Search in",
+    "searchTypeProducts": "Products",
+    "searchTypeGames": "Games (PS4/PS5)",
+    "searchTypeGiftCards": "Gift cards",
     "searchLabel": "Search products",
     "search": "Search",
     "searchSuggestions": "Search suggestions",
@@ -541,7 +547,11 @@
     "heading": "Search",
     "prompt": "Type a product name, SKU, or keyword to find what you need.",
     "noResultsFor": "No products found for “{query}”.",
-    "browseShop": "Browse all products"
+    "noGamesFor": "No PS4/PS5 games found for “{query}”.",
+    "noGiftCardsFor": "No gift cards found for “{query}”.",
+    "browseShop": "Browse all products",
+    "browseGames": "Browse digital games",
+    "browseGiftCards": "Browse gift cards"
   },
   "home": {
     "kicker": "Play to your level",
@@ -579,6 +589,9 @@
     "mobile": "Mobile number",
     "searchNumber": "Search number",
     "searchPlaceholder": "Job sheet / invoice / mobile",
+    "jobSheetPlaceholder": "Enter job sheet number",
+    "invoicePlaceholder": "Enter invoice number",
+    "mobilePlaceholder": "Enter mobile number",
     "serialNo": "Serial number",
     "serialOptional": "Optional serial number",
     "search": "Search",

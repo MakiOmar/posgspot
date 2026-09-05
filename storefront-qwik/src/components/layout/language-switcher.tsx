@@ -1,5 +1,10 @@
-import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
+import { $, component$, useOnDocument } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import {
+  closeHeaderDropdown,
+  toggleHeaderDropdown,
+  useHeaderDropdown,
+} from "~/lib/header-dropdown-context";
 import { STORE_LOCALES, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localeFromPathname, swapLocalePath } from "~/lib/i18n/paths";
@@ -11,7 +16,8 @@ interface LanguageSwitcherProps {
 
 export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings }) => {
   const loc = useLocation();
-  const open = useSignal(false);
+  const headerMenu = useHeaderDropdown();
+  const open = headerMenu.openId === "lang";
   const enabled = new Set(settings.locales ?? ["en", "ar"]);
   const activeCode = localeFromPathname(loc.url.pathname);
   const active = localeDefinition(activeCode);
@@ -21,11 +27,11 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
   );
 
   const close$ = $(() => {
-    open.value = false;
+    closeHeaderDropdown(headerMenu, "lang");
   });
 
   const toggle$ = $(() => {
-    open.value = !open.value;
+    toggleHeaderDropdown(headerMenu, "lang");
   });
 
   // Close when clicking outside the switcher.
@@ -34,7 +40,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
     $((event) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".language-switcher")) {
-        open.value = false;
+        closeHeaderDropdown(headerMenu, "lang");
       }
     }),
   );
@@ -43,7 +49,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
     "keydown",
     $((event) => {
       if ((event as KeyboardEvent).key === "Escape") {
-        open.value = false;
+        closeHeaderDropdown(headerMenu, "lang");
       }
     }),
   );
@@ -62,12 +68,12 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
   }
 
   return (
-    <div class={`language-switcher${open.value ? " language-switcher--open" : ""}`} role="navigation" aria-label={tStatic(activeCode, "a11y.language")}>
+    <div class={`language-switcher${open ? " language-switcher--open" : ""}`} role="navigation" aria-label={tStatic(activeCode, "a11y.language")}>
       <button
         type="button"
         class="language-switcher__trigger"
         aria-haspopup="listbox"
-        aria-expanded={open.value}
+        aria-expanded={open}
         aria-current="true"
         onClick$={toggle$}
       >
@@ -78,7 +84,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
         <span class="language-switcher__caret" aria-hidden="true" />
       </button>
 
-      {open.value ? (
+      {open ? (
         <ul class="language-switcher__menu" role="listbox" aria-label={tStatic(activeCode, "a11y.otherLanguages")}>
           {alternatives.map((locale) => {
             const href = swapLocalePath(

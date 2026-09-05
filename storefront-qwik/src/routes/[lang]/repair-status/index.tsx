@@ -28,10 +28,17 @@ export default component$(() => {
   const lookupByMobile = settings.value.repair?.lookup_by_mobile ?? true;
 
   const form = useStore({
-    search_type: "" as "" | RepairStatusSearchType,
+    search_type: (lookupByMobile ? "mobile_num" : "job_sheet_no") as RepairStatusSearchType,
     search_number: "",
     serial_no: "",
   });
+
+  const searchNumberPlaceholder =
+    form.search_type === "job_sheet_no"
+      ? tStatic(locale, "repair.jobSheetPlaceholder")
+      : form.search_type === "invoice_no"
+        ? tStatic(locale, "repair.invoicePlaceholder")
+        : tStatic(locale, "repair.mobilePlaceholder");
 
   const submit$ = $(async () => {
     if (!lookupEnabled) {
@@ -90,7 +97,7 @@ export default component$(() => {
             <p class="footer-muted">{tStatic(locale, "repair.unavailable")}</p>
           ) : (
             <form class="repair-status-form" preventdefault:submit onSubmit$={submit$}>
-              {/* Search-by selector: job sheet, invoice, or mobile */}
+              {/* Default is mobile number when that lookup is enabled. */}
               <div>
                 <label for="repair_search_type">{tStatic(locale, "repair.searchBy")}</label>
                 <select
@@ -98,12 +105,9 @@ export default component$(() => {
                   required
                   value={form.search_type}
                   onChange$={(_, el) => {
-                    form.search_type = el.value as "" | RepairStatusSearchType;
+                    form.search_type = el.value as RepairStatusSearchType;
                   }}
                 >
-                  <option value="" disabled>
-                    {tStatic(locale, "repair.chooseSearchBy")}
-                  </option>
                   <option value="job_sheet_no">{tStatic(locale, "repair.jobSheetNo")}</option>
                   <option value="invoice_no">{tStatic(locale, "repair.invoiceNo")}</option>
                   {lookupByMobile ? (
@@ -120,7 +124,7 @@ export default component$(() => {
                   required
                   autocomplete="off"
                   value={form.search_number}
-                  placeholder={tStatic(locale, "repair.searchPlaceholder")}
+                  placeholder={searchNumberPlaceholder}
                   onInput$={(_, el) => {
                     form.search_number = el.value;
                   }}

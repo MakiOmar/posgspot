@@ -1,8 +1,13 @@
-import { $, component$, useOnDocument, useSignal } from "@builder.io/qwik";
+import { $, component$, useOnDocument } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { CartIcon, CloseIcon, TrashIcon } from "~/components/icons";
 import { cartLineKey, cartSubtotal, removeCartItem, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import {
+  closeHeaderDropdown,
+  toggleHeaderDropdown,
+  useHeaderDropdown,
+} from "~/lib/header-dropdown-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -15,17 +20,18 @@ interface MiniCartProps {
 export const MiniCart = component$<MiniCartProps>(({ settings }) => {
   const { locale } = useI18n();
   const cart = useCart();
-  const open = useSignal(false);
+  const headerMenu = useHeaderDropdown();
+  const open = headerMenu.openId === "cart";
 
   const itemCount = totalCartItems(cart);
   const subtotal = cartSubtotal(cart);
 
   const close$ = $(() => {
-    open.value = false;
+    closeHeaderDropdown(headerMenu, "cart");
   });
 
   const toggle$ = $(() => {
-    open.value = !open.value;
+    toggleHeaderDropdown(headerMenu, "cart");
   });
 
   useOnDocument(
@@ -33,7 +39,7 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
     $((event) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest(".mini-cart")) {
-        open.value = false;
+        closeHeaderDropdown(headerMenu, "cart");
       }
     }),
   );
@@ -42,18 +48,18 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
     "keydown",
     $((event) => {
       if ((event as KeyboardEvent).key === "Escape") {
-        open.value = false;
+        closeHeaderDropdown(headerMenu, "cart");
       }
     }),
   );
 
   return (
-    <div class={`mini-cart${open.value ? " mini-cart--open" : ""}`}>
+    <div class={`mini-cart${open ? " mini-cart--open" : ""}`}>
       <button
         type="button"
         class="action-link action-cart mini-cart__trigger"
         aria-haspopup="dialog"
-        aria-expanded={open.value}
+        aria-expanded={open}
         aria-label={tStatic(locale, "header.cart")}
         onClick$={toggle$}
       >
@@ -64,7 +70,7 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
         <span class="action-text">{formatPrice(subtotal, settings.currency, locale)}</span>
       </button>
 
-      {open.value ? (
+      {open ? (
         <div
           class="mini-cart__panel"
           role="dialog"

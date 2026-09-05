@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-07-23 |
+| **Last updated** | 2026-08-18 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -87,14 +87,14 @@
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
-| `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); replaces POS external link |
+| `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); mobile number selected by default; placeholder follows search-by |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
-| Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit |
+| Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit; `type=games\|gift_cards` |
 
 ---
 
@@ -131,7 +131,7 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Logo, announcement bar | ✅ | `site-header.tsx` |
-| Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete |
+| Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
 | Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
@@ -193,7 +193,7 @@
 | Suite | Status |
 |-------|--------|
 | Ping, catalog, auth, password reset | ✅ |
-| Product search autocomplete API | ✅ | `GET /search` |
+| Product search autocomplete API | ✅ | `GET /search?q=&limit=&type=products\|games\|gift_cards` |
 | Settings / locations email obfuscation | ✅ |
 | Availability structure + all locations | ✅ |
 | Cart validate at fulfillment location | ✅ |
@@ -227,6 +227,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-08-18 | Header: search/lang/cart overlays sit above the nav bar; opening one dropdown closes the others; search type select (products / PS4+PS5 games / gift cards). Repair status defaults to mobile number with a matching placeholder. |
 | 2026-07-23 | Phase 4 mobile: `storefront-mobile/` Expo app; `POST/DELETE /account/devices`; FCM push job on paid/shipped; docs `MOBILE.md`. |
 | 2026-07-23 | Product gallery: pick images from storefront media library (copy into `product_gallery` Media on save). |
 | 2026-07-23 | Product gallery on POS create/edit; storefront PDP `images[]` uses gallery when non-empty (excludes brochure). |

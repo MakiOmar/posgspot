@@ -493,6 +493,27 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data', []);
     }
 
+    public function test_search_type_unknown_falls_back_to_products(): void
+    {
+        $this->getJson('/api/storefront/v1/search?q=ab&type=not-a-type')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonIsArray('data');
+    }
+
+    public function test_search_type_games_and_gift_cards_return_arrays(): void
+    {
+        $this->getJson('/api/storefront/v1/search?q=fifa&type=games')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonIsArray('data');
+
+        $this->getJson('/api/storefront/v1/search?q=steam&type=gift_cards')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonIsArray('data');
+    }
+
     public function test_search_returns_product_summaries_when_configured(): void
     {
         $location = BusinessLocation::where('business_id', $this->businessId)->first();
