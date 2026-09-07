@@ -188,12 +188,27 @@ export function fetchBrand(slug: string, locale?: ContentLocale) {
   return storefrontFetch<Brand>(`/brands/${encodeURIComponent(slug)}`, {}, locale);
 }
 
-export function searchProducts(q: string, locale?: ContentLocale) {
-  return storefrontFetch<ProductSummary[]>(
-    `/search?q=${encodeURIComponent(q)}`,
+export function searchCatalog(
+  q: string,
+  opts: {
+    limit?: number;
+    type?: import("./types").CatalogSearchType;
+  } = {},
+  locale?: ContentLocale,
+) {
+  const limit = opts.limit ?? 20;
+  const type = opts.type ?? "products";
+  const typeQs = type !== "products" ? `&type=${encodeURIComponent(type)}` : "";
+  return storefrontFetch<import("./types").SearchHit[]>(
+    `/search?q=${encodeURIComponent(q)}&limit=${limit}${typeQs}`,
     {},
     locale,
   );
+}
+
+/** @deprecated Prefer searchCatalog — product-only autocomplete. */
+export function searchProducts(q: string, locale?: ContentLocale) {
+  return searchCatalog(q, { type: "products" }, locale);
 }
 
 export function fetchLocations(sellingOnly = false, locale?: ContentLocale) {

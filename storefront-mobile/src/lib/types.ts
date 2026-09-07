@@ -69,6 +69,21 @@ export interface StoreSettings {
   [key: string]: unknown;
 }
 
+/** Catalog autocomplete / digital search scope (`GET /search?type=`). */
+export type CatalogSearchType = "products" | "games" | "gift_cards";
+
+export interface SearchHit {
+  id: number;
+  name: string;
+  slug?: string | null;
+  price: number;
+  image_url?: string | null;
+  variation_name?: string | null;
+  kind?: "product" | "game" | "gift_card";
+  href?: string | null;
+  platform?: string | null;
+}
+
 export interface ProductSummary {
   id: number;
   name: string;

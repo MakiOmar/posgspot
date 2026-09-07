@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   checkDigitalCardStock,
   fetchCardCategories,
@@ -29,11 +29,25 @@ export default function GiftCardsScreen() {
   const { locale, t } = useApp();
   const { addItem } = useCart();
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string }>();
+  const filterQ = (
+    Array.isArray(params.q) ? params.q[0] : params.q || ""
+  )
+    .trim()
+    .toLowerCase();
   const [cards, setCards] = useState<CardCategory[]>([]);
   const [skus, setSkus] = useState<DigitalSkus | null>(null);
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const visibleCards = useMemo(() => {
+    if (!filterQ) return cards;
+    return cards.filter((item) => {
+      const title = (item.title || item.name || "").toLowerCase();
+      return title.includes(filterQ);
+    });
+  }, [cards, filterQ]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,7 +81,7 @@ export default function GiftCardsScreen() {
       {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
       <FlatList
         style={{ flex: 1 }}
-        data={cards}
+        data={visibleCards}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => {
           const title = item.title || item.name || `Card #${item.id}`;
