@@ -338,6 +338,19 @@ class StorefrontSettingController extends Controller
             'footer_columns.*.links.*.label_en' => 'nullable|string|max:80',
             'footer_columns.*.links.*.label_ar' => 'nullable|string|max:80',
             'footer_columns.*.links.*.url' => 'nullable|string|max:500',
+            'about_team' => 'nullable|array|max:12',
+            'about_team.*.name' => 'nullable|string|max:80',
+            'about_team.*.role_en' => 'nullable|string|max:80',
+            'about_team.*.role_ar' => 'nullable|string|max:80',
+            'about_team.*.url' => 'nullable|string|max:500',
+            'about_team.*.existing_image' => 'nullable|string|max:191',
+            'about_team.*.facebook' => 'nullable|string|max:500',
+            'about_team.*.instagram' => 'nullable|string|max:500',
+            'about_team.*.x' => 'nullable|string|max:500',
+            'about_team.*.youtube' => 'nullable|string|max:500',
+            'about_team.*.tiktok' => 'nullable|string|max:500',
+            'about_team.*.linkedin' => 'nullable|string|max:500',
+            'about_team.*.behance' => 'nullable|string|max:500',
         ]);
 
         $payload = [
@@ -432,6 +445,7 @@ class StorefrontSettingController extends Controller
                 'allow_stacking' => $request->boolean('promo_codes_allow_stacking'),
             ],
             'payment_icons' => $this->buildPaymentIconsPayload($request, $validated['payment_icons'] ?? []),
+            'about_team' => $this->buildAboutTeamPayload($request, $validated['about_team'] ?? []),
             'footer' => $this->buildFooterPayload($validated),
             'banners' => $this->buildBannersPayload($request, $validated['banners'] ?? []),
             'newsletter' => [
@@ -699,6 +713,54 @@ class StorefrontSettingController extends Controller
         }
 
         return $icons;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function buildAboutTeamPayload(Request $request, array $rows): array
+    {
+        $this->commonUtil->ensurePublicUploadPermissions('storefront_about_team', null, true);
+
+        $members = [];
+        $socialKeys = $this->settings->aboutTeamSocialKeys();
+
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $existing = basename(trim((string) ($row['existing_image'] ?? '')));
+            $uploaded = null;
+            $fileKey = 'about_team_image_'.$index;
+            if ($request->hasFile($fileKey)) {
+                try {
+                    $uploaded = $this->commonUtil->uploadFile($request, $fileKey, 'storefront_about_team', 'image');
+                } catch (\Throwable) {
+                    $uploaded = null;
+                }
+            }
+
+            $image = $uploaded ?: ($existing !== '' ? $existing : null);
+            $social = [];
+            foreach ($socialKeys as $key) {
+                $social[$key] = trim((string) ($row[$key] ?? ''));
+            }
+
+            $members[] = [
+                'name' => trim((string) ($row['name'] ?? '')),
+                'role' => [
+                    'en' => trim((string) ($row['role_en'] ?? '')),
+                    'ar' => trim((string) ($row['role_ar'] ?? '')),
+                ],
+                'image' => $image,
+                'url' => empty($image) ? trim((string) ($row['url'] ?? '')) : '',
+                'social' => $social,
+            ];
+        }
+
+        return $this->settings->normalizeAboutTeam($members);
     }
 
     /**

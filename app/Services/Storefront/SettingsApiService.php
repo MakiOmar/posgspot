@@ -83,6 +83,9 @@ class SettingsApiService
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
+            'about' => [
+                'team' => $this->aboutTeamPayload($settings, $locale),
+            ],
             'footer' => $this->footerPayload($settings, $locale),
             'banners' => $this->bannersPayload($settings, $locale),
             'newsletter' => [
@@ -311,6 +314,54 @@ class SettingsApiService
             $out[] = [
                 'label' => $label !== '' ? $label : 'Payment',
                 'icon_url' => $url,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * About page team cards (name, localized role, photo, social URLs).
+     *
+     * @return list<array{name: string, role: string, image_url: string|null, social: array<string, string>}>
+     */
+    private function aboutTeamPayload(array $settings, string $locale): array
+    {
+        $rows = $settings['about_team'] ?? [];
+        if (! is_array($rows) || $rows === []) {
+            $rows = $this->storefrontSettings->defaultAboutTeam();
+        }
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $role = $row['role'] ?? [];
+            if (is_string($role)) {
+                $role = ['en' => $role, 'ar' => ''];
+            }
+
+            $social = [];
+            $socialIn = is_array($row['social'] ?? null) ? $row['social'] : [];
+            foreach ($this->storefrontSettings->aboutTeamSocialKeys() as $key) {
+                $url = trim((string) ($socialIn[$key] ?? ''));
+                if ($url !== '') {
+                    $social[$key] = $url;
+                }
+            }
+
+            $out[] = [
+                'name' => $name,
+                'role' => $this->presenter->localizedSetting($role, $locale, ''),
+                'image_url' => $this->storefrontSettings->aboutTeamImagePublicUrl($row),
+                'social' => $social,
             ];
         }
 

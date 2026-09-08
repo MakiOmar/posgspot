@@ -65,6 +65,15 @@ export interface StoreSettings {
     label: string;
     icon_url: string;
   }>;
+  /** About page team cards from storefront settings. */
+  about?: {
+    team: Array<{
+      name: string;
+      role: string;
+      image_url: string | null;
+      social: Record<string, string>;
+    }>;
+  };
   /** Editable footer menus (locale-resolved titles/labels). */
   footer?: {
     contact_title: string;

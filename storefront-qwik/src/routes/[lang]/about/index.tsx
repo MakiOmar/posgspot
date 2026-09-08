@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { type DocumentHead } from "@builder.io/qwik-city";
 import { AboutTimeline } from "~/components/content/about-timeline";
+import { AboutTeam } from "~/components/content/about-team";
 import { JsonLd } from "~/components/seo/json-ld";
 import { getAboutContent } from "~/lib/about-content";
 import { getAboutTimeline } from "~/lib/about-timeline";
@@ -62,23 +63,7 @@ export default component$(() => {
         <AboutTimeline items={getAboutTimeline(lang.value)} />
       </section>
 
-      <section class="about-section">
-        <h2 class="content-section-title">{content.teamTitle}</h2>
-        <div class="about-team-grid">
-          {content.team.map((member) => (
-            <div key={member.name} class="about-team-card">
-              <div class="about-team-avatar" aria-hidden="true">
-                {member.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")}
-              </div>
-              <h3>{member.name}</h3>
-              <p>{member.role}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <AboutTeam members={settings.value.about?.team ?? []} />
 
       <JsonLd
         data={{

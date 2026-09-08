@@ -13,7 +13,13 @@
     "about": "من نحن",
     "stores": "الفروع",
     "brands": "العلامات التجارية",
-    "categories": "الأقسام"
+    "categories": "الأقسام",
+    "menu": "القائمة"
+  },
+  "about": {
+    "our": "فريقنا",
+    "team": "",
+    "follow": "تابع"
   },
   "digital": {
     "gamesTitle": "ألعاب بلايستيشن الرقمية",
@@ -64,6 +70,7 @@
     "myAccount": "حسابي",
     "cart": "السلة",
     "wishlist": "المفضلة",
+    "mobileBar": "التنقل للجوال",
     "mainNav": "القائمة الرئيسية",
     "siteNav": "تنقل الموقع"
   },

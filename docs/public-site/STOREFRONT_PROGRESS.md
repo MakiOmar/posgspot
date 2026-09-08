@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-05 |
+| **Last updated** | 2026-09-08 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
-| Header / footer spec | 🟡 | Core wired; 4-col footer (locations + editable menus); wishlist, policies, payment icons, newsletter, cookie consent done |
+| Header / footer spec | 🟡 | Core wired; 4-col footer; mobile Menu side drawer + fixed bottom bar (Home/Cart/Wishlist/Profile) |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -72,7 +72,7 @@
 | Route | Status | Notes |
 |-------|--------|-------|
 | `/` → `/en/` or `/ar/` | ✅ | `Accept-Language` redirect |
-| `/[lang]/` Homepage | ✅ | Dynamic sections from `GET /homepage` (hero/promo/video settings + catalog blocks); SEO |
+| `/[lang]/` Homepage | ✅ | Dynamic sections from `GET /homepage`; brand_slider is display-only (no brand PLP links) |
 | `/[lang]/products` Shop PLP | ✅ | Sort, in-stock filter, `?q=`; `X-Content-Locale` |
 | `/[lang]/category/[slug]` | ✅ | Category PLP + promo banners + pagination + locale filter |
 | `/[lang]/brands` | ✅ | Brand index (sellable brands with slug) |
@@ -86,7 +86,7 @@
 | `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail (+ reorder → cart), invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
-| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD |
+| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
 | `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); mobile number selected by default; placeholder follows search-by |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
@@ -228,6 +228,9 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-08 | About us team: photo cards from Storefront Settings → About team (`about.team` on `GET /settings`). |
+| 2026-09-07 | Homepage brand_slider display-only (no links to `/brands` or brand PLPs). |
+| 2026-09-05 | Mobile UX: main nav opens in a side drawer (like Categories); fixed bottom bar with Home, Cart, Wishlist, Profile. |
 | 2026-09-05 | Business locations: `show_on_storefront` flag hides branches from `GET /locations`, availability, and local pickup; POS create/edit checkbox. |
 | 2026-09-05 | Repair status mobile lookup: match with/without country code or leading `0` (`+2010…` / `010…` / `10…`). |
 | 2026-09-05 | Storefront ZIP import/export: pack full media library + favicon; remap library business id; restore `storefront_media` rows; show media copy stats on import. |

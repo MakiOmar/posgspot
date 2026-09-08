@@ -13,7 +13,13 @@
     "about": "About us",
     "stores": "Stores",
     "brands": "Brands",
-    "categories": "Categories"
+    "categories": "Categories",
+    "menu": "Menu"
+  },
+  "about": {
+    "our": "Our",
+    "team": "Team",
+    "follow": "Follow"
   },
   "digital": {
     "gamesTitle": "Digital PlayStation games",
@@ -64,6 +70,7 @@
     "myAccount": "My account",
     "cart": "Cart",
     "wishlist": "Wishlist",
+    "mobileBar": "Mobile navigation",
     "mainNav": "Main",
     "siteNav": "Site navigation"
   },

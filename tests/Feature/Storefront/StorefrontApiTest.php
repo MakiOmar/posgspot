@@ -231,6 +231,32 @@ class StorefrontApiTest extends TestCase
             );
     }
 
+    public function test_settings_exposes_about_team(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'about_team' => [
+                [
+                    'name' => 'Mahmud Mustafa',
+                    'role' => ['en' => 'CEO - Founder', 'ar' => 'المؤسس'],
+                    'image' => null,
+                    'url' => 'https://cdn.example.com/mahmud.jpg',
+                    'social' => [
+                        'facebook' => 'https://facebook.com/mahmud',
+                        'instagram' => '',
+                    ],
+                ],
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings', ['X-Content-Locale' => 'en'])
+            ->assertOk()
+            ->assertJsonPath('data.about.team.0.name', 'Mahmud Mustafa')
+            ->assertJsonPath('data.about.team.0.role', 'CEO - Founder')
+            ->assertJsonPath('data.about.team.0.image_url', 'https://cdn.example.com/mahmud.jpg')
+            ->assertJsonPath('data.about.team.0.social.facebook', 'https://facebook.com/mahmud');
+    }
+
     public function test_settings_exposes_promotional_banners(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [

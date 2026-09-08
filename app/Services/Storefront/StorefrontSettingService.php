@@ -116,6 +116,8 @@ class StorefrontSettingService
             ],
             // Footer payment method icons (label + uploaded file or external URL).
             'payment_icons' => [],
+            // About page team cards (photo, name, role, social links).
+            'about_team' => $this->defaultAboutTeam(),
             // Footer contact column title + up to 3 editable link menus.
             'footer' => $this->defaultFooter(),
             // Homepage / category promotional banners (image + link).
@@ -476,10 +478,15 @@ class StorefrontSettingService
             $this->stripInlineSvgFromArray($data);
         }
 
+        $merged = array_replace_recursive($this->defaults(), $data);
+        if (array_key_exists('about_team', $data)) {
+            $merged['about_team'] = $this->normalizeAboutTeam($data['about_team']);
+        }
+
         return $this->homepageSections()->ensureSections(
             $this->withNormalizedFavicon(
                 $this->withNormalizedFooter(
-                    $this->normalizeLocalized(array_replace_recursive($this->defaults(), $data))
+                    $this->normalizeLocalized($merged)
                 )
             )
         );
@@ -1064,6 +1071,15 @@ class StorefrontSettingService
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
         }
 
+        if (array_key_exists('about_team', $settings)) {
+            $merged['about_team'] = $this->normalizeAboutTeam($settings['about_team']);
+        } else {
+            $existingTeam = $this->getRaw($businessId)['about_team'] ?? null;
+            $merged['about_team'] = is_array($existingTeam)
+                ? $this->normalizeAboutTeam($existingTeam)
+                : $this->defaultAboutTeam();
+        }
+
         if (array_key_exists('favicon', $settings)) {
             $merged['favicon'] = $this->normalizeFavicon($settings['favicon']);
         } else {
@@ -1480,7 +1496,7 @@ class StorefrontSettingService
                 $data[$key] = $defaults[$key] ?? [];
             }
         }
-        foreach (['homepage_sections', 'banners', 'payment_icons', 'selling_location_ids'] as $key) {
+        foreach (['homepage_sections', 'banners', 'payment_icons', 'about_team', 'selling_location_ids'] as $key) {
             if (! isset($data[$key]) || ! is_array($data[$key])) {
                 $data[$key] = $defaults[$key] ?? [];
             }
@@ -1817,6 +1833,138 @@ class StorefrontSettingService
         }
 
         // Allow relative paths under /uploads or site root.
+        if (str_starts_with($url, '/')) {
+            return url($url);
+        }
+
+        return asset($url);
+    }
+
+    /**
+     * Default About page team matching gamesspoteg.com/about-us (photos added in settings).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function defaultAboutTeam(): array
+    {
+        return [
+            [
+                'name' => 'Mahmud Mustafa',
+                'role' => ['en' => 'CEO - Founder', 'ar' => 'المؤسس والمدير التنفيذي'],
+                'image' => null,
+                'url' => '',
+                'social' => $this->emptyAboutTeamSocial(),
+            ],
+            [
+                'name' => 'Ahmed Mohamed',
+                'role' => ['en' => 'Technical support', 'ar' => 'الدعم الفني'],
+                'image' => null,
+                'url' => '',
+                'social' => $this->emptyAboutTeamSocial(),
+            ],
+            [
+                'name' => 'Hesham Nour',
+                'role' => ['en' => 'Customer support manger', 'ar' => 'مدير خدمة العملاء'],
+                'image' => null,
+                'url' => '',
+                'social' => $this->emptyAboutTeamSocial(),
+            ],
+            [
+                'name' => 'Ahmed Yasser',
+                'role' => ['en' => 'DOF Manager', 'ar' => 'مدير DOF'],
+                'image' => null,
+                'url' => '',
+                'social' => $this->emptyAboutTeamSocial(),
+            ],
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function aboutTeamSocialKeys(): array
+    {
+        return ['facebook', 'instagram', 'x', 'youtube', 'tiktok', 'linkedin', 'behance'];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function emptyAboutTeamSocial(): array
+    {
+        return array_fill_keys($this->aboutTeamSocialKeys(), '');
+    }
+
+    /**
+     * @param  mixed  $rows
+     * @return list<array<string, mixed>>
+     */
+    public function normalizeAboutTeam($rows): array
+    {
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string) ($row['name'] ?? ''));
+            $role = $row['role'] ?? [];
+            if (is_string($role)) {
+                $role = ['en' => $role, 'ar' => ''];
+            }
+            $roleEn = trim((string) ($role['en'] ?? ''));
+            $roleAr = trim((string) ($role['ar'] ?? ''));
+            $image = trim((string) ($row['image'] ?? ''));
+            $url = trim((string) ($row['url'] ?? ''));
+            $socialIn = is_array($row['social'] ?? null) ? $row['social'] : [];
+            $social = [];
+            foreach ($this->aboutTeamSocialKeys() as $key) {
+                $social[$key] = mb_substr(trim((string) ($socialIn[$key] ?? '')), 0, 500);
+            }
+
+            if ($name === '' && $roleEn === '' && $image === '' && $url === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'name' => mb_substr($name !== '' ? $name : 'Team', 0, 80),
+                'role' => [
+                    'en' => mb_substr($roleEn, 0, 80),
+                    'ar' => mb_substr($roleAr, 0, 80),
+                ],
+                'image' => $image !== '' ? basename($image) : null,
+                'url' => $image === '' ? mb_substr($url, 0, 500) : '',
+                'social' => $social,
+            ];
+
+            if (count($normalized) >= 12) {
+                break;
+            }
+        }
+
+        return $normalized;
+    }
+
+    public function aboutTeamImagePublicUrl(array $row): ?string
+    {
+        $image = trim((string) ($row['image'] ?? ''));
+        if ($image !== '') {
+            return asset('uploads/storefront_about_team/'.basename($image));
+        }
+
+        $url = trim((string) ($row['url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $url)) {
+            return $url;
+        }
+
         if (str_starts_with($url, '/')) {
             return url($url);
         }

@@ -97,6 +97,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_about_team" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-users"></i> About team
+                </a>
+            </li>
+            <li>
                 <a href="#tab_checkout" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-shopping-cart"></i> Checkout
                 </a>
@@ -799,6 +804,97 @@
                 </div>
             </div>
 
+            {{-- About page team cards --}}
+            <div class="tab-pane" id="tab_about_team">
+                <h4>About us — team</h4>
+                <p class="help-block">
+                    Shown on the public About page as photo cards (name, role, optional social links).
+                    Upload a portrait or paste an image URL. Max 12 people. Order follows this list.
+                </p>
+                @php
+                    $aboutTeam = $settings['about_team'] ?? [];
+                    if (! is_array($aboutTeam) || $aboutTeam === []) {
+                        $aboutTeam = app(\App\Services\Storefront\StorefrontSettingService::class)->defaultAboutTeam();
+                    }
+                    $teamSocialKeys = ['facebook', 'instagram', 'x', 'youtube', 'tiktok', 'linkedin', 'behance'];
+                @endphp
+                <div id="about_team_rows">
+                    @foreach ($aboutTeam as $ti => $member)
+                        @php
+                            $memberImage = $member['image'] ?? null;
+                            $memberUrl = $member['url'] ?? '';
+                            $memberPreview = ! empty($memberImage)
+                                ? asset('uploads/storefront_about_team/'.$memberImage)
+                                : $memberUrl;
+                            $memberRole = $member['role'] ?? [];
+                            $memberSocial = is_array($member['social'] ?? null) ? $member['social'] : [];
+                        @endphp
+                        <div class="panel panel-default about-team-row" data-index="{{ $ti }}">
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Name</label>
+                                            <input type="text" class="form-control" name="about_team[{{ $ti }}][name]" value="{{ $member['name'] ?? '' }}" maxlength="80">
+                                            <input type="hidden" name="about_team[{{ $ti }}][existing_image]" value="{{ $memberImage }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Role (EN)</label>
+                                            <input type="text" class="form-control" name="about_team[{{ $ti }}][role_en]" value="{{ is_array($memberRole) ? ($memberRole['en'] ?? '') : $memberRole }}" maxlength="80">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Role (AR)</label>
+                                            <input type="text" class="form-control" name="about_team[{{ $ti }}][role_ar]" value="{{ is_array($memberRole) ? ($memberRole['ar'] ?? '') : '' }}" maxlength="80" dir="rtl">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-5">
+                                        <div class="form-group">
+                                            <label>Image URL (optional)</label>
+                                            <input type="text" class="form-control" name="about_team[{{ $ti }}][url]" value="{{ $memberUrl }}" maxlength="500" placeholder="https://…">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Upload photo</label>
+                                            <input type="file" class="form-control" name="about_team_image_{{ $ti }}" accept="image/*">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2 text-center">
+                                        @if (! empty($memberPreview))
+                                            <img src="{{ $memberPreview }}" alt="" style="max-height: 72px; max-width: 100%; object-fit: cover;">
+                                        @else
+                                            <span class="text-muted">No photo</span>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-1 text-right">
+                                        <button type="button" class="btn btn-danger btn-xs remove-about-team" title="Remove">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    @foreach ($teamSocialKeys as $socialKey)
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label>{{ ucfirst($socialKey) }}</label>
+                                                <input type="text" class="form-control input-sm" name="about_team[{{ $ti }}][{{ $socialKey }}]" value="{{ $memberSocial[$socialKey] ?? '' }}" maxlength="500" placeholder="https://…">
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" class="btn btn-default btn-sm" id="add_about_team_row">
+                    <i class="fa fa-plus"></i> Add team member
+                </button>
+            </div>
+
             {{-- Checkout: promo codes, reward points --}}
             <div class="tab-pane" id="tab_checkout">
                 <h4 id="promo-checkout-settings">Promo codes (storefront checkout)</h4>
@@ -1211,6 +1307,63 @@
 
         $('#payment_icons_tbody').on('click', '.remove-payment-icon', function () {
             $(this).closest('tr').remove();
+        });
+
+        var aboutTeamIndex = $('#about_team_rows .about-team-row').length;
+        var aboutTeamSocial = ['facebook', 'instagram', 'x', 'youtube', 'tiktok', 'linkedin', 'behance'];
+
+        function aboutTeamRowHtml(index) {
+            var socialHtml = '';
+            aboutTeamSocial.forEach(function (key) {
+                var label = key.charAt(0).toUpperCase() + key.slice(1);
+                socialHtml +=
+                    '<div class="col-md-3"><div class="form-group">' +
+                    '<label>' + label + '</label>' +
+                    '<input type="text" class="form-control input-sm" name="about_team[' + index + '][' + key + ']" value="" maxlength="500" placeholder="https://…">' +
+                    '</div></div>';
+            });
+
+            return '' +
+                '<div class="panel panel-default about-team-row" data-index="' + index + '">' +
+                '<div class="panel-body">' +
+                '<div class="row">' +
+                '<div class="col-md-4"><div class="form-group"><label>Name</label>' +
+                '<input type="text" class="form-control" name="about_team[' + index + '][name]" value="" maxlength="80">' +
+                '<input type="hidden" name="about_team[' + index + '][existing_image]" value="">' +
+                '</div></div>' +
+                '<div class="col-md-4"><div class="form-group"><label>Role (EN)</label>' +
+                '<input type="text" class="form-control" name="about_team[' + index + '][role_en]" value="" maxlength="80">' +
+                '</div></div>' +
+                '<div class="col-md-4"><div class="form-group"><label>Role (AR)</label>' +
+                '<input type="text" class="form-control" name="about_team[' + index + '][role_ar]" value="" maxlength="80" dir="rtl">' +
+                '</div></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="col-md-5"><div class="form-group"><label>Image URL (optional)</label>' +
+                '<input type="text" class="form-control" name="about_team[' + index + '][url]" value="" maxlength="500" placeholder="https://…">' +
+                '</div></div>' +
+                '<div class="col-md-4"><div class="form-group"><label>Upload photo</label>' +
+                '<input type="file" class="form-control" name="about_team_image_' + index + '" accept="image/*">' +
+                '</div></div>' +
+                '<div class="col-md-2 text-center"><span class="text-muted">No photo</span></div>' +
+                '<div class="col-md-1 text-right">' +
+                '<button type="button" class="btn btn-danger btn-xs remove-about-team" title="Remove">&times;</button>' +
+                '</div></div>' +
+                '<div class="row">' + socialHtml + '</div>' +
+                '</div></div>';
+        }
+
+        $('#add_about_team_row').on('click', function () {
+            if ($('#about_team_rows .about-team-row').length >= 12) {
+                toastr.warning('Maximum 12 team members.');
+                return;
+            }
+            $('#about_team_rows').append(aboutTeamRowHtml(aboutTeamIndex));
+            aboutTeamIndex += 1;
+        });
+
+        $('#about_team_rows').on('click', '.remove-about-team', function () {
+            $(this).closest('.about-team-row').remove();
         });
 
         // Footer menu columns — add / remove links (max 12 per column)

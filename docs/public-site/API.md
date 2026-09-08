@@ -53,6 +53,7 @@ Public `GET /settings` also exposes:
 - `couriers.bosta.enabled` — true when Bosta is enabled **and** an API key is stored (no key exposed); checkout uses this to collect Bosta `district_id`
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
+- `about.team[]` — `{ name, role, image_url, social }` for the About page team rail (**Storefront Settings → About team**: photo upload or URL, EN/AR role, social URLs)
 - `favicon_url` — absolute URL for the browser tab icon (**Storefront Settings → Appearance → Favicon**); null when unset (Qwik falls back to `/favicon.svg`)
 - `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object).
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
@@ -114,7 +115,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/ping` | Health check |
-| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `favicon_url`, `footer`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
+| GET | `/settings` | Business + storefront public settings (includes `sale_badge`, `catalog.show_availability_on_cards`, `payment_icons`, `about.team`, `favicon_url`, `footer`, `banners`, `couriers.bosta.enabled`, `digital.enabled`) |
 | GET | `/homepage` | Ordered enabled homepage sections (`type` + presented `settings`) for Qwik / mobile; catalog data still from product/category/brand endpoints |
 | GET | `/locations` | Active POS branches for public display (**excludes** storefront selling locations and any with **Show on storefront** unchecked). `?selling_only=1` returns only selling locations that are also visible (checkout pickup). `address` uses **Storefront display address** when set. Includes `is_selling_location`, `enable_pickup`, coords, `maps_url`, `email_encoded`. Powers footer, contact, store locator. |
 | GET | `/geo/countries` | Country list for address forms |
@@ -132,7 +133,7 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | POST | `/products/{idOrSlug}/reviews` | **Auth required.** Body `{ rating (1–5), title?, body (10–2000) }`. Requires a final sell of the product for the contact. Creates/updates as `pending` (rejected rows may be resubmitted). |
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **active locations with Show on storefront** (incl. out-of-stock), not only public selling locations. Hidden warehouses are omitted. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=&type=` | Search autocomplete (header dropdown). `type` is `products` (default), `games` (PS4+PS5 digital titles), or `gift_cards`. Hits include `kind` + `href`. Full results UI is the Qwik `/[lang]/search` page (`GET /products?q=` for products; same `/search` endpoint for digital types). |
-| POST | `/contact` | Public contact form — emails the business inbox (`mail_username` when it is a valid email, else From address). Transport is system Mailgun/SMTP when the business uses superadmin email settings, otherwise per-business SMTP. Optional `turnstile_token` when Turnstile is enabled in storefront settings |
+| POST | `/contact` | Public contact form — emails the business inbox (`mail_username` when it is a valid email, else From address). Queued for async delivery. Transport is system Mailgun/SMTP when the business uses superadmin email settings, otherwise per-business SMTP. Optional `turnstile_token` when Turnstile is enabled in storefront settings |
 | POST | `/repair/status` | Public repair lookup — body `{ search_type: job_sheet_no\|invoice_no\|mobile_num, search_number, serial_no? }`. Scoped to storefront business. Returns `{ repairs[] }` with status, device info, and activity timeline (no customer PII). `mobile_num` only when `repair.lookup_by_mobile` is true; mobile match accepts with/without country code or leading `0` (e.g. `+2010…` / `010…` / `10…`). 404 when no match; 503 when repair module unavailable. |
 | GET | `/digital/games?platform=&page=&q=` | Digital games catalog (Accounts proxy). `platform` = `4` (PS4) or `5` (PS5). Optional `q` filters by title/code. Returns normalized `games[]` + POS `skus` map. 503 when `digital.enabled` is off. |
 | GET | `/digital/games/{id}` | Single game detail + POS `skus`. |
