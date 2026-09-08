@@ -19,6 +19,7 @@ use Datatables;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
@@ -468,7 +469,9 @@ class HomeController extends Controller
         $notifications = auth()->user()->notifications()->orderBy('created_at', 'DESC')->paginate(10);
 
         if (request()->input('page') == 1) {
-            auth()->user()->unreadNotifications->markAsRead();
+            $user = auth()->user();
+            $user->unreadNotifications->markAsRead();
+            Cache::forget($this->unreadNotificationCountCacheKey($user->id));
         }
         $notifications_data = $this->commonUtil->parseNotifications($notifications);
 
@@ -482,25 +485,24 @@ class HomeController extends Controller
      */
     public function getTotalUnreadNotifications()
     {
-        $unread_notifications = auth()->user()->unreadNotifications;
-        $total_unread = $unread_notifications->count();
-
-        $notification_html = '';
-        $modal_notifications = [];
-        foreach ($unread_notifications as $unread_notification) {
-            if (isset($data['show_popup'])) {
-                $modal_notifications[] = $unread_notification;
-                $unread_notification->markAsRead();
+        $user = auth()->user();
+        $totalUnread = Cache::remember(
+            $this->unreadNotificationCountCacheKey($user->id),
+            now()->addSeconds(45),
+            function () use ($user) {
+                return $user->unreadNotifications()->count();
             }
-        }
-        if (! empty($modal_notifications)) {
-            $notification_html = view('home.notification_modal')->with(['notifications' => $modal_notifications])->render();
-        }
+        );
 
-        return [
-            'total_unread' => $total_unread,
-            'notification_html' => $notification_html,
-        ];
+        return response()->json([
+            'total_unread' => (int) $totalUnread,
+            'notification_html' => '',
+        ]);
+    }
+
+    private function unreadNotificationCountCacheKey($userId)
+    {
+        return 'pos_unread_notification_count_'.$userId;
     }
 
     private function __chartOptions($title)
@@ -578,6 +580,7 @@ class HomeController extends Controller
         $data = $notification->data;
 
         $notification->markAsRead();
+        Cache::forget($this->unreadNotificationCountCacheKey($notification->notifiable_id));
 
         return view('home.notification_modal')->with([
             'notifications' => [$notification],

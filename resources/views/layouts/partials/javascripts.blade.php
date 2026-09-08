@@ -91,7 +91,8 @@
 
     var __default_datatable_page_entries = "{{ $default_datatable_page_entries }}";
 
-    var __new_notification_count_interval = "{{ config('constants.new_notification_count_interval', 60) }}000";
+    {{-- Seconds from config, clamped so a bad value cannot poll every few ms. --}}
+    var __new_notification_count_interval = {{ max(60, (int) config('constants.new_notification_count_interval', 60)) * 1000 }};
 </script>
 
 @if (file_exists(public_path('js/lang/' . session()->get('user.language', config('app.locale')) . '.js')))

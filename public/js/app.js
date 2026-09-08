@@ -1,5 +1,5 @@
 $(document).ready(function() {
-    getTotalUnreadNotifications();
+    startUnreadNotificationPolling();
     $('body').on('click', 'label', function(e) {
         var field_id = $(this).attr('for');
         if (field_id) {
@@ -1986,7 +1986,7 @@ $(document).ready(function() {
         autoclose: true
     });
 
-    setInterval(function(){ getTotalUnreadNotifications() }, __new_notification_count_interval);
+    // Polling is started once in startUnreadNotificationPolling() — do not add a second timer.
 
     discounts_table = $('#discounts_table').DataTable({
                     processing: true,
@@ -2727,24 +2727,140 @@ $(document).on('click', 'button.activate-deactivate-location', function(){
     });
 });
 
-function getTotalUnreadNotifications(){
-    if ($('span.notifications_count').length) {
-        var href = '/get-total-unread';
-        $.ajax({
-            url: href,
-            dataType: 'json',
-            global: false,
-            success: function(data) {
-                if (data.total_unread != 0 ) {
-                    $('span.notifications_count').text(data.total_unread);
-                }
-                if (data.notification_html) {
-                    $('.view_modal').html(data.notification_html);
-                    $('.view_modal').modal('show');
-                }
-            },
-        });
+// One poll at a time, at most once per minute, shared across POS tabs.
+// A fresh page load must not hit /get-total-unread if another tab (or this
+// browser) already polled inside the interval — that was flooding the origin.
+var UNREAD_POLL_LOCK_KEY = 'pos_unread_poll_lock';
+var UNREAD_POLL_COUNT_KEY = 'pos_unread_count';
+var unreadPollInFlight = false;
+var unreadPollTimer = null;
+var unreadPollStarted = false;
+var unreadPollBackoffMs = 0;
+
+function unreadPollIntervalMs() {
+    var configured = parseInt(window.__new_notification_count_interval, 10);
+    if (!configured || isNaN(configured) || configured < 60000) {
+        return 60000;
     }
+    return configured;
+}
+
+function unreadPollStorageGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+function unreadPollStorageSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        // Ignore private-mode / blocked storage; in-tab guard still applies.
+    }
+}
+
+function applyUnreadCount(count) {
+    var n = parseInt(count, 10) || 0;
+    if (n !== 0) {
+        $('span.notifications_count').text(n);
+    } else {
+        $('span.notifications_count').text('');
+    }
+}
+
+function scheduleUnreadPoll(delayMs) {
+    if (unreadPollTimer) {
+        clearTimeout(unreadPollTimer);
+        unreadPollTimer = null;
+    }
+    if (document.hidden) {
+        return;
+    }
+    unreadPollTimer = setTimeout(function () {
+        unreadPollTimer = null;
+        getTotalUnreadNotifications();
+    }, Math.max(1000, delayMs));
+}
+
+function startUnreadNotificationPolling() {
+    if (unreadPollStarted || !$('span.notifications_count').length) {
+        return;
+    }
+    unreadPollStarted = true;
+
+    $(window).on('storage.unreadPoll', function (e) {
+        var original = e.originalEvent;
+        if (!original || original.key !== UNREAD_POLL_COUNT_KEY || original.newValue === null) {
+            return;
+        }
+        applyUnreadCount(original.newValue);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            getTotalUnreadNotifications();
+        }
+    });
+
+    getTotalUnreadNotifications();
+}
+
+function getTotalUnreadNotifications() {
+    if (!$('span.notifications_count').length) {
+        return;
+    }
+    if (unreadPollInFlight || document.hidden) {
+        return;
+    }
+
+    var now = Date.now();
+    var lockUntil = parseInt(unreadPollStorageGet(UNREAD_POLL_LOCK_KEY) || '0', 10);
+    if (lockUntil > now) {
+        var cached = unreadPollStorageGet(UNREAD_POLL_COUNT_KEY);
+        if (cached !== null) {
+            applyUnreadCount(cached);
+        }
+        // Jitter so other open POS tabs do not all wake on the same millisecond.
+        scheduleUnreadPoll(lockUntil - now + Math.floor(Math.random() * 2000));
+        return;
+    }
+
+    var waitMs = unreadPollIntervalMs();
+    unreadPollBackoffMs = 0;
+    unreadPollStorageSet(UNREAD_POLL_LOCK_KEY, String(now + waitMs));
+    unreadPollInFlight = true;
+
+    $.ajax({
+        url: '/get-total-unread',
+        dataType: 'json',
+        global: false,
+        timeout: 15000,
+        success: function (data) {
+            unreadPollBackoffMs = 0;
+            var total = data && data.total_unread != null ? data.total_unread : 0;
+            unreadPollStorageSet(UNREAD_POLL_COUNT_KEY, String(total));
+            applyUnreadCount(total);
+            if (data && data.notification_html) {
+                $('.view_modal').html(data.notification_html);
+                $('.view_modal').modal('show');
+            }
+        },
+        error: function (xhr) {
+            // Hostinger/Cloudflare 429s last minutes; do not retry on the normal interval.
+            if (xhr && xhr.status === 429) {
+                unreadPollBackoffMs = 5 * 60 * 1000;
+                unreadPollStorageSet(UNREAD_POLL_LOCK_KEY, String(Date.now() + unreadPollBackoffMs));
+            }
+        },
+        complete: function () {
+            unreadPollInFlight = false;
+            var lockUntil = parseInt(unreadPollStorageGet(UNREAD_POLL_LOCK_KEY) || '0', 10);
+            var delay = Math.max(unreadPollIntervalMs(), lockUntil - Date.now());
+            scheduleUnreadPoll(delay);
+        },
+    });
 }
 
 $(document).on('shown.bs.modal', '.view_modal', function (e) {
