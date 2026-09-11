@@ -1,5 +1,5 @@
 import { $, component$, useOnDocument, useSignal, type QRL } from "@builder.io/qwik";
-import { Link } from "@builder.io/qwik-city";
+import { Link, useNavigate } from "@builder.io/qwik-city";
 import {
   closeHeaderDropdown,
   useHeaderDropdown,
@@ -13,12 +13,15 @@ interface HeaderNavItemsProps {
 
 export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClass }) => {
   const headerMenu = useHeaderDropdown();
+  const nav = useNavigate();
   const openKey = useSignal<string | null>(null);
   const navOpen = headerMenu.openId === "nav";
 
-  const close$ = $(() => {
+  /** Close then navigate so unmounting the menu does not cancel SPA routing. */
+  const go$ = $(async (href: string) => {
     openKey.value = null;
     closeHeaderDropdown(headerMenu, "nav");
+    await nav(href);
   });
 
   useOnDocument(
@@ -75,14 +78,14 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                 <ul class="header-nav-dropdown__menu" role="menu">
                   {item.children.map((child) => (
                     <li key={child.href} role="none">
-                      <Link
-                        href={child.href}
+                      <button
+                        type="button"
                         class="header-nav-dropdown__option"
                         role="menuitem"
-                        onClick$={close$}
+                        onClick$={() => go$(child.href)}
                       >
                         {child.label}
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>

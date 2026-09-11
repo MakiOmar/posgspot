@@ -1,5 +1,5 @@
 import { $, component$, useOnDocument } from "@builder.io/qwik";
-import { Link, useLocation } from "@builder.io/qwik-city";
+import { useLocation, useNavigate } from "@builder.io/qwik-city";
 import {
   closeHeaderDropdown,
   toggleHeaderDropdown,
@@ -16,6 +16,7 @@ interface LanguageSwitcherProps {
 
 export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings }) => {
   const loc = useLocation();
+  const nav = useNavigate();
   const headerMenu = useHeaderDropdown();
   const open = headerMenu.openId === "lang";
   const enabled = new Set(settings.locales ?? ["en", "ar"]);
@@ -26,12 +27,13 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
     (l) => enabled.has(l.code) && l.code !== activeCode,
   );
 
-  const close$ = $(() => {
-    closeHeaderDropdown(headerMenu, "lang");
-  });
-
   const toggle$ = $(() => {
     toggleHeaderDropdown(headerMenu, "lang");
+  });
+
+  const go$ = $(async (href: string) => {
+    closeHeaderDropdown(headerMenu, "lang");
+    await nav(href);
   });
 
   // Close when clicking outside the switcher.
@@ -95,7 +97,11 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
 
             return (
               <li key={locale.code} role="option">
-                <Link href={href} class="language-switcher__option" onClick$={close$}>
+                <button
+                  type="button"
+                  class="language-switcher__option"
+                  onClick$={() => go$(href)}
+                >
                   <span class="language-switcher__flag" aria-hidden="true">
                     {locale.flag}
                   </span>
@@ -103,7 +109,7 @@ export const LanguageSwitcher = component$<LanguageSwitcherProps>(({ settings })
                     <span class="language-switcher__option-label">{locale.label}</span>
                     <span class="language-switcher__option-name">{locale.name}</span>
                   </span>
-                </Link>
+                </button>
               </li>
             );
           })}

@@ -280,13 +280,19 @@ button.header-nav-dropdown__trigger {
 
 .header-nav-dropdown__option {
   display: block;
+  width: 100%;
   padding: 0.5rem 0.7rem;
+  border: 0;
   border-radius: calc(var(--gs-radius) - 2px);
+  background: transparent;
   color: var(--gs-text);
+  text-align: start;
   text-decoration: none;
+  font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
 }
 
 .header-nav-dropdown__option:hover {
@@ -718,10 +724,16 @@ html[dir="rtl"] .header-search-type {
   display: flex;
   align-items: center;
   gap: 0.55rem;
+  width: 100%;
   padding: 0.5rem 0.6rem;
+  border: 0;
   border-radius: calc(var(--gs-radius) - 2px);
+  background: transparent;
   color: var(--gs-text);
+  text-align: start;
   text-decoration: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 .language-switcher__option:hover {

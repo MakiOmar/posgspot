@@ -1,5 +1,5 @@
 import { $, component$, useOnDocument } from "@builder.io/qwik";
-import { Link } from "@builder.io/qwik-city";
+import { useNavigate } from "@builder.io/qwik-city";
 import { CartIcon, CloseIcon, TrashIcon } from "~/components/icons";
 import { cartLineKey, cartSubtotal, removeCartItem, totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -20,6 +20,7 @@ interface MiniCartProps {
 export const MiniCart = component$<MiniCartProps>(({ settings }) => {
   const { locale } = useI18n();
   const cart = useCart();
+  const nav = useNavigate();
   const headerMenu = useHeaderDropdown();
   const open = headerMenu.openId === "cart";
 
@@ -32,6 +33,12 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
 
   const toggle$ = $(() => {
     toggleHeaderDropdown(headerMenu, "cart");
+  });
+
+  /** Close then navigate — do not use <Link onClick$={close$}>; unmounting the panel cancels SPA nav. */
+  const go$ = $(async (path: string) => {
+    closeHeaderDropdown(headerMenu, "cart");
+    await nav(localePath(locale, path));
   });
 
   useOnDocument(
@@ -91,9 +98,13 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
           {cart.items.length === 0 ? (
             <div class="mini-cart__empty">
               <p>{tStatic(locale, "miniCart.empty")}</p>
-              <Link href={localePath(locale, "/products")} class="btn btn-secondary btn-block" onClick$={close$}>
+              <button
+                type="button"
+                class="btn btn-secondary btn-block"
+                onClick$={() => go$("/products")}
+              >
                 {tStatic(locale, "cart.continueShopping")}
-              </Link>
+              </button>
             </div>
           ) : (
             <>
@@ -148,20 +159,20 @@ export const MiniCart = component$<MiniCartProps>(({ settings }) => {
                   <span>{tStatic(locale, "cart.subtotal")}</span>
                   <strong>{formatPrice(subtotal, settings.currency, locale)}</strong>
                 </div>
-                <Link
-                  href={localePath(locale, "/cart")}
+                <button
+                  type="button"
                   class="btn btn-secondary btn-block"
-                  onClick$={close$}
+                  onClick$={() => go$("/cart")}
                 >
                   {tStatic(locale, "miniCart.viewCart")}
-                </Link>
-                <Link
-                  href={localePath(locale, "/checkout")}
+                </button>
+                <button
+                  type="button"
                   class="btn btn-primary btn-block"
-                  onClick$={close$}
+                  onClick$={() => go$("/checkout")}
                 >
                   {tStatic(locale, "cart.checkout")}
-                </Link>
+                </button>
               </div>
             </>
           )}
