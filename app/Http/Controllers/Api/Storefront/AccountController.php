@@ -8,6 +8,7 @@ use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\ContactDuplicateService;
 use App\Services\Storefront\PhoneValidationService;
+use App\Services\Storefront\DeviceTrackLookupService;
 use App\Services\Storefront\RepairStatusLookupService;
 use App\Services\Storefront\RewardPointsService;
 use App\Support\StorefrontLocale;
@@ -23,7 +24,8 @@ class AccountController extends StorefrontController
         private RewardPointsService $rewardPointsService,
         private PhoneValidationService $phoneValidation,
         private ContactDuplicateService $duplicates,
-        private RepairStatusLookupService $repairLookup
+        private RepairStatusLookupService $repairLookup,
+        private DeviceTrackLookupService $deviceTrackLookup
     ) {
     }
 
@@ -161,6 +163,36 @@ class AccountController extends StorefrontController
 
         return $this->jsonSuccess([
             'repairs' => $this->repairLookup->forContact($businessId, $contact, $locale),
+        ]);
+    }
+
+    /**
+     * Console/device services for the signed-in contact mobile (Accounts Device Track API).
+     */
+    public function deviceServices(Request $request)
+    {
+        if (! $this->deviceTrackLookup->isConfigured()) {
+            return $this->jsonError('Device tracking is not available.', 503);
+        }
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $phone = trim((string) ($contact->mobile ?? ''));
+        if ($phone === '') {
+            return $this->jsonSuccess([
+                'count' => 0,
+                'services' => [],
+            ]);
+        }
+
+        $result = $this->deviceTrackLookup->trackByPhone($phone);
+        if (in_array($result['status'], [429, 503], true)) {
+            return $this->jsonError($result['message'], $result['status'], $result['errors']);
+        }
+
+        return $this->jsonSuccess([
+            'count' => count($result['services']),
+            'services' => $result['services'],
         ]);
     }
 

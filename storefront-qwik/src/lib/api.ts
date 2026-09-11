@@ -593,6 +593,57 @@ export function fetchAccountRepairs(token: string, locale?: string) {
   );
 }
 
+export type DeviceTrackService = {
+  id: number | null;
+  tracking_code: string;
+  status: string;
+  status_display: string;
+  device_serial_number: string;
+  notes: string | null;
+  submitted_at: string | null;
+  status_updated_at: string | null;
+  client_name: string;
+  phone: string;
+  device_model: {
+    id: number | null;
+    name: string;
+    brand: string;
+    full_name: string;
+  } | null;
+  store_profile: {
+    id: number | null;
+    name: string;
+  } | null;
+};
+
+export type DeviceTrackPayload = {
+  phone_number?: string;
+  phone?: string;
+};
+
+/** Public: console/device services by phone (Accounts Device Track proxy). */
+export function lookupDeviceTrack(payload: DeviceTrackPayload, locale?: string) {
+  return storefrontFetch<{ count: number; services: DeviceTrackService[] }>(
+    "/device/track",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+    locale,
+  );
+}
+
+/** Authenticated: services for the signed-in contact mobile. */
+export function fetchAccountDeviceServices(token: string, locale?: string) {
+  return storefrontFetch<{ count: number; services: DeviceTrackService[] }>(
+    "/account/device-services",
+    {
+      headers: authHeaders(token),
+    },
+    locale,
+  );
+}
+
 export function subscribeNewsletter(payload: { email: string; turnstile_token?: string }) {
   return storefrontFetch<{ status: string; message: string }>("/newsletter/subscribe", {
     method: "POST",

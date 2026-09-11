@@ -93,6 +93,18 @@ class AccountsApiClient
         }
     }
 
+    /**
+     * Public device/console service lookup by customer phone (no auth).
+     *
+     * @return array{success:bool,status:int,body:?array,error:?string}
+     */
+    public function trackDevices(string $phoneNumber): array
+    {
+        return $this->request('POST', 'api/device/track', [
+            'phone_number' => $phoneNumber,
+        ], false);
+    }
+
     public function getGamesByPlatform(string $platform, int $page = 1, ?string $q = null): array
     {
         $query = ['page' => $page];

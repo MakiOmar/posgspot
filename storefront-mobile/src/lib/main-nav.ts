@@ -1,4 +1,3 @@
-import { TRACK_CONSOLE_URL } from "./config";
 import type { ContentLocale } from "./types";
 import { t } from "./i18n";
 
@@ -44,11 +43,7 @@ export function buildMainNavLinks(
   items.push(
     { label: t(locale, "common.stores"), href: "/stores" },
     { label: t(locale, "common.repair"), href: "/repair-status" },
-    {
-      label: t(locale, "nav.trackConsole"),
-      href: TRACK_CONSOLE_URL,
-      external: true,
-    },
+    { label: t(locale, "nav.trackConsole"), href: "/track-console" },
     { label: t(locale, "common.contact"), href: "/contact" },
     { label: t(locale, "common.faq"), href: "/faq" },
     { label: t(locale, "common.about"), href: "/about" },

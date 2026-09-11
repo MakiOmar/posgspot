@@ -49,4 +49,5 @@ export const POS_WEB_BASE: string = (
   .replace(/\/api\/?$/i, "")
   .replace(/\/$/, "");
 
+/** @deprecated External portal replaced by in-app `/track-console`. */
 export const TRACK_CONSOLE_URL = "https://accounts.gamesspoteg.com/device/track";

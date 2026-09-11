@@ -477,6 +477,25 @@ export function fetchAccountRepairs(token: string) {
   });
 }
 
+export function trackDevice(body: { phone_number?: string; phone?: string }) {
+  return storefrontFetch<{
+    count?: number;
+    services?: Array<Record<string, unknown>>;
+  }>("/device/track", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchAccountDeviceServices(token: string) {
+  return storefrontFetch<{
+    count?: number;
+    services?: Array<Record<string, unknown>>;
+  }>("/account/device-services", {
+    headers: authHeaders(token),
+  });
+}
+
 export function registerDevice(
   token: string,
   payload: { platform: "ios" | "android"; token: string; locale?: string },

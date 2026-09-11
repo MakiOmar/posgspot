@@ -56,6 +56,7 @@ const STATIC_SITEMAP_SUFFIXES = [
   "/about",
   "/faq",
   "/repair-status",
+  "/track-console",
   "/terms-and-conditions",
   "/privacy-policy",
   "/return-policy",

@@ -1,4 +1,3 @@
-import { TRACK_CONSOLE_URL } from "~/lib/config";
 import { localePath } from "~/lib/i18n/paths";
 import { tStatic } from "~/lib/i18n/context";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
@@ -53,11 +52,7 @@ export function buildMainNavLinks(
   items.push(
     { label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") },
     { label: tStatic(lang, "nav.trackRepairs"), href: localePath(lang, "/repair-status") },
-    {
-      label: tStatic(lang, "nav.trackConsole"),
-      href: TRACK_CONSOLE_URL,
-      external: true,
-    },
+    { label: tStatic(lang, "nav.trackConsole"), href: localePath(lang, "/track-console") },
     { label: tStatic(lang, "nav.contact"), href: localePath(lang, "/contact") },
     { label: tStatic(lang, "nav.faq"), href: localePath(lang, "/faq") },
     { label: tStatic(lang, "nav.about"), href: localePath(lang, "/about") },

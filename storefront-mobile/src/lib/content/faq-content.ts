@@ -22,7 +22,7 @@ export const FAQ_ENTRIES: FaqEntry[] = [
   {
     question: "How do I track my console service online?",
     answer:
-      "Open Track my console from the menu. Sign in with your account details on the device tracking portal to follow console servicing progress.",
+      "Open Track my console from the menu. Signed-in customers see services linked to their account phone automatically. Visitors can enter the mobile number used at drop-off to view status and tracking codes.",
   },
   {
     question: "Do you offer trade-ins or buy used consoles?",

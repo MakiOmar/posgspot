@@ -5983,3 +5983,19 @@ html:not([dir="rtl"]) .home-all-products-link::after {
   border: 1px dashed var(--gs-border);
   border-radius: var(--gs-radius);
 }
+
+.track-console-badge--received {
+  background-color: #64748b;
+}
+
+.track-console-badge--processing {
+  background-color: #2563eb;
+}
+
+.track-console-badge--ready {
+  background-color: #d97706;
+}
+
+.track-console-badge--delivered {
+  background-color: #15803d;
+}

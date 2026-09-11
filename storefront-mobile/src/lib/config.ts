@@ -29,6 +29,7 @@ export const STOREFRONT_WEB_URL: string = (
 ).replace(/\/$/, "");
 
 /** External POS console tracking portal (same as Qwik). */
+/** @deprecated External portal replaced by in-app `/track-console`. */
 export const TRACK_CONSOLE_URL =
   process.env.EXPO_PUBLIC_TRACK_CONSOLE_URL ||
   "https://accounts.gamesspoteg.com/device/track";

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Storefront\ContactController;
 use App\Http\Controllers\Api\Storefront\CouponController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\DeviceController;
+use App\Http\Controllers\Api\Storefront\DeviceTrackController;
 use App\Http\Controllers\Api\Storefront\DigitalCatalogController;
 use App\Http\Controllers\Api\Storefront\GeoController;
 use App\Http\Controllers\Api\Storefront\HomepageController;
@@ -62,6 +63,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
     Route::post('/repair/status', [RepairStatusController::class, 'store']);
+    Route::post('/device/track', [DeviceTrackController::class, 'store']);
 
     Route::get('/digital/games', [DigitalCatalogController::class, 'games']);
     Route::get('/digital/games/{id}', [DigitalCatalogController::class, 'game'])->whereNumber('id');
@@ -111,6 +113,7 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/orders/{orderId}', [AccountController::class, 'orderDetail']);
         Route::get('/orders/{orderId}/invoice', [AccountController::class, 'orderInvoice']);
         Route::get('/repairs', [AccountController::class, 'repairs']);
+        Route::get('/device-services', [AccountController::class, 'deviceServices']);
         Route::get('/reward-points', [AccountController::class, 'rewardPoints']);
         Route::post('/reward-points/validate', [AccountController::class, 'validateRewardRedeem']);
         Route::post('/devices', [DeviceController::class, 'store']);

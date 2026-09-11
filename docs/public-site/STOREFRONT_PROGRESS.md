@@ -49,6 +49,7 @@
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
+| Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
 | Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
@@ -88,6 +89,7 @@
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
 | `/[lang]/repair-status` | ✅ | Guest lookup + signed-in “Your repairs” via `GET /account/repairs` (phone/contact); form still available |
+| `/[lang]/track-console` | ✅ | Nav in-app (replaces external Accounts portal); signed-in auto via `GET /account/device-services`; guests `POST /device/track` phone form |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
@@ -228,6 +230,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-11 | Track console: in-app `/track-console` + `POST /device/track` / `GET /account/device-services` (Accounts Device Track proxy); nav no longer external. |
 | 2026-09-11 | Repair status: signed-in `GET /account/repairs` (contact id + phone match); Qwik + mobile show “Your repairs” list. |
 | 2026-09-08 | About us team: photo cards from Storefront Settings → About team (`about.team` on `GET /settings`). |
 | 2026-09-07 | Homepage brand_slider display-only (no links to `/brands` or brand PLPs). |
