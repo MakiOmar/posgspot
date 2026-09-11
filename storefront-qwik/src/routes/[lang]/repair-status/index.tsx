@@ -1,11 +1,14 @@
-import { $, component$, useSignal, useStore } from "@builder.io/qwik";
+import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import {
   ApiError,
+  fetchAccountRepairs,
   lookupRepairStatus,
   type RepairStatusItem,
   type RepairStatusSearchType,
 } from "~/lib/api";
+import { isAuthenticated } from "~/lib/auth-actions";
+import { useAuth } from "~/lib/auth-context";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -16,16 +19,104 @@ import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
+const RepairCards = component$<{ repairs: RepairStatusItem[] }>(({ repairs }) => {
+  const { locale } = useI18n();
+
+  return (
+    <div class="repair-status-results">
+      {repairs.map((repair) => (
+        <section key={repair.job_sheet_no} class="repair-status-card">
+          <header class="repair-status-card__head">
+            <h2>{repair.job_sheet_no}</h2>
+            {repair.status ? (
+              <span
+                class="repair-status-badge"
+                style={
+                  repair.status_color
+                    ? { backgroundColor: repair.status_color }
+                    : undefined
+                }
+              >
+                {repair.status}
+              </span>
+            ) : null}
+          </header>
+
+          <dl class="repair-status-meta">
+            {repair.brand ? (
+              <>
+                <dt>{tStatic(locale, "repair.brand")}</dt>
+                <dd>{repair.brand}</dd>
+              </>
+            ) : null}
+            {repair.device ? (
+              <>
+                <dt>{tStatic(locale, "repair.device")}</dt>
+                <dd>{repair.device}</dd>
+              </>
+            ) : null}
+            {repair.model ? (
+              <>
+                <dt>{tStatic(locale, "repair.model")}</dt>
+                <dd>{repair.model}</dd>
+              </>
+            ) : null}
+            {repair.serial_no ? (
+              <>
+                <dt>{tStatic(locale, "repair.serialNo")}</dt>
+                <dd>{repair.serial_no}</dd>
+              </>
+            ) : null}
+            {repair.due_date_label ? (
+              <>
+                <dt>{tStatic(locale, "repair.dueDate")}</dt>
+                <dd>{repair.due_date_label}</dd>
+              </>
+            ) : null}
+          </dl>
+
+          <h3 class="repair-status-activities-title">{tStatic(locale, "repair.activities")}</h3>
+          {repair.activities.length === 0 ? (
+            <p class="footer-muted">{tStatic(locale, "repair.noActivities")}</p>
+          ) : (
+            <ul class="repair-status-activities">
+              {repair.activities.map((activity, index) => (
+                <li key={`${repair.job_sheet_no}-${index}`}>
+                  <div class="repair-status-activity__when">
+                    {activity.date_label || activity.date}
+                  </div>
+                  <div class="repair-status-activity__action">{activity.action}</div>
+                  <div class="repair-status-activity__by">
+                    {tStatic(locale, "repair.by")}: {activity.by}
+                  </div>
+                  {activity.note ? (
+                    <div class="repair-status-activity__note">{activity.note}</div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+});
+
 export default component$(() => {
   const settings = useSiteSettings();
+  const auth = useAuth();
   const { locale } = useI18n();
   const pending = usePendingState();
   const submitting = useSignal(false);
   const repairs = useSignal<RepairStatusItem[]>([]);
   const searched = useSignal(false);
+  const myRepairs = useSignal<RepairStatusItem[]>([]);
+  const myRepairsLoaded = useSignal(false);
+  const myRepairsLoading = useSignal(false);
 
   const lookupEnabled = settings.value.repair?.lookup_enabled ?? true;
   const lookupByMobile = settings.value.repair?.lookup_by_mobile ?? true;
+  const signedIn = isAuthenticated(auth);
 
   const form = useStore({
     search_type: (lookupByMobile ? "mobile_num" : "job_sheet_no") as RepairStatusSearchType,
@@ -39,6 +130,37 @@ export default component$(() => {
       : form.search_type === "invoice_no"
         ? tStatic(locale, "repair.invoicePlaceholder")
         : tStatic(locale, "repair.mobilePlaceholder");
+
+  // Load signed-in customer's repairs once auth is ready.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async ({ track }) => {
+    track(() => auth.ready);
+    track(() => auth.token);
+    if (!auth.ready) {
+      return;
+    }
+    if (!auth.token) {
+      myRepairs.value = [];
+      myRepairsLoaded.value = true;
+      myRepairsLoading.value = false;
+      return;
+    }
+    if (!lookupEnabled) {
+      myRepairsLoaded.value = true;
+      return;
+    }
+
+    myRepairsLoading.value = true;
+    try {
+      const { data } = await fetchAccountRepairs(auth.token, locale);
+      myRepairs.value = data.repairs ?? [];
+    } catch {
+      myRepairs.value = [];
+    } finally {
+      myRepairsLoading.value = false;
+      myRepairsLoaded.value = true;
+    }
+  });
 
   const submit$ = $(async () => {
     if (!lookupEnabled) {
@@ -90,6 +212,24 @@ export default component$(() => {
 
       <h1 class="content-title">{tStatic(locale, "repair.title")}</h1>
       <p class="content-lead">{tStatic(locale, "repair.intro")}</p>
+
+      {lookupEnabled ? (
+        <section class="repair-status-mine" aria-live="polite">
+          <h2 class="repair-status-mine__title">{tStatic(locale, "repair.myRepairs")}</h2>
+          {!auth.ready || myRepairsLoading.value ? (
+            <p class="footer-muted">{tStatic(locale, "repair.loadingMine")}</p>
+          ) : !signedIn ? (
+            <p class="footer-muted">
+              {tStatic(locale, "repair.myRepairsSignIn")}{" "}
+              <Link href={localePath(locale, "/login")}>{tStatic(locale, "header.signIn")}</Link>
+            </p>
+          ) : myRepairsLoaded.value && myRepairs.value.length === 0 ? (
+            <p class="footer-muted">{tStatic(locale, "repair.myRepairsEmpty")}</p>
+          ) : myRepairs.value.length > 0 ? (
+            <RepairCards repairs={myRepairs.value} />
+          ) : null}
+        </section>
+      ) : null}
 
       <div class="repair-status-layout">
         <div class="repair-status-layout__form">
@@ -158,82 +298,7 @@ export default component$(() => {
           ) : null}
 
           {repairs.value.length > 0 ? (
-            <div class="repair-status-results">
-              {repairs.value.map((repair) => (
-                <section key={repair.job_sheet_no} class="repair-status-card">
-                  <header class="repair-status-card__head">
-                    <h2>{repair.job_sheet_no}</h2>
-                    {repair.status ? (
-                      <span
-                        class="repair-status-badge"
-                        style={
-                          repair.status_color
-                            ? { backgroundColor: repair.status_color }
-                            : undefined
-                        }
-                      >
-                        {repair.status}
-                      </span>
-                    ) : null}
-                  </header>
-
-                  <dl class="repair-status-meta">
-                    {repair.brand ? (
-                      <>
-                        <dt>{tStatic(locale, "repair.brand")}</dt>
-                        <dd>{repair.brand}</dd>
-                      </>
-                    ) : null}
-                    {repair.device ? (
-                      <>
-                        <dt>{tStatic(locale, "repair.device")}</dt>
-                        <dd>{repair.device}</dd>
-                      </>
-                    ) : null}
-                    {repair.model ? (
-                      <>
-                        <dt>{tStatic(locale, "repair.model")}</dt>
-                        <dd>{repair.model}</dd>
-                      </>
-                    ) : null}
-                    {repair.serial_no ? (
-                      <>
-                        <dt>{tStatic(locale, "repair.serialNo")}</dt>
-                        <dd>{repair.serial_no}</dd>
-                      </>
-                    ) : null}
-                    {repair.due_date_label ? (
-                      <>
-                        <dt>{tStatic(locale, "repair.dueDate")}</dt>
-                        <dd>{repair.due_date_label}</dd>
-                      </>
-                    ) : null}
-                  </dl>
-
-                  <h3 class="repair-status-activities-title">{tStatic(locale, "repair.activities")}</h3>
-                  {repair.activities.length === 0 ? (
-                    <p class="footer-muted">{tStatic(locale, "repair.noActivities")}</p>
-                  ) : (
-                    <ul class="repair-status-activities">
-                      {repair.activities.map((activity, index) => (
-                        <li key={`${repair.job_sheet_no}-${index}`}>
-                          <div class="repair-status-activity__when">
-                            {activity.date_label || activity.date}
-                          </div>
-                          <div class="repair-status-activity__action">{activity.action}</div>
-                          <div class="repair-status-activity__by">
-                            {tStatic(locale, "repair.by")}: {activity.by}
-                          </div>
-                          {activity.note ? (
-                            <div class="repair-status-activity__note">{activity.note}</div>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-              ))}
-            </div>
+            <RepairCards repairs={repairs.value} />
           ) : null}
         </div>
       </div>

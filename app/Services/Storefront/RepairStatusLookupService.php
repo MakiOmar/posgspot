@@ -113,6 +113,64 @@ class RepairStatusLookupService
     }
 
     /**
+     * Authenticated customer's repairs: job sheets on their contact id and any
+     * contacts sharing the same mobile (national-digit match).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function forContact(int $businessId, Contact $contact, string $locale = StorefrontLocale::DEFAULT): array
+    {
+        if (! $this->isAvailable($businessId)) {
+            return [];
+        }
+
+        $contactIds = [(int) $contact->id];
+        $mobile = trim((string) ($contact->mobile ?? ''));
+        if ($mobile !== '') {
+            $contactIds = array_values(array_unique(array_merge(
+                $contactIds,
+                $this->contactIdsMatchingMobile($businessId, $mobile)
+            )));
+        }
+
+        $previousLocale = app()->getLocale();
+        app()->setLocale($locale === 'ar' ? 'ar' : 'en');
+
+        try {
+            $rows = JobSheet::query()
+                ->where('repair_job_sheets.business_id', $businessId)
+                ->whereIn('repair_job_sheets.contact_id', $contactIds)
+                ->leftJoin('transactions', 'transactions.repair_job_sheet_id', '=', 'repair_job_sheets.id')
+                ->join('contacts', 'repair_job_sheets.contact_id', '=', 'contacts.id')
+                ->leftJoin('repair_statuses AS rs', 'repair_job_sheets.status_id', '=', 'rs.id')
+                ->leftJoin('brands AS b', 'repair_job_sheets.brand_id', '=', 'b.id')
+                ->leftJoin('repair_device_models as rdm', 'rdm.id', '=', 'repair_job_sheets.device_model_id')
+                ->leftJoin('categories as device', 'device.id', '=', 'repair_job_sheets.device_id')
+                ->select(
+                    'repair_job_sheets.*',
+                    'rs.name as repair_status',
+                    'rs.color as repair_status_color',
+                    'rdm.name as repair_model',
+                    'device.name as repair_device',
+                    'b.name as manufacturer'
+                )
+                ->groupBy('repair_job_sheets.id')
+                ->orderByDesc('repair_job_sheets.id')
+                ->limit(50)
+                ->get();
+
+            $results = [];
+            foreach ($rows as $row) {
+                $results[] = $this->formatJobSheet($row);
+            }
+
+            return $results;
+        } finally {
+            app()->setLocale($previousLocale);
+        }
+    }
+
+    /**
      * Match contacts whose mobile equals the search in any common local/international form.
      *
      * @return list<int>

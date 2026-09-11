@@ -1,32 +1,112 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { repairStatus } from "../src/lib/api";
+import { Link } from "expo-router";
+import { fetchAccountRepairs, repairStatus } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
 import { FormScrollView, PrimaryButton, Screen } from "../src/components/ui";
 
 type RepairRow = {
-  status?: string;
+  status?: string | null;
+  status_color?: string | null;
   job_sheet_no?: string;
   invoice_no?: string;
   customer_name?: string;
-  device?: string;
-  brand?: string;
-  model?: string;
+  device?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  serial_no?: string | null;
+  due_date_label?: string | null;
   estimated_delivery?: string;
   notes?: string;
+  activities?: Array<{
+    date?: string | null;
+    date_label?: string | null;
+    action?: string;
+    by?: string;
+    note?: string | null;
+  }>;
   [key: string]: unknown;
 };
 
+function RepairCard({
+  repair,
+  t,
+}: {
+  repair: RepairRow;
+  t: (key: string) => string;
+}) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>
+        {repair.job_sheet_no || repair.invoice_no || t("repair.result")}
+      </Text>
+      {repair.status ? (
+        <Text>
+          {t("repair.status")}: {repair.status}
+        </Text>
+      ) : null}
+      {repair.customer_name ? (
+        <Text>
+          {t("repair.customer")}: {repair.customer_name}
+        </Text>
+      ) : null}
+      {repair.device || repair.brand || repair.model ? (
+        <Text>
+          {t("repair.device")}:{" "}
+          {[repair.brand, repair.model, repair.device].filter(Boolean).join(" ")}
+        </Text>
+      ) : null}
+      {repair.serial_no ? (
+        <Text>
+          {t("repair.serialNo")}: {repair.serial_no}
+        </Text>
+      ) : null}
+      {repair.due_date_label || repair.estimated_delivery ? (
+        <Text>
+          {t("repair.eta")}: {repair.due_date_label || repair.estimated_delivery}
+        </Text>
+      ) : null}
+      {repair.notes ? <Text>{repair.notes}</Text> : null}
+      {(repair.activities || []).slice(0, 3).map((activity, index) => (
+        <Text key={`${repair.job_sheet_no}-a-${index}`} style={styles.activity}>
+          {activity.date_label || activity.date}: {activity.action}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 export default function RepairStatusScreen() {
-  const { t, settings, accent } = useApp();
+  const { t, settings, accent, token } = useApp();
   const [searchType, setSearchType] = useState<
     "job_sheet_no" | "invoice_no" | "mobile_num"
-  >("job_sheet_no");
+  >("mobile_num");
   const [searchNumber, setSearchNumber] = useState("");
   const [repairs, setRepairs] = useState<RepairRow[]>([]);
+  const [myRepairs, setMyRepairs] = useState<RepairRow[]>([]);
+  const [myLoaded, setMyLoaded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const loadMine = useCallback(() => {
+    if (!token) {
+      setMyRepairs([]);
+      setMyLoaded(true);
+      return;
+    }
+    setMyLoaded(false);
+    void fetchAccountRepairs(token)
+      .then(({ data }) => {
+        setMyRepairs(((data as { repairs?: RepairRow[] })?.repairs || []) as RepairRow[]);
+      })
+      .catch(() => setMyRepairs([]))
+      .finally(() => setMyLoaded(true));
+  }, [token]);
+
+  useEffect(() => {
+    loadMine();
+  }, [loadMine]);
 
   if (settings?.repair?.lookup_enabled === false) {
     return (
@@ -39,7 +119,7 @@ export default function RepairStatusScreen() {
   const types = [
     ["job_sheet_no", t("repair.jobSheet")] as const,
     ["invoice_no", t("repair.invoice")] as const,
-    ...(settings?.repair?.lookup_by_mobile
+    ...(settings?.repair?.lookup_by_mobile !== false
       ? ([["mobile_num", t("repair.mobile")]] as const)
       : []),
   ];
@@ -47,88 +127,82 @@ export default function RepairStatusScreen() {
   return (
     <Screen padded={false} avoidKeyboard={false}>
       <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
-      <View style={styles.typeRow}>
-        {types.map(([value, label]) => {
-          const active = searchType === value;
-          return (
-            <Pressable
-              key={value}
-              style={[
-                styles.chip,
-                active && { borderColor: accent, backgroundColor: "#fff8e8" },
-              ]}
-              onPress={() => setSearchType(value)}
-            >
-              <Text style={styles.chipText}>{label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-      <LabeledInput
-        label={t("repair.searchPlaceholder")}
-        value={searchNumber}
-        onChangeText={setSearchNumber}
-      />
-      <PrimaryButton
-        label={busy ? t("common.loading") : t("repair.lookup")}
-        disabled={busy || !searchNumber.trim()}
-        onPress={() => {
-          setBusy(true);
-          setMessage(null);
-          void repairStatus({
-            search_type: searchType,
-            search_number: searchNumber.trim(),
-          })
-            .then(({ data }) => {
-              const list =
-                (data as { repairs?: RepairRow[] })?.repairs || [];
-              setRepairs(list);
-              if (!list.length) {
-                setMessage(t("repair.empty"));
-              }
-            })
-            .catch((e) =>
-              setMessage(e instanceof Error ? e.message : t("common.error")),
-            )
-            .finally(() => setBusy(false));
-        }}
-      />
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-      {repairs.map((r, index) => (
-        <View key={`${r.job_sheet_no || index}`} style={styles.card}>
-          <Text style={styles.cardTitle}>
-            {r.job_sheet_no || r.invoice_no || t("repair.result")}
+        <Text style={styles.sectionTitle}>{t("repair.myRepairs")}</Text>
+        {!token ? (
+          <Text style={styles.message}>
+            {t("repair.myRepairsSignIn")}{" "}
+            <Link href="/login" style={{ color: accent, fontWeight: "700" }}>
+              {t("auth.signIn")}
+            </Link>
           </Text>
-          {r.status ? (
-            <Text>
-              {t("repair.status")}: {r.status}
-            </Text>
-          ) : null}
-          {r.customer_name ? (
-            <Text>
-              {t("repair.customer")}: {r.customer_name}
-            </Text>
-          ) : null}
-          {(r.device || r.brand || r.model) ? (
-            <Text>
-              {t("repair.device")}:{" "}
-              {[r.brand, r.model, r.device].filter(Boolean).join(" ")}
-            </Text>
-          ) : null}
-          {r.estimated_delivery ? (
-            <Text>
-              {t("repair.eta")}: {r.estimated_delivery}
-            </Text>
-          ) : null}
-          {r.notes ? <Text>{r.notes}</Text> : null}
+        ) : !myLoaded ? (
+          <Text style={styles.message}>{t("repair.loadingMine")}</Text>
+        ) : myRepairs.length === 0 ? (
+          <Text style={styles.message}>{t("repair.myRepairsEmpty")}</Text>
+        ) : (
+          myRepairs.map((r, index) => (
+            <RepairCard key={`mine-${r.job_sheet_no || index}`} repair={r} t={t} />
+          ))
+        )}
+
+        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("repair.lookup")}</Text>
+        <View style={styles.typeRow}>
+          {types.map(([value, label]) => {
+            const active = searchType === value;
+            return (
+              <Pressable
+                key={value}
+                style={[
+                  styles.chip,
+                  active && { borderColor: accent, backgroundColor: "#fff8e8" },
+                ]}
+                onPress={() => setSearchType(value)}
+              >
+                <Text style={styles.chipText}>{label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
-      ))}
+        <LabeledInput
+          label={t("repair.searchPlaceholder")}
+          value={searchNumber}
+          onChangeText={setSearchNumber}
+        />
+        <PrimaryButton
+          label={busy ? t("common.loading") : t("repair.lookup")}
+          disabled={busy || !searchNumber.trim()}
+          onPress={() => {
+            setBusy(true);
+            setMessage(null);
+            void repairStatus({
+              search_type: searchType,
+              search_number: searchNumber.trim(),
+            })
+              .then(({ data }) => {
+                const list =
+                  (data as { repairs?: RepairRow[] })?.repairs || [];
+                setRepairs(list);
+                if (!list.length) {
+                  setMessage(t("repair.empty"));
+                }
+              })
+              .catch((e) =>
+                setMessage(e instanceof Error ? e.message : t("common.error")),
+              )
+              .finally(() => setBusy(false));
+          }}
+        />
+        {message ? <Text style={styles.message}>{message}</Text> : null}
+        {repairs.map((r, index) => (
+          <RepairCard key={`search-${r.job_sheet_no || index}`} repair={r} t={t} />
+        ))}
       </FormScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  sectionTitle: { fontSize: 17, fontWeight: "800", marginBottom: 10 },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
   chip: {
     paddingHorizontal: 12,
@@ -139,7 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   chipText: { fontWeight: "600" },
-  message: { marginTop: 12, color: "#666" },
+  message: { marginTop: 8, marginBottom: 8, color: "#666", lineHeight: 20 },
   card: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -148,4 +222,5 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   cardTitle: { fontWeight: "800", fontSize: 16, marginBottom: 4 },
+  activity: { marginTop: 4, color: "#555", fontSize: 13 },
 });

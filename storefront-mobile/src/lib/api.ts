@@ -469,6 +469,14 @@ export function repairStatus(body: Record<string, unknown>) {
   });
 }
 
+export function fetchAccountRepairs(token: string) {
+  return storefrontFetch<{
+    repairs?: Array<Record<string, unknown>>;
+  }>("/account/repairs", {
+    headers: authHeaders(token),
+  });
+}
+
 export function registerDevice(
   token: string,
   payload: { platform: "ios" | "android"; token: string; locale?: string },

@@ -34,4 +34,10 @@ class RepairStatusApiTest extends TestCase
         $this->assertContains($response->status(), [404, 503]);
         $response->assertJsonPath('success', false);
     }
+
+    public function test_account_repairs_requires_auth(): void
+    {
+        $this->getJson('/api/storefront/v1/account/repairs')
+            ->assertStatus(401);
+    }
 }

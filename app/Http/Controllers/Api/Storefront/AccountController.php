@@ -8,7 +8,9 @@ use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\ContactDuplicateService;
 use App\Services\Storefront\PhoneValidationService;
+use App\Services\Storefront\RepairStatusLookupService;
 use App\Services\Storefront\RewardPointsService;
+use App\Support\StorefrontLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -20,7 +22,8 @@ class AccountController extends StorefrontController
         private CheckoutService $checkoutService,
         private RewardPointsService $rewardPointsService,
         private PhoneValidationService $phoneValidation,
-        private ContactDuplicateService $duplicates
+        private ContactDuplicateService $duplicates,
+        private RepairStatusLookupService $repairLookup
     ) {
     }
 
@@ -139,6 +142,26 @@ class AccountController extends StorefrontController
         );
 
         return $this->jsonSuccess($result['orders'], $result['meta']);
+    }
+
+    /**
+     * Job sheets for the signed-in customer (contact id + shared mobile match).
+     */
+    public function repairs(Request $request)
+    {
+        $businessId = $this->businessId($request);
+
+        if (! $this->repairLookup->isAvailable($businessId)) {
+            return $this->jsonError('Repair tracking is not available.', 503);
+        }
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $locale = StorefrontLocale::fromRequest($request);
+
+        return $this->jsonSuccess([
+            'repairs' => $this->repairLookup->forContact($businessId, $contact, $locale),
+        ]);
     }
 
     public function orderDetail(Request $request, int $orderId)

@@ -582,6 +582,17 @@ export function lookupRepairStatus(payload: RepairStatusLookupPayload, locale?: 
   );
 }
 
+/** Authenticated: repairs for the signed-in contact (phone + contact id). */
+export function fetchAccountRepairs(token: string, locale?: string) {
+  return storefrontFetch<{ repairs: RepairStatusItem[] }>(
+    "/account/repairs",
+    {
+      headers: authHeaders(token),
+    },
+    locale,
+  );
+}
+
 export function subscribeNewsletter(payload: { email: string; turnstile_token?: string }) {
   return storefrontFetch<{ status: string; message: string }>("/newsletter/subscribe", {
     method: "POST",

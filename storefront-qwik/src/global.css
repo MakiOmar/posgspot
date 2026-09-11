@@ -5834,6 +5834,18 @@ html:not([dir="rtl"]) .home-all-products-link::after {
   max-width: 40rem;
 }
 
+.repair-status-mine {
+  margin: 0 0 2rem;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--gs-border);
+}
+
+.repair-status-mine__title {
+  margin: 0 0 0.85rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
 .repair-status-layout {
   display: grid;
   gap: 1.5rem;

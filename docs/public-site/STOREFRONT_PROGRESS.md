@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-08 |
+| **Last updated** | 2026-09-11 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -48,7 +48,7 @@
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
-| Repair status lookup API | ✅ | `POST /repair/status`; settings `repair.*` flags; mobile match with/without country code |
+| Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
@@ -87,7 +87,7 @@
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
-| `/[lang]/repair-status` | ✅ | In-site lookup (job sheet / invoice / mobile); mobile number selected by default; placeholder follows search-by |
+| `/[lang]/repair-status` | ✅ | Guest lookup + signed-in “Your repairs” via `GET /account/repairs` (phone/contact); form still available |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
@@ -228,6 +228,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-11 | Repair status: signed-in `GET /account/repairs` (contact id + phone match); Qwik + mobile show “Your repairs” list. |
 | 2026-09-08 | About us team: photo cards from Storefront Settings → About team (`about.team` on `GET /settings`). |
 | 2026-09-07 | Homepage brand_slider display-only (no links to `/brands` or brand PLPs). |
 | 2026-09-05 | Mobile UX: main nav opens in a side drawer (like Categories); fixed bottom bar with Home, Cart, Wishlist, Profile. |

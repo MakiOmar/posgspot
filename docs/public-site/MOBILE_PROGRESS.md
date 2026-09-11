@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-07 |
+| **Last updated** | 2026-09-11 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Catalog search scope (products / games / gift cards) |
 
@@ -34,7 +34,7 @@
 | Wave 1 — Cart validate + coupons | Done |
 | Wave 1 — Checkout rates / pickup / digital / points / totals | Done |
 | Wave 2 — Profile, rewards, reorder/invoice, forgot/reset password | Done |
-| Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done |
+| Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`) |
 | Header nav drawer (menu + categories + language) | Done |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
@@ -93,5 +93,6 @@
 | 2026-07-26 | Keyboard-safe forms: FormScrollView + Screen avoider; Android resize; select-sheet KAV. |
 | 2026-07-26 | Keyboard Controller + aware scroll; auth shell collapses logo while typing. |
 | 2026-08-04 | Quality hardening: HTTPS API_BASE in release; SecureStore-only prod auth; 401-only session wipe; masked digital secrets; ProductGridScreen; account stack layout; home/PDP/checkout splits; fetch timeout; cart functional updaters. |
+| 2026-09-11 | Repair status: load signed-in repairs from `GET /account/repairs` (phone/contact); keep guest lookup form. |
 | 2026-09-07 | Search screen: products / games / gift cards type chips; digital hits via `GET /search?type=`; gift-cards `?q=` filter. |
 | 2026-09-07 | Brands: removed from mobile nav; home brand rail display-only (no PLP links). |
