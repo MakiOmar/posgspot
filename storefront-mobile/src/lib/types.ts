@@ -327,6 +327,21 @@ export interface DigitalSkus {
   gift_card?: DigitalPosSku | null;
 }
 
+/** Digital games catalog row (`GET /digital/games`). */
+export interface DigitalGameSummary {
+  id: number;
+  title?: string;
+  name?: string;
+  code?: string;
+  image_url?: string | null;
+  primary_price?: number | string | null;
+  secondary_price?: number | string | null;
+  primary_status?: boolean | number | null;
+  secondary_status?: boolean | number | null;
+  total_primary_stock?: number | string | null;
+  total_secondary_stock?: number | string | null;
+}
+
 export interface StoreLocation {
   id: number;
   name: string;

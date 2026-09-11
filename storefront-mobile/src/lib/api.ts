@@ -426,13 +426,22 @@ export function fetchDigitalGames(
   platform: "4" | "5" = "4",
   page = 1,
   locale?: ContentLocale,
+  q?: string,
 ) {
+  const qs = new URLSearchParams({
+    platform,
+    page: String(page),
+  });
+  const term = (q || "").trim();
+  if (term) {
+    qs.set("q", term);
+  }
   return storefrontFetch<{
     platform: string;
     skus: import("./types").DigitalSkus;
-    games: Array<{ id: number; title?: string; name?: string; [key: string]: unknown }>;
+    games: import("./types").DigitalGameSummary[];
     meta: { current_page: number; last_page: number; per_page: number; total: number | null };
-  }>(`/digital/games?platform=${platform}&page=${page}`, {}, locale);
+  }>(`/digital/games?${qs.toString()}`, {}, locale);
 }
 
 export function fetchDigitalGame(id: number, locale?: ContentLocale) {

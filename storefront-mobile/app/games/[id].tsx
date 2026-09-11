@@ -5,6 +5,7 @@ import {
   checkDigitalGameStock,
   fetchDigitalGame,
 } from "../../src/lib/api";
+import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import type { DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
@@ -16,6 +17,7 @@ import {
   Screen,
 } from "../../src/components/ui";
 import { toast } from "../../src/lib/toast";
+import { useRtl } from "../../src/lib/rtl";
 
 type Offer = "primary" | "secondary";
 type Platform = "4" | "5";
@@ -35,7 +37,8 @@ export default function GameDetailScreen() {
     platform?: string;
   }>();
   const platform: Platform = platformParam === "5" ? "5" : "4";
-  const { locale, t } = useApp();
+  const { locale, t, accent } = useApp();
+  const { textAlign, writingDirection } = useRtl();
   const { addItem } = useCart();
   const router = useRouter();
   const [game, setGame] = useState<Record<string, unknown> | null>(null);
@@ -78,10 +81,11 @@ export default function GameDetailScreen() {
   }
 
   const title = String(game.title || game.name || `Game #${id}`);
-  const image =
+  const imageRaw =
     platform === "5"
       ? String(game.ps5_image_url || game.image_url || "")
       : String(game.ps4_image_url || game.image_url || "");
+  const image = absoluteMediaUrl(imageRaw) || imageRaw;
 
   const primaryPrice = num(
     game[`ps${platform}_primary_price`] ??
@@ -188,18 +192,23 @@ export default function GameDetailScreen() {
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <RemoteImage uri={image} style={styles.image} />
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.meta}>
-          {t("digital.platformLabel")} PS{platform}
+        <RemoteImage uri={image} style={styles.image} contentFit="cover" />
+        <Text style={[styles.title, { textAlign, writingDirection }]}>
+          {title}
+        </Text>
+        <Text style={[styles.meta, { textAlign, writingDirection }]}>
+          {t("digital.platformLabel")} · PS{platform}
         </Text>
 
         {primaryOk && primaryPrice > 0 ? (
-          <View style={styles.offer}>
-            <Text style={styles.offerTitle}>
-              {t("digital.primary")} — {primaryPrice.toFixed(2)} EGP
+          <View style={[styles.offer, { borderColor: accent }]}>
+            <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
+              {t("digital.primary")}
             </Text>
-            <Text style={styles.meta}>
+            <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
+              {primaryPrice.toFixed(2)} EGP
+            </Text>
+            <Text style={[styles.meta, { textAlign }]}>
               {primaryInStock
                 ? t("catalog.inStock")
                 : t("catalog.outOfStock")}
@@ -218,10 +227,13 @@ export default function GameDetailScreen() {
 
         {secondaryOk && secondaryPrice > 0 ? (
           <View style={styles.offer}>
-            <Text style={styles.offerTitle}>
-              {t("digital.secondary")} — {secondaryPrice.toFixed(2)} EGP
+            <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
+              {t("digital.secondary")}
             </Text>
-            <Text style={styles.meta}>
+            <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
+              {secondaryPrice.toFixed(2)} EGP
+            </Text>
+            <Text style={[styles.meta, { textAlign }]}>
               {secondaryInStock
                 ? t("catalog.inStock")
                 : t("catalog.outOfStock")}
@@ -237,27 +249,35 @@ export default function GameDetailScreen() {
             />
           </View>
         ) : null}
+
+        {!primaryOk && !secondaryOk ? (
+          <Text style={[styles.meta, { textAlign }]}>
+            {t("digital.unavailable")}
+          </Text>
+        ) : null}
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  pad: { padding: 16, gap: 12 },
-  image: { width: "100%", height: 280, borderRadius: 12, backgroundColor: "#eee" },
-  placeholder: {
+  pad: { padding: 16, gap: 12, paddingBottom: 32 },
+  image: {
     width: "100%",
-    height: 200,
-    borderRadius: 12,
-    backgroundColor: "#e8e8e8",
+    height: 320,
+    borderRadius: 16,
+    backgroundColor: "#111",
   },
-  title: { fontSize: 22, fontWeight: "800" },
-  meta: { color: "#666" },
+  title: { fontSize: 24, fontWeight: "800", color: "#111" },
+  meta: { color: "#666", fontSize: 14 },
   offer: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 14,
+    padding: 16,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
-  offerTitle: { fontWeight: "700", fontSize: 16 },
+  offerTitle: { fontWeight: "800", fontSize: 16 },
+  offerPrice: { fontWeight: "800", fontSize: 20 },
 });

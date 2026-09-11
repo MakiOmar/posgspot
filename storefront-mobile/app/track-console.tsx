@@ -4,7 +4,12 @@ import { Link } from "expo-router";
 import { fetchAccountDeviceServices, trackDevice } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
-import { FormScrollView, PrimaryButton, Screen } from "../src/components/ui";
+import {
+  FormScrollView,
+  LoadingBlock,
+  PrimaryButton,
+  Screen,
+} from "../src/components/ui";
 
 type DeviceService = {
   id?: number | null;
@@ -33,7 +38,9 @@ function ServiceCard({
   const device =
     service.device_model?.full_name ||
     service.device_model?.name ||
-    [service.device_model?.brand, service.device_model?.name].filter(Boolean).join(" ");
+    [service.device_model?.brand, service.device_model?.name]
+      .filter(Boolean)
+      .join(" ");
 
   return (
     <View style={styles.card}>
@@ -42,7 +49,8 @@ function ServiceCard({
       </Text>
       {service.status_display || service.status ? (
         <Text>
-          {t("trackConsole.status")}: {service.status_display || service.status}
+          {t("trackConsole.status")}:{" "}
+          {service.status_display || service.status}
         </Text>
       ) : null}
       {device ? (
@@ -89,7 +97,8 @@ export default function TrackConsoleScreen() {
     void fetchAccountDeviceServices(token)
       .then(({ data }) => {
         setMyServices(
-          ((data as { services?: DeviceService[] })?.services || []) as DeviceService[],
+          ((data as { services?: DeviceService[] })?.services ||
+            []) as DeviceService[],
         );
       })
       .catch(() => setMyServices([]))
@@ -100,34 +109,44 @@ export default function TrackConsoleScreen() {
     loadMine();
   }, [loadMine]);
 
+  // Logged-in: auto-list only. Guests: phone form only.
+  if (token) {
+    return (
+      <Screen padded={false} avoidKeyboard={false}>
+        <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
+          <Text style={styles.sectionTitle}>{t("trackConsole.myServices")}</Text>
+          {!myLoaded ? (
+            <LoadingBlock />
+          ) : myServices.length === 0 ? (
+            <Text style={styles.message}>
+              {t("trackConsole.myServicesEmpty")}
+            </Text>
+          ) : (
+            myServices.map((service, index) => (
+              <ServiceCard
+                key={`mine-${service.tracking_code || service.id || index}`}
+                service={service}
+                t={t}
+              />
+            ))
+          )}
+        </FormScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen padded={false} avoidKeyboard={false}>
       <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
-        <Text style={styles.sectionTitle}>{t("trackConsole.myServices")}</Text>
-        {!token ? (
-          <Text style={styles.message}>
-            {t("trackConsole.myServicesSignIn")}{" "}
-            <Link href="/login" style={{ color: accent, fontWeight: "700" }}>
-              {t("auth.signIn")}
-            </Link>
-          </Text>
-        ) : !myLoaded ? (
-          <Text style={styles.message}>{t("trackConsole.loadingMine")}</Text>
-        ) : myServices.length === 0 ? (
-          <Text style={styles.message}>{t("trackConsole.myServicesEmpty")}</Text>
-        ) : (
-          myServices.map((service, index) => (
-            <ServiceCard
-              key={`mine-${service.tracking_code || service.id || index}`}
-              service={service}
-              t={t}
-            />
-          ))
-        )}
-
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
-          {t("trackConsole.lookup")}
+        <Text style={styles.lead}>{t("trackConsole.guestIntro")}</Text>
+        <Text style={styles.signInHint}>
+          {t("trackConsole.myServicesSignIn")}{" "}
+          <Link href="/login" style={{ color: accent, fontWeight: "700" }}>
+            {t("auth.signIn")}
+          </Link>
         </Text>
+
+        <Text style={styles.sectionTitle}>{t("trackConsole.lookup")}</Text>
         <LabeledInput
           label={t("trackConsole.phone")}
           value={phone}
@@ -171,6 +190,8 @@ export default function TrackConsoleScreen() {
 }
 
 const styles = StyleSheet.create({
+  lead: { color: "#555", lineHeight: 20, marginBottom: 8 },
+  signInHint: { color: "#666", marginBottom: 16, lineHeight: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "800", marginBottom: 10 },
   message: { marginTop: 8, marginBottom: 8, color: "#666", lineHeight: 20 },
   card: {

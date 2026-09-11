@@ -4,7 +4,12 @@ import { Link } from "expo-router";
 import { fetchAccountRepairs, repairStatus } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
-import { FormScrollView, PrimaryButton, Screen } from "../src/components/ui";
+import {
+  FormScrollView,
+  LoadingBlock,
+  PrimaryButton,
+  Screen,
+} from "../src/components/ui";
 
 type RepairRow = {
   status?: string | null;
@@ -98,7 +103,9 @@ export default function RepairStatusScreen() {
     setMyLoaded(false);
     void fetchAccountRepairs(token)
       .then(({ data }) => {
-        setMyRepairs(((data as { repairs?: RepairRow[] })?.repairs || []) as RepairRow[]);
+        setMyRepairs(
+          ((data as { repairs?: RepairRow[] })?.repairs || []) as RepairRow[],
+        );
       })
       .catch(() => setMyRepairs([]))
       .finally(() => setMyLoaded(true));
@@ -124,28 +131,42 @@ export default function RepairStatusScreen() {
       : []),
   ];
 
+  // Logged-in: auto-list only. Guests: lookup form only.
+  if (token) {
+    return (
+      <Screen padded={false} avoidKeyboard={false}>
+        <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
+          <Text style={styles.sectionTitle}>{t("repair.myRepairs")}</Text>
+          {!myLoaded ? (
+            <LoadingBlock />
+          ) : myRepairs.length === 0 ? (
+            <Text style={styles.message}>{t("repair.myRepairsEmpty")}</Text>
+          ) : (
+            myRepairs.map((r, index) => (
+              <RepairCard
+                key={`mine-${r.job_sheet_no || index}`}
+                repair={r}
+                t={t}
+              />
+            ))
+          )}
+        </FormScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen padded={false} avoidKeyboard={false}>
       <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
-        <Text style={styles.sectionTitle}>{t("repair.myRepairs")}</Text>
-        {!token ? (
-          <Text style={styles.message}>
-            {t("repair.myRepairsSignIn")}{" "}
-            <Link href="/login" style={{ color: accent, fontWeight: "700" }}>
-              {t("auth.signIn")}
-            </Link>
-          </Text>
-        ) : !myLoaded ? (
-          <Text style={styles.message}>{t("repair.loadingMine")}</Text>
-        ) : myRepairs.length === 0 ? (
-          <Text style={styles.message}>{t("repair.myRepairsEmpty")}</Text>
-        ) : (
-          myRepairs.map((r, index) => (
-            <RepairCard key={`mine-${r.job_sheet_no || index}`} repair={r} t={t} />
-          ))
-        )}
+        <Text style={styles.lead}>{t("repair.guestIntro")}</Text>
+        <Text style={styles.signInHint}>
+          {t("repair.myRepairsSignIn")}{" "}
+          <Link href="/login" style={{ color: accent, fontWeight: "700" }}>
+            {t("auth.signIn")}
+          </Link>
+        </Text>
 
-        <Text style={[styles.sectionTitle, { marginTop: 20 }]}>{t("repair.lookup")}</Text>
+        <Text style={styles.sectionTitle}>{t("repair.lookup")}</Text>
         <View style={styles.typeRow}>
           {types.map(([value, label]) => {
             const active = searchType === value;
@@ -194,7 +215,11 @@ export default function RepairStatusScreen() {
         />
         {message ? <Text style={styles.message}>{message}</Text> : null}
         {repairs.map((r, index) => (
-          <RepairCard key={`search-${r.job_sheet_no || index}`} repair={r} t={t} />
+          <RepairCard
+            key={`search-${r.job_sheet_no || index}`}
+            repair={r}
+            t={t}
+          />
         ))}
       </FormScrollView>
     </Screen>
@@ -202,6 +227,8 @@ export default function RepairStatusScreen() {
 }
 
 const styles = StyleSheet.create({
+  lead: { color: "#555", lineHeight: 20, marginBottom: 8 },
+  signInHint: { color: "#666", marginBottom: 16, lineHeight: 20 },
   sectionTitle: { fontSize: 17, fontWeight: "800", marginBottom: 10 },
   typeRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
   chip: {
