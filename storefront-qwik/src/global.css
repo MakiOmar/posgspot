@@ -4464,6 +4464,8 @@ body.is-globally-pending {
 
 .about-team-rail {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
@@ -4547,6 +4549,8 @@ body.is-globally-pending {
   color: #fff;
   display: inline-flex;
 }
+
+.about-team-follow > span {
   margin: 0;
   color: var(--gs-muted);
   font-size: 0.8125rem;
