@@ -2,6 +2,7 @@ import { component$, Slot } from "@builder.io/qwik";
 import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
+import { MobileBottomNav } from "~/components/layout/mobile-bottom-nav";
 import { CookieConsentBanner } from "~/components/layout/cookie-consent-banner";
 import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
 import {
@@ -168,6 +169,7 @@ export default component$(() => {
                   <Slot />
                 </main>
                 <SiteShellFooter />
+                <MobileBottomNav />
                 <CookieConsentBanner />
               </div>
             )}

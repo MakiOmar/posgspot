@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "GameSpotEG",
-    "slug": "games-spot",
+    "slug": "gamesspoteg",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -14,13 +14,17 @@
       "deploymentTarget": "16.6",
       "associatedDomains": [
         "applinks:shop.gamesspoteg.com",
+        "applinks:new.gamesspoteg.com",
+        "applinks:shop.gamesspoteg.com",
         "applinks:new.gamesspoteg.com"
       ],
       "infoPlist": {
         "UIBackgroundModes": [
+          "remote-notification",
           "remote-notification"
         ],
-        "CFBundleDisplayName": "GameSpotEG"
+        "CFBundleDisplayName": "GameSpotEG",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -116,9 +120,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "replace-with-eas-project-id"
-      }
+        "projectId": "1ebe2d25-4e07-4fe9-9e8f-b21fd0c8041e"
+      },
+      "router": {}
     },
-    "owner": "gamesspot"
+    "owner": "itqandeveg"
   }
 }

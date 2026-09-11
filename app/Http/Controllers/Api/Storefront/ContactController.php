@@ -50,12 +50,18 @@ class ContactController extends StorefrontController
         } catch (\Throwable $e) {
             Log::warning('Storefront contact form email failed.', [
                 'business_id' => $businessId,
+                'recipient' => $recipient,
                 'error' => $e->getMessage(),
             ]);
             report($e);
 
             return $this->jsonError('Could not send your message. Please try again later.', 503);
         }
+
+        Log::info('Storefront contact form email queued.', [
+            'business_id' => $businessId,
+            'recipient' => $recipient,
+        ]);
 
         return $this->jsonSuccess([
             'message' => 'Thank you. We received your message and will get back to you soon.',

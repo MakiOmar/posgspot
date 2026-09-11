@@ -51,7 +51,6 @@ export function buildMainNavLinks(
   }
 
   items.push(
-    { label: tStatic(lang, "nav.brands"), href: localePath(lang, "/brands") },
     { label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") },
     { label: tStatic(lang, "nav.trackRepairs"), href: localePath(lang, "/repair-status") },
     {

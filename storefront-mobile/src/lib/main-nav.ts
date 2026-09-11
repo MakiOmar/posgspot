@@ -42,7 +42,6 @@ export function buildMainNavLinks(
   }
 
   items.push(
-    { label: t(locale, "nav.brands"), href: "/brands" },
     { label: t(locale, "common.stores"), href: "/stores" },
     { label: t(locale, "common.repair"), href: "/repair-status" },
     {

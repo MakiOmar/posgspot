@@ -10,6 +10,7 @@ import { HeaderSearch } from "~/components/layout/header-search";
 import { HeaderWishlist } from "~/components/layout/header-wishlist";
 import { LanguageSwitcher } from "~/components/layout/language-switcher";
 import { MiniCart } from "~/components/layout/mini-cart";
+import { MobileNavDrawer } from "~/components/layout/mobile-nav-drawer";
 import { HeaderNavItems } from "~/components/content/content-blocks";
 import { accountDisplayName, isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
@@ -39,6 +40,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
     digitalEnabled: settings.digital?.enabled !== false,
   });
   const categoriesOpen = headerMenu.openId === "categories";
+  const mobileNavOpen = headerMenu.openId === "mobileNav";
 
   const phone = settings.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");
@@ -49,6 +51,14 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
   const toggleCategories$ = $(() => {
     toggleHeaderDropdown(headerMenu, "categories");
+  });
+
+  const closeMobileNav$ = $(() => {
+    closeHeaderDropdown(headerMenu, "mobileNav");
+  });
+
+  const toggleMobileNav$ = $(() => {
+    toggleHeaderDropdown(headerMenu, "mobileNav");
   });
 
   return (
@@ -84,14 +94,26 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 <button
                   type="button"
                   class="header-nav-categories"
-                  aria-expanded={categoriesOpen.value}
+                  aria-expanded={categoriesOpen}
                   aria-controls="categories-panel"
                   onClick$={toggleCategories$}
                 >
                   <MenuIcon size={18} />
                   <span>{tStatic(locale, "nav.categories")}</span>
                 </button>
-                <HeaderNavItems links={navLinks} linkClass="header-nav-link" />
+                <button
+                  type="button"
+                  class="header-nav-menu"
+                  aria-expanded={mobileNavOpen}
+                  aria-controls="mobile-nav-panel"
+                  onClick$={toggleMobileNav$}
+                >
+                  <MenuIcon size={18} />
+                  <span>{tStatic(locale, "nav.menu")}</span>
+                </button>
+                <div class="header-nav-links">
+                  <HeaderNavItems links={navLinks} linkClass="header-nav-link" />
+                </div>
               </nav>
             ) : null}
 
@@ -131,14 +153,26 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
               <button
                 type="button"
                 class="header-nav-categories"
-                aria-expanded={categoriesOpen.value}
+                aria-expanded={categoriesOpen}
                 aria-controls="categories-panel"
                 onClick$={toggleCategories$}
               >
                 <MenuIcon size={18} />
                 <span>{tStatic(locale, "nav.categories")}</span>
               </button>
-              <HeaderNavItems links={navLinks} linkClass="header-subnav-link" />
+              <button
+                type="button"
+                class="header-nav-menu"
+                aria-expanded={mobileNavOpen}
+                aria-controls="mobile-nav-panel"
+                onClick$={toggleMobileNav$}
+              >
+                <MenuIcon size={18} />
+                <span>{tStatic(locale, "nav.menu")}</span>
+              </button>
+              <div class="header-nav-links">
+                <HeaderNavItems links={navLinks} linkClass="header-subnav-link" />
+              </div>
             </div>
           </nav>
         ) : null}
@@ -148,6 +182,12 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
         categories={categories}
         open={categoriesOpen}
         onClose$={closeCategories$}
+      />
+
+      <MobileNavDrawer
+        links={navLinks}
+        open={mobileNavOpen}
+        onClose$={closeMobileNav$}
       />
     </>
   );

@@ -8,7 +8,14 @@ import {
 } from "@builder.io/qwik";
 
 /** Exclusive header overlays — opening one closes the others. */
-export type HeaderDropdownId = "search" | "lang" | "cart" | "nav" | "categories" | null;
+export type HeaderDropdownId =
+  | "search"
+  | "lang"
+  | "cart"
+  | "nav"
+  | "mobileNav"
+  | "categories"
+  | null;
 
 export interface HeaderDropdownState {
   openId: HeaderDropdownId;

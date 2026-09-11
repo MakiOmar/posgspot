@@ -17,39 +17,39 @@ export const CategoriesDrawer = component$<CategoriesDrawerProps>(
 
     return (
       <div
-        class={`categories-drawer${open ? " categories-drawer--open" : ""}`}
+        class={`side-drawer categories-drawer${open ? " side-drawer--open" : ""}`}
         aria-hidden={!open}
       >
         <button
           type="button"
-          class="categories-drawer-backdrop"
+          class="side-drawer-backdrop"
           aria-label={tStatic(locale, "common.cancel")}
           onClick$={onClose$}
         />
         <aside
           id="categories-panel"
-          class="categories-drawer-panel"
+          class="side-drawer-panel"
           role="dialog"
           aria-modal="true"
           aria-label={tStatic(locale, "nav.categories")}
         >
-          <div class="categories-drawer-head">
-            <h2 class="categories-drawer-title">{tStatic(locale, "nav.categories")}</h2>
+          <div class="side-drawer-head">
+            <h2 class="side-drawer-title">{tStatic(locale, "nav.categories")}</h2>
             <button
               type="button"
-              class="categories-drawer-close"
+              class="side-drawer-close"
               aria-label={tStatic(locale, "common.cancel")}
               onClick$={onClose$}
             >
               <CloseIcon size={22} />
             </button>
           </div>
-          <nav class="categories-drawer-nav" aria-label={tStatic(locale, "nav.categories")}>
-            <ul class="categories-drawer-list">
+          <nav class="side-drawer-nav" aria-label={tStatic(locale, "nav.categories")}>
+            <ul class="side-drawer-list">
               <li>
                 <Link
                   href={localePath(locale, "/products")}
-                  class="categories-drawer-link"
+                  class="side-drawer-link"
                   onClick$={onClose$}
                 >
                   {tStatic(locale, "footer.allProducts")}
@@ -63,7 +63,7 @@ export const CategoriesDrawer = component$<CategoriesDrawerProps>(
                         ? localePath(locale, `/category/${cat.slug}`)
                         : localePath(locale, `/products?category_id=${cat.id}`)
                     }
-                    class="categories-drawer-link"
+                    class="side-drawer-link"
                     onClick$={onClose$}
                   >
                     {cat.name}

@@ -239,7 +239,7 @@ When hovering a category with children:
 | **Autocomplete** | Phase 1: product name + SKU; digital types search Accounts games (both platforms) or gift-card categories |
 | **Results dropdown** | Up to 8 hits (image, name, price); stacks **above** the nav bar; "View all results" → dedicated search page |
 | **Exclusive menus** | Opening search, language, cart, categories, or a nav dropdown closes the others |
-| **Search page** | `/[lang]/search` — products: full grid, sort / in-stock filters, pagination (`GET /products?q=`). Games/gift cards: `/search` autocomplete API |
+| **Search page** | `/[lang]/search` — results only (no second search form; use header search). Products: sort / in-stock filters, pagination (`GET /products?q=`). Games/gift cards: `/search` autocomplete API |
 | **Empty state** | "No products found" + link to shop (or games / gift cards catalog) |
 | **Mobile** | Same header search; dedicated `/search` page for full results |
 

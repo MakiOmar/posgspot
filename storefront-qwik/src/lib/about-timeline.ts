@@ -25,20 +25,20 @@ export const ABOUT_TIMELINE: AboutTimelineEntry[] = [
     year: "2023",
     title: "New Cairo branch founded",
     text: "Each store reflects our commitment to bringing the gaming experience to life, offering a place where every visit feels like an adventure.",
-    image: "/NEW-CAIRO-BRUNCH.webp",
-    imageAlt: "Games Spot New Cairo branch",
   },
   {
     year: "2024",
     title: "Beverly Hills branch founded",
     text: "Designed with the gaming community in mind, each location offers a unique blend of modern aesthetics and nostalgic charm to create an inviting atmosphere.",
-    image: "/BEVERLLY-HILLS-BRUNCH.webp",
+    image: "/NEW-CAIRO-BRUNCH.webp",
     imageAlt: "Games Spot Beverly Hills branch",
   },
   {
     year: "2025",
     title: "El Shourouk branch founded",
     text: "We believe in giving each customer access to exceptional products that are expertly created to give only positive experiences.",
+    image: "/BEVERLLY-HILLS-BRUNCH.webp",
+    imageAlt: "Games Spot El Shourouk branch",
   },
   {
     year: "2026",

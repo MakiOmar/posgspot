@@ -23,6 +23,8 @@
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
 | M1 shop core (browse → COD checkout → orders) | Done |
 | Home section UI (hero, promos, shelves, rails) | Done |
+| Home brand rail display-only (no brand PLP links) | Done |
+| Brands removed from main nav drawer | Done |
 | Route map (`/products` index, stack headers, FlatList flex) | Done |
 | PDP id fallback (null catalog slugs) + storefront chrome header | Done |
 | Wishlist bottom tab + guest/auth wishlist context | Done |
@@ -92,3 +94,4 @@
 | 2026-07-26 | Keyboard Controller + aware scroll; auth shell collapses logo while typing. |
 | 2026-08-04 | Quality hardening: HTTPS API_BASE in release; SecureStore-only prod auth; 401-only session wipe; masked digital secrets; ProductGridScreen; account stack layout; home/PDP/checkout splits; fetch timeout; cart functional updaters. |
 | 2026-09-07 | Search screen: products / games / gift cards type chips; digital hits via `GET /search?type=`; gift-cards `?q=` filter. |
+| 2026-09-07 | Brands: removed from mobile nav; home brand rail display-only (no PLP links). |

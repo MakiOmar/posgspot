@@ -66,7 +66,6 @@ export function CategoryRail({ categories }: { categories: Category[] }) {
 
 export function BrandRail({ brands }: { brands: Brand[] }) {
   const { t } = useApp();
-  const router = useRouter();
   if (!brands.length) return null;
   return (
     <View style={styles.sectionBlock}>
@@ -79,11 +78,7 @@ export function BrandRail({ brands }: { brands: Brand[] }) {
         {brands.map((brand) => {
           const image = absoluteMediaUrl(brand.image_url);
           return (
-            <Pressable
-              key={brand.id}
-              style={styles.brandCard}
-              onPress={() => router.push(`/brands/${brand.slug}` as never)}
-            >
+            <View key={brand.id} style={styles.brandCard} accessibilityLabel={brand.name}>
               {image ? (
                 <RemoteImage
                   uri={image}
@@ -95,7 +90,7 @@ export function BrandRail({ brands }: { brands: Brand[] }) {
                   {brand.name}
                 </Text>
               )}
-            </Pressable>
+            </View>
           );
         })}
       </ScrollView>
