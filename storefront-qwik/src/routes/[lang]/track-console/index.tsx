@@ -155,8 +155,12 @@ export default component$(() => {
       </nav>
 
       <h1 class="content-title">{tStatic(locale, "trackConsole.title")}</h1>
-      <p class="content-lead">{tStatic(locale, "trackConsole.intro")}</p>
+      {/* Guest-only intro; signed-in customers see their list instead of lookup copy. */}
+      {auth.ready && !signedIn ? (
+        <p class="content-lead">{tStatic(locale, "trackConsole.intro")}</p>
+      ) : null}
 
+      {/* Signed-in: auto-list only. Wait for auth so the guest form does not flash. */}
       {signedIn || !auth.ready ? (
         <section class="repair-status-mine" aria-live="polite">
           <h2 class="repair-status-mine__title">{tStatic(locale, "trackConsole.myServices")}</h2>
@@ -170,13 +174,14 @@ export default component$(() => {
         </section>
       ) : null}
 
-      {/* Guests: phone form. Signed-in users can also look up another number. */}
-      {auth.ready && (!signedIn || myLoaded.value) ? (
+      {/* Guests only: phone lookup. */}
+      {auth.ready && !signedIn ? (
         <div class="repair-status-layout">
           <div class="repair-status-layout__form">
-            {signedIn ? (
-              <h2 class="repair-status-mine__title">{tStatic(locale, "trackConsole.lookupOther")}</h2>
-            ) : null}
+            <p class="footer-muted">
+              {tStatic(locale, "trackConsole.myServicesSignIn")}{" "}
+              <Link href={localePath(locale, "/login")}>{tStatic(locale, "header.signIn")}</Link>
+            </p>
             <form class="repair-status-form" preventdefault:submit onSubmit$={submit$}>
               <div>
                 <label for="track_console_phone">{tStatic(locale, "trackConsole.phone")}</label>

@@ -211,18 +211,17 @@ export default component$(() => {
       </nav>
 
       <h1 class="content-title">{tStatic(locale, "repair.title")}</h1>
-      <p class="content-lead">{tStatic(locale, "repair.intro")}</p>
+      {/* Guest-only intro; signed-in customers see their list instead of lookup copy. */}
+      {auth.ready && !signedIn ? (
+        <p class="content-lead">{tStatic(locale, "repair.intro")}</p>
+      ) : null}
 
-      {lookupEnabled ? (
+      {/* Signed-in: auto-list only. Wait for auth so the guest form does not flash. */}
+      {lookupEnabled && (signedIn || !auth.ready) ? (
         <section class="repair-status-mine" aria-live="polite">
           <h2 class="repair-status-mine__title">{tStatic(locale, "repair.myRepairs")}</h2>
           {!auth.ready || myRepairsLoading.value ? (
             <p class="footer-muted">{tStatic(locale, "repair.loadingMine")}</p>
-          ) : !signedIn ? (
-            <p class="footer-muted">
-              {tStatic(locale, "repair.myRepairsSignIn")}{" "}
-              <Link href={localePath(locale, "/login")}>{tStatic(locale, "header.signIn")}</Link>
-            </p>
           ) : myRepairsLoaded.value && myRepairs.value.length === 0 ? (
             <p class="footer-muted">{tStatic(locale, "repair.myRepairsEmpty")}</p>
           ) : myRepairs.value.length > 0 ? (
@@ -231,11 +230,18 @@ export default component$(() => {
         </section>
       ) : null}
 
-      <div class="repair-status-layout">
+      {/* Guests only: job sheet / invoice / mobile lookup. */}
+      {auth.ready && !signedIn ? (
+        <div class="repair-status-layout">
         <div class="repair-status-layout__form">
           {!lookupEnabled ? (
             <p class="footer-muted">{tStatic(locale, "repair.unavailable")}</p>
           ) : (
+            <>
+            <p class="footer-muted">
+              {tStatic(locale, "repair.myRepairsSignIn")}{" "}
+              <Link href={localePath(locale, "/login")}>{tStatic(locale, "header.signIn")}</Link>
+            </p>
             <form class="repair-status-form" preventdefault:submit onSubmit$={submit$}>
               {/* Default is mobile number when that lookup is enabled. */}
               <div>
@@ -289,6 +295,7 @@ export default component$(() => {
                 {submitting.value ? tStatic(locale, "repair.searching") : tStatic(locale, "repair.search")}
               </button>
             </form>
+            </>
           )}
         </div>
 
@@ -301,7 +308,8 @@ export default component$(() => {
             <RepairCards repairs={repairs.value} />
           ) : null}
         </div>
-      </div>
+        </div>
+      ) : null}
     </article>
   );
 });

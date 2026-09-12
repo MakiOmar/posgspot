@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-11 |
+| **Last updated** | 2026-09-12 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -88,8 +88,8 @@
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
-| `/[lang]/repair-status` | ✅ | Guest lookup + signed-in “Your repairs” via `GET /account/repairs` (phone/contact); form still available |
-| `/[lang]/track-console` | ✅ | Nav in-app (replaces external Accounts portal); signed-in auto via `GET /account/device-services`; guests `POST /device/track` phone form |
+| `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
+| `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
@@ -230,6 +230,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-12 | Repair status + track console: hide lookup forms for signed-in users (list only; guests keep the form). |
 | 2026-09-11 | Profile avatar API + Qwik/mobile UI; POS contact create/edit storefront password (hashed, revokes tokens). |
 | 2026-09-11 | Track console: in-app `/track-console` + `POST /device/track` / `GET /account/device-services` (Accounts Device Track proxy); nav no longer external. |
 | 2026-09-11 | Repair status: signed-in `GET /account/repairs` (contact id + phone match); Qwik + mobile show “Your repairs” list. |
