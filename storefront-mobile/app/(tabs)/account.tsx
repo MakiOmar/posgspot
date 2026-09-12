@@ -3,6 +3,7 @@ import { useRouter, type Href } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useApp } from "../../src/contexts/AppContext";
 import { AccountMenuRow } from "../../src/components/account/AccountMenuRow";
+import { RemoteImage } from "../../src/components/RemoteImage";
 import { PrimaryButton, Screen } from "../../src/components/ui";
 import { useRtl } from "../../src/lib/rtl";
 
@@ -52,7 +53,15 @@ export default function AccountScreen() {
           <>
             <View style={styles.avatarWrap}>
               <View style={[styles.avatar, { borderColor: accent }]}>
-                <Ionicons name="person" size={48} color={accent} />
+                {contact?.avatar_url ? (
+                  <RemoteImage
+                    uri={contact.avatar_url}
+                    style={styles.avatarImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <Ionicons name="person" size={48} color={accent} />
+                )}
               </View>
               <Text style={[styles.name, { textAlign, writingDirection }]}>
                 {displayName || contact?.email || t("nav.account")}
@@ -150,7 +159,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
+    overflow: "hidden",
   },
+  avatarImage: { width: 96, height: 96 },
   name: { fontSize: 22, fontWeight: "800", color: "#111" },
   hint: { color: "#888", marginTop: 6, marginBottom: 16 },
   langRow: { gap: 8, marginTop: 28, justifyContent: "center" },

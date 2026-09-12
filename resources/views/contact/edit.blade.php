@@ -159,6 +159,36 @@
                 </div>
             </div>
         </div>
+        <div class="clearfix"></div>
+        <div class="col-md-12">
+            <h4 style="margin-top: 8px; margin-bottom: 12px;">
+                <i class="fa fa-lock"></i> @lang('lang_v1.storefront_password')
+            </h4>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                {!! Form::label('storefront_password', __('lang_v1.storefront_password') . ':') !!}
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="fa fa-lock"></i>
+                    </span>
+                    {!! Form::password('storefront_password', ['class' => 'form-control', 'placeholder' => __('lang_v1.storefront_password'), 'autocomplete' => 'new-password']); !!}
+                </div>
+                <p class="help-block">@lang('lang_v1.storefront_password_help_edit')</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                {!! Form::label('storefront_password_confirmation', __('lang_v1.storefront_password_confirmation') . ':') !!}
+                <div class="input-group">
+                    <span class="input-group-addon">
+                        <i class="fa fa-lock"></i>
+                    </span>
+                    {!! Form::password('storefront_password_confirmation', ['class' => 'form-control', 'placeholder' => __('lang_v1.storefront_password_confirmation'), 'autocomplete' => 'new-password']); !!}
+                </div>
+            </div>
+        </div>
+        <div class="clearfix"></div>
 
         <div class="col-sm-4">
             <div class="form-group individual" @if($contact->contact_type == 'business') style="display: none;"  @endif>

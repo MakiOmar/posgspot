@@ -45,7 +45,7 @@
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
-| Account profile, address, orders | ✅ | Invoice print URL for paid orders |
+| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete |
 | Reward points API | ✅ | Balance + validate redeem |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
@@ -230,6 +230,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-11 | Profile avatar API + Qwik/mobile UI; POS contact create/edit storefront password (hashed, revokes tokens). |
 | 2026-09-11 | Track console: in-app `/track-console` + `POST /device/track` / `GET /account/device-services` (Accounts Device Track proxy); nav no longer external. |
 | 2026-09-11 | Repair status: signed-in `GET /account/repairs` (contact id + phone match); Qwik + mobile show “Your repairs” list. |
 | 2026-09-08 | About us team: photo cards from Storefront Settings → About team (`about.team` on `GET /settings`). |

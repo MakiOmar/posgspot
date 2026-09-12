@@ -22,6 +22,8 @@ use Illuminate\Http\Request;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ContactCreatedOrModified;
+use App\Services\Storefront\CustomerAuthService;
+use Illuminate\Validation\ValidationException;
 
 class ContactController extends Controller
 {
@@ -588,6 +590,13 @@ class ContactController extends Controller
                 return $this->moduleUtil->expiredResponse();
             }
 
+            $storefrontPassword = trim((string) $request->input('storefront_password', ''));
+            if ($storefrontPassword !== '') {
+                $request->validate([
+                    'storefront_password' => 'required|string|min:8|confirmed',
+                ]);
+            }
+
             $input = $request->only(['type', 'supplier_business_name',
                 'prefix', 'first_name', 'middle_name', 'last_name', 'tax_number', 'pay_term_number', 'pay_term_type', 'mobile', 'landline', 'alternate_number', 'city', 'state', 'country', 'address_line_1', 'address_line_2', 'customer_group_id', 'zip_code', 'contact_id', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'custom_field5', 'custom_field6', 'custom_field7', 'custom_field8', 'custom_field9', 'custom_field10', 'email', 'shipping_address', 'position', 'dob', 'shipping_custom_field_details', 'assigned_to_users', ]);
 
@@ -632,6 +641,10 @@ class ContactController extends Controller
 
             DB::beginTransaction();
             $output = $this->contactUtil->createNewContact($input);
+
+            if ($storefrontPassword !== '' && ! empty($output['data'])) {
+                app(CustomerAuthService::class)->setPassword($output['data'], $storefrontPassword, true);
+            }
 
             event(new ContactCreatedOrModified($input, 'added'));
 
@@ -679,6 +692,9 @@ class ContactController extends Controller
                 \Log::error('Error while syncing customer to WooCommerce: ' . $ex->getMessage());
             }
             DB::commit();
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
@@ -883,11 +899,24 @@ class ContactController extends Controller
                     return $this->moduleUtil->expiredResponse();
                 }
 
+                $storefrontPassword = trim((string) $request->input('storefront_password', ''));
+                if ($storefrontPassword !== '') {
+                    $request->validate([
+                        'storefront_password' => 'required|string|min:8|confirmed',
+                    ]);
+                }
+
                 $output = $this->contactUtil->updateContact($input, $id, $business_id);
+
+                if ($storefrontPassword !== '' && ! empty($output['data'])) {
+                    app(CustomerAuthService::class)->setPassword($output['data'], $storefrontPassword, true);
+                }
 
                 event(new ContactCreatedOrModified($output['data'], 'updated'));
 
                 $this->contactUtil->activityLog($output['data'], 'edited');
+            } catch (ValidationException $e) {
+                throw $e;
             } catch (\Exception $e) {
                 \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
 

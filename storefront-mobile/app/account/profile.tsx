@@ -7,14 +7,18 @@ import {
   View,
 } from "react-native";
 import { Redirect, useRouter, type Href } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import {
+  deleteProfileAvatar,
   fetchProfile,
   requestAccountDeletion,
   updateProfile,
+  uploadProfileAvatar,
 } from "../../src/lib/api";
 import { useApp } from "../../src/contexts/AppContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { PhoneInput } from "../../src/components/PhoneInput";
+import { RemoteImage } from "../../src/components/RemoteImage";
 import {
   ErrorBlock,
   FormScrollView,
@@ -45,8 +49,10 @@ export default function ProfileScreen() {
   const [fullPhone, setFullPhone] = useState("");
   const [emailVerified, setEmailVerified] = useState(true);
   const [deleteRequested, setDeleteRequested] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -66,6 +72,7 @@ export default function ProfileScreen() {
       setFullPhone(data.mobile || "");
       setEmailVerified(!!data.email_verified);
       setDeleteRequested(!!data.delete_requested);
+      setAvatarUrl(data.avatar_url || null);
       void updateContactLocal(data);
       setError(null);
     } catch (e) {
@@ -100,6 +107,97 @@ export default function ProfileScreen() {
         {error ? (
           <ErrorBlock message={error} onRetry={() => void load()} />
         ) : null}
+
+        <View style={styles.avatarBlock}>
+          <View style={[styles.avatarCircle, { borderColor: accent }]}>
+            {avatarUrl ? (
+              <RemoteImage
+                uri={avatarUrl}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={styles.avatarPlaceholder}>
+                {(firstName || email || "?").slice(0, 1).toUpperCase()}
+              </Text>
+            )}
+          </View>
+          <Pressable
+            disabled={avatarBusy}
+            onPress={() => {
+              void (async () => {
+                const permission =
+                  await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (!permission.granted) {
+                  toast.error(t("account.avatarPermission"));
+                  return;
+                }
+                const picked = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ["images"],
+                  allowsEditing: true,
+                  aspect: [1, 1],
+                  quality: 0.85,
+                });
+                if (picked.canceled || !picked.assets[0]?.uri) {
+                  return;
+                }
+                const asset = picked.assets[0];
+                const name =
+                  asset.fileName ||
+                  (asset.uri.toLowerCase().includes(".png")
+                    ? "avatar.png"
+                    : "avatar.jpg");
+                setAvatarBusy(true);
+                try {
+                  const { data } = await uploadProfileAvatar(
+                    token,
+                    asset.uri,
+                    name,
+                  );
+                  setAvatarUrl(data.avatar_url || null);
+                  await updateContactLocal(data);
+                  toast.success(t("account.avatarSaved"));
+                } catch (e) {
+                  toast.error(
+                    e instanceof Error ? e.message : t("account.avatarFailed"),
+                  );
+                } finally {
+                  setAvatarBusy(false);
+                }
+              })();
+            }}
+          >
+            <Text style={{ color: accent, fontWeight: "700" }}>
+              {avatarBusy ? t("common.loading") : t("account.changeAvatar")}
+            </Text>
+          </Pressable>
+          {avatarUrl ? (
+            <Pressable
+              disabled={avatarBusy}
+              onPress={() => {
+                void (async () => {
+                  setAvatarBusy(true);
+                  try {
+                    const { data } = await deleteProfileAvatar(token);
+                    setAvatarUrl(null);
+                    await updateContactLocal(data);
+                    toast.success(t("account.avatarRemoved"));
+                  } catch (e) {
+                    toast.error(
+                      e instanceof Error
+                        ? e.message
+                        : t("account.avatarFailed"),
+                    );
+                  } finally {
+                    setAvatarBusy(false);
+                  }
+                })();
+              }}
+            >
+              <Text style={styles.removeAvatar}>{t("account.removeAvatar")}</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
         <LabeledInput
           label={t("auth.firstName")}
@@ -245,6 +343,20 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   pad: { padding: 16, paddingBottom: 40 },
   lead: { color: "#888", marginBottom: 16 },
+  avatarBlock: { alignItems: "center", gap: 8, marginBottom: 20 },
+  avatarCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+  },
+  avatarImage: { width: 96, height: 96 },
+  avatarPlaceholder: { fontSize: 36, fontWeight: "800", color: "#999" },
+  removeAvatar: { color: "#888", marginTop: 4 },
   inlineField: { alignItems: "flex-end", gap: 8 },
   flex: { flex: 1 },
   inlineAction: { paddingBottom: 24, paddingHorizontal: 4 },

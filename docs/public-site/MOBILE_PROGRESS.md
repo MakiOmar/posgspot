@@ -34,6 +34,7 @@
 | Wave 1 — Cart validate + coupons | Done |
 | Wave 1 — Checkout rates / pickup / digital / points / totals | Done |
 | Wave 2 — Profile, rewards, reorder/invoice, forgot/reset password | Done |
+| Profile avatar upload + welcome/header display | Done |
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`; track-console in-app) |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
@@ -97,6 +98,6 @@
 | 2026-08-04 | Quality hardening: HTTPS API_BASE in release; SecureStore-only prod auth; 401-only session wipe; masked digital secrets; ProductGridScreen; account stack layout; home/PDP/checkout splits; fetch timeout; cart functional updaters. |
 | 2026-09-11 | Track console: in-app `/track-console` (signed-in auto + guest phone form); nav no longer opens external portal. |
 | 2026-09-11 | Repair status: load signed-in repairs from `GET /account/repairs` (phone/contact); keep guest lookup form. |
-| 2026-09-11 | Games catalog: image/price grid + search; repair/console show auto-list for signed-in and forms for guests only. |
+| 2026-09-11 | Customer profile avatar (`POST/DELETE /account/profile/avatar`, `avatar_url`); POS contact create/edit can set storefront password. |
 | 2026-09-07 | Search screen: products / games / gift cards type chips; digital hits via `GET /search?type=`; gift-cards `?q=` filter. |
 | 2026-09-07 | Brands: removed from mobile nav; home brand rail display-only (no PLP links). |

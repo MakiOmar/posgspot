@@ -62,6 +62,14 @@ class Contact extends Authenticatable
         return $this->belongsTo(\App\Business::class);
     }
 
+    /**
+     * Storefront / POS profile photo (one-to-one media, type profile_photo).
+     */
+    public function media()
+    {
+        return $this->morphOne(\App\Media::class, 'model');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('contacts.contact_status', 'active');

@@ -81,7 +81,7 @@ export async function storefrontFetch<T>(
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  if (options.body && !headers["Content-Type"]) {
+  if (options.body && !(options.body instanceof FormData) && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
@@ -461,6 +461,23 @@ export function updateProfile(
     method: "PUT",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
+  });
+}
+
+export function uploadProfileAvatar(token: string, file: File) {
+  const body = new FormData();
+  body.append("avatar", file);
+  return storefrontFetch<AuthContact>("/account/profile/avatar", {
+    method: "POST",
+    headers: authHeaders(token),
+    body,
+  });
+}
+
+export function deleteProfileAvatar(token: string) {
+  return storefrontFetch<AuthContact>("/account/profile/avatar", {
+    method: "DELETE",
+    headers: authHeaders(token),
   });
 }
 

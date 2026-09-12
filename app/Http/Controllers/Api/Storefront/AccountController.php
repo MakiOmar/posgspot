@@ -74,7 +74,29 @@ class AccountController extends StorefrontController
             $this->authService->issueEmailVerificationCode($contact->fresh(), true);
         }
 
-        return $this->jsonSuccess($this->authService->formatContact($contact->fresh()));
+        return $this->jsonSuccess($this->authService->formatContact($contact->fresh(['media'])));
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|file|image|mimes:jpeg,jpg,png,webp|max:2048',
+        ]);
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $updated = $this->authService->updateAvatar($contact, $request->file('avatar'));
+
+        return $this->jsonSuccess($this->authService->formatContact($updated));
+    }
+
+    public function deleteAvatar(Request $request)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $updated = $this->authService->deleteAvatar($contact);
+
+        return $this->jsonSuccess($this->authService->formatContact($updated));
     }
 
     public function updatePassword(Request $request)

@@ -106,6 +106,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::middleware('auth:sanctum')->prefix('account')->group(function () {
         Route::get('/profile', [AccountController::class, 'profile']);
         Route::put('/profile', [AccountController::class, 'updateProfile']);
+        Route::post('/profile/avatar', [AccountController::class, 'updateAvatar']);
+        Route::delete('/profile/avatar', [AccountController::class, 'deleteAvatar']);
         Route::put('/password', [AccountController::class, 'updatePassword']);
         Route::post('/delete-request', [AccountController::class, 'requestDeletion']);
         Route::put('/address', [AccountController::class, 'updateAddress']);

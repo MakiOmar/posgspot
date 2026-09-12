@@ -575,12 +575,15 @@ export interface AuthContact {
   last_name: string | null;
   email: string | null;
   mobile: string | null;
+  email_verified?: boolean;
+  delete_requested?: boolean;
   address_line_1: string | null;
   address_line_2: string | null;
   city: string | null;
   state: string | null;
   country: string | null;
   zip_code: string | null;
+  avatar_url?: string | null;
 }
 
 export interface AuthSession {

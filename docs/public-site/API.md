@@ -166,8 +166,10 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/account/profile` | Profile (`email_verified`, `delete_requested`, address fields) |
+| GET | `/account/profile` | Profile (`email_verified`, `delete_requested`, address fields, `avatar_url`) |
 | PUT | `/account/profile` | Update profile (changing email clears verification and sends a new OTP) |
+| POST | `/account/profile/avatar` | Upload profile photo — multipart field `avatar` (jpeg/png/webp, max 2MB). Replaces prior photo. Returns updated contact with `avatar_url` |
+| DELETE | `/account/profile/avatar` | Remove profile photo. Returns updated contact (`avatar_url` null) |
 | PUT | `/account/password` | Change password (`current_password`, `password`, `password_confirmation`). Revokes prior tokens; returns new `token` |
 | POST | `/account/delete-request` | Request account deletion (sets `storefront_delete_requested_at`; does not hard-delete) |
 | PUT | `/account/address` | Update single shipping address |

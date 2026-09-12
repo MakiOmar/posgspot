@@ -29,6 +29,7 @@ export interface AuthContact {
   state?: string;
   city?: string;
   zip_code?: string;
+  avatar_url?: string | null;
 }
 
 export interface AuthSession {

@@ -128,4 +128,55 @@ class CustomerAccountAuthTest extends TestCase
 
         $this->assertNotNull(Contact::find($contactId)->storefront_delete_requested_at);
     }
+
+    public function test_avatar_upload_replace_and_delete(): void
+    {
+        Mail::fake();
+
+        $email = 'avatar_'.uniqid().'@example.com';
+        $register = $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Avatar',
+            'email' => $email,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $token = $register->json('data.token');
+        $this->assertNull($register->json('data.contact.avatar_url'));
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('me.jpg', 120, 120);
+
+        $upload = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->post('/api/storefront/v1/account/profile/avatar', [
+                'avatar' => $file,
+            ], [
+                'Accept' => 'application/json',
+            ])
+            ->assertOk();
+
+        $avatarUrl = $upload->json('data.avatar_url');
+        $this->assertNotEmpty($avatarUrl);
+
+        $replace = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->post('/api/storefront/v1/account/profile/avatar', [
+                'avatar' => \Illuminate\Http\UploadedFile::fake()->image('me2.png', 80, 80),
+            ], [
+                'Accept' => 'application/json',
+            ])
+            ->assertOk();
+
+        $this->assertNotEmpty($replace->json('data.avatar_url'));
+        $this->assertSame(
+            1,
+            Contact::find((int) $register->json('data.contact.id'))->media()->count()
+        );
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/storefront/v1/account/profile/avatar')
+            ->assertOk()
+            ->assertJsonPath('data.avatar_url', null);
+
+        $this->getJson('/api/storefront/v1/account/profile/avatar')
+            ->assertUnauthorized();
+    }
 }

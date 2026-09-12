@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Contact;
 use App\Mail\StorefrontEmailVerification;
+use App\Media;
 use App\Utils\ContactUtil;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -180,15 +181,77 @@ class CustomerAuthService
             throw ValidationException::withMessages(['current_password' => ['Current password is incorrect.']]);
         }
 
-        $contact->password = Hash::make($newPassword);
-        $contact->save();
-        $contact->tokens()->delete();
+        $this->setPassword($contact, $newPassword, true);
 
         return $contact->createToken('storefront')->plainTextToken;
     }
 
+    /**
+     * Set (or replace) a contact's storefront password. Used by customer change/reset and POS.
+     */
+    public function setPassword(Contact $contact, string $plainPassword, bool $revokeTokens = true): void
+    {
+        $contact->password = Hash::make($plainPassword);
+        $contact->save();
+
+        if ($revokeTokens) {
+            $contact->tokens()->delete();
+        }
+    }
+
+    /**
+     * Upload or replace the contact profile photo. Field name must be `avatar`.
+     */
+    public function updateAvatar(Contact $contact, \Illuminate\Http\UploadedFile $file): Contact
+    {
+        $fileName = Media::uploadFile($file);
+        if (empty($fileName)) {
+            throw ValidationException::withMessages([
+                'avatar' => ['Could not store avatar. Check file size and type.'],
+            ]);
+        }
+
+        // Remove previous file from disk when replacing.
+        $existing = $contact->media;
+        if ($existing) {
+            $oldPath = public_path('uploads/media/'.$existing->file_name);
+            if (is_file($oldPath)) {
+                @unlink($oldPath);
+            }
+            $existing->delete();
+        }
+
+        $contact->media()->save(new Media([
+            'file_name' => $fileName,
+            'business_id' => $contact->business_id,
+            'uploaded_by' => null,
+            'model_media_type' => 'profile_photo',
+        ]));
+
+        return $contact->fresh(['media']);
+    }
+
+    public function deleteAvatar(Contact $contact): Contact
+    {
+        $existing = $contact->media;
+        if ($existing) {
+            Media::deleteMedia((int) $contact->business_id, $existing->id);
+        }
+
+        return $contact->fresh(['media']);
+    }
+
     public function formatContact(Contact $contact): array
     {
+        if (! $contact->relationLoaded('media')) {
+            $contact->load('media');
+        }
+
+        $avatarUrl = null;
+        if ($contact->media && ! empty($contact->media->file_name)) {
+            $avatarUrl = $contact->media->display_url;
+        }
+
         return [
             'id' => $contact->id,
             'name' => $contact->name,
@@ -204,6 +267,7 @@ class CustomerAuthService
             'state' => $contact->state,
             'country' => $contact->country,
             'zip_code' => $contact->zip_code,
+            'avatar_url' => $avatarUrl,
         ];
     }
 }

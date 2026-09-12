@@ -1,7 +1,13 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
-import { fetchPhoneCountries, updateAddress, updateProfile } from "~/lib/api";
+import {
+  deleteProfileAvatar,
+  fetchPhoneCountries,
+  updateAddress,
+  updateProfile,
+  uploadProfileAvatar,
+} from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { toastError, toastSuccess } from "~/lib/notify";
@@ -58,6 +64,7 @@ export default component$(() => {
   const phoneCountries = useProfilePhoneCountries();
   const form = useStore<ProfileForm>(formFromContact(null, "+20", ""));
   const saving = useSignal(false);
+  const avatarBusy = useSignal(false);
   const pending = usePendingState();
   const phoneReady = useSignal(false);
 
@@ -68,6 +75,42 @@ export default component$(() => {
     const parsed = parseFullPhone(auth.contact?.mobile || "", phoneCountries.value);
     Object.assign(form, formFromContact(auth.contact, parsed.dialCode, parsed.nationalNumber));
     phoneReady.value = true;
+  });
+
+  const onAvatarChange$ = $(async (_: Event, el: HTMLInputElement) => {
+    const token = auth.token;
+    const file = el.files?.[0];
+    if (!token || !file) {
+      return;
+    }
+    avatarBusy.value = true;
+    try {
+      const { data } = await uploadProfileAvatar(token, file);
+      auth.contact = data;
+      await toastSuccess(tStatic(locale, "account.avatarSaved"));
+    } catch {
+      await toastError(tStatic(locale, "account.avatarFailed"));
+    } finally {
+      avatarBusy.value = false;
+      el.value = "";
+    }
+  });
+
+  const removeAvatar$ = $(async () => {
+    const token = auth.token;
+    if (!token || !auth.contact?.avatar_url) {
+      return;
+    }
+    avatarBusy.value = true;
+    try {
+      const { data } = await deleteProfileAvatar(token);
+      auth.contact = data;
+      await toastSuccess(tStatic(locale, "account.avatarRemoved"));
+    } catch {
+      await toastError(tStatic(locale, "account.avatarFailed"));
+    } finally {
+      avatarBusy.value = false;
+    }
   });
 
   const save$ = $(async () => {
@@ -109,6 +152,46 @@ export default component$(() => {
   return (
     <div>
       <h1 class="page-title">{tStatic(locale, "account.profileAddress")}</h1>
+
+      <section class="account-avatar-panel" aria-label={tStatic(locale, "account.avatar")}>
+        <div class="account-avatar-panel__preview">
+          {auth.contact?.avatar_url ? (
+            <img
+              class="account-avatar-panel__img"
+              src={auth.contact.avatar_url}
+              alt=""
+              width={96}
+              height={96}
+            />
+          ) : (
+            <div class="account-avatar-panel__placeholder" aria-hidden="true" />
+          )}
+        </div>
+        <div class="account-avatar-panel__actions">
+          <label class="btn btn-secondary account-avatar-panel__upload">
+            {avatarBusy.value
+              ? tStatic(locale, "account.saving")
+              : tStatic(locale, "account.changeAvatar")}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={avatarBusy.value}
+              onChange$={onAvatarChange$}
+            />
+          </label>
+          {auth.contact?.avatar_url ? (
+            <button
+              type="button"
+              class="btn btn-link"
+              disabled={avatarBusy.value}
+              onClick$={removeAvatar$}
+            >
+              {tStatic(locale, "account.removeAvatar")}
+            </button>
+          ) : null}
+          <p class="footer-muted">{tStatic(locale, "account.avatarHint")}</p>
+        </div>
+      </section>
 
       <form preventdefault:submit onSubmit$={save$} class="account-form">
         <h2>{tStatic(locale, "account.personalDetails")}</h2>

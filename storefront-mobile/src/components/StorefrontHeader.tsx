@@ -7,6 +7,7 @@ import { useApp } from "../contexts/AppContext";
 import { useCart } from "../contexts/CartContext";
 import { useRtl } from "../lib/rtl";
 import { NavDrawer } from "./NavDrawer";
+import { RemoteImage } from "./RemoteImage";
 
 type Props = {
   /** Show search row (home / shop). */
@@ -28,19 +29,28 @@ export function StorefrontHeader({
 }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, settings, accent, displayName, token } = useApp();
+  const { t, settings, accent, displayName, token, contact } = useApp();
   const { count } = useCart();
   const { row, textAlign, writingDirection, end } = useRtl();
   const [menuOpen, setMenuOpen] = useState(false);
   const brand = settings?.business_name || "Games Spot";
   const welcomeName = token && displayName ? displayName : brand;
+  const avatarUrl = token ? contact?.avatar_url : null;
 
   return (
     <View style={[styles.wrap, { paddingTop: Math.max(insets.top, 8) }]}>
       <View style={[styles.topRow, { flexDirection: row }]}>
         <View style={[styles.brandBlock, { flexDirection: row }]}>
           <View style={[styles.avatar, { backgroundColor: accent }]}>
-            <FontAwesome name="gamepad" size={18} color="#111" />
+            {avatarUrl ? (
+              <RemoteImage
+                uri={avatarUrl}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
+            ) : (
+              <FontAwesome name="gamepad" size={18} color="#111" />
+            )}
           </View>
           <View style={styles.brandText}>
             <Text style={[styles.welcome, { textAlign, writingDirection }]}>
@@ -152,7 +162,9 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
+  avatarImage: { width: 42, height: 42 },
   brandText: { flex: 1 },
   welcome: { fontSize: 12, color: "#888", marginBottom: 2 },
   brand: { fontSize: 18, fontWeight: "800", color: "#111" },

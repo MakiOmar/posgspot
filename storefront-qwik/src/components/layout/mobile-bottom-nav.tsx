@@ -86,7 +86,17 @@ export const MobileBottomNav = component$(() => {
         aria-current={profileActive ? "page" : undefined}
       >
         <span class="mobile-bottom-nav__icon">
-          <UserIcon size={22} />
+          {signedIn && auth.contact?.avatar_url ? (
+            <img
+              class="mobile-bottom-nav__avatar"
+              src={auth.contact.avatar_url}
+              alt=""
+              width={22}
+              height={22}
+            />
+          ) : (
+            <UserIcon size={22} />
+          )}
         </span>
         <span class="mobile-bottom-nav__label">
           {signedIn

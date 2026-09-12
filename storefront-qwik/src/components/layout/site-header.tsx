@@ -136,7 +136,17 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 class="action-link"
                 aria-label={signedIn ? tStatic(locale, "header.myAccount") : tStatic(locale, "header.signIn")}
               >
-                <UserIcon size={22} />
+                {signedIn && auth.contact?.avatar_url ? (
+                  <img
+                    class="header-account-avatar"
+                    src={auth.contact.avatar_url}
+                    alt=""
+                    width={22}
+                    height={22}
+                  />
+                ) : (
+                  <UserIcon size={22} />
+                )}
                 <span class="action-text">
                   {signedIn ? accountDisplayName(auth) : tStatic(locale, "header.signIn")}
                 </span>
