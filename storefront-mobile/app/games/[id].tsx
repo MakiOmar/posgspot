@@ -16,20 +16,18 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
+import {
+  digitalOfferEnabled,
+  digitalOfferInStock,
+  digitalOfferPrice,
+  digitalOfferStock,
+  liveCheckStockIsOut,
+} from "../../src/lib/digital-game";
 import { toast } from "../../src/lib/toast";
 import { useRtl } from "../../src/lib/rtl";
 
 type Offer = "primary" | "secondary";
 type Platform = "4" | "5";
-
-function num(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function boolish(value: unknown): boolean {
-  return value === true || value === 1 || value === "1";
-}
 
 export default function GameDetailScreen() {
   const { id, platform: platformParam } = useLocalSearchParams<{
@@ -87,35 +85,14 @@ export default function GameDetailScreen() {
       : String(game.ps4_image_url || game.image_url || "");
   const image = absoluteMediaUrl(imageRaw) || imageRaw;
 
-  const primaryPrice = num(
-    game[`ps${platform}_primary_price`] ??
-      game.primary_price ??
-      game.ps4_primary_price,
-  );
-  const secondaryPrice = num(
-    game[`ps${platform}_secondary_price`] ??
-      game.secondary_price ??
-      game.ps4_secondary_price,
-  );
-  const primaryOk = boolish(
-    game[`ps${platform}_primary_status`] ?? game.primary_status,
-  );
-  const secondaryOk = boolish(
-    game[`ps${platform}_secondary_status`] ?? game.secondary_status,
-  );
-  const primaryStock = num(
-    game[`ps${platform}_primary_stock`] ??
-      game.total_primary_stock ??
-      game.ps4_primary_stock,
-  );
-  const secondaryStock = num(
-    game[`ps${platform}_secondary_stock`] ??
-      game.total_secondary_stock ??
-      game.ps4_secondary_stock,
-  );
-  const primaryInStock = primaryOk && primaryPrice > 0 && primaryStock > 0;
-  const secondaryInStock =
-    secondaryOk && secondaryPrice > 0 && secondaryStock > 0;
+  const primaryPrice = digitalOfferPrice(game, platform, "primary");
+  const secondaryPrice = digitalOfferPrice(game, platform, "secondary");
+  const primaryOk = digitalOfferEnabled(game, platform, "primary");
+  const secondaryOk = digitalOfferEnabled(game, platform, "secondary");
+  const primaryStock = digitalOfferStock(game, platform, "primary");
+  const secondaryStock = digitalOfferStock(game, platform, "secondary");
+  const primaryInStock = digitalOfferInStock(game, platform, "primary");
+  const secondaryInStock = digitalOfferInStock(game, platform, "secondary");
 
   const addOffer = async (offer: Offer) => {
     const sku = offer === "primary" ? skus?.primary : skus?.secondary;
@@ -149,11 +126,7 @@ export default function GameDetailScreen() {
         is_available?: boolean;
         stock?: number | string;
       };
-      const liveStock = Number(stockData?.stock ?? 0);
-      if (
-        stockData?.is_available === false ||
-        (Number.isFinite(liveStock) && liveStock <= 0)
-      ) {
+      if (liveCheckStockIsOut(stockData)) {
         toast.error(t("digital.outOfStock"));
         return;
       }

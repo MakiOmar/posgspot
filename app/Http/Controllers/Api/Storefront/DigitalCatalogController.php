@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Services\Storefront\DigitalCatalogService;
+use App\Services\Storefront\DigitalGameOffer;
 use Illuminate\Http\Request;
 
 /**
@@ -113,8 +114,7 @@ class DigitalCatalogController extends StorefrontController
         }
 
         $body = is_array($result['body'] ?? null) ? $result['body'] : [];
-        $available = ! empty($body['is_available']) || ((float) ($body['stock'] ?? 0) > 0);
-        if (! $available) {
+        if (! DigitalGameOffer::checkStockIndicatesAvailable($body)) {
             return $this->jsonError('This offer is out of stock.', 422);
         }
 

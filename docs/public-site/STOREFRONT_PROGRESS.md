@@ -51,7 +51,7 @@
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards; platform-strict list/PDP stock; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
@@ -91,7 +91,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
-| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); add primary/secondary → cart with digital meta |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); platform-strict stock; add primary/secondary → cart with digital meta; failed PDP shows retry (no silent redirect to list) |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Digital games: platform-strict stock (no PS4 fallback on PS5), check-stock ignores missing quantity, PDP no longer redirects to the list on load errors. |
 | 2026-09-14 | Fix empty cart after add: persist lines to localStorage on mutate (Qwik `track(cart.items)` missed `push`). |
 | 2026-09-14 | Verify-email auto-sends OTP; signed-in checkout requires email verification. |
 | 2026-09-14 | Account menus hide Orders and Reward Points; Credits & Coupons uses the Reward Points layout. |

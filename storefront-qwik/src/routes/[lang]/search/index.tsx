@@ -155,6 +155,7 @@ export default component$(() => {
                     key={`${hit.kind}-${hit.id}-${hit.platform || ""}`}
                     href={localePath(locale, hit.href || `/products/${hit.slug || hit.id}`)}
                     class="product-card digital-game-card"
+                    prefetch={false}
                   >
                     <div class="product-card__media digital-game-card__media">
                       {hit.image_url ? (

@@ -2,7 +2,15 @@ import { $, component$, useSignal } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
-import { checkDigitalGameStock, fetchDigitalGame } from "~/lib/api";
+import { ApiError, fetchDigitalGame, checkDigitalGameStock } from "~/lib/api";
+import {
+  digitalOfferEnabled,
+  digitalOfferInStock,
+  digitalOfferPrice,
+  digitalOfferStock,
+  liveCheckStockIsOut,
+  type DigitalPlatform,
+} from "~/lib/digital-game";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
@@ -10,36 +18,38 @@ import { localePath } from "~/lib/i18n/paths";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import type { CartItemDigital, DigitalPosSku } from "~/lib/types";
+import type { CartItemDigital, DigitalPosSku, DigitalSkus } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 type GameOffer = "primary" | "secondary";
 
-export const useGameDetail = routeLoader$(async ({ params, query, redirect }) => {
+const emptySkus: DigitalSkus = { primary: null, secondary: null, gift_card: null };
+
+export const useGameDetail = routeLoader$(async ({ params, query }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const id = Number(params.id);
-  const platform = (query.get("platform") === "5" ? "5" : "4") as "4" | "5";
+  const platform = (query.get("platform") === "5" ? "5" : "4") as DigitalPlatform;
 
   if (!Number.isFinite(id) || id <= 0) {
-    throw redirect(302, localePath(locale, "/games"));
+    return { ok: false as const, notFound: true, error: "invalid", platform, game: null, skus: emptySkus };
   }
 
   try {
     const { data } = await fetchDigitalGame(id, locale);
-    return { game: data.game as Record<string, unknown>, skus: data.skus, platform, ok: true as const };
-  } catch {
-    throw redirect(302, localePath(locale, "/games"));
+    return { ok: true as const, game: data.game as Record<string, unknown>, skus: data.skus, platform };
+  } catch (e) {
+    const status = e instanceof ApiError ? e.status : 0;
+    const message = e instanceof Error ? e.message : "Failed to load game";
+    return {
+      ok: false as const,
+      notFound: status === 404,
+      error: message,
+      platform,
+      game: null,
+      skus: emptySkus,
+    };
   }
 });
-
-function num(value: unknown): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function boolish(value: unknown): boolean {
-  return value === true || value === 1 || value === "1";
-}
 
 export default component$(() => {
   const detail = useGameDetail();
@@ -50,6 +60,40 @@ export default component$(() => {
   const lang = (loc.params.lang || "en") as "en" | "ar";
   const pending = useSignal<GameOffer | null>(null);
 
+  if (!detail.value.ok || !detail.value.game) {
+    return (
+      <article>
+        {/* Stay on this URL so a timeout is not mistaken for "the game list never left". */}
+        <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
+          <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
+          <span aria-hidden="true"> / </span>
+          <Link href={localePath(lang, "/games")}>{tStatic(lang, "nav.games")}</Link>
+        </nav>
+        <div class="empty-state" style={{ marginTop: "2rem" }}>
+          <p>
+            {detail.value.notFound
+              ? tStatic(lang, "digital.gameNotFound")
+              : tStatic(lang, "digital.gameLoadFailed")}
+          </p>
+          <p>
+            <Link href={localePath(lang, "/games")} class="btn btn-secondary">
+              {tStatic(lang, "nav.games")}
+            </Link>{" "}
+            {!detail.value.notFound ? (
+              <button
+                type="button"
+                class="btn btn-primary"
+                onClick$={() => nav(loc.url.pathname + loc.url.search)}
+              >
+                {tStatic(lang, "digital.retry")}
+              </button>
+            ) : null}
+          </p>
+        </div>
+      </article>
+    );
+  }
+
   const game = detail.value.game;
   const platform = detail.value.platform;
   const title = String(game.title ?? "");
@@ -58,25 +102,18 @@ export default component$(() => {
       ? String(game.ps5_image_url ?? game.image_url ?? "")
       : String(game.ps4_image_url ?? game.image_url ?? "");
 
-  const primaryPrice = num(
-    game[`ps${platform}_primary_price`] ?? game.primary_price ?? game.ps4_primary_price,
-  );
-  const secondaryPrice = num(
-    game[`ps${platform}_secondary_price`] ?? game.secondary_price ?? game.ps4_secondary_price,
-  );
-  const primaryOk = boolish(game[`ps${platform}_primary_status`] ?? game.primary_status);
-  const secondaryOk = boolish(game[`ps${platform}_secondary_status`] ?? game.secondary_status);
-  const primaryStock = num(
-    game[`ps${platform}_primary_stock`] ?? game.total_primary_stock ?? game.ps4_primary_stock,
-  );
-  const secondaryStock = num(
-    game[`ps${platform}_secondary_stock`] ?? game.total_secondary_stock ?? game.ps4_secondary_stock,
-  );
-  const primaryInStock = primaryOk && primaryPrice > 0 && primaryStock > 0;
-  const secondaryInStock = secondaryOk && secondaryPrice > 0 && secondaryStock > 0;
+  const primaryPrice = digitalOfferPrice(game, platform, "primary");
+  const secondaryPrice = digitalOfferPrice(game, platform, "secondary");
+  const primaryOk = digitalOfferEnabled(game, platform, "primary");
+  const secondaryOk = digitalOfferEnabled(game, platform, "secondary");
+  const primaryInStock = digitalOfferInStock(game, platform, "primary");
+  const secondaryInStock = digitalOfferInStock(game, platform, "secondary");
 
   const addOffer$ = $(async (offer: GameOffer) => {
     const gameData = detail.value.game;
+    if (!gameData) {
+      return;
+    }
     const plat = detail.value.platform;
     const sku: DigitalPosSku | null =
       offer === "primary" ? detail.value.skus.primary : detail.value.skus.secondary;
@@ -84,23 +121,9 @@ export default component$(() => {
       await toastError(tStatic(lang, "digital.skuMissing"));
       return;
     }
-    const price = num(
-      offer === "primary"
-        ? (gameData[`ps${plat}_primary_price`] ?? gameData.primary_price ?? gameData.ps4_primary_price)
-        : (gameData[`ps${plat}_secondary_price`] ?? gameData.secondary_price ?? gameData.ps4_secondary_price),
-    );
-    const stock = num(
-      offer === "primary"
-        ? (gameData[`ps${plat}_primary_stock`] ?? gameData.total_primary_stock ?? gameData.ps4_primary_stock)
-        : (gameData[`ps${plat}_secondary_stock`] ??
-          gameData.total_secondary_stock ??
-          gameData.ps4_secondary_stock),
-    );
-    const offerEnabled = boolish(
-      offer === "primary"
-        ? (gameData[`ps${plat}_primary_status`] ?? gameData.primary_status)
-        : (gameData[`ps${plat}_secondary_status`] ?? gameData.secondary_status),
-    );
+    const price = digitalOfferPrice(gameData, plat, offer);
+    const stock = digitalOfferStock(gameData, plat, offer);
+    const offerEnabled = digitalOfferEnabled(gameData, plat, offer);
     if (!offerEnabled || price <= 0) {
       await toastError(tStatic(lang, "digital.unavailable"));
       return;
@@ -124,8 +147,7 @@ export default component$(() => {
         platform: plat,
       });
       const stockData = stockCheck.data as { is_available?: boolean; stock?: number | string };
-      const liveStock = Number(stockData?.stock ?? 0);
-      if (stockData?.is_available === false || (Number.isFinite(liveStock) && liveStock <= 0)) {
+      if (liveCheckStockIsOut(stockData)) {
         await toastError(tStatic(lang, "digital.outOfStock"));
         return;
       }
@@ -255,12 +277,50 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
   const lang = resolveValue(useLangParam);
   const settings = resolveValue(useSiteSettings);
   const detail = resolveValue(useGameDetail);
+
+  if (!detail.ok || !detail.game) {
+    return withStorefrontThemeHead(
+      {
+        title: `${tStatic(lang, "digital.gamesTitle")} — ${settings.business_name}`,
+        meta: [
+          {
+            name: "description",
+            content: detail.notFound
+              ? tStatic(lang, "digital.gameNotFound")
+              : tStatic(lang, "digital.gameLoadFailed"),
+          },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+      },
+      settings,
+    );
+  }
+
   const title = String(detail.game.title ?? tStatic(lang, "nav.games"));
+  const description = tStatic(lang, "digital.gameDetailDescription", { title });
+  const image =
+    detail.platform === "5"
+      ? String(detail.game.ps5_image_url ?? detail.game.image_url ?? "")
+      : String(detail.game.ps4_image_url ?? detail.game.image_url ?? "");
+  const canonicalPath = `/games/${detail.game.id}`;
+  const pageUrl = `${url.origin.replace(/\/$/, "")}${localePath(lang, canonicalPath)}`;
+
   return withStorefrontThemeHead(
     {
       title: `${title} — ${settings.business_name}`,
-      meta: [{ name: "description", content: tStatic(lang, "digital.gameDetailDescription", { title }) }],
-      links: publicSeoLinks(url.origin, `/games/${detail.game.id}`, lang),
+      meta: [
+        { name: "description", content: description },
+        { property: "og:title", content: `${title} — ${settings.business_name}` },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: pageUrl },
+        ...(image ? [{ property: "og:image", content: image }] : []),
+        { name: "twitter:card", content: image ? "summary_large_image" : "summary" },
+        { name: "twitter:title", content: `${title} — ${settings.business_name}` },
+        { name: "twitter:description", content: description },
+        ...(image ? [{ name: "twitter:image", content: image }] : []),
+      ],
+      links: publicSeoLinks(url.origin, canonicalPath, lang),
     },
     settings,
   );

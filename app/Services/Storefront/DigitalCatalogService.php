@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Product;
 use App\Services\Storefront\Accounts\AccountsApiClient;
 use App\Variation;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Proxies Accounts digital catalog and maps lines to configured POS product/variation IDs.
@@ -240,7 +241,17 @@ class DigitalCatalogService
 
     public function getGame(int $businessId, int $gameId): array
     {
-        $result = $this->accounts->getGame($gameId);
+        $cacheKey = 'storefront.digital.game.'.$gameId;
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && ! empty($cached['success'])) {
+            $result = $cached;
+        } else {
+            $result = $this->accounts->getGame($gameId);
+            if (! empty($result['success'])) {
+                Cache::put($cacheKey, $result, now()->addSeconds(20));
+            }
+        }
+
         if (! $result['success']) {
             return ['success' => false, 'error' => $result['error'] ?? 'Game not found', 'status' => $result['status'] ?: 404];
         }
@@ -250,11 +261,14 @@ class DigitalCatalogService
         if (is_object($game)) {
             $game = (array) $game;
         }
-        if (is_array($game)) {
-            foreach (['image_url', 'ps4_image_url', 'ps5_image_url'] as $imageKey) {
-                if (! empty($game[$imageKey])) {
-                    $game[$imageKey] = $this->absoluteAccountsUrl((string) $game[$imageKey]);
-                }
+        if (! is_array($game)) {
+            $game = [];
+        }
+
+        $game = DigitalGameOffer::normalizeDetail($game);
+        foreach (['image_url', 'ps4_image_url', 'ps5_image_url'] as $imageKey) {
+            if (! empty($game[$imageKey])) {
+                $game[$imageKey] = $this->absoluteAccountsUrl((string) $game[$imageKey]);
             }
         }
 
@@ -435,6 +449,16 @@ class DigitalCatalogService
         $types = $game['types'] ?? [];
         $primary = is_array($types['primary'] ?? null) ? $types['primary'] : [];
         $secondary = is_array($types['secondary'] ?? null) ? $types['secondary'] : [];
+        [$primaryInStock, $primaryStock] = $this->listOfferAvailability(
+            $primary,
+            $game['primary_status'] ?? false,
+            $game['total_primary_stock'] ?? 0
+        );
+        [$secondaryInStock, $secondaryStock] = $this->listOfferAvailability(
+            $secondary,
+            $game['secondary_status'] ?? false,
+            $game['total_secondary_stock'] ?? 0
+        );
 
         return [
             'id' => (int) ($game['id'] ?? 0),
@@ -445,12 +469,26 @@ class DigitalCatalogService
             ),
             'primary_price' => $primary['price'] ?? ($game['primary_price'] ?? null),
             'secondary_price' => $secondary['price'] ?? ($game['secondary_price'] ?? null),
-            'primary_status' => ($primary['available'] ?? false) || ($game['primary_status'] ?? false),
-            'secondary_status' => ($secondary['available'] ?? false) || ($game['secondary_status'] ?? false),
-            'total_primary_stock' => $primary['stock'] ?? ($game['total_primary_stock'] ?? 0),
-            'total_secondary_stock' => $secondary['stock'] ?? ($game['total_secondary_stock'] ?? 0),
+            'primary_status' => $primaryInStock,
+            'secondary_status' => $secondaryInStock,
+            'total_primary_stock' => $primaryStock,
+            'total_secondary_stock' => $secondaryStock,
             'types' => $types,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $typeRow
+     * @return array{0: bool, 1: int}
+     */
+    private function listOfferAvailability(array $typeRow, mixed $fallbackStatus, mixed $fallbackStock): array
+    {
+        $stock = DigitalGameOffer::intish($typeRow['stock'] ?? $fallbackStock);
+        $available = array_key_exists('available', $typeRow)
+            ? ! empty($typeRow['available'])
+            : (bool) $fallbackStatus;
+
+        return [$available && $stock > 0, $stock];
     }
 
     /**

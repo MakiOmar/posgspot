@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, API_BASE, fetchDigitalGames } from "~/lib/api";
+import { digitalListGameInStock } from "~/lib/digital-game";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
@@ -154,11 +155,13 @@ export default component$(() => {
         <div class="product-grid digital-catalog__grid">
           {list.value.games.map((game) => {
             const price = Number(game.primary_price ?? game.secondary_price ?? 0);
+            const inStock = digitalListGameInStock(game);
             return (
               <Link
                 key={game.id}
                 href={localePath(lang, `/games/${game.id}?platform=${list.value.platform}`)}
                 class="product-card digital-game-card"
+                prefetch={false}
               >
                 <div class="product-card__media digital-game-card__media">
                   {game.image_url ? (
@@ -185,6 +188,9 @@ export default component$(() => {
                       {tStatic(lang, "digital.unavailable")}
                     </p>
                   )}
+                  <p class="footer-muted">
+                    {inStock ? tStatic(lang, "digital.inStock") : tStatic(lang, "digital.outOfStock")}
+                  </p>
                 </div>
               </Link>
             );
