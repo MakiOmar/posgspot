@@ -234,7 +234,7 @@
 
 | Date | Change |
 |------|--------|
-| 2026-09-14 | Geidea HPP payments: second storefront driver, admin test/live keys, Qwik checkout, mobile hosted WebView, mode-scoped webhook HMAC. |
+| 2026-09-14 | Fix empty cart after add: persist lines to localStorage on mutate (Qwik `track(cart.items)` missed `push`). |
 | 2026-09-14 | Verify-email auto-sends OTP; signed-in checkout requires email verification. |
 | 2026-09-14 | Account menus hide Orders and Reward Points; Credits & Coupons uses the Reward Points layout. |
 | 2026-09-14 | Consoles header item is a POS category dropdown (excludes digital games / gift cards). |

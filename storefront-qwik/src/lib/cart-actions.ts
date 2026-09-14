@@ -196,12 +196,37 @@ export const mergeCartItems = (left: CartItem[], right: CartItem[]): CartItem[] 
 
 /** Write cart lines to localStorage, removing the key when empty. */
 export const persistCartToStorage = (key: string, items: CartItem[]) => {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
   if (items.length === 0) {
     localStorage.removeItem(key);
     return;
   }
   localStorage.setItem(key, JSON.stringify(items));
 };
+
+/** Persist the active guest or signed-in cart immediately after a mutation. */
+export const persistCartState = (cart: CartState): void => {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  // Do not wipe a saved cart before the first localStorage read.
+  if (!cart.hydrated && cart.items.length === 0) {
+    return;
+  }
+  if (cart.mergedForContactId) {
+    persistCartToStorage(userCartStorageKey(cart.mergedForContactId), cart.items);
+    localStorage.removeItem(GUEST_CART_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_CART_STORAGE_KEY);
+    return;
+  }
+  persistCartToStorage(GUEST_CART_STORAGE_KEY, cart.items);
+};
+
+/** Trackable snapshot of line identity + qty (array push does not change `cart.items` reference). */
+export const cartItemsFingerprint = (items: CartItem[]): string =>
+  items.map((line) => `${cartLineKey(line)}:${line.quantity}`).join("|");
 
 /** Load guest cart, migrating legacy storage when present. */
 export const loadGuestCartFromStorage = (): CartItem[] => {
@@ -325,6 +350,8 @@ export const syncCartFromInspection = (
     }
   }
 
+  persistCartState(cart);
+
   return {
     removedCount,
     pricesChanged,
@@ -346,15 +373,19 @@ export const addCartItem = $((cart: CartState, item: CartItem) => {
       existing.digital = item.digital;
       existing.price = item.price;
       existing.name = item.name;
-      return;
+    } else {
+      existing.quantity += item.quantity;
     }
-    existing.quantity += item.quantity;
   } else {
-    cart.items.push({
-      ...item,
-      quantity: item.digital ? 1 : item.quantity,
-    });
+    cart.items = [
+      ...cart.items,
+      {
+        ...item,
+        quantity: item.digital ? 1 : item.quantity,
+      },
+    ];
   }
+  persistCartState(cart);
 });
 
 /** Add multiple lines (e.g. reorder); merges quantities for matching line keys. */
@@ -375,16 +406,21 @@ export const addCartItems = $((cart: CartState, items: CartItem[]) => {
         existing.quantity += item.quantity;
       }
     } else {
-      cart.items.push({
-        ...item,
-        quantity: item.digital ? 1 : item.quantity,
-      });
+      cart.items = [
+        ...cart.items,
+        {
+          ...item,
+          quantity: item.digital ? 1 : item.quantity,
+        },
+      ];
     }
   }
+  persistCartState(cart);
 });
 
 export const removeCartItem = $((cart: CartState, lineKey: string) => {
   cart.items = cart.items.filter((line) => cartLineKey(line) !== lineKey);
+  persistCartState(cart);
 });
 
 export const setCartQuantity = $((cart: CartState, lineKey: string, quantity: number) => {
@@ -397,6 +433,7 @@ export const setCartQuantity = $((cart: CartState, lineKey: string, quantity: nu
     if (quantity <= 0) {
       cart.items = cart.items.filter((entry) => cartLineKey(entry) !== lineKey);
     }
+    persistCartState(cart);
     return;
   }
   if (quantity <= 0) {
@@ -404,9 +441,11 @@ export const setCartQuantity = $((cart: CartState, lineKey: string, quantity: nu
   } else {
     line.quantity = quantity;
   }
+  persistCartState(cart);
 });
 
 export const clearCart = $((cart: CartState) => {
   cart.items = [];
   clearAppliedCoupon();
+  persistCartState(cart);
 });

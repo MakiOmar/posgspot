@@ -188,10 +188,31 @@ export default component$(() => {
     }
   });
 
+  if (!cart.hydrated) {
+    return (
+      <section>
+        <h1 class="page-title">{tStatic(locale, "cart.title")}</h1>
+        <p class="footer-muted cart-status" role="status">
+          {tStatic(locale, "cart.refreshing")}
+        </p>
+      </section>
+    );
+  }
+
   if (cart.items.length === 0) {
     return (
       <section>
         <h1 class="page-title">{tStatic(locale, "cart.title")}</h1>
+        {removedNotice.value ? (
+          <p class="alert alert-success" role="status">
+            {removedNotice.value}
+          </p>
+        ) : null}
+        {errorNotice.value ? (
+          <p class="alert alert-error" role="alert">
+            {errorNotice.value}
+          </p>
+        ) : null}
         <div class="empty-state">
           <p>{tStatic(locale, "cart.empty")}</p>
           <Link href={localePath(locale, "/products")} class="btn btn-primary">

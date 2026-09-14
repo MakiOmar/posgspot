@@ -10,13 +10,12 @@ import {
 import { useAuth } from "~/lib/auth-context";
 import { AUTH_STORAGE_KEY, type PersistedAuth } from "~/lib/auth-actions";
 import {
-  GUEST_CART_STORAGE_KEY,
-  LEGACY_CART_STORAGE_KEY,
+  cartItemsFingerprint,
   loadGuestCartFromStorage,
   mergeCartItems,
   mergeGuestCartForUser,
   parseStoredCart,
-  persistCartToStorage,
+  persistCartState,
   type CartState,
   userCartStorageKey,
 } from "~/lib/cart-actions";
@@ -32,6 +31,10 @@ export const CartProvider = component$(() => {
   // Hydrate cart from localStorage on the client only. When a session token is
   // cached, load the user cart immediately so persist cannot wipe it before merge.
   useVisibleTask$(() => {
+    if (cart.hydrated) {
+      return;
+    }
+
     let contactId: number | null = null;
     try {
       const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -43,6 +46,18 @@ export const CartProvider = component$(() => {
       }
     } catch {
       /* ignore corrupt auth storage */
+    }
+
+    // Keep lines added before this task ran; reloading storage would duplicate them.
+    if (cart.items.length > 0) {
+      if (contactId) {
+        const userItems = parseStoredCart(localStorage.getItem(userCartStorageKey(contactId)));
+        cart.items = mergeCartItems(userItems, cart.items);
+        cart.mergedForContactId = contactId;
+      }
+      cart.hydrated = true;
+      persistCartState(cart);
+      return;
     }
 
     if (contactId) {
@@ -82,7 +97,7 @@ export const CartProvider = component$(() => {
 
   // Persist cart to guest or user storage whenever lines or auth change.
   useVisibleTask$(({ track }) => {
-    track(() => cart.items);
+    track(() => cartItemsFingerprint(cart.items));
     track(() => auth.token);
     track(() => auth.contact?.id);
     track(() => auth.ready);
@@ -93,18 +108,7 @@ export const CartProvider = component$(() => {
       return;
     }
 
-    if (auth.token && auth.contact?.id) {
-      // Avoid writing an empty cart before login merge finishes on this session.
-      if (cart.mergedForContactId !== auth.contact.id) {
-        return;
-      }
-      persistCartToStorage(userCartStorageKey(auth.contact.id), cart.items);
-      localStorage.removeItem(GUEST_CART_STORAGE_KEY);
-      localStorage.removeItem(LEGACY_CART_STORAGE_KEY);
-      return;
-    }
-
-    persistCartToStorage(GUEST_CART_STORAGE_KEY, cart.items);
+    persistCartState(cart);
   });
 
   return <Slot />;
