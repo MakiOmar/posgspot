@@ -59,6 +59,8 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 4. Listen for SDK success/fail; Laravel **webhook** remains source of truth for `payment_status`.
 5. Optional `POST /payments/fawry/return` or `POST /payments/fawry/session` for recovery.
 
+Geidea as an additional provider (native RN SDK vs hosted-page fallback): [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
+
 ## Push devices
 
 | Method | Path | Auth |

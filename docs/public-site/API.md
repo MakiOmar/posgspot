@@ -110,6 +110,8 @@ Register Fawry webhook URL: `{APP_URL}/api/storefront/v1/payments/fawry/webhook`
 
 Configure merchant code + security key under **Storefront Settings → Payment gateway → FawryPay**.
 
+Adding another provider (e.g. **Geidea**) means a new driver in `config/storefront-payments.php` — the `/payments/{provider}/*` routes are provider-agnostic. Planning notes: [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
+
 ## Public endpoints
 
 | Method | Path | Description |
