@@ -220,4 +220,31 @@ class CustomerAccountAuthTest extends TestCase
             'password' => 'newpassword123',
         ])->assertOk();
     }
+
+    public function test_authenticated_unverified_customer_cannot_checkout(): void
+    {
+        Mail::fake();
+
+        $register = $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Unverified',
+            'email' => 'unverified_'.uniqid().'@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $token = $register->json('data.token');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/storefront/v1/checkout', [
+                'idempotency_key' => 'SF-UNVERIFIED-'.uniqid(),
+                'location_id' => 1,
+                'payment_method' => 'cod',
+                'items' => [
+                    ['variation_id' => 1, 'quantity' => 1],
+                ],
+                'shipping_rate_id' => 'placeholder',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['verification']);
+    }
 }

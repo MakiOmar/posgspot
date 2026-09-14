@@ -16,6 +16,7 @@ import { usePendingState } from "~/lib/pending-context";
 import type { AppliedCouponInfo, CheckoutOrder, RewardPointsBalance, ShippingRate } from "~/lib/types";
 import { parseFullPhone, validatePhone, type GeoState } from "~/lib/phone-validation";
 import { withPendingFeedback } from "~/lib/with-pending";
+import { needsEmailVerification } from "~/lib/verification";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 function normalizeCheckoutCountry(code: string | null | undefined): string {
@@ -61,6 +62,17 @@ export default component$(() => {
   const cart = useCart();
   const auth = useAuth();
   const pending = usePendingState();
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(({ track }) => {
+    track(() => auth.ready);
+    track(() => auth.contact?.email_verified);
+    if (!auth.ready || !auth.token || !needsEmailVerification(auth.contact)) {
+      return;
+    }
+    const email = encodeURIComponent(auth.contact?.email || "");
+    nav(localePath(locale, `/verify-email?email=${email}&next=/checkout`));
+  });
 
   const checkoutPhone = useStore({
     dialCode: "+20",
@@ -487,6 +499,11 @@ export default component$(() => {
         shipping_rate_id: shippingRateId.value,
         order_note: String(formData.get("order_note") || ""),
       };
+
+      if (auth.token && needsEmailVerification(auth.contact)) {
+        error.value = tStatic(locale, "checkout.verifyRequired");
+        return;
+      }
 
       if (!shippingRateId.value) {
         error.value = tStatic(locale, "checkout.selectShipping");

@@ -271,6 +271,7 @@
   },
   "checkout": {
     "title": "Checkout",
+    "verifyRequired": "Verify your email before placing an order.",
     "placeOrder": "Place order",
     "placingOrder": "Placing order…",
     "cod": "Cash on delivery",
@@ -428,7 +429,17 @@
     "updating": "Updating…",
     "updatePassword": "Update password",
     "invalidOrExpiredLink": "Invalid or expired reset link.",
-    "resetFailed": "Could not reset your password. Please try again."
+    "resetFailed": "Could not reset your password. Please try again.",
+    "verifyTitle": "Verify your email",
+    "verifyHint": "Enter the 6-digit code we sent to your email.",
+    "verifyCode": "Verification code",
+    "verify": "Verify",
+    "verifyFailed": "Could not verify that code. Try again.",
+    "resendCode": "Resend code",
+    "codeSent": "A new code was sent.",
+    "codeSending": "Sending a verification code…",
+    "codeSendFailed": "Could not send the verification email. Try again.",
+    "verified": "Email verified"
   },
   "account": {
     "dashboard": "My account",
@@ -436,6 +447,8 @@
     "profile": "Profile",
     "profileAddress": "Profile & address",
     "intro": "Manage your orders, profile and delivery address.",
+    "verifyEmail": "Verify email",
+    "verifyEmailHint": "Confirm your email to place orders.",
     "ordersCardDesc": "View your order history and status",
     "profileCardDesc": "Update your details and delivery address",
     "loginSecurity": "Login & Security",

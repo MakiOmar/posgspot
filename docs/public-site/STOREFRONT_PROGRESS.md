@@ -85,7 +85,7 @@
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts menu (methods / list by status / credits), orders, detail (+ reorder → cart), invoice print |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
@@ -232,6 +232,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Verify-email auto-sends OTP; signed-in checkout requires email verification. |
+| 2026-09-14 | Account menus hide Orders and Reward Points; Credits & Coupons uses the Reward Points layout. |
 | 2026-09-14 | Consoles header item is a POS category dropdown (excludes digital games / gift cards). |
 | 2026-09-14 | Payments & Payouts is a menu (not stacked hub tabs); payment statuses are tabs. |
 | 2026-09-14 | In-app password OTP; Login & Security; Payments & Payouts; coupon wallet APIs (`GET/POST /account/coupons`); orders `?payment_status=`. |

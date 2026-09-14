@@ -13,6 +13,7 @@ import type {
   UsedCoupon,
 } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
+import { RewardPointsPanel } from "../../../src/components/account/RewardPointsPanel";
 import { UnderlineTabs } from "../../../src/components/account/UnderlineTabs";
 import { LabeledInput } from "../../../src/components/LabeledInput";
 import {
@@ -21,12 +22,14 @@ import {
   PrimaryButton,
   Screen,
 } from "../../../src/components/ui";
+import { useRtl } from "../../../src/lib/rtl";
 import { toast } from "../../../src/lib/toast";
 
 type CouponSub = "add" | "unused" | "used";
 
 export default function CreditsCouponsScreen() {
-  const { token, t, settings } = useApp();
+  const { token, t } = useApp();
+  const { textAlign, writingDirection } = useRtl();
   const router = useRouter();
   const [couponSub, setCouponSub] = useState<CouponSub>("add");
   const [code, setCode] = useState("");
@@ -65,119 +68,150 @@ export default function CreditsCouponsScreen() {
     return <Redirect href="/login" />;
   }
 
+  if (loading) {
+    return (
+      <Screen>
+        <LoadingBlock />
+      </Screen>
+    );
+  }
+
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
-        {loading ? <LoadingBlock /> : null}
         {error ? <ErrorBlock message={error} onRetry={() => void load()} /> : null}
 
-        {rewards?.enabled !== false ? (
-          <View style={styles.card}>
-            <Text style={styles.title}>{t("account.rewardPoints")}</Text>
-            <Text style={styles.meta}>
-              {Number(
-                rewards?.available ?? rewards?.balance ?? rewards?.points ?? 0,
-              ).toFixed(1)}
-              {settings?.currency?.code ? ` · ${settings.currency.code}` : ""}
-            </Text>
+        <RewardPointsPanel data={rewards} />
+
+        <Text style={[styles.sectionTitle, { textAlign, writingDirection }]}>
+          {t("account.creditsCoupons")}
+        </Text>
+
+        <View style={styles.infoCard}>
+          <View style={styles.tabsBleed}>
+          <UnderlineTabs
+            value={couponSub}
+            onChange={setCouponSub}
+            items={[
+              { id: "add", label: t("account.couponAdd") },
+              { id: "unused", label: t("account.couponUnused") },
+              { id: "used", label: t("account.couponUsed") },
+            ]}
+          />
           </View>
-        ) : null}
 
-        <UnderlineTabs
-          value={couponSub}
-          onChange={setCouponSub}
-          items={[
-            { id: "add", label: t("account.couponAdd") },
-            { id: "unused", label: t("account.couponUnused") },
-            { id: "used", label: t("account.couponUsed") },
-          ]}
-        />
-
-        {couponSub === "add" ? (
-          <View style={styles.form}>
-            <LabeledInput
-              label={t("account.couponCode")}
-              value={code}
-              onChangeText={setCode}
-              autoCapitalize="characters"
-            />
-            <PrimaryButton
-              label={saving ? t("common.loading") : t("account.couponSave")}
-              disabled={saving}
-              onPress={() => {
-                const trimmed = code.trim();
-                if (!trimmed) return;
-                setSaving(true);
-                void saveAccountCoupon(token, trimmed)
-                  .then(() => {
-                    toast.success(t("account.couponSaved"));
-                    setCode("");
-                    setCouponSub("unused");
-                    void load();
-                  })
-                  .catch((e) =>
-                    toast.error(
-                      e instanceof Error ? e.message : t("common.error"),
-                    ),
-                  )
-                  .finally(() => setSaving(false));
-              }}
-            />
-          </View>
-        ) : null}
-
-        {couponSub === "unused"
-          ? unused.map((item) => (
-              <View key={item.id} style={styles.card}>
-                <Text style={styles.title}>{item.code}</Text>
-                <Text style={styles.meta}>{item.label || item.name || ""}</Text>
-              </View>
-            ))
-          : null}
-        {couponSub === "unused" && unused.length === 0 && !loading ? (
-          <Text style={styles.empty}>{t("account.couponEmptyUnused")}</Text>
-        ) : null}
-
-        {couponSub === "used"
-          ? used.map((item) => (
-              <Pressable
-                key={item.id}
-                style={styles.card}
+          {couponSub === "add" ? (
+            <View style={styles.form}>
+              <LabeledInput
+                label={t("account.couponCode")}
+                value={code}
+                onChangeText={setCode}
+                autoCapitalize="characters"
+              />
+              <PrimaryButton
+                label={saving ? t("common.loading") : t("account.couponSave")}
+                disabled={saving}
                 onPress={() => {
-                  if (item.order_id) {
-                    router.push(`/account/orders/${item.order_id}`);
-                  }
+                  const trimmed = code.trim();
+                  if (!trimmed) return;
+                  setSaving(true);
+                  void saveAccountCoupon(token, trimmed)
+                    .then(() => {
+                      toast.success(t("account.couponSaved"));
+                      setCode("");
+                      setCouponSub("unused");
+                      void load();
+                    })
+                    .catch((e) =>
+                      toast.error(
+                        e instanceof Error ? e.message : t("common.error"),
+                      ),
+                    )
+                    .finally(() => setSaving(false));
                 }}
-              >
-                <Text style={styles.title}>{item.code || "—"}</Text>
-                <Text style={styles.meta}>
-                  #{item.order_id}
-                  {item.discount_amount != null
-                    ? ` · ${t("account.couponSavedAmount")} ${Number(item.discount_amount).toFixed(2)}`
-                    : ""}
-                </Text>
-              </Pressable>
-            ))
-          : null}
-        {couponSub === "used" && used.length === 0 && !loading ? (
-          <Text style={styles.empty}>{t("account.couponEmptyUsed")}</Text>
-        ) : null}
+              />
+            </View>
+          ) : null}
+
+          {couponSub === "unused"
+            ? unused.map((item) => (
+                <View key={item.id} style={styles.couponRow}>
+                  <Text style={[styles.couponCode, { textAlign, writingDirection }]}>
+                    {item.code}
+                  </Text>
+                  {item.label || item.name ? (
+                    <Text style={[styles.couponMeta, { textAlign, writingDirection }]}>
+                      {item.label || item.name}
+                    </Text>
+                  ) : null}
+                </View>
+              ))
+            : null}
+          {couponSub === "unused" && unused.length === 0 ? (
+            <Text style={[styles.empty, { textAlign }]}>
+              {t("account.couponEmptyUnused")}
+            </Text>
+          ) : null}
+
+          {couponSub === "used"
+            ? used.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={styles.couponRow}
+                  onPress={() => {
+                    if (item.order_id) {
+                      router.push(`/account/orders/${item.order_id}`);
+                    }
+                  }}
+                >
+                  <Text style={[styles.couponCode, { textAlign, writingDirection }]}>
+                    {item.code || "—"}
+                  </Text>
+                  <Text style={[styles.couponMeta, { textAlign, writingDirection }]}>
+                    #{item.order_id}
+                    {item.discount_amount != null
+                      ? ` · ${t("account.couponSavedAmount")} ${Number(item.discount_amount).toFixed(2)}`
+                      : ""}
+                  </Text>
+                </Pressable>
+              ))
+            : null}
+          {couponSub === "used" && used.length === 0 ? (
+            <Text style={[styles.empty, { textAlign }]}>
+              {t("account.couponEmptyUsed")}
+            </Text>
+          ) : null}
+        </View>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  pad: { paddingBottom: 48 },
-  form: { padding: 16 },
-  card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginHorizontal: 16,
-    marginTop: 12,
+  pad: { padding: 16, paddingBottom: 40 },
+  sectionTitle: {
+    fontWeight: "800",
+    fontSize: 16,
+    marginTop: 28,
+    marginBottom: 12,
+    color: "#111",
   },
-  title: { fontWeight: "800", marginBottom: 4 },
-  meta: { color: "#555" },
-  empty: { textAlign: "center", color: "#666", marginTop: 24 },
+  infoCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#eee",
+    overflow: "hidden",
+  },
+  tabsBleed: { marginHorizontal: -18, marginTop: -6 },
+  form: { marginTop: 8, gap: 8 },
+  couponRow: {
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#eee",
+  },
+  couponCode: { fontWeight: "800", fontSize: 16, color: "#111" },
+  couponMeta: { color: "#555", marginTop: 4, lineHeight: 20 },
+  empty: { color: "#555", marginTop: 16, lineHeight: 20 },
 });

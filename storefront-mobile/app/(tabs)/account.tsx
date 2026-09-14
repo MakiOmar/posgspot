@@ -5,6 +5,7 @@ import { useApp } from "../../src/contexts/AppContext";
 import { AccountMenuRow } from "../../src/components/account/AccountMenuRow";
 import { RemoteImage } from "../../src/components/RemoteImage";
 import { PrimaryButton, Screen } from "../../src/components/ui";
+import { needsEmailVerification } from "../../src/lib/verification";
 import { useRtl } from "../../src/lib/rtl";
 
 export default function AccountScreen() {
@@ -17,11 +18,9 @@ export default function AccountScreen() {
     locale,
     setLocale,
     accent,
-    settings,
   } = useApp();
   const router = useRouter();
   const { row, textAlign, writingDirection } = useRtl();
-  const rewardsEnabled = settings?.reward_points?.enabled !== false;
 
   return (
     <Screen padded={false}>
@@ -66,7 +65,7 @@ export default function AccountScreen() {
               <Text style={[styles.name, { textAlign, writingDirection }]}>
                 {displayName || contact?.email || t("nav.account")}
               </Text>
-              {contact?.email_verified === false ? (
+              {needsEmailVerification(contact) ? (
                 <Pressable
                   onPress={() =>
                     router.push({
@@ -102,23 +101,12 @@ export default function AccountScreen() {
               label={t("account.myAddresses")}
               onPress={() => router.push("/account/address" as unknown as Href)}
             />
-            <AccountMenuRow
-              icon="document-text-outline"
-              label={t("account.orders")}
-              onPress={() => router.push("/account/orders")}
-            />
+            {/* Orders + Reward Points screens stay registered; hidden from this menu. */}
             <AccountMenuRow
               icon="heart-outline"
               label={t("account.wishlist")}
               onPress={() => router.push("/(tabs)/wishlist")}
             />
-            {rewardsEnabled ? (
-              <AccountMenuRow
-                icon="star-outline"
-                label={t("account.rewardPoints")}
-                onPress={() => router.push("/account/rewards" as unknown as Href)}
-              />
-            ) : null}
             <AccountMenuRow
               icon="log-out-outline"
               label={t("account.logout")}

@@ -77,6 +77,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Verify-email sends a code on open; checkout blocked until email is verified. |
+| 2026-09-14 | Account menu hides Orders and Reward Points; Credits & Coupons matches the Reward Points page. |
 | 2026-09-14 | Consoles menu is a category dropdown (excludes digital games); bottom tab is Shop. |
 | 2026-09-14 | Payments hub is a vertical icon menu; payment statuses are underline tabs; login Passkey tab; sign-out keeps an enabled passkey. |
 | 2026-09-14 | App name Games Spot; EN/AR header chrome; local Egypt phone parse; Contact dropdown; in-app OTP reset; Login & Security passkey; Payments & Payouts + coupon wallet. |

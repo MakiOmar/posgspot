@@ -89,7 +89,7 @@ export default component$(() => {
         succeeded.value = true;
         auth.token = data.token;
         auth.contact = data.contact;
-        await nav(accountPath);
+        await nav(localePath(locale, "/verify-email?next=/account"));
       } catch (e) {
         if (e instanceof ApiError && e.errors) {
           const first = Object.values(e.errors)[0]?.[0];

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Text, Pressable, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import {
   resendEmailVerification,
   verifyEmail,
@@ -18,12 +18,42 @@ import { toast } from "../src/lib/toast";
 export default function VerifyEmailScreen() {
   const { t, token, contact, updateContactLocal, accent } = useApp();
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; next?: string }>();
   const { textAlign, writingDirection } = useRtl();
   const email = (params.email || contact?.email || "").toString();
+  const nextHref = (params.next || "/(tabs)/account").toString();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sentOnce = useRef(false);
+
+  const sendCode = (showToast: boolean) => {
+    if (!email && !token) {
+      return;
+    }
+    setSending(true);
+    void resendEmailVerification({ email: email || undefined }, token)
+      .then(() => {
+        if (showToast) {
+          toast.success(t("auth.codeSent"));
+        }
+      })
+      .catch((e) =>
+        toast.error(e instanceof Error ? e.message : t("auth.codeSendFailed")),
+      )
+      .finally(() => setSending(false));
+  };
+
+  useEffect(() => {
+    if (sentOnce.current) {
+      return;
+    }
+    sentOnce.current = true;
+    sendCode(true);
+    // Send once when the screen opens so "Verify email" actually emails a code.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AuthScreenShell
@@ -46,7 +76,7 @@ export default function VerifyEmailScreen() {
         editable={false}
       />
       <Text style={[styles.hint, { textAlign, writingDirection }]}>
-        {t("auth.verifyHint")}
+        {sending ? t("auth.codeSending") : t("auth.verifyHint")}
       </Text>
       <LabeledInput
         label={t("auth.verifyCode")}
@@ -69,7 +99,7 @@ export default function VerifyEmailScreen() {
                 await updateContactLocal(data.contact);
               }
               toast.success(t("auth.verified"));
-              router.replace("/(tabs)/account");
+              router.replace(nextHref as Href);
             })
             .catch((e) =>
               setError(e instanceof Error ? e.message : t("common.error")),
@@ -78,24 +108,14 @@ export default function VerifyEmailScreen() {
         }}
       />
       <View style={{ height: 14 }} />
-      <Pressable
-        onPress={() => {
-          void resendEmailVerification({ email: email || undefined }, token)
-            .then(() => toast.success(t("auth.codeSent")))
-            .catch((e) =>
-              toast.error(
-                e instanceof Error ? e.message : t("common.error"),
-              ),
-            );
-        }}
-      >
+      <Pressable disabled={sending} onPress={() => sendCode(true)}>
         <Text
           style={[
             styles.linkAccent,
             { color: accent, textAlign: "center", writingDirection },
           ]}
         >
-          {t("auth.resendCode")}
+          {sending ? t("auth.codeSending") : t("auth.resendCode")}
         </Text>
       </Pressable>
     </AuthScreenShell>

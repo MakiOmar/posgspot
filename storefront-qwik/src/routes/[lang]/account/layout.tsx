@@ -62,7 +62,6 @@ export default component$(() => {
 
   const navItems = [
     { path: "/account", label: tStatic(locale, "account.dashboard") },
-    { path: "/account/orders", label: tStatic(locale, "account.orders") },
     { path: "/account/profile", label: tStatic(locale, "account.profile") },
     { path: "/account/security", label: tStatic(locale, "account.loginSecurity") },
     { path: "/account/payments", label: tStatic(locale, "account.paymentsPayouts") },

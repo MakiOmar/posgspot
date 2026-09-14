@@ -55,6 +55,19 @@ class Contact extends Authenticatable
     }
 
     /**
+     * Signed-in customers must verify before placing a storefront order.
+     * Email OTP is live; phone OTP can be added later via mobile_verified_at.
+     */
+    public function isVerifiedForCheckout(): bool
+    {
+        if (! empty($this->email_verified_at)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Get the business that owns the user.
      */
     public function business()

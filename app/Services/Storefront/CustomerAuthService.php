@@ -103,7 +103,7 @@ class CustomerAuthService
     /**
      * Generate a 6-digit OTP, persist hash + expiry, and email it.
      */
-    public function issueEmailVerificationCode(Contact $contact, bool $force = false): void
+    public function issueEmailVerificationCode(Contact $contact, bool $force = false, bool $requireSend = false): void
     {
         if (! empty($contact->email_verified_at) && ! $force) {
             return;
@@ -131,6 +131,11 @@ class CustomerAuthService
                 'error' => $e->getMessage(),
             ]);
             report($e);
+            if ($requireSend) {
+                throw ValidationException::withMessages([
+                    'email' => ['Could not send the verification email. Please try again or contact the store.'],
+                ]);
+            }
         }
     }
 

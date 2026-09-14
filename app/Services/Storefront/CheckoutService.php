@@ -31,6 +31,12 @@ class CheckoutService
 
     public function checkout(int $businessId, array $payload, ?Contact $authContact = null): array
     {
+        if ($authContact && ! $authContact->isVerifiedForCheckout()) {
+            throw ValidationException::withMessages([
+                'verification' => ['Verify your email before placing an order.'],
+            ]);
+        }
+
         $orderId = $payload['storefront_order_id'] ?? $payload['idempotency_key'] ?? null;
         if (empty($orderId)) {
             throw ValidationException::withMessages(['idempotency_key' => ['Idempotency key is required.']]);

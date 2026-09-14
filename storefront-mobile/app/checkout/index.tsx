@@ -17,6 +17,7 @@ import {
   validateCoupons,
 } from "../../src/lib/api";
 import { toCartApiItem } from "../../src/lib/cart";
+import { needsEmailVerification } from "../../src/lib/verification";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { LabeledInput } from "../../src/components/LabeledInput";
@@ -131,6 +132,19 @@ export default function CheckoutScreen() {
     () => `mobile-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     [],
   );
+
+  useEffect(() => {
+    if (!token || !needsEmailVerification(contact)) {
+      return;
+    }
+    router.replace({
+      pathname: "/verify-email",
+      params: {
+        email: contact?.email || email || "",
+        next: "/checkout",
+      },
+    } as never);
+  }, [token, contact, email, router]);
 
   const effectiveState = useStateSelect ? stateCode : stateText;
 
@@ -287,6 +301,9 @@ export default function CheckoutScreen() {
     setBusy(true);
     setMessage(null);
     try {
+      if (token && needsEmailVerification(contact)) {
+        throw new Error(t("checkout.verifyRequired"));
+      }
       if (!firstName.trim() || !email.trim() || !mobile.trim()) {
         throw new Error(t("checkout.requiredContact"));
       }

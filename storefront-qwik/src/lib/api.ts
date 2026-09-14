@@ -449,6 +449,31 @@ export function resetPassword(payload: {
   });
 }
 
+export function verifyEmail(
+  payload: { code: string; email?: string },
+  token?: string | null,
+) {
+  return storefrontFetch<{ message: string; contact: AuthContact }>(
+    "/auth/email/verify",
+    {
+      method: "POST",
+      headers: token ? authHeaders(token) : undefined,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function resendEmailVerification(
+  payload: { email?: string } = {},
+  token?: string | null,
+) {
+  return storefrontFetch<{ message: string }>("/auth/email/resend", {
+    method: "POST",
+    headers: token ? authHeaders(token) : undefined,
+    body: JSON.stringify(payload),
+  });
+}
+
 export function fetchProfile(token: string) {
   return storefrontFetch<AuthContact>("/account/profile", {
     headers: authHeaders(token),

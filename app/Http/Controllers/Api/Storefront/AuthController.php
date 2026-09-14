@@ -130,7 +130,8 @@ class AuthController extends StorefrontController
 
         // Avoid account enumeration for public resend.
         if ($contact && empty($contact->email_verified_at)) {
-            $this->authService->issueEmailVerificationCode($contact);
+            $authenticated = $this->optionalSanctumContact($request) !== null;
+            $this->authService->issueEmailVerificationCode($contact, false, $authenticated);
         }
 
         return $this->jsonSuccess(['message' => 'If verification is needed, a new code has been sent.']);

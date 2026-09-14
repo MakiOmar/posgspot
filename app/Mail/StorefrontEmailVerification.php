@@ -4,17 +4,13 @@ namespace App\Mail;
 
 use App\Contact;
 use App\Services\Storefront\StorefrontMailService;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Queue\SerializesModels;
 
 /**
- * Email verification OTP for storefront customers.
+ * Email verification OTP for storefront customers (sent synchronously via sendNow).
  */
-class StorefrontEmailVerification extends Mailable implements ShouldQueue
+class StorefrontEmailVerification extends Mailable
 {
-    use Queueable, SerializesModels;
 
     public function __construct(public Contact $contact, public string $code)
     {

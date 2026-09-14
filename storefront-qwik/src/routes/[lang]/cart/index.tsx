@@ -18,6 +18,7 @@ import {
   toCartApiItem,
 } from "~/lib/cart-actions";
 import { useAuth } from "~/lib/auth-context";
+import { needsEmailVerification } from "~/lib/verification";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -162,6 +163,15 @@ export default component$(() => {
       }
       if (partialIssues.length > 0) {
         checkoutQuantityIssues.value = partialIssues;
+        return;
+      }
+      if (needsEmailVerification(auth.contact)) {
+        await nav(
+          localePath(
+            locale,
+            `/verify-email?email=${encodeURIComponent(auth.contact?.email || "")}&next=/checkout`,
+          ),
+        );
         return;
       }
       await nav(localePath(locale, "/checkout"));

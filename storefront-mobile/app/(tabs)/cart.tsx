@@ -10,6 +10,7 @@ import { validateCart, validateCoupons } from "../../src/lib/api";
 import { toCartApiItem } from "../../src/lib/cart";
 import { useCart } from "../../src/contexts/CartContext";
 import { useApp } from "../../src/contexts/AppContext";
+import { needsEmailVerification } from "../../src/lib/verification";
 import { LabeledInput } from "../../src/components/LabeledInput";
 import { CouponPicker } from "../../src/components/checkout/CouponPicker";
 import { PrimaryButton, Screen } from "../../src/components/ui";
@@ -17,7 +18,7 @@ import type { CartValidationResult } from "../../src/lib/types";
 import { useRtl } from "../../src/lib/rtl";
 
 export default function CartScreen() {
-  const { t, token, settings } = useApp();
+  const { t, token, settings, contact } = useApp();
   const { row, textAlign, writingDirection } = useRtl();
   const router = useRouter();
   const { items, subtotal, updateQty, removeItem, count, setItems } = useCart();
@@ -246,12 +247,22 @@ export default function CartScreen() {
       <PrimaryButton
         label={validating ? t("common.loading") : t("common.checkout")}
         disabled={validating || !!error}
-        onPress={() =>
+        onPress={() => {
+          if (token && needsEmailVerification(contact)) {
+            router.push({
+              pathname: "/verify-email",
+              params: {
+                email: contact?.email || "",
+                next: "/checkout",
+              },
+            } as never);
+            return;
+          }
           router.push({
             pathname: "/checkout",
             params: coupon.trim() ? { coupon: coupon.trim() } : {},
-          })
-        }
+          });
+        }}
       />
     </Screen>
   );

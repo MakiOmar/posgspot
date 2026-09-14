@@ -1,38 +1,16 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { CustomerQrCode } from "~/components/account/customer-qr-code";
-import { RewardPointsSummary } from "~/components/account/reward-points-summary";
-import { fetchRewardPoints } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
-import type { RewardPointsBalance } from "~/lib/types";
+import { needsEmailVerification } from "~/lib/verification";
+import { useLangParam } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const auth = useAuth();
-  const settings = useSiteSettings();
   const { locale } = useI18n();
   const c = auth.contact;
-  const rewardBalance = useSignal<RewardPointsBalance | null>(null);
-
-  // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(async ({ track }) => {
-    track(() => auth.token);
-    track(() => settings.value.reward_points.enabled);
-
-    if (!auth.token || !settings.value.reward_points.enabled) {
-      rewardBalance.value = null;
-      return;
-    }
-
-    try {
-      const { data } = await fetchRewardPoints(auth.token);
-      rewardBalance.value = data;
-    } catch {
-      rewardBalance.value = null;
-    }
-  });
 
   return (
     <div>
@@ -41,17 +19,22 @@ export default component$(() => {
         {tStatic(locale, "account.intro")}
       </p>
 
-      {rewardBalance.value?.enabled ? (
-        <div style={{ marginBottom: "1.5rem" }}>
-          <RewardPointsSummary balance={rewardBalance.value} currency={settings.value.currency} />
-        </div>
+      {needsEmailVerification(c) ? (
+        <p class="alert alert-error" style={{ marginBottom: "1.5rem" }}>
+          {tStatic(locale, "account.verifyEmailHint")}{" "}
+          <Link
+            href={localePath(
+              locale,
+              `/verify-email?email=${encodeURIComponent(c?.email || "")}&next=/account`,
+            )}
+            class="link-accent"
+          >
+            {tStatic(locale, "account.verifyEmail")}
+          </Link>
+        </p>
       ) : null}
 
       <div class="account-cards">
-        <Link href={localePath(locale, "/account/orders")} class="account-card">
-          <strong>{tStatic(locale, "account.orders")}</strong>
-          <span class="footer-muted">{tStatic(locale, "account.ordersCardDesc")}</span>
-        </Link>
         <Link href={localePath(locale, "/account/profile")} class="account-card">
           <strong>{tStatic(locale, "account.profileAddress")}</strong>
           <span class="footer-muted">{tStatic(locale, "account.profileCardDesc")}</span>
