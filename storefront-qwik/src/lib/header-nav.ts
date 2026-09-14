@@ -1,6 +1,8 @@
+import { consoleNavCategories } from "~/lib/console-categories";
 import { localePath } from "~/lib/i18n/paths";
 import { tStatic } from "~/lib/i18n/context";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
+import type { Category } from "~/lib/types";
 
 export interface ResolvedNavChild {
   label: string;
@@ -24,13 +26,25 @@ const HOTLINE = "17797";
  */
 export function buildMainNavLinks(
   lang: StoreLocaleCode,
-  options?: { digitalEnabled?: boolean },
+  options?: { digitalEnabled?: boolean; categories?: Category[] },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
+  const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
+    label: category.name,
+    href: category.slug
+      ? localePath(lang, `/category/${category.slug}`)
+      : localePath(lang, `/products?category_id=${category.id}`),
+  }));
 
   const items: ResolvedNavItem[] = [
     { label: tStatic(lang, "nav.home"), href: localePath(lang, "/") },
-    { label: tStatic(lang, "nav.shop"), href: localePath(lang, "/products") },
+    {
+      label: tStatic(lang, "nav.consoles"),
+      children: [
+        { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
+        ...consoleChildren,
+      ],
+    },
   ];
 
   if (digitalEnabled) {

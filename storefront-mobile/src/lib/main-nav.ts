@@ -1,4 +1,5 @@
-import type { ContentLocale } from "./types";
+import { consoleNavCategories } from "./console-categories";
+import type { Category, ContentLocale } from "./types";
 import { t } from "./i18n";
 
 export type MainNavChild = {
@@ -22,12 +23,22 @@ const HOTLINE = "17797";
  */
 export function buildMainNavLinks(
   locale: ContentLocale,
-  options?: { digitalEnabled?: boolean },
+  options?: { digitalEnabled?: boolean; categories?: Category[] },
 ): MainNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
+  const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
+    label: category.name,
+    href: `/category/${category.slug}`,
+  }));
   const items: MainNavItem[] = [
     { label: t(locale, "nav.home"), href: "/(tabs)" },
-    { label: t(locale, "nav.shop"), href: "/products" },
+    {
+      label: t(locale, "nav.consoles"),
+      children: [
+        { label: t(locale, "nav.shopAll"), href: "/products" },
+        ...consoleChildren,
+      ],
+    },
   ];
 
   if (digitalEnabled) {

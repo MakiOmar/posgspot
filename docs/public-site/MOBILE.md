@@ -32,7 +32,7 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 | Area | Routes (Expo Router) | Primary API |
 |------|----------------------|-------------|
 | Home | `/(tabs)/index` | `GET /homepage`, products |
-| Consoles / search | `/(tabs)/shop`, `/search` | `GET /products`, `/search` |
+| Shop / search | `/(tabs)/shop`, `/search` | `GET /products`, `/search` |
 | Category / brand | `/category/[slug]`, `/brands`, `/brands/[slug]` | categories, brands |
 | PDP | `/products/[slug]` | product detail, availability, reviews |
 | Cart / checkout | `/(tabs)/cart`, `/checkout` | cart validate, checkout |

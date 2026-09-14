@@ -270,7 +270,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    if (session?.token) {
+    const keepPasskey =
+      passkeyEnabled || (await isBiometricUnlockEnabled());
+
+    if (session?.token && !keepPasskey) {
       await clearPushTokenFromApi(session.token, pushToken);
       try {
         await apiLogout(session.token);
@@ -278,13 +281,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // ignore
       }
     }
+
+    // Passkey stays on this phone: lock the UI but keep the Sanctum session.
+    if (keepPasskey) {
+      setSession(null);
+      setPushToken(null);
+      setPasskeyEnabled(true);
+      setPasskeyCanUnlock(true);
+      return;
+    }
+
     await setBiometricUnlockEnabled(false);
     await clearAuthSession();
     setPasskeyEnabled(false);
     setPasskeyCanUnlock(false);
     setSession(null);
     setPushToken(null);
-  }, [session?.token, pushToken]);
+  }, [session?.token, pushToken, passkeyEnabled]);
 
   const enablePasskey = useCallback(async () => {
     const hardware = await deviceHasBiometrics();

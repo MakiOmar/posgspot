@@ -1,7 +1,9 @@
 {
   "nav": {
     "home": "Home",
-    "shop": "Consoles",
+    "shop": "Shop",
+    "consoles": "Consoles",
+    "shopAll": "All consoles",
     "games": "Digital games",
     "gamesPs4": "PS4 games",
     "gamesPs5": "PS5 games",

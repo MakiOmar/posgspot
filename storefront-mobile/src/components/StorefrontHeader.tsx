@@ -66,38 +66,63 @@ export function StorefrontHeader({
     </Pressable>
   );
 
+  const avatar = (
+    <View style={[styles.avatar, { backgroundColor: accent }]}>
+      {avatarUrl ? (
+        <RemoteImage
+          uri={avatarUrl}
+          style={styles.avatarImage}
+          contentFit="cover"
+        />
+      ) : (
+        <FontAwesome name="gamepad" size={18} color="#111" />
+      )}
+    </View>
+  );
+
+  const welcomeText = (
+    <View style={styles.brandText}>
+      <Text
+        style={[
+          styles.welcome,
+          { textAlign: welcomeAlign, writingDirection },
+        ]}
+      >
+        {t("home.welcome")}
+      </Text>
+      <Text
+        style={[
+          styles.brand,
+          { textAlign: welcomeAlign, writingDirection },
+        ]}
+        numberOfLines={1}
+      >
+        {welcomeName}
+      </Text>
+    </View>
+  );
+
   const welcomeBlock = (
-    <View style={[styles.brandBlock, { flexDirection: "row" }]}>
-      <View style={[styles.avatar, { backgroundColor: accent }]}>
-        {avatarUrl ? (
-          <RemoteImage
-            uri={avatarUrl}
-            style={styles.avatarImage}
-            contentFit="cover"
-          />
-        ) : (
-          <FontAwesome name="gamepad" size={18} color="#111" />
-        )}
-      </View>
-      <View style={styles.brandText}>
-        <Text
-          style={[
-            styles.welcome,
-            { textAlign: welcomeAlign, writingDirection },
-          ]}
-        >
-          {t("home.welcome")}
-        </Text>
-        <Text
-          style={[
-            styles.brand,
-            { textAlign: welcomeAlign, writingDirection },
-          ]}
-          numberOfLines={1}
-        >
-          {welcomeName}
-        </Text>
-      </View>
+    <View
+      style={[
+        styles.brandBlock,
+        {
+          flexDirection: "row",
+          justifyContent: isRtl ? "flex-start" : "flex-end",
+        },
+      ]}
+    >
+      {isRtl ? (
+        <>
+          {avatar}
+          {welcomeText}
+        </>
+      ) : (
+        <>
+          {welcomeText}
+          {avatar}
+        </>
+      )}
     </View>
   );
 
@@ -182,7 +207,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
-  brandBlock: { alignItems: "center", flex: 1, gap: 10 },
+  brandBlock: { alignItems: "center", flex: 1, gap: 10, minWidth: 0 },
   avatar: {
     width: 42,
     height: 42,

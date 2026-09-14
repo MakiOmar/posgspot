@@ -38,7 +38,7 @@
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`; track-console in-app) |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
-| Header nav drawer (menu + categories + language) | Done |
+| Header nav drawer (menu + categories + language) | Done | Consoles dropdown = POS categories except digital/gift-card; bottom tab label is Shop |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
 | Star ratings on cards + PDP | Done |
@@ -77,6 +77,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Consoles menu is a category dropdown (excludes digital games); bottom tab is Shop. |
+| 2026-09-14 | Payments hub is a vertical icon menu; payment statuses are underline tabs; login Passkey tab; sign-out keeps an enabled passkey. |
 | 2026-09-14 | App name Games Spot; EN/AR header chrome; local Egypt phone parse; Contact dropdown; in-app OTP reset; Login & Security passkey; Payments & Payouts + coupon wallet. |
 | 2026-09-13 | Profile photo upload uses Expo File parts (fixes FormDataPart error). |
 | 2026-09-12 | Personal Info no longer remounts in a fetch loop after opening the screen. |

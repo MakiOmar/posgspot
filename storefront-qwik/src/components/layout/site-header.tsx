@@ -38,6 +38,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
   const isStyleOne = HEADER_STYLE === "one";
   const navLinks = buildMainNavLinks(locale, {
     digitalEnabled: settings.digital?.enabled !== false,
+    categories,
   });
   const categoriesOpen = headerMenu.openId === "categories";
   const mobileNavOpen = headerMenu.openId === "mobileNav";

@@ -22,7 +22,10 @@ export default function AccountLayout() {
       <Stack.Screen name="profile" options={{ title: t("account.personalInfo") }} />
       <Stack.Screen name="security" options={{ title: t("account.loginSecurity") }} />
       <Stack.Screen name="password" options={{ title: t("account.loginSecurity") }} />
-      <Stack.Screen name="payments" options={{ title: t("account.paymentsPayouts") }} />
+      <Stack.Screen name="payments/index" options={{ title: t("account.paymentsPayouts") }} />
+      <Stack.Screen name="payments/methods" options={{ title: t("account.paymentMethods") }} />
+      <Stack.Screen name="payments/list" options={{ title: t("account.paymentsTab") }} />
+      <Stack.Screen name="payments/credits" options={{ title: t("account.creditsCoupons") }} />
       <Stack.Screen name="address" options={{ title: t("account.addressTitle") }} />
       <Stack.Screen name="rewards" options={{ title: t("rewards.title") }} />
       <Stack.Screen name="orders/index" options={{ title: t("account.orders") }} />

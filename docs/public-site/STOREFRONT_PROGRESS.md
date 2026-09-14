@@ -85,7 +85,7 @@
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts (methods stub + payments by status + coupon wallet), orders, detail (+ reorder → cart), invoice print |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts menu (methods / list by status / credits), orders, detail (+ reorder → cart), invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
@@ -137,7 +137,7 @@
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
-| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | `lib/header-nav.ts` |
+| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | Consoles is a category dropdown (excludes digital/gift-card catalog); Digital games stays PS4/PS5 |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
@@ -232,6 +232,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Consoles header item is a POS category dropdown (excludes digital games / gift cards). |
+| 2026-09-14 | Payments & Payouts is a menu (not stacked hub tabs); payment statuses are tabs. |
 | 2026-09-14 | In-app password OTP; Login & Security; Payments & Payouts; coupon wallet APIs (`GET/POST /account/coupons`); orders `?payment_status=`. |
 | 2026-09-12 | Repair status + track console: hide lookup forms for signed-in users (list only; guests keep the form). |
 | 2026-09-11 | Profile avatar API + Qwik/mobile UI; POS contact create/edit storefront password (hashed, revokes tokens). |

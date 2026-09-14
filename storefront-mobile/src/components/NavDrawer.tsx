@@ -58,8 +58,9 @@ export function NavDrawer({ visible, onClose }: Props) {
     () =>
       buildMainNavLinks(locale, {
         digitalEnabled: settings?.digital?.enabled !== false,
+        categories,
       }),
-    [locale, settings?.digital?.enabled],
+    [locale, settings?.digital?.enabled, categories],
   );
 
   const loadCategories = useCallback(async () => {

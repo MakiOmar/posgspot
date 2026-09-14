@@ -2,7 +2,9 @@ import type { ContentLocale } from "./types";
 
 const en: Record<string, string> = {
   "nav.home": "Home",
-  "nav.shop": "Consoles",
+  "nav.shop": "Shop",
+  "nav.consoles": "Consoles",
+  "nav.shopAll": "All consoles",
   "nav.cart": "Cart",
   "nav.wishlist": "Wishlist",
   "nav.account": "Account",
@@ -236,7 +238,9 @@ const en: Record<string, string> = {
   "account.passwordChanged": "Password updated",
   "account.loginSecurity": "Login & Security",
   "account.passkey": "Sign in with passkey",
-  "account.passkeyHint": "Use fingerprint, face, or device PIN on this phone.",
+  "account.passkeyHint": "Use fingerprint, face, or device PIN on this phone. It stays enabled after you sign out.",
+  "account.passkeyTab": "Passkey",
+  "account.passkeyUnlockHint": "Unlock this phone with fingerprint, face, or PIN.",
   "account.passkeyOn": "Passkey enabled",
   "account.passkeyOff": "Enable passkey",
   "account.passkeyPrompt": "Confirm it's you",
@@ -362,7 +366,9 @@ const en: Record<string, string> = {
 
 const ar: Record<string, string> = {
   "nav.home": "الرئيسية",
-  "nav.shop": "كونسول",
+  "nav.shop": "المتجر",
+  "nav.consoles": "كونسول",
+  "nav.shopAll": "كل الكونسول",
   "nav.cart": "السلة",
   "nav.wishlist": "المفضلة",
   "nav.account": "حسابي",
@@ -596,7 +602,9 @@ const ar: Record<string, string> = {
   "account.passwordChanged": "تم تحديث كلمة المرور",
   "account.loginSecurity": "تسجيل الدخول والأمان",
   "account.passkey": "تسجيل الدخول بمفتاح المرور",
-  "account.passkeyHint": "استخدم البصمة أو الوجه أو رمز الجهاز على هذا الهاتف.",
+  "account.passkeyHint": "استخدم البصمة أو الوجه أو رمز الجهاز على هذا الهاتف. يبقى مفعّلاً بعد تسجيل الخروج.",
+  "account.passkeyTab": "مفتاح المرور",
+  "account.passkeyUnlockHint": "افتح هذا الهاتف بالبصمة أو الوجه أو الرمز.",
   "account.passkeyOn": "مفتاح المرور مفعّل",
   "account.passkeyOff": "تفعيل مفتاح المرور",
   "account.passkeyPrompt": "أكد أنك أنت",
