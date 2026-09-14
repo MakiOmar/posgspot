@@ -37,8 +37,8 @@ Do these before writing anything, per [Pre-requisites](https://docs.geidea.net/d
 | Step | Detail |
 |---|---|
 | Get a test (sandbox) account | Request from the Geidea enablement team; see [Overview](https://docs.geidea.net/docs/overview) → "Create a test account" |
-| Collect credentials | **Merchant Public Key** + **API Password**, from the enablement email or the merchant portal under **Payment Gateway → Gateway Settings** |
-| Confirm the region | Egypt / KSA / UAE each have **different** API hosts and HPP script hosts (§3) |
+| Collect **two** credential pairs | A **Merchant Public Key** + **API Password** for **sandbox** and another for **production**. Both come from the enablement email or the merchant portal under **Payment Gateway → Gateway Settings**. Test vs live is decided by which pair you use — see §3.2 |
+| Confirm the region | Egypt / KSA / UAE each have **different** API hosts and HPP script hosts (§3.1) |
 | Confirm the currency | Games Spot sells in **EGP**. Multi-currency is off by default and must be enabled by Geidea support |
 | Confirm enabled payment methods | Cards are default; Meeza QR, bank installments, BNPL, and wallets are each **enabled per merchant** by Geidea operations (§7) |
 | Get portal branding done | Merchant name + logo + colors are configured in the portal, not in code — [Branding and Customization](https://docs.geidea.net/docs/branding) (**Management → Stores → default store**) |
@@ -48,7 +48,16 @@ Do these before writing anything, per [Pre-requisites](https://docs.geidea.net/d
 
 ---
 
-## 3. Region endpoints (must be configurable, not hardcoded)
+## 3. Environments: region hosts and live vs test mode
+
+Geidea has **two independent axes**. Conflating them is the single easiest way to get this integration wrong, because it does not work the way Fawry does.
+
+| Axis | Controls | Values |
+|---|---|---|
+| **Region / environment** | Which **host** you talk to | Egypt, KSA, UAE (§3.1) |
+| **Mode** | Whether the transaction is **test or live** | Sandbox or Production — selected purely by **which credential pair you send** (§3.2) |
+
+### 3.1 Region hosts (must be configurable, not hardcoded)
 
 Sourced from [HPP Checkout](https://docs.geidea.net/docs/geidea-checkout-v2) and [Express Checkout](https://docs.geidea.net/docs/express-checkout-wallets).
 
@@ -70,6 +79,33 @@ Operations we will call, relative to the region API base:
 | Void (authorized, uncaptured) | See API reference | [Void](https://docs.geidea.net/docs/void-1) · [Void Payment](https://docs.geidea.net/reference/void-payment-1) |
 
 All of these use **HTTP Basic auth**: Merchant Public Key as username, API Password as password.
+
+### 3.2 Live vs test (sandbox) mode
+
+**There is no separate sandbox host and no test-mode flag in the API.** Mode is decided entirely by the credentials. The WooCommerce plugin FAQ states it plainly: *"production and sandbox mode is controlled by the API keys you use"* ([WooCommerce plugin](https://docs.geidea.net/docs/woocommerce)). Consistent with that, every official plugin's **Environment** dropdown lists only `EGY-PROD`, `KSA-PROD`, `UAE-PROD` — those are **regions**, not stages.
+
+The canonical settings shape to copy is Geidea's own PrestaShop module ([PrestaShop](https://docs.geidea.net/docs/prestashop)), which stores **both credential pairs at once** plus a mode switch:
+
+| Field | Purpose |
+|---|---|
+| **Mode** | `sandbox` or `live`. PrestaShop's default is **sandbox** — ours should default to sandbox too |
+| Sandbox Merchant Public Key | Test credentials |
+| Sandbox Merchant API Password | Test credentials |
+| Production Merchant Public Key | Live credentials |
+| Production Merchant API Password | Live credentials |
+| Environment | Region (host selection) |
+
+**Do not copy the Fawry `staging` semantics.** `gateway.fawry.staging` flips to a *different host* (`atfawry.fawrystaging.com` instead of `www.atfawry.com`). Geidea's mode flag must **not** touch the host — it selects which key pair to sign and authenticate with. A developer working from `FawryPaymentGateway.php` as a template will get this wrong by default, so it is worth a comment at the point of use.
+
+Practical consequences for our implementation:
+
+- Store **four** credential fields, not two. Both API passwords are secrets and both go through `Crypt` and `secretPaths()`.
+- Keep both pairs populated in production so an operator can flip to sandbox to reproduce a problem, then flip back, **without re-entering keys and without a deploy**.
+- The mode switch is an admin setting in `resources/views/storefront/settings.blade.php`, not an env var — the rest of the gateway config already lives in storefront settings per business.
+- Make the active mode **visible in the admin UI and in the checkout logs**. A test-mode order that silently looks real is worse than a failed payment.
+- **Use `isTest` as a tripwire.** Order responses from Fetch Order carry an `isTest` boolean ([Fetch Transaction or Order Details](https://docs.geidea.net/docs/fetch-1)). In `applyPaymentResult()`, if `isTest` disagrees with our configured mode, refuse to mark the order paid and log loudly. That single check catches "we shipped with sandbox keys" and "someone pointed test traffic at live keys" — both of which are otherwise invisible until reconciliation.
+- **Test cards only work under sandbox credentials.** The card numbers and the expiry-date-driven outcomes in §10 will simply be declined by a live account.
+- Tie mode to the deployment: staging/local default to sandbox, production to live. Since the value is per-business settings rather than env, guard it — a staging database restored from production will arrive carrying `live`.
 
 ---
 
@@ -93,9 +129,9 @@ All of these use **HTTP Basic auth**: Merchant Public Key as username, API Passw
 ### 5.1 Register the driver and its settings
 
 1. Add `geidea` to `drivers` and `labels` in `config/storefront-payments.php`.
-2. Extend the `gateway` defaults in `StorefrontSettingService` with a `geidea` block. Required keys: merchant public key, API password, region (`egypt`/`ksa`/`uae`), environment (test/production), and HPP display mode (§6.3).
-3. Add the API password to `secretPaths()` so it is `Crypt`-encrypted at rest, exactly like `gateway.fawry.security_key`.
-4. Add the fields to the **Payment gateway** section of `resources/views/storefront/settings.blade.php`, and show the callback URL there (the Fawry section already does this) so an operator can paste it into the Geidea portal.
+2. Extend the `gateway` defaults in `StorefrontSettingService` with a `geidea` block. Required keys: `mode` (`sandbox` default / `live`), **sandbox** public key + API password, **production** public key + API password, region (`egypt`/`ksa`/`uae`), and HPP display mode (§6.3). See §3.2 for why the credentials are doubled and why `mode` must not switch hosts.
+3. Add **both** API passwords to `secretPaths()` so they are `Crypt`-encrypted at rest, exactly like `gateway.fawry.security_key`.
+4. Add the fields to the **Payment gateway** section of `resources/views/storefront/settings.blade.php`, and show the callback URL there (the Fawry section already does this) so an operator can paste it into the Geidea portal. Show the active mode prominently, and make the mode switch a deliberate control rather than a stray checkbox.
 5. Public `GET /settings` must expose **only** the provider slug / enabled flag — never keys. Follow the existing pattern in `SettingsApiService`.
 
 > Module on/off toggles belong in `config/features.php` per `.cursor/rules/feature-modules.mdc`; **merchant credentials** belong in storefront settings, which is where Fawry's already are. Keep that split.
@@ -105,11 +141,11 @@ All of these use **HTTP Basic auth**: Merchant Public Key as username, API Passw
 | `PaymentGatewayInterface` method | What it must do for Geidea |
 |---|---|
 | `name()` | Return `geidea` |
-| `buildChargeSession()` | Server-to-server **Create Session** call, then return a **client-safe** payload: `session.id`, the region HPP script URL, display mode, locale, and the return URL. **Never** include the public key + API password pair, and never include the signature material |
+| `buildChargeSession()` | Resolve the credential pair for the active mode (§3.2), make the server-to-server **Create Session** call, then return a **client-safe** payload: `session.id`, the region HPP script URL, display mode, locale, and the return URL. **Never** include the public key + API password pair, and never include the signature material |
 | `verifyWebhookPayload()` | Recompute and compare the callback `signature` (§5.3) |
 | `verifyReturnPayload()` | Do **not** trust browser-supplied status. Treat the browser callback as a *hint* and re-verify server-side via Fetch Order (§5.4) |
 | `fetchStatus()` | Call Fetch by Merchant Reference with our `storefront_order_id`, or Fetch by `orderId` when we stored it |
-| `applyPaymentResult()` | Validate amount + currency against the POS transaction, then map status (§5.5) and call `StorefrontPaymentRecorder` |
+| `applyPaymentResult()` | Validate amount + currency against the POS transaction, cross-check `isTest` against the configured mode (§3.2), then map status (§5.5) and call `StorefrontPaymentRecorder` |
 | `webhookResponse()` | Return `200` on accepted, non-`2xx` on invalid signature so Geidea retries. Do not copy Fawry's `300`/`202` numeric convention |
 
 ### 5.3 Signatures — three different recipes, do not share one helper blindly
@@ -190,6 +226,8 @@ Mirror the existing suites (`tests/Feature/Storefront/FawryPaymentTest.php`, `te
 - Webhook: valid signature → paid; tampered signature → rejected; amount mismatch → rejected; **replayed success callback → still one payment, no duplicate fulfilment**.
 - Cancelled callback leaves the order unpaid.
 - Session creation for an already-paid order short-circuits (the controller already does this).
+- **Mode resolution:** `sandbox` mode signs with the sandbox key pair, `live` with the production pair, and **neither changes the host**. Also assert the mode default is `sandbox` when unset.
+- **`isTest` mismatch** (live mode, test-flagged order) does not mark the order paid.
 - Mock all Geidea HTTP calls (`Http::fake`) — no live calls in the suite.
 
 ---
@@ -260,6 +298,7 @@ From [React Native](https://docs.geidea.net/docs/react-native-1):
 |---|---|
 | Package | `@geidea/payment-sdk-react-native`, delivered as a **`.tgz` archive from Geidea** — it is not on public npm, so the tarball must be vendored in the repo or hosted in a private registry |
 | Entry point | `payWithGeidea({ sessionId, merchantId, language, environment, region, primaryColor, secondaryColor, merchantLogo })` |
+| Mode + region | The SDK mirrors the same two axes as the server: `region` (`egypt`, …) and `environment` (the vendor sample passes `prod`). **Confirm the sandbox value with Geidea** — it is not documented. Derive both from our storefront settings and return them alongside the session id, so the app never hardcodes a stage |
 | Result | A status of `completed` or `canceled`, plus a result payload |
 | Android toolchain | minSdk **24**, compile/target SDK **35**, NDK **27.1.12297006**, Kotlin **1.9.24**, AGP **8.7.3** |
 | Android Gradle edits | A `flatDir` repository pointing at the package's `android/libs`, plus Compose BOM, Material 3, `navigation-compose`, `navigation-runtime-ktx`, `androidx.activity`, and `kotlinx-collections-immutable` dependencies |
@@ -333,6 +372,7 @@ For v1, refunds can stay **portal-operated** (the merchant portal has Refund / P
 
 | What | How |
 |---|---|
+| Mode | All of the below requires **sandbox credentials** (§3.2). A live account declines test cards |
 | Vendor test page | `https://www.merchant.geidea.net/testpage` — sanity-check credentials before touching our code ([Test Cards](https://docs.geidea.net/docs/test-cards)) |
 | Test cards | Mastercard / Visa / MADA / Amex numbers for 3DS challenge, 3DS frictionless, and not-enrolled cases ([Test Cards](https://docs.geidea.net/docs/test-cards)) |
 | Forcing outcomes | The **expiry date** drives the result: `01/39` success, `05/39` declined-contact-bank, `04/27` expired card, `08/28` provider timeout, `05/37` unknown provider error |
@@ -342,6 +382,12 @@ For v1, refunds can stay **portal-operated** (the merchant portal has Refund / P
 | Glossary / FAQ | [Payments glossary](https://docs.geidea.net/docs/payments-glossary) · [Troubleshooting & FAQs](https://docs.geidea.net/docs/troubleshooting-faqs) |
 
 Scenarios to run end-to-end on both storefront and mobile: success, 3DS challenge success, declined card, shopper closes the HPP, session left to expire past 15 minutes then retried, duplicate/replayed webhook, and a digital-goods order (credentials must only be allocated after `paid`).
+
+Mode-specific scenarios, easy to forget and expensive to miss:
+
+- Flip mode sandbox → live → sandbox in admin and confirm the very next session uses the newly selected key pair (no cached client, no cached config).
+- With mode set to `live` but sandbox keys saved, confirm the `isTest` tripwire (§3.2) blocks the order from being marked paid instead of silently accepting it.
+- One **real, small live transaction** before launch, then refund it from the merchant portal — this is the only way to prove production credentials, the production callback URL, and settlement are all actually wired.
 
 ---
 
@@ -355,13 +401,19 @@ Scenarios to run end-to-end on both storefront and mobile: success, 3DS challeng
 6. **Methods to enable at launch** — cards only, or cards + Meeza QR + installments? This drives what session fields are mandatory.
 7. **Mobile path** — ship Option B (web view) first, or wait for Option A (native SDK)? Confirm the SDK's current version and Expo compatibility with Geidea either way.
 8. **Refund path** — portal-only for v1, confirmed?
+9. **Sandbox account shape** — are the test and production credentials two separate merchant accounts (so both key pairs can be stored side by side, as PrestaShop assumes), or one account that Geidea toggles? This decides whether the "flip to sandbox without re-entering keys" workflow in §3.2 is actually possible.
+10. **Mobile SDK `environment` enum** — the documented sample only shows `prod`. Get the sandbox value before building Option A.
+11. **Callback URL per mode** — one URL for both modes (our webhook can serve both, since the route is provider-scoped not mode-scoped), or does Geidea want a separate registration per account? Confirm when registering.
 
 ---
 
 ## 12. Go-live checklist
 
 - [ ] Production Merchant Public Key + API Password stored **encrypted** in storefront settings; nothing in git, nothing in a client bundle.
-- [ ] Production region hosts configured; no sandbox host left in code.
+- [ ] **Mode set to `live`** on production, and sandbox keys still saved (so support can reproduce issues later without hunting for credentials).
+- [ ] **Staging/local still default to `sandbox`** — verified after any database copy from production, which carries the `live` value with it.
+- [ ] `isTest` tripwire active: a sandbox-flagged order can never be marked paid while in live mode.
+- [ ] Correct region host configured for the production account.
 - [ ] `callbackUrl` registered in the Geidea portal, HTTPS with a valid certificate, reachable from outside.
 - [ ] Webhook verified idempotent under replay and under the consolidated multi-attempt callback.
 - [ ] The four-part success check (`responseCode`, `responseMessage`, `detailedResponseCode`, `detailedResponseMessage`) plus an amount + currency match before any order is marked paid.
@@ -369,6 +421,7 @@ Scenarios to run end-to-end on both storefront and mobile: success, 3DS challeng
 - [ ] CSP updated and verified enforcing (not report-only) on production.
 - [ ] Branding (name, logo, colors) configured in the Geidea portal for both HPP and the mobile SDK.
 - [ ] EN + AR verified on the HPP, including RTL.
+- [ ] One real live transaction completed and refunded from the portal.
 - [ ] Feature tests green; no live network calls in the suite.
 - [ ] Fawry path still works — this is additive.
 - [ ] Docs updated in the same change: [`API.md`](./API.md) (new provider slug, session block shape, webhook URL, admin settings), [`STOREFRONT_PROGRESS.md`](./STOREFRONT_PROGRESS.md), [`MOBILE.md`](./MOBILE.md) + [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md) — per `.cursor/rules/documentation-updates.mdc` and the progress-tracker rules.
@@ -390,6 +443,7 @@ Scenarios to run end-to-end on both storefront and mobile: success, 3DS challeng
 | Tokenization | https://docs.geidea.net/docs/tokenization |
 | Transaction & order management | https://docs.geidea.net/docs/overview-1 |
 | Refund / Void / Cancel | https://docs.geidea.net/docs/refund-2 · https://docs.geidea.net/docs/void-1 · https://docs.geidea.net/docs/cancel-order-1 |
+| Test vs live mode (settings model) | https://docs.geidea.net/docs/prestashop (Mode + dual credential fields) · https://docs.geidea.net/docs/woocommerce (FAQ: mode is decided by the API keys) |
 | Test cards | https://docs.geidea.net/docs/test-cards |
 | Response codes | https://docs.geidea.net/docs/api-response-codes-and-messages |
 | Troubleshooting / FAQ | https://docs.geidea.net/docs/troubleshooting-faqs |
