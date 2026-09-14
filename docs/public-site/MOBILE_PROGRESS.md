@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-11 |
+| **Last updated** | 2026-09-14 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Digital games grid + auth-gated repair/console tracking |
 
@@ -58,7 +58,9 @@
 | Address searchable country/state selects | Done |
 | Phone dial-code selectors (login/register/profile) | Done |
 | Login email / phone tabs | Done |
-| Orders paginated (20) + list invoice download | Done |
+| Login & Security (password + on-device passkey) | Done |
+| Payments & Payouts hub (methods stub, payments by status, coupon wallet) | Done |
+| Orders paginated (20) + in-app invoice view/print | Done |
 | Account stack back buttons | Done |
 | Personal Info load loop fix | Done |
 | Keyboard-safe forms (Keyboard Controller + aware scroll) | Done |
@@ -75,6 +77,10 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | App name Games Spot; EN/AR header chrome; local Egypt phone parse; Contact dropdown; in-app OTP reset; Login & Security passkey; Payments & Payouts + coupon wallet. |
+| 2026-09-13 | Profile photo upload uses Expo File parts (fixes FormDataPart error). |
+| 2026-09-12 | Personal Info no longer remounts in a fetch loop after opening the screen. |
+| 2026-09-12 | Invoices open in-app (WebView) with native print; no external browser. |
 | 2026-07-23 | Phase 4: docs, `storefront-mobile/` Expo app, device API + push jobs, deep links, shop parity screens, EAS checklist. |
 | 2026-07-24 | Android white-screen fixes (splash gate, babel/reanimated, emulator SwiftShader); home section renderers + real prices/images; polish tabs. |
 | 2026-07-24 | Fix dead `/products` CTA route (add catalog index); root Stack headers; FlatList flex; safer href mapping + not-found. |

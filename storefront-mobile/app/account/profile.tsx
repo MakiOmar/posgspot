@@ -10,6 +10,7 @@ import { Redirect, useRouter, type Href } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import {
   deleteProfileAvatar,
+  fetchPhoneCountries,
   fetchProfile,
   requestAccountDeletion,
   updateProfile,
@@ -26,53 +27,68 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
+import { parseStoredMobile } from "../../src/lib/phone-parse";
 import { useRtl } from "../../src/lib/rtl";
 import { toast } from "../../src/lib/toast";
+import type { AuthContact } from "../../src/lib/types";
 
 function splitMobile(mobile: string | undefined): { dial: string; national: string } {
-  const raw = (mobile || "").trim();
-  if (!raw) return { dial: "+20", national: "" };
-  const match = raw.match(/^(\+\d{1,4})(\d+)$/);
-  if (match) return { dial: match[1], national: match[2] };
-  return { dial: "+20", national: raw.replace(/\D/g, "") };
+  const parsed = parseStoredMobile(mobile);
+  return { dial: parsed.dialCode, national: parsed.nationalNumber };
 }
 
 export default function ProfileScreen() {
-  const { token, t, accent, updateContactLocal } = useApp();
+  const { token, t, accent, contact, updateContactLocal } = useApp();
   const router = useRouter();
   const { textAlign, writingDirection, row } = useRtl();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [dialCode, setDialCode] = useState("+20");
-  const [national, setNational] = useState("");
-  const [fullPhone, setFullPhone] = useState("");
-  const [emailVerified, setEmailVerified] = useState(true);
-  const [deleteRequested, setDeleteRequested] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedPhone = splitMobile(contact?.mobile);
+  const [firstName, setFirstName] = useState(contact?.first_name || "");
+  const [lastName, setLastName] = useState(contact?.last_name || "");
+  const [email, setEmail] = useState(contact?.email || "");
+  const [dialCode, setDialCode] = useState(cachedPhone.dial);
+  const [national, setNational] = useState(cachedPhone.national);
+  const [fullPhone, setFullPhone] = useState(contact?.mobile || "");
+  const [emailVerified, setEmailVerified] = useState(contact?.email_verified !== false);
+  const [deleteRequested, setDeleteRequested] = useState(!!contact?.delete_requested);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(contact?.avatar_url || null);
+  const [loading, setLoading] = useState(!contact);
   const [busy, setBusy] = useState(false);
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const applyContact = useCallback(
+    (data: AuthContact, countries: { dial_code: string }[] = []) => {
+      setFirstName(data.first_name || "");
+      setLastName(data.last_name || "");
+      setEmail(data.email || "");
+      const split = parseStoredMobile(data.mobile, countries);
+      setDialCode(split.dialCode);
+      setNational(split.nationalNumber);
+      setFullPhone(
+        data.mobile?.startsWith("+")
+          ? data.mobile
+          : split.nationalNumber
+            ? `${split.dialCode}${split.nationalNumber}`
+            : "",
+      );
+      setEmailVerified(!!data.email_verified);
+      setDeleteRequested(!!data.delete_requested);
+      setAvatarUrl(data.avatar_url || null);
+    },
+    [],
+  );
 
   const load = useCallback(async () => {
     if (!token) {
       setLoading(false);
       return;
     }
-    setLoading(true);
     try {
-      const { data } = await fetchProfile(token);
-      setFirstName(data.first_name || "");
-      setLastName(data.last_name || "");
-      setEmail(data.email || "");
-      const split = splitMobile(data.mobile);
-      setDialCode(split.dial);
-      setNational(split.national);
-      setFullPhone(data.mobile || "");
-      setEmailVerified(!!data.email_verified);
-      setDeleteRequested(!!data.delete_requested);
-      setAvatarUrl(data.avatar_url || null);
+      const [{ data }, geo] = await Promise.all([
+        fetchProfile(token),
+        fetchPhoneCountries().catch(() => ({ data: [] as { dial_code: string }[] })),
+      ]);
+      applyContact(data, geo.data || []);
       void updateContactLocal(data);
       setError(null);
     } catch (e) {
@@ -80,11 +96,12 @@ export default function ProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [token, t, updateContactLocal]);
+  }, [token, applyContact, updateContactLocal, t]);
 
+  // Fetch once per token. Do not depend on session/contact — that remounted the form.
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [token, load]);
 
   if (!token) {
     return <Redirect href="/login" />;
@@ -157,10 +174,8 @@ export default function ProfileScreen() {
                   setAvatarUrl(data.avatar_url || null);
                   await updateContactLocal(data);
                   toast.success(t("account.avatarSaved"));
-                } catch (e) {
-                  toast.error(
-                    e instanceof Error ? e.message : t("account.avatarFailed"),
-                  );
+                } catch {
+                  toast.error(t("account.avatarFailed"));
                 } finally {
                   setAvatarBusy(false);
                 }
@@ -245,25 +260,6 @@ export default function ProfileScreen() {
               </Text>
             </Pressable>
           ) : null}
-        </View>
-
-        <View style={[styles.inlineField, { flexDirection: row }]}>
-          <View style={styles.flex}>
-            <LabeledInput
-              label={t("auth.password")}
-              value="********"
-              editable={false}
-              secureTextEntry
-            />
-          </View>
-          <Pressable
-            onPress={() => router.push("/account/password" as unknown as Href)}
-            style={styles.inlineAction}
-          >
-            <Text style={{ color: accent, fontWeight: "700" }}>
-              {t("account.changePassword")}
-            </Text>
-          </Pressable>
         </View>
 
         <PrimaryButton

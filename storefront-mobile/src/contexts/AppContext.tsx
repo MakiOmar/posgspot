@@ -24,6 +24,12 @@ import {
   loadAuthSession,
   saveAuthSession,
 } from "../lib/auth-storage";
+import {
+  authenticateBiometric,
+  deviceHasBiometrics,
+  isBiometricUnlockEnabled,
+  setBiometricUnlockEnabled,
+} from "../lib/biometric";
 import { t as translate } from "../lib/i18n";
 import {
   clearPushTokenFromApi,
@@ -37,6 +43,27 @@ import type {
 } from "../lib/types";
 
 const SETTINGS_TIMEOUT_MS = 12000;
+
+function sameContact(a: AuthContact | undefined, b: AuthContact): boolean {
+  if (!a) return false;
+  return (
+    a.id === b.id &&
+    a.first_name === b.first_name &&
+    a.last_name === b.last_name &&
+    a.name === b.name &&
+    a.email === b.email &&
+    a.mobile === b.mobile &&
+    a.email_verified === b.email_verified &&
+    a.delete_requested === b.delete_requested &&
+    a.address_line_1 === b.address_line_1 &&
+    a.address_line_2 === b.address_line_2 &&
+    a.country === b.country &&
+    a.state === b.state &&
+    a.city === b.city &&
+    a.zip_code === b.zip_code &&
+    a.avatar_url === b.avatar_url
+  );
+}
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -71,6 +98,12 @@ interface AppContextValue {
   signIn: (loginId: string, password: string) => Promise<void>;
   signUp: (body: Record<string, unknown>) => Promise<void>;
   signOut: () => Promise<void>;
+  passkeyEnabled: boolean;
+  passkeyCanUnlock: boolean;
+  passkeyHardware: boolean;
+  enablePasskey: () => Promise<void>;
+  disablePasskey: () => Promise<void>;
+  unlockWithPasskey: () => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -81,6 +114,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [pushToken, setPushToken] = useState<string | null>(null);
+  const [passkeyEnabled, setPasskeyEnabled] = useState(false);
+  const [passkeyCanUnlock, setPasskeyCanUnlock] = useState(false);
+  const [passkeyHardware, setPasskeyHardware] = useState(false);
 
   const applyLocale = useCallback((next: ContentLocale) => {
     setLocaleState(next);
@@ -103,7 +139,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const stored = await loadAuthSession();
-        if (stored && !cancelled) {
+        const bioOn = await isBiometricUnlockEnabled();
+        const hardware = await deviceHasBiometrics();
+        if (!cancelled) {
+          setPasskeyEnabled(bioOn);
+          setPasskeyHardware(hardware);
+          setPasskeyCanUnlock(!!stored && bioOn);
+        }
+        if (stored && !bioOn && !cancelled) {
           setSession(stored);
           try {
             const { data } = await fetchProfile(stored.token);
@@ -147,7 +190,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setUnauthorizedHandler(() => {
+      void setBiometricUnlockEnabled(false);
       void clearAuthSession();
+      setPasskeyEnabled(false);
+      setPasskeyCanUnlock(false);
       setSession(null);
     });
     return () => setUnauthorizedHandler(null);
@@ -172,15 +218,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .catch(() => undefined);
   }, [session?.token, locale]);
 
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) =>
+      translate(locale, key, vars),
+    [locale],
+  );
+
   const applySession = useCallback(async (next: AuthSession) => {
     await saveAuthSession(next);
     setSession(next);
   }, []);
 
-  // Stable updater — must not depend on `session` or profile load loops forever.
+  // Stable updater — skip no-op writes so profile/account screens do not remount.
   const updateContactLocal = useCallback(async (contact: AuthContact) => {
     setSession((prev) => {
       if (!prev?.token) return prev;
+      if (sameContact(prev.contact, contact)) return prev;
       const next = { ...prev, contact };
       void saveAuthSession(next);
       return next;
@@ -225,10 +278,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // ignore
       }
     }
+    await setBiometricUnlockEnabled(false);
     await clearAuthSession();
+    setPasskeyEnabled(false);
+    setPasskeyCanUnlock(false);
     setSession(null);
     setPushToken(null);
   }, [session?.token, pushToken]);
+
+  const enablePasskey = useCallback(async () => {
+    const hardware = await deviceHasBiometrics();
+    setPasskeyHardware(hardware);
+    if (!hardware) {
+      throw new Error(translate(locale, "account.passkeyUnavailable"));
+    }
+    const ok = await authenticateBiometric(translate(locale, "account.passkeyPrompt"));
+    if (!ok) {
+      throw new Error(translate(locale, "account.passkeyFailed"));
+    }
+    await setBiometricUnlockEnabled(true);
+    setPasskeyEnabled(true);
+  }, [locale]);
+
+  const disablePasskey = useCallback(async () => {
+    await setBiometricUnlockEnabled(false);
+    setPasskeyEnabled(false);
+    setPasskeyCanUnlock(false);
+  }, []);
+
+  const unlockWithPasskey = useCallback(async () => {
+    const ok = await authenticateBiometric(translate(locale, "account.passkeyPrompt"));
+    if (!ok) {
+      return false;
+    }
+    const stored = await loadAuthSession();
+    if (!stored) {
+      setPasskeyCanUnlock(false);
+      return false;
+    }
+    setSession(stored);
+    setPasskeyCanUnlock(false);
+    try {
+      const { data } = await fetchProfile(stored.token);
+      const next = { ...stored, contact: data };
+      await saveAuthSession(next);
+      setSession(next);
+    } catch {
+      // keep stored session
+    }
+    return true;
+  }, [locale]);
 
   const accent =
     settings?.theme?.accent_color &&
@@ -240,8 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       locale,
       setLocale: applyLocale,
-      t: (key: string, vars?: Record<string, string | number>) =>
-        translate(locale, key, vars),
+      t,
       settings,
       accent,
       loading,
@@ -255,10 +353,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signOut,
+      passkeyEnabled,
+      passkeyCanUnlock,
+      passkeyHardware,
+      enablePasskey,
+      disablePasskey,
+      unlockWithPasskey,
     }),
     [
       locale,
       applyLocale,
+      t,
       settings,
       accent,
       loading,
@@ -270,6 +375,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signUp,
       signOut,
+      passkeyEnabled,
+      passkeyCanUnlock,
+      passkeyHardware,
+      enablePasskey,
+      disablePasskey,
+      unlockWithPasskey,
     ],
   );
 

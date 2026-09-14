@@ -62,13 +62,13 @@ export default function RootLayout() {
                   }}
                 >
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="products/index" options={{ title: "Shop" }} />
+                <Stack.Screen name="products/index" options={{ title: "Consoles" }} />
                 <Stack.Screen name="products/[slug]" options={{ title: "Product" }} />
                 <Stack.Screen name="category/[slug]" options={{ title: "Category" }} />
                 <Stack.Screen name="brands/index" options={{ title: "Brands" }} />
                 <Stack.Screen name="brands/[slug]" options={{ title: "Brand" }} />
                 <Stack.Screen name="search" options={{ title: "Search" }} />
-                <Stack.Screen name="games/index" options={{ title: "Games" }} />
+                <Stack.Screen name="games/index" options={{ title: "Digital games" }} />
                 <Stack.Screen name="games/[id]" options={{ title: "Game" }} />
                 <Stack.Screen name="gift-cards/index" options={{ title: "Gift cards" }} />
                 <Stack.Screen name="checkout/index" options={{ title: "Checkout" }} />

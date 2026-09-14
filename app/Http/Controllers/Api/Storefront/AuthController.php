@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends StorefrontController
@@ -162,7 +161,7 @@ class AuthController extends StorefrontController
             ->first();
 
         if ($contact) {
-            $token = Str::random(64);
+            $token = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
             DB::table('password_resets_contacts')->updateOrInsert(
                 ['email' => $contact->email],
                 ['token' => Hash::make($token), 'created_at' => now()]
@@ -179,7 +178,7 @@ class AuthController extends StorefrontController
             }
         }
 
-        return $this->jsonSuccess(['message' => 'If the email exists, a reset link has been sent.']);
+        return $this->jsonSuccess(['message' => 'If the email exists, a reset code has been sent.']);
     }
 
     public function resetPassword(Request $request)

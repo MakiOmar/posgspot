@@ -56,6 +56,14 @@ export default component$(() => {
           <strong>{tStatic(locale, "account.profileAddress")}</strong>
           <span class="footer-muted">{tStatic(locale, "account.profileCardDesc")}</span>
         </Link>
+        <Link href={localePath(locale, "/account/security")} class="account-card">
+          <strong>{tStatic(locale, "account.loginSecurity")}</strong>
+          <span class="footer-muted">{tStatic(locale, "account.loginSecurityHint")}</span>
+        </Link>
+        <Link href={localePath(locale, "/account/payments")} class="account-card">
+          <strong>{tStatic(locale, "account.paymentsPayouts")}</strong>
+          <span class="footer-muted">{tStatic(locale, "account.paymentsCardDesc")}</span>
+        </Link>
       </div>
 
       {c ? (

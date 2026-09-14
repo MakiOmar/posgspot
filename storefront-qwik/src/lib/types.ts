@@ -646,6 +646,27 @@ export interface AccountOrderDetail extends AccountOrder {
   digital_deliveries?: DigitalDelivery[];
 }
 
+export interface SavedCoupon {
+  id: number;
+  code: string;
+  coupon_id?: number | null;
+  name?: string | null;
+  label?: string | null;
+  type?: string | null;
+  description?: string | null;
+  saved_at?: string | null;
+  valid?: boolean;
+}
+
+export interface UsedCoupon {
+  id: number;
+  code?: string | null;
+  order_id?: number | null;
+  invoice_no?: string | null;
+  discount_amount?: number;
+  redeemed_at?: string | null;
+}
+
 export interface RewardPointsBalance {
   enabled: boolean;
   name: string;

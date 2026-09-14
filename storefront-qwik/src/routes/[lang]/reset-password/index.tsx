@@ -14,25 +14,32 @@ export default component$(() => {
   const pending = usePendingState();
   const { locale } = useI18n();
   const loginPath = localePath(locale, "/login");
-  const email = loc.url.searchParams.get("email") || "";
-  const token = loc.url.searchParams.get("token") || "";
-  const form = useStore({ password: "", password_confirmation: "" });
+  const emailParam = loc.url.searchParams.get("email") || "";
+  const tokenParam = loc.url.searchParams.get("token") || "";
+  const form = useStore({
+    email: emailParam,
+    token: tokenParam,
+    password: "",
+    password_confirmation: "",
+  });
   const submitting = useSignal(false);
   const succeeded = useSignal(false);
-
-  const missingParams = !email || !token;
 
   const submit$ = $(async () => {
     if (form.password !== form.password_confirmation) {
       await toastError(tStatic(locale, "auth.passwordsMismatch"));
       return;
     }
+    if (!form.token.trim()) {
+      await toastError(tStatic(locale, "auth.resetCodeHint"));
+      return;
+    }
 
     await withPendingFeedback(pending, submitting, async () => {
       try {
         await resetPassword({
-          email,
-          token,
+          email: form.email,
+          token: form.token,
           password: form.password,
           password_confirmation: form.password_confirmation,
         });
@@ -47,25 +54,6 @@ export default component$(() => {
       }
     });
   });
-
-  if (missingParams) {
-    return (
-      <section class="auth-page container">
-        <div class="auth-card">
-          <h1 class="page-title">{tStatic(locale, "auth.invalidResetLink")}</h1>
-          <p class="alert alert-error">{tStatic(locale, "auth.invalidResetLinkBody")}</p>
-          <div class="auth-links">
-            <Link href={localePath(locale, "/forgot-password")} class="link-accent">
-              {tStatic(locale, "auth.requestNewResetLink")}
-            </Link>
-            <Link href={loginPath} class="link-accent">
-              {tStatic(locale, "auth.backToSignIn")}
-            </Link>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   if (succeeded.value) {
     return (
@@ -88,10 +76,33 @@ export default component$(() => {
       <div class="auth-card">
         <h1 class="page-title">{tStatic(locale, "auth.chooseNewPassword")}</h1>
         <p class="footer-muted" style={{ marginBottom: "1rem" }}>
-          {tStatic(locale, "auth.enterNewPasswordFor")} <strong>{email}</strong>.
+          {tStatic(locale, "auth.resetCodeHint")}
         </p>
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
+          <div class="form-field form-field--full">
+            <label for="email">{tStatic(locale, "forms.email")}</label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={form.email}
+              onInput$={(_, el) => (form.email = el.value)}
+              required
+            />
+          </div>
+          <div class="form-field form-field--full">
+            <label for="reset-code">{tStatic(locale, "auth.resetCode")}</label>
+            <input
+              id="reset-code"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={form.token}
+              onInput$={(_, el) => (form.token = el.value)}
+              required
+            />
+          </div>
           <div class="form-field form-field--full">
             <label for="password">{tStatic(locale, "forms.newPassword")}</label>
             <input

@@ -300,6 +300,17 @@ button.header-nav-dropdown__trigger {
   color: var(--gs-accent);
 }
 
+.header-nav-dropdown__option--disabled {
+  color: var(--gs-muted);
+  cursor: default;
+  opacity: 0.7;
+}
+
+.header-nav-dropdown__option--disabled:hover {
+  background: transparent;
+  color: var(--gs-muted);
+}
+
 .header-nav-categories {
   display: inline-flex;
   align-items: center;
@@ -956,6 +967,11 @@ html[dir="rtl"] .header-search-type {
 .side-drawer-link:hover {
   color: var(--gs-text);
   background: rgba(255, 255, 255, 0.04);
+}
+
+.side-drawer-link--disabled {
+  color: var(--gs-muted);
+  opacity: 0.7;
 }
 
 /* Style two — second row for main nav + category links. Below header-main overlays. */
@@ -2992,6 +3008,33 @@ html[dir="rtl"] .header-search-type {
 
 .account-card:hover {
   border-color: var(--gs-accent);
+}
+
+.account-hub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+}
+
+.account-hub-tabs--sub {
+  margin-bottom: 1rem;
+}
+
+.account-hub-tab {
+  border: 1px solid var(--gs-border);
+  background: transparent;
+  color: var(--gs-text);
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.account-hub-tab.active {
+  background: var(--gs-accent);
+  border-color: var(--gs-accent);
+  color: #fff;
 }
 
 .account-overview-grid {

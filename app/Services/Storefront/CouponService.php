@@ -6,6 +6,7 @@ use App\Contact;
 use App\Coupon;
 use App\CouponRedemption;
 use App\Services\Storefront\Shipping\ShippingQuoteService;
+use App\StorefrontSavedCoupon;
 use App\Transaction;
 use Illuminate\Validation\ValidationException;
 
@@ -241,6 +242,186 @@ class CouponService
         return Coupon::where('business_id', $businessId)
             ->where('code', $normalized)
             ->first();
+    }
+
+    /**
+     * Save a promo code to the customer's wallet (no cart required).
+     *
+     * @return array<string, mixed>
+     */
+    public function saveToWallet(int $businessId, Contact $contact, string $code): array
+    {
+        $coupon = $this->findByCode($businessId, $code);
+        if (empty($coupon)) {
+            throw ValidationException::withMessages([
+                'code' => ['This promo code was not found.'],
+            ]);
+        }
+
+        $this->assertCouponForWallet($coupon, $contact);
+
+        $normalized = $this->normalizeCode($code);
+        $existing = StorefrontSavedCoupon::query()
+            ->where('business_id', $businessId)
+            ->where('contact_id', $contact->id)
+            ->where('code', $normalized)
+            ->first();
+
+        if (! empty($existing)) {
+            throw ValidationException::withMessages([
+                'code' => ['This promo code is already saved.'],
+            ]);
+        }
+
+        $saved = StorefrontSavedCoupon::create([
+            'business_id' => $businessId,
+            'contact_id' => $contact->id,
+            'coupon_id' => $coupon->id,
+            'code' => $normalized,
+        ]);
+
+        return $this->formatSavedCoupon($saved, $coupon, true);
+    }
+
+    /**
+     * Wallet codes that are still valid and not yet redeemed by this customer.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUnusedWallet(int $businessId, Contact $contact): array
+    {
+        $saved = StorefrontSavedCoupon::query()
+            ->where('business_id', $businessId)
+            ->where('contact_id', $contact->id)
+            ->orderByDesc('id')
+            ->get();
+
+        $items = [];
+        foreach ($saved as $row) {
+            if ($this->contactHasRedeemedCode($businessId, $contact->id, $row->code)) {
+                continue;
+            }
+            $coupon = $row->coupon_id
+                ? Coupon::find($row->coupon_id)
+                : $this->findByCode($businessId, $row->code);
+            $valid = $coupon instanceof Coupon && $this->isCouponValidForWallet($coupon, $contact);
+            if (! $valid) {
+                continue;
+            }
+            $items[] = $this->formatSavedCoupon($row, $coupon, true);
+        }
+
+        return $items;
+    }
+
+    /**
+     * Redemptions for this customer (order + amount saved).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUsedWallet(int $businessId, Contact $contact): array
+    {
+        return CouponRedemption::query()
+            ->where('business_id', $businessId)
+            ->where('contact_id', $contact->id)
+            ->with(['coupon', 'transaction'])
+            ->orderByDesc('redeemed_at')
+            ->get()
+            ->map(function (CouponRedemption $redemption) {
+                $tx = $redemption->transaction;
+
+                return [
+                    'id' => $redemption->id,
+                    'code' => $redemption->coupon?->code,
+                    'order_id' => $redemption->transaction_id,
+                    'invoice_no' => $tx->invoice_no ?? null,
+                    'discount_amount' => (float) $redemption->discount_amount,
+                    'redeemed_at' => optional($redemption->redeemed_at)->toIso8601String(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Wallet save checks: active, channel, dates, usage caps — not cart subtotal.
+     */
+    public function assertCouponForWallet(Coupon $coupon, Contact $contact): void
+    {
+        if (! $coupon->is_active) {
+            throw ValidationException::withMessages(['code' => ['This promo code is not active.']]);
+        }
+
+        if (! $coupon->supportsChannel(Coupon::CHANNEL_STOREFRONT)) {
+            throw ValidationException::withMessages(['code' => ['This promo code cannot be used online.']]);
+        }
+
+        $now = now();
+        if (! empty($coupon->starts_at) && $coupon->starts_at->gt($now)) {
+            throw ValidationException::withMessages(['code' => ['This promo code is not valid yet.']]);
+        }
+        if (! empty($coupon->ends_at) && $coupon->ends_at->lt($now)) {
+            throw ValidationException::withMessages(['code' => ['This promo code has expired.']]);
+        }
+
+        if (! empty($coupon->max_uses_total) && (int) $coupon->times_used >= (int) $coupon->max_uses_total) {
+            throw ValidationException::withMessages(['code' => ['This promo code has reached its usage limit.']]);
+        }
+
+        if ($coupon->first_order_only && $this->contactHasPriorStorefrontOrder($contact->id)) {
+            throw ValidationException::withMessages(['code' => ['This promo code is for first orders only.']]);
+        }
+
+        if (! empty($coupon->max_uses_per_customer)) {
+            $used = CouponRedemption::where('coupon_id', $coupon->id)
+                ->where('contact_id', $contact->id)
+                ->count();
+            if ($used >= (int) $coupon->max_uses_per_customer) {
+                throw ValidationException::withMessages(['code' => ['You have already used this promo code.']]);
+            }
+        }
+    }
+
+    private function isCouponValidForWallet(Coupon $coupon, Contact $contact): bool
+    {
+        try {
+            $this->assertCouponForWallet($coupon, $contact);
+
+            return true;
+        } catch (ValidationException $e) {
+            return false;
+        }
+    }
+
+    private function contactHasRedeemedCode(int $businessId, int $contactId, string $code): bool
+    {
+        $normalized = $this->normalizeCode($code);
+
+        return CouponRedemption::query()
+            ->where('business_id', $businessId)
+            ->where('contact_id', $contactId)
+            ->whereHas('coupon', function ($query) use ($normalized) {
+                $query->where('code', $normalized);
+            })
+            ->exists();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatSavedCoupon(StorefrontSavedCoupon $saved, ?Coupon $coupon, bool $valid): array
+    {
+        return [
+            'id' => $saved->id,
+            'code' => $saved->code,
+            'coupon_id' => $saved->coupon_id,
+            'name' => $coupon?->name,
+            'label' => $coupon?->displayLabel(),
+            'type' => $coupon?->type,
+            'description' => $coupon?->description,
+            'saved_at' => optional($saved->created_at)->toIso8601String(),
+            'valid' => $valid,
+        ];
     }
 
     /**

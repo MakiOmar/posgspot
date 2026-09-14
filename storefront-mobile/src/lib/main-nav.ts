@@ -3,7 +3,9 @@ import { t } from "./i18n";
 
 export type MainNavChild = {
   label: string;
-  href: string;
+  href?: string;
+  disabled?: boolean;
+  hint?: string;
 };
 
 export type MainNavItem = {
@@ -12,6 +14,8 @@ export type MainNavItem = {
   external?: boolean;
   children?: MainNavChild[];
 };
+
+const HOTLINE = "17797";
 
 /**
  * Same main nav as Qwik `buildMainNavLinks` (paths without locale prefix for Expo Router).
@@ -44,7 +48,18 @@ export function buildMainNavLinks(
     { label: t(locale, "common.stores"), href: "/stores" },
     { label: t(locale, "common.repair"), href: "/repair-status" },
     { label: t(locale, "nav.trackConsole"), href: "/track-console" },
-    { label: t(locale, "common.contact"), href: "/contact" },
+    {
+      label: t(locale, "common.contact"),
+      children: [
+        { label: t(locale, "contact.callUs"), href: `tel:${HOTLINE}` },
+        {
+          label: t(locale, "contact.liveChat"),
+          disabled: true,
+          hint: t(locale, "contact.comingSoon"),
+        },
+        { label: t(locale, "contact.leaveMessage"), href: "/contact" },
+      ],
+    },
     { label: t(locale, "common.faq"), href: "/faq" },
     { label: t(locale, "common.about"), href: "/about" },
     { label: t(locale, "legal.terms"), href: "/legal/terms" },

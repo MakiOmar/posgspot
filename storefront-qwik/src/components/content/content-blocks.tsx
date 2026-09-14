@@ -77,15 +77,30 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
               {isOpen ? (
                 <ul class="header-nav-dropdown__menu" role="menu">
                   {item.children.map((child) => (
-                    <li key={child.href} role="none">
-                      <button
-                        type="button"
-                        class="header-nav-dropdown__option"
-                        role="menuitem"
-                        onClick$={() => go$(child.href)}
-                      >
-                        {child.label}
-                      </button>
+                    <li key={child.href || child.label} role="none">
+                      {child.disabled || !child.href ? (
+                        <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
+                          {child.label}
+                          {child.hint ? ` (${child.hint})` : ""}
+                        </span>
+                      ) : child.href.startsWith("tel:") ? (
+                        <a
+                          href={child.href}
+                          class="header-nav-dropdown__option"
+                          role="menuitem"
+                        >
+                          {child.label}
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          class="header-nav-dropdown__option"
+                          role="menuitem"
+                          onClick$={() => go$(child.href!)}
+                        >
+                          {child.label}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

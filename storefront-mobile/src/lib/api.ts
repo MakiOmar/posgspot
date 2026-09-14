@@ -1,3 +1,4 @@
+import { File, Paths } from "expo-file-system";
 import { API_BASE, CLIENT_HEADER } from "./config";
 import type {
   AccountOrder,
@@ -249,7 +250,7 @@ export function fetchProfile(token: string) {
 
 export function fetchOrders(
   token: string,
-  opts: { page?: number; perPage?: number } = {},
+  opts: { page?: number; perPage?: number; paymentStatus?: string } = {},
 ) {
   const page = opts.page ?? 1;
   const perPage = opts.perPage ?? 20;
@@ -257,6 +258,9 @@ export function fetchOrders(
     page: String(page),
     per_page: String(perPage),
   });
+  if (opts.paymentStatus) {
+    qs.set("payment_status", opts.paymentStatus);
+  }
   return storefrontFetch<AccountOrder[]>(`/account/orders?${qs.toString()}`, {
     headers: authHeaders(token),
   });
@@ -361,6 +365,26 @@ export function mergeWishlist(token: string, productIds: number[]) {
 
 export function fetchRewardPoints(token: string) {
   return storefrontFetch<import("./types").RewardPointsBalance>("/account/reward-points", {
+    headers: authHeaders(token),
+  });
+}
+
+export function fetchAccountCoupons(token: string) {
+  return storefrontFetch<import("./types").SavedCoupon[]>("/account/coupons", {
+    headers: authHeaders(token),
+  });
+}
+
+export function saveAccountCoupon(token: string, code: string) {
+  return storefrontFetch<import("./types").SavedCoupon>("/account/coupons", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ code }),
+  });
+}
+
+export function fetchUsedAccountCoupons(token: string) {
+  return storefrontFetch<import("./types").UsedCoupon[]>("/account/coupons/used", {
     headers: authHeaders(token),
   });
 }
@@ -541,13 +565,28 @@ export function updateProfile(
   });
 }
 
-export function uploadProfileAvatar(token: string, uri: string, fileName = "avatar.jpg") {
+export async function uploadProfileAvatar(
+  token: string,
+  uri: string,
+  fileName = "avatar.jpg",
+) {
+  // Expo fetch only accepts Blob/File parts — RN `{ uri, name, type }` throws
+  // "Unsupported FormDataPart implementation".
+  const source = new File(uri);
+  const lower = fileName.toLowerCase();
+  const safeName = lower.endsWith(".png")
+    ? "avatar.png"
+    : lower.endsWith(".webp")
+      ? "avatar.webp"
+      : "avatar.jpg";
+  const upload = new File(Paths.cache, safeName);
+  if (upload.exists) {
+    upload.delete();
+  }
+  await source.copy(upload);
+
   const body = new FormData();
-  body.append("avatar", {
-    uri,
-    name: fileName,
-    type: fileName.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg",
-  } as unknown as Blob);
+  body.append("avatar", upload);
   return storefrontFetch<AuthContact>("/account/profile/avatar", {
     method: "POST",
     headers: authHeaders(token),

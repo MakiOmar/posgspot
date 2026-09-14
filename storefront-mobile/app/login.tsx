@@ -14,7 +14,7 @@ import { useRtl } from "../src/lib/rtl";
 type LoginMethod = "email" | "phone";
 
 export default function LoginScreen() {
-  const { t, signIn, accent } = useApp();
+  const { t, signIn, accent, passkeyCanUnlock, unlockWithPasskey } = useApp();
   const router = useRouter();
   const { textAlign, writingDirection, row } = useRtl();
   const [method, setMethod] = useState<LoginMethod>("email");
@@ -117,6 +117,25 @@ export default function LoginScreen() {
         </Text>
       </Pressable>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {passkeyCanUnlock ? (
+        <PrimaryButton
+          label={busy ? t("common.loading") : t("account.passkeyUnlock")}
+          disabled={busy}
+          onPress={() => {
+            setBusy(true);
+            setError(null);
+            void unlockWithPasskey()
+              .then((ok) => {
+                if (ok) {
+                  router.replace("/(tabs)/account");
+                  return;
+                }
+                setError(t("account.passkeyFailed"));
+              })
+              .finally(() => setBusy(false));
+          }}
+        />
+      ) : null}
       <PrimaryButton
         label={busy ? t("common.loading") : t("auth.login")}
         disabled={busy}

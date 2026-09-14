@@ -19,7 +19,7 @@ type Props = {
 };
 
 /**
- * Storefront chrome matching the mobile mock: welcome + brand, cart/menu, search.
+ * Storefront chrome: EN = menu/cart left, welcome right; AR = welcome left, cart/menu right.
  */
 export function StorefrontHeader({
   showSearch = true,
@@ -29,69 +29,96 @@ export function StorefrontHeader({
 }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, settings, accent, displayName, token, contact } = useApp();
+  const { t, settings, accent, displayName, token, contact, locale } = useApp();
   const { count } = useCart();
-  const { row, textAlign, writingDirection, end } = useRtl();
+  const { row, textAlign, writingDirection } = useRtl();
   const [menuOpen, setMenuOpen] = useState(false);
   const brand = settings?.business_name || "Games Spot";
   const welcomeName = token && displayName ? displayName : brand;
   const avatarUrl = token ? contact?.avatar_url : null;
+  const isRtl = locale === "ar";
+  const welcomeAlign = isRtl ? "left" : "right";
+
+  const menuBtn = (
+    <Pressable
+      style={styles.iconBtn}
+      onPress={() => setMenuOpen(true)}
+      accessibilityRole="button"
+      accessibilityLabel={t("nav.menu")}
+    >
+      <FontAwesome name="bars" size={20} color="#222" />
+    </Pressable>
+  );
+
+  const cartBtn = (
+    <Pressable
+      style={styles.iconBtn}
+      onPress={() => router.push("/(tabs)/cart")}
+      accessibilityRole="button"
+      accessibilityLabel={t("nav.cart")}
+    >
+      <FontAwesome name="shopping-cart" size={20} color="#222" />
+      {count > 0 ? (
+        <View style={[styles.badge, { backgroundColor: accent, right: 2 }]}>
+          <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
+        </View>
+      ) : null}
+    </Pressable>
+  );
+
+  const welcomeBlock = (
+    <View style={[styles.brandBlock, { flexDirection: "row" }]}>
+      <View style={[styles.avatar, { backgroundColor: accent }]}>
+        {avatarUrl ? (
+          <RemoteImage
+            uri={avatarUrl}
+            style={styles.avatarImage}
+            contentFit="cover"
+          />
+        ) : (
+          <FontAwesome name="gamepad" size={18} color="#111" />
+        )}
+      </View>
+      <View style={styles.brandText}>
+        <Text
+          style={[
+            styles.welcome,
+            { textAlign: welcomeAlign, writingDirection },
+          ]}
+        >
+          {t("home.welcome")}
+        </Text>
+        <Text
+          style={[
+            styles.brand,
+            { textAlign: welcomeAlign, writingDirection },
+          ]}
+          numberOfLines={1}
+        >
+          {welcomeName}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={[styles.wrap, { paddingTop: Math.max(insets.top, 8) }]}>
-      <View style={[styles.topRow, { flexDirection: row }]}>
-        <View style={[styles.brandBlock, { flexDirection: row }]}>
-          <View style={[styles.avatar, { backgroundColor: accent }]}>
-            {avatarUrl ? (
-              <RemoteImage
-                uri={avatarUrl}
-                style={styles.avatarImage}
-                contentFit="cover"
-              />
-            ) : (
-              <FontAwesome name="gamepad" size={18} color="#111" />
-            )}
-          </View>
-          <View style={styles.brandText}>
-            <Text style={[styles.welcome, { textAlign, writingDirection }]}>
-              {t("home.welcome")}
-            </Text>
-            <Text
-              style={[styles.brand, { textAlign, writingDirection }]}
-              numberOfLines={1}
-            >
-              {welcomeName}
-            </Text>
-          </View>
+      <View style={[styles.topRow, { flexDirection: "row" }]}>
+        {isRtl ? welcomeBlock : null}
+        <View style={[styles.actions, { flexDirection: "row" }]}>
+          {isRtl ? (
+            <>
+              {cartBtn}
+              {menuBtn}
+            </>
+          ) : (
+            <>
+              {menuBtn}
+              {cartBtn}
+            </>
+          )}
         </View>
-        <View style={[styles.actions, { flexDirection: row }]}>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.push("/(tabs)/cart")}
-            accessibilityRole="button"
-            accessibilityLabel={t("nav.cart")}
-          >
-            <FontAwesome name="shopping-cart" size={20} color="#222" />
-            {count > 0 ? (
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: accent, [end]: 2 },
-                ]}
-              >
-                <Text style={styles.badgeText}>{count > 9 ? "9+" : count}</Text>
-              </View>
-            ) : null}
-          </Pressable>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => setMenuOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={t("nav.menu")}
-          >
-            <FontAwesome name="bars" size={20} color="#222" />
-          </Pressable>
-        </View>
+        {isRtl ? null : welcomeBlock}
       </View>
 
       {showSearch ? (

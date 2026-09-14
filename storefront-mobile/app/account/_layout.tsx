@@ -20,11 +20,14 @@ export default function AccountLayout() {
       }}
     >
       <Stack.Screen name="profile" options={{ title: t("account.personalInfo") }} />
-      <Stack.Screen name="password" options={{ title: t("account.changePassword") }} />
+      <Stack.Screen name="security" options={{ title: t("account.loginSecurity") }} />
+      <Stack.Screen name="password" options={{ title: t("account.loginSecurity") }} />
+      <Stack.Screen name="payments" options={{ title: t("account.paymentsPayouts") }} />
       <Stack.Screen name="address" options={{ title: t("account.addressTitle") }} />
       <Stack.Screen name="rewards" options={{ title: t("rewards.title") }} />
       <Stack.Screen name="orders/index" options={{ title: t("account.orders") }} />
       <Stack.Screen name="orders/[id]" options={{ title: t("account.orders") }} />
+      <Stack.Screen name="invoice" options={{ title: t("account.invoice") }} />
     </Stack>
   );
 }

@@ -157,8 +157,8 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | POST | `/auth/register` | Register customer (`email` + password required; `mobile` optional). Sends email verification OTP. Optional `turnstile_token` when Turnstile is enabled in storefront settings. Response contact includes `email_verified` |
 | POST | `/auth/login` | Login (`login` = email or mobile) |
 | POST | `/auth/logout` | Logout (auth required) |
-| POST | `/auth/forgot-password` | Request reset (email contains link to `{STOREFRONT_URL}/reset-password?email=&token=`) |
-| POST | `/auth/reset-password` | Reset password (`email`, `token`, `password`, `password_confirmation`) |
+| POST | `/auth/forgot-password` | Request reset — email contains a **6-digit code** plus App Link / web `/[lang]/reset-password?email=&token=` backup. Code is hashed in `password_resets_contacts` |
+| POST | `/auth/reset-password` | Reset password (`email`, `token` = 6-digit code or legacy long token, `password`, `password_confirmation`) |
 | POST | `/auth/email/verify` | Verify email OTP (`code` required; `email` required unless Bearer token present). Sets `email_verified` |
 | POST | `/auth/email/resend` | Resend verification OTP (rate-limited; `email` or Bearer). No account enumeration |
 
@@ -173,13 +173,16 @@ Configure merchant code + security key under **Storefront Settings → Payment g
 | PUT | `/account/password` | Change password (`current_password`, `password`, `password_confirmation`). Revokes prior tokens; returns new `token` |
 | POST | `/account/delete-request` | Request account deletion (sets `storefront_delete_requested_at`; does not hard-delete) |
 | PUT | `/account/address` | Update single shipping address |
-| GET | `/account/orders` | Order history — query `page` (default 1), `per_page` (default 20, max 50). Meta: `current_page`, `last_page`, `per_page`, `total`. Paid orders include `invoice_print_url` when available |
+| GET | `/account/orders` | Order history — query `page` (default 1), `per_page` (default 20, max 50), optional `payment_status` (`due` \| `paid` \| `pending` \| `failed`). Meta: `current_page`, `last_page`, `per_page`, `total`. Paid orders include `invoice_print_url` when available |
 | GET | `/account/orders/{id}` | Order detail (lines, shipping address, fulfillment location). When `payment_status` is `paid`, includes `invoice_print_url` — same POS invoice page with `print_on_load=true`. Lines include `slug` and `image_url` when available (for reorder → cart). Also returns `shipping_method`, `shipping_carrier`, `shipping_tracking_number`, `shipping_tracking_url` when set. When paid + allocated **and** storefront setting `digital.expose_credentials_to_customer` is on, includes `digital_deliveries[]` (`kind`, `title`, `account_email`/`account_password` or `code`). When that setting is off, secrets stay on POS staff note only. Response includes `is_quotation` when checkout created a draft quotation (`digital.pos_document_type=quotation`). |
 | GET | `/account/orders/{id}/invoice` | Paid-order invoice print URL only (fallback when detail omits `invoice_print_url`) |
 | GET | `/account/repairs` | Job sheets for the signed-in contact (own `contact_id` + contacts sharing the same mobile via national-digit match). Same `repairs[]` shape as `POST /repair/status`. 503 when repair module unavailable |
 | GET | `/account/device-services` | Console/device services for the signed-in contact `mobile` via Accounts Device Track API. Same `services[]` shape as `POST /device/track`. Empty list when no phone or no hits; 503 when Accounts base unset |
 | GET | `/account/reward-points` | Loyalty balance |
 | POST | `/account/reward-points/validate` | Validate redeem amount |
+| GET | `/account/coupons` | Unused coupon wallet (saved codes that are still valid and not redeemed) |
+| POST | `/account/coupons` | Save a promo code to the wallet (`code`). Validates via `CouponService` without a cart (active, channel, dates, usage caps) |
+| GET | `/account/coupons/used` | Coupon redemptions (`code`, `order_id`, `invoice_no`, `discount_amount`, `redeemed_at`) |
 | POST | `/account/devices` | Register push device — body `{ platform: "ios"\|"android", token, locale? }` (mobile app). Returns `{ id, platform, locale }`. |
 | DELETE | `/account/devices/{token}` | Unregister push token (URL-encoded token). |
 

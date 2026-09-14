@@ -118,6 +118,9 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/device-services', [AccountController::class, 'deviceServices']);
         Route::get('/reward-points', [AccountController::class, 'rewardPoints']);
         Route::post('/reward-points/validate', [AccountController::class, 'validateRewardRedeem']);
+        Route::get('/coupons/used', [AccountController::class, 'usedCoupons']);
+        Route::get('/coupons', [AccountController::class, 'coupons']);
+        Route::post('/coupons', [AccountController::class, 'saveCoupon']);
         Route::post('/devices', [DeviceController::class, 'store']);
         Route::delete('/devices/{token}', [DeviceController::class, 'destroy'])->where('token', '.*');
     });

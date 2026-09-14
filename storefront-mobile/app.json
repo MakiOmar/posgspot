@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "GameSpotEG",
+    "name": "Games Spot",
     "slug": "gamesspoteg",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,7 +23,7 @@
           "remote-notification",
           "remote-notification"
         ],
-        "CFBundleDisplayName": "GameSpotEG",
+        "CFBundleDisplayName": "Games Spot",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -58,8 +58,23 @@
             },
             {
               "scheme": "https",
+              "host": "new.gamesspoteg.com",
+              "pathPrefix": "/en/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "new.gamesspoteg.com",
+              "pathPrefix": "/ar/reset-password"
+            },
+            {
+              "scheme": "https",
               "host": "shop.gamesspoteg.com",
-              "pathPrefix": "/ar/account/orders"
+              "pathPrefix": "/en/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "shop.gamesspoteg.com",
+              "pathPrefix": "/ar/reset-password"
             }
           ],
           "category": [
@@ -113,7 +128,13 @@
           }
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Games Spot to use Face ID to unlock your account."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

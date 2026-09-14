@@ -55,14 +55,25 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
                       <span class="side-drawer-group-label">{item.label}</span>
                       <ul class="side-drawer-sublist">
                         {item.children.map((child) => (
-                          <li key={child.href}>
-                            <Link
-                              href={child.href}
-                              class="side-drawer-link"
-                              onClick$={onClose$}
-                            >
-                              {child.label}
-                            </Link>
+                          <li key={child.href || child.label}>
+                            {child.disabled || !child.href ? (
+                              <span class="side-drawer-link side-drawer-link--disabled">
+                                {child.label}
+                                {child.hint ? ` (${child.hint})` : ""}
+                              </span>
+                            ) : child.href.startsWith("tel:") ? (
+                              <a href={child.href} class="side-drawer-link" onClick$={onClose$}>
+                                {child.label}
+                              </a>
+                            ) : (
+                              <Link
+                                href={child.href}
+                                class="side-drawer-link"
+                                onClick$={onClose$}
+                              >
+                                {child.label}
+                              </Link>
+                            )}
                           </li>
                         ))}
                       </ul>

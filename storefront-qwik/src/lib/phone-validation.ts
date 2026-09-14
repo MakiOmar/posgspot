@@ -110,15 +110,30 @@ export function parseFullPhone(
     return { dialCode: fallbackDial, nationalNumber: "" };
   }
 
-  const sorted = [...countries].sort((a, b) => b.dial_code.length - a.dial_code.length);
-  for (const country of sorted) {
-    if (trimmed.startsWith(country.dial_code)) {
+  const known = countries.length > 0 ? countries : [{ dial_code: fallbackDial } as PhoneCountry];
+  const sorted = [...known].sort((a, b) => b.dial_code.length - a.dial_code.length);
+
+  if (trimmed.startsWith("+")) {
+    for (const country of sorted) {
+      if (country.dial_code && trimmed.startsWith(country.dial_code)) {
+        return {
+          dialCode: country.dial_code,
+          nationalNumber: sanitizeNationalNumber(trimmed.slice(country.dial_code.length)),
+        };
+      }
+    }
+    if (trimmed.startsWith(fallbackDial)) {
       return {
-        dialCode: country.dial_code,
-        nationalNumber: trimmed.slice(country.dial_code.length).replace(/\D/g, ""),
+        dialCode: fallbackDial,
+        nationalNumber: sanitizeNationalNumber(trimmed.slice(fallbackDial.length)),
       };
     }
+    return { dialCode: fallbackDial, nationalNumber: sanitizeNationalNumber(trimmed) };
   }
 
-  return { dialCode: fallbackDial, nationalNumber: sanitizeNationalNumber(trimmed) };
+  let digits = sanitizeNationalNumber(trimmed);
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return { dialCode: fallbackDial, nationalNumber: digits };
 }

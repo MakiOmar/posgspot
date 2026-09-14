@@ -10,9 +10,10 @@ export default function ResetPasswordScreen() {
   const { t } = useApp();
   const router = useRouter();
   const params = useLocalSearchParams<{ email?: string; token?: string }>();
-  // Keep token in memory only — never show it in a form field.
-  const tokenRef = useRef((params.token || "").toString());
+  const tokenFromLink = (params.token || "").toString();
+  const tokenRef = useRef(tokenFromLink);
   const [email, setEmail] = useState((params.email || "").toString());
+  const [code, setCode] = useState(tokenFromLink);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,12 +23,25 @@ export default function ResetPasswordScreen() {
     <Screen padded={false} avoidKeyboard={false}>
       <Stack.Screen options={{ title: t("auth.resetPassword") }} />
       <FormScrollView contentContainerStyle={{ padding: 16 }} bottomInset={64}>
+        <Text style={{ color: "#666", marginBottom: 12, lineHeight: 20 }}>
+          {t("auth.resetCodeHint")}
+        </Text>
         <LabeledInput
           label={t("auth.email")}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+        />
+        <LabeledInput
+          label={t("auth.resetCode")}
+          value={code}
+          onChangeText={(value) => {
+            setCode(value);
+            tokenRef.current = value;
+          }}
+          keyboardType="number-pad"
+          autoComplete="one-time-code"
         />
         <LabeledInput
           label={t("auth.password")}
@@ -50,11 +64,15 @@ export default function ResetPasswordScreen() {
         ) : null}
         <PrimaryButton
           label={busy ? t("common.loading") : t("auth.resetPassword")}
-          disabled={busy || !tokenRef.current}
+          disabled={busy}
           onPress={() => {
-            const token = tokenRef.current.trim();
+            const token = (tokenRef.current || code).trim();
             if (!token) {
-              setMessage(t("common.error"));
+              setMessage(t("auth.resetCodeRequired"));
+              return;
+            }
+            if (password !== confirm) {
+              setMessage(t("auth.confirmPassword"));
               return;
             }
             setBusy(true);

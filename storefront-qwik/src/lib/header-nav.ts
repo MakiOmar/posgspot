@@ -4,7 +4,9 @@ import type { StoreLocaleCode } from "~/lib/i18n/config";
 
 export interface ResolvedNavChild {
   label: string;
-  href: string;
+  href?: string;
+  disabled?: boolean;
+  hint?: string;
 }
 
 export interface ResolvedNavItem {
@@ -14,6 +16,8 @@ export interface ResolvedNavItem {
   external?: boolean;
   children?: ResolvedNavChild[];
 }
+
+const HOTLINE = "17797";
 
 /**
  * Build header nav items. Digital games is a platform dropdown (not a single page link).
@@ -53,7 +57,21 @@ export function buildMainNavLinks(
     { label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") },
     { label: tStatic(lang, "nav.trackRepairs"), href: localePath(lang, "/repair-status") },
     { label: tStatic(lang, "nav.trackConsole"), href: localePath(lang, "/track-console") },
-    { label: tStatic(lang, "nav.contact"), href: localePath(lang, "/contact") },
+    {
+      label: tStatic(lang, "nav.contact"),
+      children: [
+        { label: tStatic(lang, "nav.callUs"), href: `tel:${HOTLINE}` },
+        {
+          label: tStatic(lang, "nav.liveChat"),
+          disabled: true,
+          hint: tStatic(lang, "nav.comingSoon"),
+        },
+        {
+          label: tStatic(lang, "nav.leaveMessage"),
+          href: localePath(lang, "/contact"),
+        },
+      ],
+    },
     { label: tStatic(lang, "nav.faq"), href: localePath(lang, "/faq") },
     { label: tStatic(lang, "nav.about"), href: localePath(lang, "/about") },
   );

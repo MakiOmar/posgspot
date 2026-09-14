@@ -4,6 +4,7 @@ namespace Tests\Feature\Storefront;
 
 use App\Contact;
 use App\Mail\StorefrontEmailVerification;
+use App\Mail\StorefrontPasswordReset;
 use App\Services\Storefront\StorefrontSettingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -178,5 +179,45 @@ class CustomerAccountAuthTest extends TestCase
 
         $this->getJson('/api/storefront/v1/account/profile/avatar')
             ->assertUnauthorized();
+    }
+
+    public function test_forgot_password_sends_six_digit_code_that_resets(): void
+    {
+        Mail::fake();
+
+        $email = 'reset_otp_'.uniqid().'@example.com';
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Reset',
+            'last_name' => 'Code',
+            'email' => $email,
+            'mobile' => '+2010'.random_int(10000000, 99999999),
+            'password' => 'oldpassword123',
+            'password_confirmation' => 'oldpassword123',
+        ])->assertCreated();
+
+        $this->postJson('/api/storefront/v1/auth/forgot-password', [
+            'email' => $email,
+        ])->assertOk();
+
+        $code = null;
+        Mail::assertSent(StorefrontPasswordReset::class, function (StorefrontPasswordReset $mail) use (&$code) {
+            $code = $mail->token;
+
+            return strlen($mail->token) === 6 && ctype_digit($mail->token);
+        });
+
+        $this->assertNotEmpty($code);
+
+        $this->postJson('/api/storefront/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => $code,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ])->assertOk();
+
+        $this->postJson('/api/storefront/v1/auth/login', [
+            'login' => $email,
+            'password' => 'newpassword123',
+        ])->assertOk();
     }
 }

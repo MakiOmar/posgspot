@@ -7,6 +7,7 @@ use App\Mail\StorefrontAccountDeleteRequest;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\ContactDuplicateService;
+use App\Services\Storefront\CouponService;
 use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\DeviceTrackLookupService;
 use App\Services\Storefront\RepairStatusLookupService;
@@ -25,7 +26,8 @@ class AccountController extends StorefrontController
         private PhoneValidationService $phoneValidation,
         private ContactDuplicateService $duplicates,
         private RepairStatusLookupService $repairLookup,
-        private DeviceTrackLookupService $deviceTrackLookup
+        private DeviceTrackLookupService $deviceTrackLookup,
+        private CouponService $couponService
     ) {
     }
 
@@ -157,12 +159,20 @@ class AccountController extends StorefrontController
         $contact = $request->user();
         $page = max(1, (int) $request->query('page', 1));
         $perPage = max(1, min(50, (int) $request->query('per_page', 20)));
+        $paymentStatus = strtolower(trim((string) $request->query('payment_status', '')));
+        $allowed = ['due', 'paid', 'pending', 'failed'];
+        if ($paymentStatus !== '' && ! in_array($paymentStatus, $allowed, true)) {
+            return $this->jsonError('Invalid payment status.', 422, [
+                'payment_status' => ['Must be one of: due, paid, pending, failed.'],
+            ]);
+        }
 
         $result = $this->checkoutService->listOrdersForContact(
             $this->businessId($request),
             $contact->id,
             $page,
-            $perPage
+            $perPage,
+            $paymentStatus !== '' ? $paymentStatus : null
         );
 
         return $this->jsonSuccess($result['orders'], $result['meta']);
@@ -291,6 +301,44 @@ class AccountController extends StorefrontController
             (int) $data['requested_points'],
             (float) $data['order_total']
         ));
+    }
+
+    public function coupons(Request $request)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        return $this->jsonSuccess(
+            $this->couponService->listUnusedWallet($this->businessId($request), $contact)
+        );
+    }
+
+    public function saveCoupon(Request $request)
+    {
+        $data = $request->validate([
+            'code' => 'required|string|max:64',
+        ]);
+
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        $saved = $this->couponService->saveToWallet(
+            $this->businessId($request),
+            $contact,
+            $data['code']
+        );
+
+        return $this->jsonSuccess($saved, [], 201);
+    }
+
+    public function usedCoupons(Request $request)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        return $this->jsonSuccess(
+            $this->couponService->listUsedWallet($this->businessId($request), $contact)
+        );
     }
 
     private function inferDialCode(string $mobile): string

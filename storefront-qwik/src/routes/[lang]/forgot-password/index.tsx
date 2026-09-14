@@ -1,15 +1,16 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { forgotPassword } from "~/lib/api";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { toastError, toastSuccess } from "~/lib/notify";
+import { toastError } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useLangParam } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const { locale } = useI18n();
+  const nav = useNavigate();
   const email = useSignal("");
   const submitting = useSignal(false);
   const pending = usePendingState();
@@ -17,8 +18,9 @@ export default component$(() => {
   const submit$ = $(async () => {
     await withPendingFeedback(pending, submitting, async () => {
       try {
-        const { data } = await forgotPassword(email.value);
-        await toastSuccess(data.message || tStatic(locale, "auth.resetLinkSent"));
+        await forgotPassword(email.value);
+        const next = localePath(locale, `/reset-password?email=${encodeURIComponent(email.value)}`);
+        await nav(next);
       } catch {
         await toastError(tStatic(locale, "auth.resetRequestFailed"));
       }

@@ -32,12 +32,12 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 | Area | Routes (Expo Router) | Primary API |
 |------|----------------------|-------------|
 | Home | `/(tabs)/index` | `GET /homepage`, products |
-| Shop / search | `/(tabs)/shop`, `/search` | `GET /products`, `/search` |
+| Consoles / search | `/(tabs)/shop`, `/search` | `GET /products`, `/search` |
 | Category / brand | `/category/[slug]`, `/brands`, `/brands/[slug]` | categories, brands |
 | PDP | `/products/[slug]` | product detail, availability, reviews |
 | Cart / checkout | `/(tabs)/cart`, `/checkout` | cart validate, checkout |
 | Fawry pay | `/checkout/payment` | checkout payment block + RN SDK |
-| Auth / account | `/login`, `/register`, `/(tabs)/account/*` | auth, account |
+| Auth / account | `/login`, `/register`, `/(tabs)/account/*`, `/account/security`, `/account/payments`, `/account/invoice` | auth, Login & Security, Payments & Payouts, in-app invoice |
 | Wishlist | `/wishlist` | wishlist |
 | Games / cards | `/games`, `/games/[id]`, `/gift-cards` | digital catalog |
 | Stores / contact / repair | `/stores`, `/contact`, `/repair-status` | locations, contact, repair |
@@ -74,10 +74,12 @@ Jobs fire on storefront order **shipped** (and optionally paid) to registered to
 |------|--------|
 | `https://{STOREFRONT_URL}/en/products/{slug}` (Universal / App Link) | PDP |
 | `https://{STOREFRONT_URL}/en/account/orders/{id}` | Order detail |
+| `https://{STOREFRONT_URL}/en/reset-password` (App Link) | In-app reset (6-digit code) |
 | `gamesspot://product/{slug}` | PDP (custom scheme fallback) |
 | `gamesspot://order/{id}` | Order detail |
+| `gamesspot://reset-password` | In-app password reset |
 
-Configure associated domains / intent filters in `app.json` / EAS. Password reset stays on web `STOREFRONT_URL` for v1.
+Configure associated domains / intent filters in `app.json` / EAS. Forgot-password email uses a 6-digit code so reset stays in the app; the web App Link is a backup.
 
 ## Local development
 

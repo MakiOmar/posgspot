@@ -19,6 +19,7 @@ import {
   PrimaryButton,
   Screen,
 } from "../../../src/components/ui";
+import { openInvoice } from "../../../src/lib/invoice";
 import { toast } from "../../../src/lib/toast";
 
 function isPaidOrder(paymentStatus: string | undefined): boolean {
@@ -131,7 +132,11 @@ export default function OrderDetailScreen() {
         {invoiceUrl ? (
           <PrimaryButton
             label={t("account.invoice")}
-            onPress={() => void Linking.openURL(invoiceUrl)}
+            onPress={() => {
+              if (!openInvoice(router, invoiceUrl)) {
+                toast.error(t("account.invoiceUnavailable"));
+              }
+            }}
           />
         ) : null}
 

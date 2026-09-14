@@ -29,7 +29,7 @@ function navigateHref(
   href: string,
   external?: boolean,
 ) {
-  if (external || /^https?:\/\//i.test(href)) {
+  if (href.startsWith("tel:") || external || /^https?:\/\//i.test(href)) {
     void Linking.openURL(href);
     return;
   }
@@ -116,14 +116,23 @@ export function NavDrawer({ visible, onClose }: Props) {
         {hasChildren && isOpen
           ? item.children!.map((child) => (
               <Pressable
-                key={child.href}
+                key={child.href || child.label}
                 style={[styles.childItem, { flexDirection: row }]}
-                onPress={() => go(child.href)}
+                disabled={child.disabled || !child.href}
+                onPress={() => {
+                  if (child.disabled || !child.href) return;
+                  go(child.href);
+                }}
               >
                 <Text
-                  style={[styles.childText, { textAlign, writingDirection }]}
+                  style={[
+                    styles.childText,
+                    { textAlign, writingDirection },
+                    child.disabled ? styles.childDisabled : null,
+                  ]}
                 >
                   {child.label}
+                  {child.hint ? ` (${child.hint})` : ""}
                 </Text>
               </Pressable>
             ))
@@ -306,6 +315,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f0f0f0",
   },
   childText: { fontSize: 15, color: "#555" },
+  childDisabled: { color: "#aaa" },
   empty: { color: "#888", padding: 16 },
   langBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,

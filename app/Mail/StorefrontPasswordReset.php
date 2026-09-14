@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Password reset email for storefront customers.
+ * Password reset email for storefront customers (6-digit code + in-app link).
  */
 class StorefrontPasswordReset extends Mailable implements ShouldQueue
 {
@@ -23,17 +23,20 @@ class StorefrontPasswordReset extends Mailable implements ShouldQueue
     public function build()
     {
         $from = app(StorefrontMailService::class)->applyForBusiness((int) $this->contact->business_id);
-
-        $resetUrl = config('storefront.url').'/reset-password?'
-            .http_build_query([
-                'email' => $this->contact->email,
-                'token' => $this->token,
-            ]);
+        $origin = rtrim((string) config('storefront.url'), '/');
+        $query = http_build_query([
+            'email' => $this->contact->email,
+            'token' => $this->token,
+        ]);
+        $resetUrl = $origin.'/en/reset-password?'.$query;
+        $appUrl = 'gamesspot://reset-password?'.$query;
 
         return $this->from($from['address'], $from['name'])
             ->subject('Reset your password')
             ->view('emails.storefront.password_reset', [
                 'resetUrl' => $resetUrl,
+                'appUrl' => $appUrl,
+                'code' => $this->token,
             ]);
     }
 }

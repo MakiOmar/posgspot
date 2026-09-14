@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import { Link, Redirect } from "expo-router";
+import { Link, Redirect, useRouter } from "expo-router";
 import { fetchOrders } from "../../../src/lib/api";
 import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
@@ -17,6 +16,7 @@ import {
   LoadingBlock,
   Screen,
 } from "../../../src/components/ui";
+import { openInvoice } from "../../../src/lib/invoice";
 import { toast } from "../../../src/lib/toast";
 
 const PER_PAGE = 20;
@@ -27,6 +27,7 @@ function isPaid(status: string | undefined): boolean {
 
 export default function OrdersScreen() {
   const { token, t, accent } = useApp();
+  const router = useRouter();
   const [orders, setOrders] = useState<AccountOrder[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -114,9 +115,9 @@ export default function OrdersScreen() {
               <Pressable
                 style={[styles.invoiceBtn, { borderColor: accent }]}
                 onPress={() => {
-                  void Linking.openURL(item.invoice_print_url!).catch(() =>
-                    toast.error(t("common.error")),
-                  );
+                  if (!openInvoice(router, item.invoice_print_url!)) {
+                    toast.error(t("account.invoiceUnavailable"));
+                  }
                 }}
               >
                 <Text style={{ color: accent, fontWeight: "700" }}>

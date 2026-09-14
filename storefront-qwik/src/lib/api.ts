@@ -28,9 +28,11 @@ import type {
   ReviewEligibility,
   RewardPointsBalance,
   RewardPointsValidation,
+  SavedCoupon,
   SearchHit,
   StoreLocation,
   StoreSettings,
+  UsedCoupon,
   WishlistPayload,
 } from "./types";
 import type { CartApiItem } from "./cart-actions";
@@ -481,6 +483,21 @@ export function deleteProfileAvatar(token: string) {
   });
 }
 
+export function changePassword(
+  token: string,
+  payload: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  },
+) {
+  return storefrontFetch<AuthSession>("/account/password", {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
 export function updateAddress(
   token: string,
   payload: {
@@ -499,8 +516,16 @@ export function updateAddress(
   });
 }
 
-export function fetchOrders(token: string) {
-  return storefrontFetch<AccountOrder[]>("/account/orders", {
+export function fetchOrders(
+  token: string,
+  opts: { page?: number; perPage?: number; paymentStatus?: string } = {},
+) {
+  const qs = new URLSearchParams();
+  if (opts.page) qs.set("page", String(opts.page));
+  if (opts.perPage) qs.set("per_page", String(opts.perPage));
+  if (opts.paymentStatus) qs.set("payment_status", opts.paymentStatus);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return storefrontFetch<AccountOrder[]>(`/account/orders${suffix}`, {
     headers: authHeaders(token),
   });
 }
@@ -519,6 +544,26 @@ export function fetchOrderInvoiceUrl(token: string, orderId: number) {
 
 export function fetchRewardPoints(token: string) {
   return storefrontFetch<RewardPointsBalance>("/account/reward-points", {
+    headers: authHeaders(token),
+  });
+}
+
+export function fetchAccountCoupons(token: string) {
+  return storefrontFetch<SavedCoupon[]>("/account/coupons", {
+    headers: authHeaders(token),
+  });
+}
+
+export function saveAccountCoupon(token: string, code: string) {
+  return storefrontFetch<SavedCoupon>("/account/coupons", {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ code }),
+  });
+}
+
+export function fetchUsedAccountCoupons(token: string) {
+  return storefrontFetch<UsedCoupon[]>("/account/coupons/used", {
     headers: authHeaders(token),
   });
 }

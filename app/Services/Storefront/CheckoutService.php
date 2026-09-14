@@ -400,12 +400,18 @@ class CheckoutService
         int $businessId,
         int $contactId,
         int $page = 1,
-        int $perPage = 20
+        int $perPage = 20,
+        ?string $paymentStatus = null
     ): array {
         $perPage = max(1, min(50, $perPage));
         $page = max(1, $page);
 
-        $paginator = $this->contactOrdersQuery($businessId, $contactId)
+        $query = $this->contactOrdersQuery($businessId, $contactId);
+        if ($paymentStatus !== null && $paymentStatus !== '') {
+            $query->whereRaw('LOWER(payment_status) = ?', [strtolower($paymentStatus)]);
+        }
+
+        $paginator = $query
             ->orderByDesc('transaction_date')
             ->paginate($perPage, ['*'], 'page', $page);
 

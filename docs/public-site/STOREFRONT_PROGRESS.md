@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-12 |
+| **Last updated** | 2026-09-14 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -44,9 +44,10 @@
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
-| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset password; 30-day token TTL, reset revokes sessions |
-| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete |
+| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP** (App Link backup); 30-day token TTL, reset revokes sessions |
+| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=` |
 | Reward points API | ✅ | Balance + validate redeem |
+| Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
@@ -64,7 +65,7 @@
 | Storefront translations admin | ✅ | `/storefront/translations/{products,categories,brands}` — POS unchanged |
 | Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
 | Wishlist API (list, add, remove, merge) | ✅ | `WishlistService`, `storefront_wishlist_items` |
-| Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons` |
+| Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
 
 ---
 
@@ -83,8 +84,8 @@
 | `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, digital-only skips address/Bosta, Bosta district when courier on, promo picker + manual code, reward redeem |
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
-| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401 |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, orders, detail (+ reorder → cart), invoice print |
+| `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts (methods stub + payments by status + coupon wallet), orders, detail (+ reorder → cart), invoice print |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
@@ -195,7 +196,8 @@
 
 | Suite | Status |
 |-------|--------|
-| Ping, catalog, auth, password reset | ✅ |
+| Ping, catalog, auth, password reset | ✅ | Forgot password email OTP (`CustomerAccountAuthTest`) |
+| Coupon wallet + payment_status orders | ✅ | `AccountCouponWalletTest` |
 | Product search autocomplete API | ✅ | `GET /search?q=&limit=&type=products\|games\|gift_cards` |
 | Settings / locations email obfuscation | ✅ |
 | Availability structure + all locations | ✅ |
@@ -230,6 +232,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | In-app password OTP; Login & Security; Payments & Payouts; coupon wallet APIs (`GET/POST /account/coupons`); orders `?payment_status=`. |
 | 2026-09-12 | Repair status + track console: hide lookup forms for signed-in users (list only; guests keep the form). |
 | 2026-09-11 | Profile avatar API + Qwik/mobile UI; POS contact create/edit storefront password (hashed, revokes tokens). |
 | 2026-09-11 | Track console: in-app `/track-console` + `POST /device/track` / `GET /account/device-services` (Accounts Device Track proxy); nav no longer external. |

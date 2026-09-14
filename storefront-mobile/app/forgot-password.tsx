@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { Text, View } from "react-native";
-import { Link, Stack } from "expo-router";
+import { Text } from "react-native";
+import { Link, Stack, useRouter } from "expo-router";
 import { forgotPassword } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
 import { PrimaryButton, Screen } from "../src/components/ui";
-import { STOREFRONT_WEB_URL } from "../src/lib/config";
 
 export default function ForgotPasswordScreen() {
   const { t } = useApp();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -36,21 +36,19 @@ export default function ForgotPasswordScreen() {
           setBusy(true);
           setMessage(null);
           void forgotPassword(email.trim())
-            .then(({ data }) =>
-              setMessage(
-                (data as { message?: string }).message || t("auth.resetSent"),
-              ),
-            )
+            .then(() => {
+              router.push({
+                pathname: "/reset-password",
+                params: { email: email.trim() },
+              });
+            })
             .catch((e) =>
               setMessage(e instanceof Error ? e.message : t("common.error")),
             )
             .finally(() => setBusy(false));
         }}
       />
-      <View style={{ height: 12 }} />
-      <Text style={{ color: "#666", marginBottom: 12, lineHeight: 20 }}>
-        {t("auth.resetOnWeb")}: {STOREFRONT_WEB_URL}
-      </Text>
+      <Text style={{ height: 12 }} />
       <Link href="/login">{t("common.login")}</Link>
     </Screen>
   );

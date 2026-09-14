@@ -88,6 +88,16 @@ export default function AccountScreen() {
               onPress={() => router.push("/account/profile")}
             />
             <AccountMenuRow
+              icon="shield-checkmark-outline"
+              label={t("account.loginSecurity")}
+              onPress={() => router.push("/account/security" as unknown as Href)}
+            />
+            <AccountMenuRow
+              icon="card-outline"
+              label={t("account.paymentsPayouts")}
+              onPress={() => router.push("/account/payments" as unknown as Href)}
+            />
+            <AccountMenuRow
               icon="location-outline"
               label={t("account.myAddresses")}
               onPress={() => router.push("/account/address" as unknown as Href)}
