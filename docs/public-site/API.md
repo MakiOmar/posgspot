@@ -49,7 +49,7 @@ Stored in admin as `{ "en": "…", "ar": "…" }` on **Storefront Settings** (`/
 Public `GET /settings` also exposes:
 
 - `cod_enabled`
-- `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets)
+- `online_payments.enabled`, `online_payments.provider`, `online_payments.label` (no secrets). When the active provider is Geidea, also `online_payments.region` (`EGY-PROD` / `KSA-PROD` / `UAE-PROD`) and `online_payments.environment` (`test` / `prod`). Never public keys or API passwords.
 - `couriers.bosta.enabled` — true when Bosta is enabled **and** an API key is stored (no key exposed); checkout uses this to collect Bosta `district_id`
 - `promo_codes.enabled_at_checkout`, `promo_codes.allow_stacking` (configured under **Storefront Settings** in POS)
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
@@ -83,7 +83,9 @@ Returns `{ sections: [{ id, type, settings }] }` for **enabled** sections only (
 
 Unknown types should be skipped by clients.
 
-`POST /checkout` with `payment_method: "fawry"` when online payments are enabled returns:
+`POST /checkout` with `payment_method` of the **active online provider** (`fawry`, `geidea`, or aliases `card` / `online`) when online payments are enabled returns a provider-specific `payment` block. Secrets never appear in the client payload.
+
+Fawry:
 
 ```json
 {
@@ -106,11 +108,38 @@ Unknown types should be skipped by clients.
 }
 ```
 
-Register Fawry webhook URL: `{APP_URL}/api/storefront/v1/payments/fawry/webhook`
+Geidea (HPP session; no public key, API password, or signature):
 
-Configure merchant code + security key under **Storefront Settings → Payment gateway → FawryPay**.
+```json
+{
+  "id": 123,
+  "storefront_order_id": "web-…",
+  "payment_status": "due",
+  "payment": {
+    "provider": "geidea",
+    "session_id": "…",
+    "merchant_reference_id": "web-…",
+    "sdk_url": "https://www.merchant.geidea.net/hpp/geideaCheckout.min.js",
+    "return_url": "https://{STOREFRONT_URL}/en/checkout/payment/return/?order=…",
+    "locale": "en",
+    "region": "egypt",
+    "environment": "test",
+    "ui_mode": "modal",
+    "container_id": "geidea-dropin-container"
+  }
+}
+```
 
-Adding another provider (e.g. **Geidea**) means a new driver in `config/storefront-payments.php` — the `/payments/{provider}/*` routes are provider-agnostic. Planning notes: [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
+Webhook URLs:
+
+- Fawry: `{APP_URL}/api/storefront/v1/payments/fawry/webhook`
+- Geidea: `{APP_URL}/api/storefront/v1/payments/geidea/webhook` (HTTPS; sent as `callbackUrl` on Create Session — no portal registration required)
+
+Configure credentials under **Storefront Settings → Payment gateway**. Geidea stores **both** test and live key pairs plus `mode` (`test`/`live`) and `region`. Mode never changes the API/HPP host.
+
+Return confirm responses include `provider_ref_number` (Geidea `orderId` or Fawry reference) and keep `fawry_ref_number` as an alias.
+
+See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, timestamp format, and the two-field success gate.
 
 ## Public endpoints
 
@@ -147,10 +176,10 @@ Adding another provider (e.g. **Geidea**) means a new driver in `config/storefro
 | POST | `/coupons/validate` | Validate a promo code against cart lines — body `{ "code", "items[]", optional "location_id", optional "coupon_codes[]" (already applied when stacking) }`. **Requires storefront customer auth** (Bearer token). Respects storefront settings `promo_codes.enabled_at_checkout` and `allow_stacking`. Returns `coupon`, `coupons[]`, `coupon_discount`, `shipping`, `total`, `stack_with_reward_points`. |
 | POST | `/coupons/available` | List promo codes the signed-in customer can apply to the current cart — body `{ "items[]", optional "exclude_codes[]" (already applied when stacking) }`. **Requires auth.** Returns `{ coupons[] }` with `code`, `name`, `label`, `total_savings`, `discount_amount`, `free_shipping`, etc. Empty when checkout promos disabled or none eligible. |
 | POST | `/cart/validate` | Revalidate cart lines (price + stock). Optional `coupon_code` or `coupon_codes[]` returns adjusted totals — **coupons require auth** and respect promo-code storefront settings. When `location_id` is sent, stock is checked at that fulfillment store only; otherwise stock is summed across all selling locations. Pass `resolve: true` to inspect lines without failing — response includes `line_status[]` with `max_quantity` per variation. **Shipping (zone engine):** optional `destination` (`country`, `state`/governorate, `city`) + optional `shipping_rate_id`. Response includes `shipping`, `shipping_rate`, `available_rates[]` (`id`, `method_type`, `title`, `amount`, `eta_label`), `hide_rates_until_address`, and `digital_only`. When every line has `digital.kind`, quoting returns a single free `method_type: digital` rate (no address required; `hide_rates_until_address` is false). Mixed carts skip digital lines for weight/qty. Rate ids are signed; checkout re-quotes and rejects stale/tampered ids. Free-shipping coupons force delivery rate amounts to `0`. |
-| POST | `/checkout` | Create order (idempotent). **Signed-in customers must be verified** (`email_verified`; phone OTP later) or the API returns 422 `verification`. **Requires `shipping_rate_id`** (from cart validate — for digital-only carts use the free `digital` rate id). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, `fawry`, or `card` (alias for `fawry`). Fawry responses include a signed `payment` block for hosted checkout. Pickup rates (`local_pickup`) use `location_id` for branch stock; digital rates skip physical address / Bosta district. Delivery persists method title + `storefront_shipping_meta`. For Bosta fulfillment, include `shipping_address.district_id` (and optional `district_label`) from `GET /geo/bosta-districts`. Optional per-line `digital` meta (`kind`, `game_id`/`type`/`platform` or `card_category_id`, `line_key`, `title`, `price`) queues Accounts allocation **after** `payment_status=paid` (no secrets at checkout). |
-| POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON body + signature) |
-| POST | `/payments/{provider}/return` | Verify customer return URL payload after hosted checkout |
-| POST | `/payments/{provider}/session` | Rebuild signed payment session for an existing pending order (`storefront_order_id`, optional `locale`) |
+| POST | `/checkout` | Create order (idempotent). **Signed-in customers must be verified** (`email_verified`; phone OTP later) or the API returns 422 `verification`. **Requires `shipping_rate_id`** (from cart validate — for digital-only carts use the free `digital` rate id). Optional `coupon_code` or `coupon_codes[]` (**logged-in customers only**; settings-controlled; re-validated server-side; writes `coupon_redemptions` on success). `payment_method`: `cod`, the active gateway slug (`fawry` \| `geidea`), or aliases `card` / `online` (resolved to the configured provider). Online responses include a client-safe `payment` block (Fawry signed charge, or Geidea `session_id` + region HPP URL — never Geidea secrets). Pickup rates (`local_pickup`) use `location_id` for branch stock; digital rates skip physical address / Bosta district. Delivery persists method title + `storefront_shipping_meta`. For Bosta fulfillment, include `shipping_address.district_id` (and optional `district_label`) from `GET /geo/bosta-districts`. Optional per-line `digital` meta (`kind`, `game_id`/`type`/`platform` or `card_category_id`, `line_key`, `title`, `price`) queues Accounts allocation **after** `payment_status=paid` (no secrets at checkout). |
+| POST | `/payments/{provider}/webhook` | Payment gateway server callback (Fawry: JSON + signature; Geidea: HMAC on hashed fields, then Fetch Order for unhashed `detailedStatus`). Invalid Geidea signatures return **400** so Geidea retries; accepted callbacks return **200**. |
+| POST | `/payments/{provider}/return` | Verify customer return after hosted checkout. Response includes `provider_ref_number` (and `fawry_ref_number` alias). Geidea browser return is unsigned — Laravel re-fetches remote status. |
+| POST | `/payments/{provider}/session` | Rebuild a payment session for an existing pending order (`storefront_order_id`, optional `locale`). Returns `{ already_paid: true }` when the order is already paid. |
 
 ## Auth (Sanctum bearer token on `Contact`)
 
@@ -221,7 +250,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 - **Import / export** — `GET /storefront/settings/export` downloads a **ZIP** (`storefront_bundle` v2) with `manifest.json` + `media/`. Includes: settings (secrets redacted), business location `storefront_address` / `show_on_storefront` overlays, shipping classes/zones/methods, storefront/both channel coupons, category shelf + brand image overlays, product featured / shipping class / variation sale prices, catalog translations, **media library rows** (`storefront_media`), and **uploaded files** under `uploads/storefront_*` (homepage, library for that business, payment icons, banners, favicon) plus referenced `img/` files. On import, library files are written under the **target** business id (paths in settings/overlays are remapped when source/target business ids differ). `POST /storefront/settings/import` accepts that ZIP or a legacy settings-only JSON (JSON has no media files). Catalog overlays/translations match by slug/SKU (parents must already exist). **Excluded:** orders, wishlist, reviews, coupon redemptions, shipments, digital fulfillments, and secret values (blank secrets preserve current).
 - Select selling locations (catalog is empty when none selected)
-- COD, **shipping zones** (governorate matching, flat / free / pickup methods; digital-only free rate), announcement, gateway (FawryPay: merchant code, security key, staging), contact/social
+- COD, **shipping zones** (governorate matching, flat / free / pickup methods; digital-only free rate), announcement, gateway (**FawryPay**: merchant code, security key, staging; **Geidea**: test+live key pairs, mode, region, HPP UI options — both API passwords encrypted), contact/social
 - **Shipping classes** + optional product `shipping_class_id` / weight for per-class and per-kg flat costs
 - **Couriers** (optional Bosta API key; staging defaults **off** / production) — create shipment via `POST /deliveries/bulk` when marking shipped with carrier `bosta`; requires checkout `district_id`; public settings expose `couriers.bosta.enabled` only
 - **Digital catalog** — enable flag, Accounts store profile ID, POS product IDs for primary/secondary/gift-card lines; `pos_document_type` (`sell` \| `quotation`); `expose_credentials_to_customer` (default true; when false secrets stay on POS staff note only). Public `GET /settings` exposes `digital.enabled` only
@@ -271,4 +300,4 @@ location ~* ^/uploads/storefront_(homepage|library)/ {
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).
 - Customer Sanctum bearer tokens expire after `STOREFRONT_SANCTUM_EXPIRATION_MINUTES` (default **43200** = 30 days). Password reset revokes all active storefront tokens; a new login also replaces any prior token (single active session).
 - Mobile clients should send `X-Storefront-Client: mobile` on Storefront API requests. Push: configure `STOREFRONT_FCM_PROJECT_ID` + `STOREFRONT_FCM_CREDENTIALS_PATH` (service account JSON). Device register/unregister under `/account/devices`. See [`MOBILE.md`](./MOBILE.md).
-- Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry/Google Fonts/Maps, YouTube/Vimeo embeds (`frame-src`), and HTTPS media for self-hosted video; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.
+- Qwik storefront (production): CSP via `src/routes/plugin@security.ts` — nonce + `strict-dynamic`, allows Fawry and Geidea HPP hosts (`www.merchant.geidea.net`, `www.ksamerchant.geidea.net`, `payments.geidea.ae` plus matching `api.*`), Google Fonts/Maps, YouTube/Vimeo embeds (`frame-src`), and HTTPS media for self-hosted video; set `PUBLIC_CSP_REPORT_ONLY=true` to test without enforcing. See `storefront-qwik/.env.example`.

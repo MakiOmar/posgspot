@@ -47,6 +47,8 @@ export interface StoreSettings {
     enabled?: boolean;
     provider?: string;
     label?: string;
+    region?: string | null;
+    environment?: string | null;
   };
   digital?: { enabled?: boolean; primary_product_id?: number };
   promo_codes?: {
@@ -249,12 +251,12 @@ export interface CheckoutOrder {
   id: number;
   storefront_order_id: string;
   payment_status?: string;
-  payment?: FawryPaymentSession;
+  payment?: PaymentSession;
   [key: string]: unknown;
 }
 
 export interface FawryPaymentSession {
-  provider: string;
+  provider: "fawry" | string;
   sdk_url?: string;
   return_url?: string;
   locale?: string;
@@ -264,6 +266,21 @@ export interface FawryPaymentSession {
   signature?: string;
   base_url?: string;
 }
+
+export interface GeideaPaymentSession {
+  provider: "geidea";
+  session_id: string;
+  merchant_reference_id?: string;
+  sdk_url?: string;
+  return_url?: string;
+  locale?: string;
+  region?: string;
+  environment?: string;
+  ui_mode?: "modal" | "dropin";
+  container_id?: string;
+}
+
+export type PaymentSession = FawryPaymentSession | GeideaPaymentSession;
 
 export interface PhoneCountry {
   name_en: string;

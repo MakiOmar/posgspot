@@ -15,14 +15,21 @@ class PaymentResult
 
     public const STATUS_INVALID = 'invalid';
 
+    /**
+     * Legacy Fawry alias of {@see $providerRefNumber}.
+     */
+    public readonly ?string $fawryRefNumber;
+
     public function __construct(
         public readonly string $status,
         public readonly ?string $message = null,
-        public readonly ?string $fawryRefNumber = null,
+        public readonly ?string $providerRefNumber = null,
         public readonly ?string $referenceNumber = null,
         public readonly ?string $paymentMethod = null,
         public readonly ?string $expirationTime = null,
+        ?string $fawryRefNumber = null,
     ) {
+        $this->fawryRefNumber = $fawryRefNumber ?? $providerRefNumber;
     }
 
     public function isPaid(): bool

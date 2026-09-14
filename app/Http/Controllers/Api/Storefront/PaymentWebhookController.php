@@ -41,13 +41,7 @@ class PaymentWebhookController extends StorefrontController
             }
         }
 
-        if (! $driver->verifyWebhookPayload($payload, $config)) {
-            Log::warning('Storefront payment webhook invalid signature', ['provider' => $provider]);
-
-            return $driver->webhookResponse(new PaymentResult(PaymentResult::STATUS_INVALID));
-        }
-
-        $merchantRef = $payload['merchantRefNumber'] ?? null;
+        $merchantRef = $driver->extractMerchantReference($payload);
         if (empty($merchantRef)) {
             return $driver->webhookResponse(new PaymentResult(PaymentResult::STATUS_INVALID, 'Missing merchant reference.'));
         }
@@ -58,6 +52,14 @@ class PaymentWebhookController extends StorefrontController
 
         if (empty($transaction)) {
             return $driver->webhookResponse(new PaymentResult(PaymentResult::STATUS_INVALID, 'Order not found.'));
+        }
+
+        $config = $driver->configForTransaction($transaction, $config);
+
+        if (! $driver->verifyWebhookPayload($payload, $config)) {
+            Log::warning('Storefront payment webhook invalid signature', ['provider' => $provider]);
+
+            return $driver->webhookResponse(new PaymentResult(PaymentResult::STATUS_INVALID));
         }
 
         $result = $driver->applyPaymentResult($transaction->fresh(), $payload, $businessId);

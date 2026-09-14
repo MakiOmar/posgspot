@@ -86,14 +86,14 @@ class CheckoutService
             : ($payload['items'] ?? []);
         $validated = $this->forceDigitalPricesOnValidated($validated, $checkoutItems);
         $settings = $this->storefrontSettings->get($businessId);
-        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
+        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod', $settings);
 
         if ($paymentMethod === 'cod' && empty($settings['cod_enabled'])) {
             throw ValidationException::withMessages(['payment_method' => ['Cash on delivery is not available.']]);
         }
 
-        if ($paymentMethod === 'fawry') {
-            $this->assertFawryEnabled($settings);
+        if ($paymentMethod !== 'cod') {
+            $this->assertOnlinePaymentsEnabled($settings, $paymentMethod);
         }
 
         $contact = $authContact ?? $this->resolveGuestContact($businessId, $payload['customer'] ?? []);
@@ -529,27 +529,44 @@ class CheckoutService
         return $url.'?print_on_load=true';
     }
 
-    private function normalizePaymentMethod(string $method): string
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    private function normalizePaymentMethod(string $method, array $settings): string
     {
         $method = strtolower(trim($method));
-
-        if (in_array($method, ['card', 'fawry', 'online'], true)) {
-            return 'fawry';
+        if ($method === 'cod') {
+            return 'cod';
         }
 
-        return 'cod';
+        $drivers = array_keys(config('storefront-payments.drivers') ?? []);
+        if (in_array($method, $drivers, true)) {
+            return $method;
+        }
+
+        if (in_array($method, ['card', 'online'], true)) {
+            $provider = strtolower(trim((string) ($settings['gateway']['provider'] ?? '')));
+            if (in_array($provider, $drivers, true)) {
+                return $provider;
+            }
+        }
+
+        throw ValidationException::withMessages(['payment_method' => ['Online payments are not available.']]);
     }
 
-    private function assertFawryEnabled(array $settings): void
+    /**
+     * @param  array<string, mixed>  $settings
+     */
+    private function assertOnlinePaymentsEnabled(array $settings, string $provider): void
     {
         $gateway = $settings['gateway'] ?? [];
-        if (empty($gateway['enabled']) || ($gateway['provider'] ?? '') !== 'fawry') {
+        if (empty($gateway['enabled']) || ($gateway['provider'] ?? '') !== $provider) {
             throw ValidationException::withMessages(['payment_method' => ['Online payments are not available.']]);
         }
 
-        $merchantCode = trim((string) ($gateway['fawry']['merchant_code'] ?? ''));
-        if ($merchantCode === '') {
-            throw ValidationException::withMessages(['payment_method' => ['Fawry is not configured.']]);
+        $driver = $this->paymentGateways->driver($provider);
+        if (! $driver->isConfigured($gateway)) {
+            throw ValidationException::withMessages(['payment_method' => [ucfirst($provider).' is not configured.']]);
         }
     }
 
@@ -626,9 +643,10 @@ class CheckoutService
     private function appendPaymentSession(int $businessId, Transaction $transaction, array $payload): array
     {
         $response = $this->formatOrderResponse($transaction);
-        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod');
+        $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod', $this->storefrontSettings->get($businessId));
 
-        if ($paymentMethod !== 'fawry') {
+        $drivers = array_keys(config('storefront-payments.drivers') ?? []);
+        if (! in_array($paymentMethod, $drivers, true)) {
             return $response;
         }
 
@@ -637,7 +655,7 @@ class CheckoutService
         }
 
         $config = $this->paymentGateways->gatewayConfig($businessId);
-        $driver = $this->paymentGateways->driver('fawry');
+        $driver = $this->paymentGateways->driver($paymentMethod);
         $locale = in_array($payload['locale'] ?? 'en', ['en', 'ar'], true) ? $payload['locale'] : 'en';
         $returnUrl = $this->buildPaymentReturnUrl($locale, (string) $transaction->storefront_order_id);
         $response['payment'] = $driver->buildChargeSession($transaction, $config, $returnUrl, $locale);

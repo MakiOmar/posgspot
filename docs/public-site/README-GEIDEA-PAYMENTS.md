@@ -1,12 +1,13 @@
-# Geidea Payment Gateway — Integration Instructions
+# Geidea Payment Gateway — Integration Notes
 
-**Status:** planning / instructions only. Nothing in this document is implemented yet.
-**Scope:** add **Geidea** as an online payment provider for the Qwik storefront (`storefront-qwik/`) and the Expo mobile app (`storefront-mobile/`), alongside the existing FawryPay provider.
+**Status:** implemented (HPP Checkout on Qwik + hosted WebView on mobile). Native RN SDK is scaffolded and stays gated on the vendor tarball.
+**Scope:** **Geidea** is a second online payment driver alongside FawryPay. One active provider at a time (`settings.gateway.provider`).
 
 **Related repo docs:** [`API.md`](./API.md) · [`STOREFRONT_PROGRESS.md`](./STOREFRONT_PROGRESS.md) · [`MOBILE.md`](./MOBILE.md) · [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md)
 **Vendor docs:** [Overview](https://docs.geidea.net/docs/overview) · [API Reference](https://docs.geidea.net/reference/welcome-to-geideas-api-reference-documentation) · [Doc index (`llms.txt`)](https://docs.geidea.net/llms.txt)
 
 > Any Geidea documentation page can be read as markdown by appending `.md` to its URL.
+> Contract below was confirmed against WooCommerce plugin **3.6.1** (supersedes vendor HTML docs where they disagree).
 
 ---
 
@@ -74,7 +75,7 @@ Operations we will call, relative to the region API base:
 | Create Session | `POST /payment-intent/api/v2/direct/session` | [Create Session](https://docs.geidea.net/reference/create-session-v2-1) |
 | Fetch order by Geidea order id | `GET /pgw/api/v1/direct/order/{orderId}` | [Fetch Transaction or Order Details](https://docs.geidea.net/docs/fetch-1) |
 | Fetch order by our reference | `GET /pgw/api/v1/direct/order?MerchantReferenceId={id}` | [Fetch by Merchant Reference](https://docs.geidea.net/docs/fetch-transaction-or-order-details-by-merchant-reference) |
-| Refund (full or partial) | `POST /pgw/api/v2/direct/refund` | [Refund](https://docs.geidea.net/docs/refund-2) |
+| Refund (full or partial) | `POST /pgw/api/v1/direct/refund` (unsigned; Basic auth only) | WooCommerce plugin 3.6.1 |
 | Cancel order (pre-Pay only) | `POST /pgw/api/v1/direct/cancel` | [Cancel Order](https://docs.geidea.net/docs/cancel-order-1) |
 | Void (authorized, uncaptured) | See API reference | [Void](https://docs.geidea.net/docs/void-1) · [Void Payment](https://docs.geidea.net/reference/void-payment-1) |
 
@@ -88,24 +89,24 @@ The canonical settings shape to copy is Geidea's own PrestaShop module ([PrestaS
 
 | Field | Purpose |
 |---|---|
-| **Mode** | `sandbox` or `live`. PrestaShop's default is **sandbox** — ours should default to sandbox too |
-| Sandbox Merchant Public Key | Test credentials |
-| Sandbox Merchant API Password | Test credentials |
+| **Mode** | `test` or `live` (admin default: **test**). Selects which key pair to use. Hosts never change. |
+| Test Merchant Public Key | Test credentials |
+| Test Merchant API Password | Test credentials |
 | Production Merchant Public Key | Live credentials |
 | Production Merchant API Password | Live credentials |
-| Environment | Region (host selection) |
+| Environment | Region (`EGY-PROD` / `KSA-PROD` / `UAE-PROD`) — host selection only |
 
 **Do not copy the Fawry `staging` semantics.** `gateway.fawry.staging` flips to a *different host* (`atfawry.fawrystaging.com` instead of `www.atfawry.com`). Geidea's mode flag must **not** touch the host — it selects which key pair to sign and authenticate with. A developer working from `FawryPaymentGateway.php` as a template will get this wrong by default, so it is worth a comment at the point of use.
 
 Practical consequences for our implementation:
 
 - Store **four** credential fields, not two. Both API passwords are secrets and both go through `Crypt` and `secretPaths()`.
-- Keep both pairs populated in production so an operator can flip to sandbox to reproduce a problem, then flip back, **without re-entering keys and without a deploy**.
+- Keep both pairs populated in production so an operator can flip to test to reproduce a problem, then flip back, **without re-entering keys and without a deploy**.
 - The mode switch is an admin setting in `resources/views/storefront/settings.blade.php`, not an env var — the rest of the gateway config already lives in storefront settings per business.
 - Make the active mode **visible in the admin UI and in the checkout logs**. A test-mode order that silently looks real is worse than a failed payment.
-- **Use `isTest` as a tripwire.** Order responses from Fetch Order carry an `isTest` boolean ([Fetch Transaction or Order Details](https://docs.geidea.net/docs/fetch-1)). In `applyPaymentResult()`, if `isTest` disagrees with our configured mode, refuse to mark the order paid and log loudly. That single check catches "we shipped with sandbox keys" and "someone pointed test traffic at live keys" — both of which are otherwise invisible until reconciliation.
-- **Test cards only work under sandbox credentials.** The card numbers and the expiry-date-driven outcomes in §10 will simply be declined by a live account.
-- Tie mode to the deployment: staging/local default to sandbox, production to live. Since the value is per-business settings rather than env, guard it — a staging database restored from production will arrive carrying `live`.
+- **Do not use `isTest` as a tripwire.** The WooCommerce plugin has no test-mode flag, and there is no evidence of a mode field on the callback. Isolation is the HMAC: persist `mode` on the transaction at session create, verify the callback with **only that mode’s API password**, and never retry the other key. Test and live share one merchant account and one `callbackUrl`.
+- **Test cards only work under test credentials.** The card numbers and the expiry-date-driven outcomes in §10 will simply be declined by a live account.
+- Tie mode to the deployment: staging/local default to test, production to live. Since the value is per-business settings rather than env, guard it — a staging database restored from production will arrive carrying `live`.
 
 ---
 
@@ -129,7 +130,7 @@ Practical consequences for our implementation:
 ### 5.1 Register the driver and its settings
 
 1. Add `geidea` to `drivers` and `labels` in `config/storefront-payments.php`.
-2. Extend the `gateway` defaults in `StorefrontSettingService` with a `geidea` block. Required keys: `mode` (`sandbox` default / `live`), **sandbox** public key + API password, **production** public key + API password, region (`egypt`/`ksa`/`uae`), and HPP display mode (§6.3). See §3.2 for why the credentials are doubled and why `mode` must not switch hosts.
+2. Extend the `gateway` defaults in `StorefrontSettingService` with a `geidea` block. Required keys: `mode` (`test` default / `live`), **test** public key + API password, **live** public key + API password, region (`EGY-PROD`/`KSA-PROD`/`UAE-PROD`), and HPP display mode (`modal`/`dropin`). See §3.2 for why the credentials are doubled and why `mode` must not switch hosts.
 3. Add **both** API passwords to `secretPaths()` so they are `Crypt`-encrypted at rest, exactly like `gateway.fawry.security_key`.
 4. Add the fields to the **Payment gateway** section of `resources/views/storefront/settings.blade.php`, and show the callback URL there (the Fawry section already does this) so an operator can paste it into the Geidea portal. Show the active mode prominently, and make the mode switch a deliberate control rather than a stray checkbox.
 5. Public `GET /settings` must expose **only** the provider slug / enabled flag — never keys. Follow the existing pattern in `SettingsApiService`.
@@ -145,25 +146,29 @@ Practical consequences for our implementation:
 | `verifyWebhookPayload()` | Recompute and compare the callback `signature` (§5.3) |
 | `verifyReturnPayload()` | Do **not** trust browser-supplied status. Treat the browser callback as a *hint* and re-verify server-side via Fetch Order (§5.4) |
 | `fetchStatus()` | Call Fetch by Merchant Reference with our `storefront_order_id`, or Fetch by `orderId` when we stored it |
-| `applyPaymentResult()` | Validate amount + currency against the POS transaction, cross-check `isTest` against the configured mode (§3.2), then map status (§5.5) and call `StorefrontPaymentRecorder` |
+| `applyPaymentResult()` | Validate amount + currency against the POS transaction, confirm unhashed `detailedStatus` via Fetch Order, then fulfil only when `status == success` **and** remote `detailedStatus == paid`. Call `StorefrontPaymentRecorder::markPaid` idempotently. |
 | `webhookResponse()` | Return `200` on accepted, non-`2xx` on invalid signature so Geidea retries. Do not copy Fawry's `300`/`202` numeric convention |
 
-### 5.3 Signatures — three different recipes, do not share one helper blindly
+### 5.3 Signatures — two recipes, plus an unsigned refund
 
-Every signature is: concatenate the listed values in order → **SHA-256 keyed with the Merchant API Password** (HMAC, as shown in the vendor PHP sample) → **base64-encode**.
+Every signature is: concatenate the listed values in order (no separators) → **HMAC-SHA256 keyed with the Merchant API Password** (raw binary) → **base64-encode**.
 
-| Operation | Concatenation order | Reference |
+The **timestamp is not ISO 8601**. Use PHP `date("n/d/Y g:i:s A")` (example: `9/14/2026 3:17:05 PM`). The same string is signed and sent. Body key on Create Session is `timestamp`; callback root key is `timeStamp`.
+
+HTTP Basic auth is `base64(publicKey:apiPassword)`, and the Create Session body **also** repeats `merchantPublicKey` and `apiPassword`.
+
+| Operation | Concatenation order | Notes |
 |---|---|---|
-| Create Session | Merchant Public Key, amount (**formatted to exactly 2 decimals**), currency, `merchantReferenceId`, timestamp | [HPP Checkout → Signature](https://docs.geidea.net/docs/geidea-checkout-v2) |
-| Callback / webhook validation | Merchant Public Key, order amount, order currency, `orderId`, status, `merchantReferenceId`, timestamp | [Webhook/Callback Notifications](https://docs.geidea.net/docs/sample-callback-responses) |
-| Refund | timestamp, Merchant Public Key, refund amount, `orderId` | [Refund](https://docs.geidea.net/docs/refund-2) |
+| Create Session | Merchant Public Key, amount (**exactly 2 decimals**), currency, `merchantReferenceId`, timestamp | Body key `timestamp` |
+| Callback / webhook validation | Merchant Public Key, amount (2 decimals), currency, `orderId`, `status`, `merchantReferenceId`, `timeStamp` | `timeStamp` is on the callback **root**, not inside `order` |
+| Refund | **Unsigned** | `POST /pgw/api/v1/direct/refund` with Basic auth only (`orderId`, `callbackUrl`, `refundAmount`). Success: `responseCode === '000'` and `order.detailedStatus` of `Refunded` or `PartiallyRefunded`. Not required for v1 checkout. |
 
 Notes that will bite if ignored:
 
-- The amount must be rendered with two decimals before hashing; the vendor sample normalizes it explicitly.
+- The amount must be rendered with two decimals before hashing.
 - The `timestamp` used in the hash must be the **same string** sent in the request body.
-- The callback recipe's field order is **not** the same as the session recipe's. Keep them as separate private methods.
-- Confirm the exact `status` value used in the callback hash against a real sandbox callback (the payload carries both `status` and `detailedStatus`). Log the first sandbox callbacks verbatim while validating.
+- The callback recipe's field order is **not** the same as the session recipe's. Keep them as separate methods (`GeideaSignature::session` / `::callback`).
+- `detailedStatus` is **not** hashed. Confirm it via Fetch Order before fulfilling.
 
 ### 5.4 Callbacks, return URLs, and who is authoritative
 
@@ -179,7 +184,7 @@ Behaviour we must design around, from [Webhook/Callback Notifications](https://d
 - **No callback is sent while an order is `InProgress`.** Abandoned attempts, 3DS cancellations mid-flow, and authentication failures produce **no** separate callback. Do not build UI that waits for one.
 - Closing the HPP **does** produce a callback with detailed message `Transaction Cancelled By User`.
 - A shopper may retry many times on one order. The eventual success callback **consolidates every attempt** under the same `orderId`. Our webhook handler must therefore be **idempotent** and must not regress a paid order.
-- Only treat a payment as good when **all four** hold: `responseCode` `000`, `responseMessage` `Success`, `detailedResponseCode` `000`, `detailedResponseMessage` `The operation was successful` — **and** the amount matches our order. The vendor doc calls this out as a warning.
+- Only treat a payment as good when **`status == success` and remote `detailedStatus == paid`**, the amount and currency match our order, and Fetch Order confirms `detailedStatus`. The four response-code fields are for the failure note only — they are **not** the success gate.
 
 Changes needed in `PaymentReturnController`:
 
@@ -193,7 +198,7 @@ Read `order.detailedStatus` / `order.status` from Fetch Order or the callback, p
 
 | Geidea | Our `payment_status` | Action |
 |---|---|---|
-| `Paid` / `Captured` (+ the four success codes) | `paid` | `markPaid()`; existing digital-fulfilment and push jobs then fire on the paid path |
+| `Paid` / `Captured` (`status` success + remote `detailedStatus` paid) | `paid` | `markPaid()`; existing digital-fulfilment and push jobs then fire on the paid path |
 | `Authorized` (only if we adopt `PreAuthorize`) | pending | Store meta; capture later |
 | `InProgress` / `Initiated` | pending | Store meta only; never fulfil |
 | `Cancelled` (`responseCode` `010`) | leave due | Surface a cancel message |
@@ -205,8 +210,7 @@ Code groups worth handling explicitly: `000` success, `010` cancelled, `100` gen
 ### 5.6 Session lifetime and idempotency
 
 - **A session expires 15 minutes after creation** ([HPP Checkout](https://docs.geidea.net/docs/geidea-checkout-v2)). Our existing `POST /payments/{provider}/session` endpoint already exists to mint a fresh session for a pending order — wire Geidea into it so a shopper returning to an unpaid order gets a new session instead of an expired one.
-- `merchantReferenceId` should be our `storefront_order_id`, so callbacks and Fetch-by-reference line up with the POS transaction.
-- **Verify with Geidea before building:** the Create Session API reference describes `merchantReferenceId` as "must be a valid UUID", while the HPP guide's own examples use non-UUID strings. Our `storefront_order_id` is not a UUID. Either confirm free-form strings are accepted in the Egypt environment, or store a generated UUID per order and keep our id in `metadata.custom`.
+- `merchantReferenceId` is our `storefront_order_id` (plain string). The WooCommerce plugin uses a stringified integer order id; a UUID is **not** required.
 
 ### 5.7 Checkout plumbing
 
@@ -226,8 +230,8 @@ Mirror the existing suites (`tests/Feature/Storefront/FawryPaymentTest.php`, `te
 - Webhook: valid signature → paid; tampered signature → rejected; amount mismatch → rejected; **replayed success callback → still one payment, no duplicate fulfilment**.
 - Cancelled callback leaves the order unpaid.
 - Session creation for an already-paid order short-circuits (the controller already does this).
-- **Mode resolution:** `sandbox` mode signs with the sandbox key pair, `live` with the production pair, and **neither changes the host**. Also assert the mode default is `sandbox` when unset.
-- **`isTest` mismatch** (live mode, test-flagged order) does not mark the order paid.
+- **Mode resolution:** `test` mode signs with the test key pair, `live` with the production pair, and **neither changes the host**. Also assert the mode default is `test` when unset.
+- A callback signed with the **test** password is rejected when the stored transaction `mode` is `live` (and the reverse). There is no `isTest` tripwire.
 - Mock all Geidea HTTP calls (`Http::fake`) — no live calls in the suite.
 
 ---
@@ -300,28 +304,30 @@ From [React Native](https://docs.geidea.net/docs/react-native-1):
 | Entry point | `payWithGeidea({ sessionId, merchantId, language, environment, region, primaryColor, secondaryColor, merchantLogo })` |
 | Mode + region | The SDK mirrors the same two axes as the server: `region` (`egypt`, …) and `environment` (the vendor sample passes `prod`). **Confirm the sandbox value with Geidea** — it is not documented. Derive both from our storefront settings and return them alongside the session id, so the app never hardcodes a stage |
 | Result | A status of `completed` or `canceled`, plus a result payload |
-| Android toolchain | minSdk **24**, compile/target SDK **35**, NDK **27.1.12297006**, Kotlin **1.9.24**, AGP **8.7.3** |
-| Android Gradle edits | A `flatDir` repository pointing at the package's `android/libs`, plus Compose BOM, Material 3, `navigation-compose`, `navigation-runtime-ktx`, `androidx.activity`, and `kotlinx-collections-immutable` dependencies |
-| Android manifest | A `network_security_config.xml` referenced from `<application>` (the vendor sample uses it for local dev hosts only — do **not** ship cleartext exemptions to production) |
-| Assets | Merchant logo added to Android `res/drawable` and to the iOS asset catalog; referenced by name via `merchantLogo` |
+| Android toolchain | minSdk **24** via `expo-build-properties`. Do **not** pin Kotlin 1.9.24 / AGP 8.7.3 — those conflict with Expo SDK 57 / RN 0.86. |
+| Android Gradle edits | Additive only: `storefront-mobile/plugins/withGeideaSdk.js` adds `flatDir` + Compose/navigation/`androidx.activity`/`kotlinx-collections-immutable` **when** `@geidea/payment-sdk-react-native` is installed. Never replace `android/build.gradle` wholesale. |
+| Android manifest | Skip the vendor `network_security_config.xml` cleartext block (Metro `10.0.2.2` only — must not ship). |
+| Assets | Native SDK `merchantLogo` is a **resource name**. HPP uses `appearance.merchant.logoUrl` (HTTPS URL). The config plugin copies `assets/images/geidea-merchant-logo.png` to `res/drawable` when both the SDK and the file exist. |
 | iOS | `pod install` after adding the package |
 | Apple Pay | `merchantId` in the call is the **Apple Pay** merchant id — see [Apple Pay](https://docs.geidea.net/docs/apple-pay) |
 
 **Expo-specific constraints (the vendor docs assume bare React Native):**
 
-- The app uses `expo prebuild`, so hand edits to `android/build.gradle` and `android/app/build.gradle` are destroyed on the next `--clean`. Encapsulate all of the above in a **local Expo config plugin** (or commit the native directories deliberately). Do not document manual gradle edits as the process.
-- **Expo Go cannot work** — this is a native module. Dev Client / EAS Build only, which is already the case for Fawry.
-- Verify the SDK's Kotlin/AGP/compileSdk pins against what the installed Expo SDK's `expo-build-properties` produces. A version clash here is the most likely source of a red build, and it should be resolved with `expo-build-properties` rather than by editing generated files.
-- Version `0.0.1` appears in the vendor install snippet. Confirm the current version and its Expo/React Native compatibility with Geidea before committing to Option A.
+- Encapsulate Gradle in **`plugins/withGeideaSdk.js`** (registered in `app.json`). Hand edits to `android/build.gradle` are destroyed on the next `expo prebuild --clean`.
+- **Expo Go cannot work** for the native module. Hosted WebView **does** work in the current Dev Client without the tarball.
+- Resolve SDK version clashes with `expo-build-properties` (`minSdkVersion: 24`), never by rewriting generated Gradle.
+- Native `payWithGeidea` is attempted first in `src/lib/geidea.ts`; if the package is missing, the same function falls back to hosted HTML. The checkout screen does not change.
 
-### 7.2 Option B — hosted page in a web view (zero native work, good fallback)
+**Server vs client mode:** Laravel selects test/live **only** by which credential pair signs Create Session. There is no sandbox API host. The **client SDK** still needs `environment` (`prod` when live, `test` when test) plus `region` on the session payload — it must match the credentials the server used. Clients never hardcode a stage. The native sandbox enum remains unconfirmed; hosted HPP does not need it.
+
+### 7.2 Option B — hosted page in a WebView (**ships now**)
 
 1. Laravel creates the session exactly as for web.
-2. Open the HPP in **redirection mode** via an auth-session browser (`expo-web-browser`), or a `WebView`.
-3. Set the session `returnUrl` to an app deep link. Geidea's own samples show a custom scheme return URL (`geidea://paymentsdk/return`), so `gamesspot://` links — already registered for this app — are an accepted shape. Confirm the scheme is whitelisted for the merchant account.
-4. On return, call `POST /payments/geidea/return` (or `fetchStatus` via our API) and render from Laravel's answer.
+2. `startGeideaPayment` loads `geideaCheckout.min.js` inside `react-native-webview` and `postMessage`s `completed` / `canceled` / `failed`.
+3. Browser `returnUrl` is the storefront payment return page; the WebView message only drives in-app navigation. Fulfilment is the webhook.
+4. Optional `POST /payments/geidea/return` after the WebView result; Laravel re-fetches remote status.
 
-This is the pragmatic first ship: it reuses the entire web integration and adds no native surface. Option A can replace it later without any backend change.
+Native `payWithGeidea` drops in behind the same `startGeideaPayment` seam when the tarball is installed — no checkout-screen change.
 
 ### 7.3 Mobile files to touch
 
@@ -359,7 +365,7 @@ Each of these is a **Create Session parameter or a portal switch**, not a new in
 
 | Operation | Constraint | Reference |
 |---|---|---|
-| **Refund** (full or partial, repeatable) | Only for **paid / captured / settled** transactions. Geidea blocks cumulative over-refunds. Needs its own signature and `orderId` | [Refund](https://docs.geidea.net/docs/refund-2) |
+| **Refund** (full or partial, repeatable) | Only for **paid / captured / settled** transactions. Geidea blocks cumulative over-refunds. **Unsigned** `POST /pgw/api/v1/direct/refund` with Basic auth | WooCommerce plugin 3.6.1 |
 | **Void** | Only for **pre-authorized, uncaptured** transactions. Authorizations auto-void if not captured within 28 days | [Void](https://docs.geidea.net/docs/void-1) |
 | **Cancel order** | Only valid **before** the Pay step. After Pay it returns "Order is already completed" | [Cancel Order](https://docs.geidea.net/docs/cancel-order-1) |
 | **Reconciliation / status polling** | Fetch by `orderId` or by `merchantReferenceId`; also useful as a cron safety net for orders stuck pending | [Fetch](https://docs.geidea.net/docs/fetch-1) · [Fetch by reference](https://docs.geidea.net/docs/fetch-transaction-or-order-details-by-merchant-reference) · [Fetch all / search](https://docs.geidea.net/docs/fetch-all-transactions-or-search-transactions) |
@@ -385,38 +391,32 @@ Scenarios to run end-to-end on both storefront and mobile: success, 3DS challeng
 
 Mode-specific scenarios, easy to forget and expensive to miss:
 
-- Flip mode sandbox → live → sandbox in admin and confirm the very next session uses the newly selected key pair (no cached client, no cached config).
-- With mode set to `live` but sandbox keys saved, confirm the `isTest` tripwire (§3.2) blocks the order from being marked paid instead of silently accepting it.
+- Flip mode test → live → test in admin and confirm the very next session uses the newly selected key pair (no cached client, no cached config).
+- With a transaction stored as `mode=live`, a callback HMAC'd with the **test** password must be rejected (and the reverse). This is the mode-isolation regression — not an `isTest` flag.
 - One **real, small live transaction** before launch, then refund it from the merchant portal — this is the only way to prove production credentials, the production callback URL, and settlement are all actually wired.
 
 ---
 
-## 11. Open items to confirm before implementation
+## 11. Open items (native SDK only)
 
-1. **Region and legal entity** — Egypt confirmed? It fixes both hosts and the available payment methods.
-2. **`merchantReferenceId` format** — UUID required, or is our `storefront_order_id` acceptable? (§5.6)
-3. **Callback signature `status` field** — which of `status` / `detailedStatus` participates in the hash. Validate against a captured sandbox callback.
-4. **Coexistence with Fawry** — one active provider at a time (today's model), or both offered side by side at checkout? Offering both means the settings shape and the checkout method picker change from "the provider" to "a list of providers".
-5. **`paymentOperation`** — `Pay` (capture now) vs `PreAuthorize` + Capture for stock-risky items.
-6. **Methods to enable at launch** — cards only, or cards + Meeza QR + installments? This drives what session fields are mandatory.
-7. **Mobile path** — ship Option B (web view) first, or wait for Option A (native SDK)? Confirm the SDK's current version and Expo compatibility with Geidea either way.
-8. **Refund path** — portal-only for v1, confirmed?
-9. **Sandbox account shape** — are the test and production credentials two separate merchant accounts (so both key pairs can be stored side by side, as PrestaShop assumes), or one account that Geidea toggles? This decides whether the "flip to sandbox without re-entering keys" workflow in §3.2 is actually possible.
-10. **Mobile SDK `environment` enum** — the documented sample only shows `prod`. Get the sandbox value before building Option A.
-11. **Callback URL per mode** — one URL for both modes (our webhook can serve both, since the route is provider-scoped not mode-scoped), or does Geidea want a separate registration per account? Confirm when registering.
+Phases 1–6 are implemented. Remaining Geidea-side item:
+
+1. **`geidea-payment-sdk-react-native-0.0.1.tgz`** — package, minimum RN version, whether it ships an Expo config plugin, and the sandbox value of the SDK `environment` enum (sample only shows `prod`). Until it arrives, mobile uses the hosted WebView.
+
+Closed from the original list: region (Egypt default `EGY-PROD`); `merchantReferenceId` is `storefront_order_id`; callback HMAC uses `status` (not `detailedStatus`); one active provider; `paymentOperation: Pay`; refunds portal/unsigned for v1; test+live are two key pairs on **one** merchant account; one `callbackUrl` for both modes; hosted mobile ships now.
 
 ---
 
 ## 12. Go-live checklist
 
 - [ ] Production Merchant Public Key + API Password stored **encrypted** in storefront settings; nothing in git, nothing in a client bundle.
-- [ ] **Mode set to `live`** on production, and sandbox keys still saved (so support can reproduce issues later without hunting for credentials).
-- [ ] **Staging/local still default to `sandbox`** — verified after any database copy from production, which carries the `live` value with it.
-- [ ] `isTest` tripwire active: a sandbox-flagged order can never be marked paid while in live mode.
+- [ ] **Mode set to `live`** on production, and test keys still saved (so support can reproduce issues later without hunting for credentials).
+- [ ] **Staging/local still default to `test`** — verified after any database copy from production, which carries the `live` value with it.
+- [ ] Mode-scoped HMAC: a test-signed callback can never fulfil a live-mode transaction (and the reverse). No cross-key fallback.
 - [ ] Correct region host configured for the production account.
-- [ ] `callbackUrl` registered in the Geidea portal, HTTPS with a valid certificate, reachable from outside.
+- [ ] `callbackUrl` is HTTPS and reachable (`{APP_URL}/api/storefront/v1/payments/geidea/webhook`). Portal registration is **not** required by the plugin (sent per request); whitelist only if callbacks fail to arrive.
 - [ ] Webhook verified idempotent under replay and under the consolidated multi-attempt callback.
-- [ ] The four-part success check (`responseCode`, `responseMessage`, `detailedResponseCode`, `detailedResponseMessage`) plus an amount + currency match before any order is marked paid.
+- [ ] Success gate: hashed `status == success` **and** Fetch Order `detailedStatus == paid`, plus amount + currency match, before any order is marked paid.
 - [ ] Geidea `orderId` persisted on our transaction for later refunds and support.
 - [ ] CSP updated and verified enforcing (not report-only) on production.
 - [ ] Branding (name, logo, colors) configured in the Geidea portal for both HPP and the mobile SDK.

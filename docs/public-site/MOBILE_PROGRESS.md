@@ -21,6 +21,7 @@
 | Expo scaffold (Router, i18n, API client, SecureStore) | Done |
 | Device tokens + FCM push jobs | Done |
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
+| Geidea hosted checkout (WebView) | Done — `src/lib/geidea.ts`; native SDK gated on vendor tarball + `plugins/withGeideaSdk.js` |
 | M1 shop core (browse → COD checkout → orders) | Done |
 | Home section UI (hero, promos, shelves, rails) | Done |
 | Home brand rail display-only (no brand PLP links) | Done |
@@ -67,7 +68,7 @@
 | Quality hardening — release security | Done |
 | Quality hardening — DRY catalog + account layout | Done |
 | Quality hardening — home/PDP split + fetch timeout | Done |
-| M2 commerce (Fawry wrapper, coupons, RP, wishlist, reviews) | Done |
+| M2 commerce (Fawry wrapper, Geidea hosted pay, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
 
@@ -77,6 +78,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Geidea checkout: hosted HPP WebView, provider from settings, Expo `withGeideaSdk` no-op plugin + minSdk 24. |
 | 2026-09-14 | Verify-email sends a code on open; checkout blocked until email is verified. |
 | 2026-09-14 | Account menu hides Orders and Reward Points; Credits & Coupons matches the Reward Points page. |
 | 2026-09-14 | Consoles menu is a category dropdown (excludes digital games); bottom tab is Shop. |

@@ -18,8 +18,8 @@ import type {
   Category,
   CheckoutOrder,
   CouponApplyResult,
-  FawryPaymentSession,
   PaymentReturnResult,
+  PaymentSession,
   ProductAvailability,
   ProductDetail,
   ProductReviewItem,
@@ -379,7 +379,7 @@ export function checkout(payload: Record<string, unknown>, token?: string) {
 }
 
 export function fetchPaymentSession(provider: string, storefrontOrderId: string, locale: string) {
-  return storefrontFetch<FawryPaymentSession | { already_paid: boolean; order: CheckoutOrder }>(
+  return storefrontFetch<PaymentSession | { already_paid: boolean; order: CheckoutOrder }>(
     `/payments/${provider}/session`,
     {
       method: "POST",

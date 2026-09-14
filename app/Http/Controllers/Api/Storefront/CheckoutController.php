@@ -8,6 +8,7 @@ use App\Services\Storefront\CheckoutService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class CheckoutController extends StorefrontController
 {
@@ -33,7 +34,13 @@ class CheckoutController extends StorefrontController
             'items.*.digital.price' => 'nullable|numeric|min:0',
             'items.*.unit_price' => 'nullable|numeric|min:0',
             'location_id' => 'required|integer',
-            'payment_method' => 'required|in:cod,card,fawry,online',
+            'payment_method' => [
+                'required',
+                Rule::in(array_merge(
+                    ['cod', 'card', 'online'],
+                    array_keys(config('storefront-payments.drivers') ?? [])
+                )),
+            ],
             'customer' => 'nullable|array',
             'customer.first_name' => 'nullable|string|max:191',
             'customer.last_name' => 'nullable|string|max:191',

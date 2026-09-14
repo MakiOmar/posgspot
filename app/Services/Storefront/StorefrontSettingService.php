@@ -38,6 +38,25 @@ class StorefrontSettingService
                     'security_key' => null,
                     'staging' => false,
                 ],
+                'geidea' => [
+                    'mode' => 'test',
+                    'region' => 'EGY-PROD',
+                    'currency' => 'EGP',
+                    'language' => 'en',
+                    'ui_mode' => 'modal',
+                    'hpp_profile' => 'simple',
+                    'logo_url' => '',
+                    'header_color' => '',
+                    'hide_geidea_logo' => false,
+                    'show_email' => false,
+                    'show_phone' => false,
+                    'show_address' => false,
+                    'receipt_page' => false,
+                    'test_public_key' => '',
+                    'test_api_password' => null,
+                    'live_public_key' => '',
+                    'live_api_password' => null,
+                ],
             ],
             'shipping' => [
                 'flat_rate' => 0,
@@ -1132,6 +1151,17 @@ class StorefrontSettingService
             $merged['gateway']['fawry']['security_key'] = $existing['gateway']['fawry']['security_key'] ?? null;
         }
 
+        foreach (['test_api_password', 'live_api_password'] as $geideaSecret) {
+            if (! empty($settings['gateway']['geidea'][$geideaSecret])) {
+                $merged['gateway']['geidea'][$geideaSecret] = Crypt::encryptString(
+                    $settings['gateway']['geidea'][$geideaSecret]
+                );
+            } else {
+                $existing = $existing ?? $this->getRaw($businessId);
+                $merged['gateway']['geidea'][$geideaSecret] = $existing['gateway']['geidea'][$geideaSecret] ?? null;
+            }
+        }
+
         if (! empty($settings['turnstile']['secret_key'])) {
             $merged['turnstile']['secret_key'] = Crypt::encryptString($settings['turnstile']['secret_key']);
         } else {
@@ -1256,6 +1286,8 @@ class StorefrontSettingService
         return [
             ['gateway', 'api_key'],
             ['gateway', 'fawry', 'security_key'],
+            ['gateway', 'geidea', 'test_api_password'],
+            ['gateway', 'geidea', 'live_api_password'],
             ['turnstile', 'secret_key'],
             ['couriers', 'bosta', 'api_key'],
             ['newsletter', 'mailchimp', 'api_key'],

@@ -21,6 +21,29 @@ class FawryPaymentGateway implements PaymentGatewayInterface
         return 'fawry';
     }
 
+    public function isConfigured(array $gatewayConfig): bool
+    {
+        $config = $this->resolveConfig($gatewayConfig);
+
+        return $config['merchant_code'] !== '' && $config['security_key'] !== '';
+    }
+
+    public function configForTransaction(Transaction $transaction, array $gatewayConfig): array
+    {
+        return $gatewayConfig;
+    }
+
+    public function extractMerchantReference(array $payload): ?string
+    {
+        $ref = $payload['merchantRefNumber'] ?? $payload['merchantReferenceId'] ?? null;
+        if (is_array($ref)) {
+            $ref = $ref['merchantReferenceId'] ?? $ref['merchantRefNumber'] ?? null;
+        }
+        $ref = is_string($ref) || is_numeric($ref) ? trim((string) $ref) : '';
+
+        return $ref !== '' ? $ref : null;
+    }
+
     public function buildChargeSession(
         Transaction $transaction,
         array $gatewayConfig,

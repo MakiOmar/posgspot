@@ -1,7 +1,7 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
 import { confirmPaymentReturn } from "~/lib/api";
-import { clearFawryPaymentSession } from "~/lib/fawry-pay";
+import { clearPaymentSession } from "~/lib/payment-session";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { PaymentReturnResult } from "~/lib/types";
@@ -10,12 +10,14 @@ import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 export default component$(() => {
   const loc = useLocation();
   const { locale } = useI18n();
+  const settings = useSiteSettings();
   const loading = useSignal(true);
   const error = useSignal<string | null>(null);
   const result = useSignal<PaymentReturnResult | null>(null);
 
   const orderId = loc.url.searchParams.get("order") || "";
   const alreadyPaid = loc.url.searchParams.get("paid") === "1";
+  const provider = settings.value.online_payments.provider || "fawry";
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
@@ -26,7 +28,7 @@ export default component$(() => {
     }
 
     if (alreadyPaid) {
-      clearFawryPaymentSession();
+      clearPaymentSession();
       result.value = {
         payment_status: "paid",
         message: tStatic(locale, "payment.alreadyPaid"),
@@ -49,15 +51,15 @@ export default component$(() => {
       return;
     }
 
-    const payload: Record<string, unknown> = { merchantRefNumber: orderId };
+    const payload: Record<string, unknown> = { merchantRefNumber: orderId, order: orderId };
     loc.url.searchParams.forEach((value, key) => {
       payload[key] = value;
     });
 
     try {
-      const { data } = await confirmPaymentReturn("fawry", payload);
+      const { data } = await confirmPaymentReturn(provider, payload);
       result.value = data;
-      clearFawryPaymentSession();
+      clearPaymentSession();
     } catch (err) {
       error.value = err instanceof Error ? err.message : tStatic(locale, "payment.confirmFailed");
     } finally {
@@ -89,6 +91,7 @@ export default component$(() => {
   const data = result.value;
   const paid = data?.payment_status === "paid";
   const pending = data?.payment_status === "pending";
+  const reference = data?.provider_ref_number || data?.reference_number || data?.fawry_ref_number;
 
   return (
     <section class="payment-page">
@@ -102,11 +105,11 @@ export default component$(() => {
 
       {data?.message ? <p class="footer-muted">{data.message}</p> : null}
 
-      {pending && data.reference_number ? (
+      {pending && reference ? (
         <div class="payment-reference card-surface">
           <p>{tStatic(locale, "payment.referenceLabel")}</p>
           <p class="payment-reference__code" dir="ltr">
-            {data.reference_number}
+            {reference}
           </p>
           {data.expiration_time ? (
             <p class="footer-muted">{tStatic(locale, "payment.expiresAt", { date: data.expiration_time })}</p>

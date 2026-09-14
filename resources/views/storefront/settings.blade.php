@@ -1015,7 +1015,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             {!! Form::label('gateway_provider', 'Provider') !!}
-                            {!! Form::select('gateway_provider', ['' => '—', 'fawry' => 'FawryPay', 'myfatoorah' => 'MyFatoorah', 'paymob' => 'Paymob'], $settings['gateway']['provider'] ?? '', ['class' => 'form-control', 'id' => 'gateway_provider']) !!}
+                            {!! Form::select('gateway_provider', ['' => '—', 'fawry' => 'FawryPay', 'geidea' => 'Geidea', 'myfatoorah' => 'MyFatoorah', 'paymob' => 'Paymob'], $settings['gateway']['provider'] ?? '', ['class' => 'form-control', 'id' => 'gateway_provider']) !!}
                         </div>
                     </div>
                 </div>
@@ -1047,6 +1047,126 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
+                {{-- Geidea: both key pairs + mode toggle. Passwords stay blank to keep the stored value. --}}
+                <div id="gateway_geidea_fields">
+                    @php
+                        $geidea = $settings['gateway']['geidea'] ?? [];
+                        $geideaWebhookUrl = url('/api/storefront/v1/payments/geidea/webhook');
+                        $geideaMode = ($geidea['mode'] ?? 'test') === 'live' ? 'live' : 'test';
+                    @endphp
+                    <div class="alert alert-info">
+                        Geidea callback URL (sent on each session, no portal registration required):
+                        <strong>{{ $geideaWebhookUrl }}</strong>
+                        <br>Use HTTPS. Test and live share this URL; isolation is the HMAC key for the mode stored on the order.
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_mode', 'Mode') !!}
+                                {!! Form::select('geidea_mode', ['test' => 'Test', 'live' => 'Live'], $geideaMode, ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_region', 'Region') !!}
+                                {!! Form::select('geidea_region', ['EGY-PROD' => 'Egypt (EGY-PROD)', 'KSA-PROD' => 'KSA (KSA-PROD)', 'UAE-PROD' => 'UAE (UAE-PROD)'], $geidea['region'] ?? 'EGY-PROD', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_currency', 'Currency') !!}
+                                {!! Form::text('geidea_currency', $geidea['currency'] ?? 'EGP', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_language', 'HPP language') !!}
+                                {!! Form::select('geidea_language', ['en' => 'English', 'ar' => 'Arabic'], $geidea['language'] ?? 'en', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </div>
+                    <h5>Test credentials {{ $geideaMode === 'test' ? '(active)' : '' }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('geidea_test_public_key', 'Test merchant public key') !!}
+                                {!! Form::text('geidea_test_public_key', $geidea['test_public_key'] ?? '', ['class' => 'form-control', 'autocomplete' => 'off']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('geidea_test_api_password', 'Test API password (leave blank to keep current)') !!}
+                                {!! Form::password('geidea_test_api_password', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                            </div>
+                        </div>
+                    </div>
+                    <h5>Live credentials {{ $geideaMode === 'live' ? '(active)' : '' }}</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('geidea_live_public_key', 'Live merchant public key') !!}
+                                {!! Form::text('geidea_live_public_key', $geidea['live_public_key'] ?? '', ['class' => 'form-control', 'autocomplete' => 'off']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {!! Form::label('geidea_live_api_password', 'Live API password (leave blank to keep current)') !!}
+                                {!! Form::password('geidea_live_api_password', ['class' => 'form-control', 'autocomplete' => 'new-password']) !!}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_ui_mode', 'Checkout UI') !!}
+                                {!! Form::select('geidea_ui_mode', ['modal' => 'Modal', 'dropin' => 'Drop-in'], $geidea['ui_mode'] ?? 'modal', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_hpp_profile', 'HPP profile') !!}
+                                {!! Form::select('geidea_hpp_profile', ['simple' => 'Simple', 'compressed' => 'Compressed'], $geidea['hpp_profile'] ?? 'simple', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_header_color', 'Header color') !!}
+                                {!! Form::text('geidea_header_color', $geidea['header_color'] ?? '', ['class' => 'form-control', 'placeholder' => '#FF4D00']) !!}
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                {!! Form::label('geidea_logo_url', 'Logo URL (https)') !!}
+                                {!! Form::text('geidea_logo_url', $geidea['logo_url'] ?? '', ['class' => 'form-control']) !!}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('geidea_hide_geidea_logo', 1, $geidea['hide_geidea_logo'] ?? false) !!} Hide Geidea logo
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('geidea_show_email', 1, $geidea['show_email'] ?? false) !!} Show email on HPP
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('geidea_show_phone', 1, $geidea['show_phone'] ?? false) !!} Show phone on HPP
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('geidea_show_address', 1, $geidea['show_address'] ?? false) !!} Show address on HPP
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            {!! Form::checkbox('geidea_receipt_page', 1, $geidea['receipt_page'] ?? false) !!} Show Geidea receipt page
+                        </label>
                     </div>
                 </div>
                 <div id="gateway_legacy_fields" class="row">
@@ -1257,7 +1377,8 @@
         function toggleGatewayFields() {
             var provider = $('#gateway_provider').val();
             $('#gateway_fawry_fields').toggle(provider === 'fawry');
-            $('#gateway_legacy_fields').toggle(provider !== 'fawry' && provider !== '');
+            $('#gateway_geidea_fields').toggle(provider === 'geidea');
+            $('#gateway_legacy_fields').toggle(provider !== 'fawry' && provider !== 'geidea' && provider !== '');
         }
 
         $('#gateway_provider').on('change', toggleGatewayFields);

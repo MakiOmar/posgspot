@@ -9,7 +9,7 @@ use App\Transaction;
 use Illuminate\Http\Request;
 
 /**
- * Confirms Fawry return URL payloads after hosted checkout.
+ * Confirms hosted-checkout return payloads after the customer is redirected back.
  */
 class PaymentReturnController extends StorefrontController
 {
@@ -35,26 +35,32 @@ class PaymentReturnController extends StorefrontController
         }
 
         $payload = $request->all();
-        if (empty($payload['merchantRefNumber'])) {
+        $merchantRef = $driver->extractMerchantReference($payload);
+        if (empty($merchantRef) && ! empty($payload['order']) && is_string($payload['order'])) {
+            $merchantRef = $payload['order'];
+        }
+        if (empty($merchantRef)) {
             return $this->jsonError('Missing merchant reference.', 422);
         }
 
-        if (! $driver->verifyReturnPayload($payload, $config)) {
-            return $this->jsonError('Invalid payment signature.', 422);
-        }
-
         $transaction = Transaction::where('business_id', $businessId)
-            ->where('storefront_order_id', $payload['merchantRefNumber'])
+            ->where('storefront_order_id', $merchantRef)
             ->first();
 
         if (empty($transaction)) {
             return $this->jsonError('Order not found.', 404);
         }
 
+        $config = $driver->configForTransaction($transaction, $config);
+
+        if (! $driver->verifyReturnPayload($payload, $config)) {
+            return $this->jsonError('Invalid payment signature.', 422);
+        }
+
         $result = $driver->applyPaymentResult($transaction->fresh(), $payload, $businessId);
 
         if ($result->status === PaymentResult::STATUS_INVALID) {
-            $statusPayload = $driver->fetchStatus((string) $payload['merchantRefNumber'], $config);
+            $statusPayload = $driver->fetchStatus($merchantRef, $config);
             if (is_array($statusPayload)) {
                 $result = $driver->applyPaymentResult($transaction->fresh(), $statusPayload, $businessId);
             }
@@ -64,6 +70,7 @@ class PaymentReturnController extends StorefrontController
             'payment_status' => $result->status,
             'message' => $result->message,
             'order' => $this->checkoutService->formatOrderResponse($transaction->fresh()),
+            'provider_ref_number' => $result->providerRefNumber,
             'reference_number' => $result->referenceNumber,
             'fawry_ref_number' => $result->fawryRefNumber,
             'payment_method' => $result->paymentMethod,

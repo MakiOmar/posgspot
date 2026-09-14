@@ -9,9 +9,11 @@ return [
     */
     'drivers' => [
         'fawry' => \App\Services\Storefront\Payment\FawryPaymentGateway::class,
+        'geidea' => \App\Services\Storefront\Payment\GeideaPaymentGateway::class,
     ],
 
     'labels' => [
         'fawry' => 'FawryPay',
+        'geidea' => 'Geidea',
     ],
 ];

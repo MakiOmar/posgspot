@@ -51,6 +51,8 @@ export interface StoreSettings {
     enabled: boolean;
     provider: string | null;
     label: string | null;
+    region?: string | null;
+    environment?: string | null;
   };
   reward_points: {
     enabled: boolean;
@@ -456,7 +458,7 @@ export interface CheckoutOrder {
   final_total: number;
   transaction_date: string;
   shipping_status: string;
-  payment?: FawryPaymentSession;
+  payment?: PaymentSession;
 }
 
 export interface FawryChargeItem {
@@ -467,7 +469,7 @@ export interface FawryChargeItem {
 }
 
 export interface FawryPaymentSession {
-  provider: string;
+  provider: "fawry";
   sdk_url: string;
   return_url: string;
   locale: string;
@@ -491,10 +493,26 @@ export interface FawryPaymentSession {
   };
 }
 
+export interface GeideaPaymentSession {
+  provider: "geidea";
+  session_id: string;
+  merchant_reference_id?: string;
+  sdk_url: string;
+  return_url: string;
+  locale: string;
+  region: string;
+  environment: string;
+  ui_mode: "modal" | "dropin";
+  container_id?: string;
+}
+
+export type PaymentSession = FawryPaymentSession | GeideaPaymentSession;
+
 export interface PaymentReturnResult {
   payment_status: string;
   message: string | null;
   order: CheckoutOrder;
+  provider_ref_number?: string | null;
   reference_number: string | null;
   fawry_ref_number: string | null;
   payment_method: string | null;

@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-09-14 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -18,10 +18,10 @@
 | Area | Status |
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
-| Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry works |
+| Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry/Geidea works |
 | Header / footer spec | 🟡 | Core wired; 4-col footer; mobile Menu side drawer + fixed bottom bar (Home/Cart/Wishlist/Profile) |
 | i18n / RTL (AR + EN) | ✅ |
-| Online payments (Fawry) | ✅ | Pluggable gateway layer; hosted FawryPay.checkout; webhook + return confirm |
+| Online payments (Fawry + Geidea) | ✅ | Pluggable gateway layer; Fawry hosted checkout; Geidea HPP session + webhook HMAC; one active provider |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
 | Automated tests | 🟡 API feature tests incl. checkout E2E + `CouponTest`; no Qwik tests |
 
@@ -43,7 +43,7 @@
 | Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; digital-only free rate (`method_type: digital`); legacy flat/threshold migrated; `ShippingQuoteService` |
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
-| Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `/payments/fawry/*` |
+| Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP** (App Link backup); 30-day token TTL, reset revokes sessions |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=` |
 | Reward points API | ✅ | Balance + validate redeem |
@@ -81,9 +81,9 @@
 | `/[lang]/brands/[slug]` | ✅ | Brand PLP + sort/stock toolbar + pagination; `brand_slug` filter |
 | `/[lang]/products/[slug]` PDP | ✅ | Gallery + thumbs, breadcrumbs + JSON-LD (+ aggregateRating), variations, cart, availability, related, recently viewed, reviews, share; brand links to `/brands/{slug}` |
 | `/[lang]/cart` | ✅ | Qty stepper, remove, subtotal, promo picker + manual code, shipping estimate hint, i18n |
-| `/[lang]/checkout` | ✅ | COD + Fawry method picker, zone shipping rates + pickup, digital-only skips address/Bosta, Bosta district when courier on, promo picker + manual code, reward redeem |
-| `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry SDK, hosted checkout |
-| `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + Pay-at-Fawry reference |
+| `/[lang]/checkout` | ✅ | COD + online (Fawry or Geidea from settings), zone shipping rates + pickup, digital-only skips address/Bosta, Bosta district when courier on, promo picker + manual code, reward redeem |
+| `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry or Geidea HPP SDK from the payment route only |
+| `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + provider reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
 | `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
@@ -157,6 +157,7 @@
 | Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
 | Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Couriers section; `digital.*` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
+| Gateway Geidea (test+live keys, mode, region, HPP options) | ✅ | `/storefront/settings`; both API passwords encrypted; webhook URL shown |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
@@ -186,7 +187,7 @@
 | Breadcrumbs (UI + schema) | ✅ | Contact, FAQ, legal, PDP (`Breadcrumbs` + BreadcrumbList) |
 | `robots.txt` / `sitemap.xml` | ✅ | Dynamic routes; staging `PUBLIC_ROBOTS_DISALLOW_ALL` → `Disallow: /` + empty sitemap + sitewide noindex / `X-Robots-Tag` |
 | Qwik lazy chunks / per-route CSS | 🟡 | Ongoing per project rules |
-| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Turnstile/Fawry/Maps; YouTube/Vimeo embeds + HTTPS media; skipped in dev |
+| CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Turnstile/Fawry/Geidea HPP hosts/Maps; YouTube/Vimeo embeds + HTTPS media; skipped in dev |
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
 | Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
 
@@ -210,6 +211,7 @@
 | Checkout E2E feature test | ✅ | `StorefrontCheckoutTest` (requires `shipping_rate_id`) |
 | Shipping zones / rate id | ✅ | `ShippingZonesApiTest` |
 | Fawry checkout + webhook | ✅ | `FawryPaymentTest`, `FawryPaymentGatewayTest` |
+| Geidea checkout + webhook | ✅ | `GeideaPaymentTest`, `GeideaSignatureTest` |
 | Wishlist API | ✅ | `WishlistTest` |
 | Product reviews API | ✅ | `ProductReviewTest` |
 | Brand slug API | ✅ | `BrandSlugApiTest` |
@@ -224,7 +226,7 @@
 
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
-3. Mobile Phase 4 — link Fawry RN SDK via Dev Client, EAS project IDs, store listings (see [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md))
+3. Mobile Phase 4 — native Geidea SDK when the vendor tarball arrives; Fawry RN SDK via Dev Client; EAS project IDs, store listings (see [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md))
 
 ---
 
@@ -232,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Geidea HPP payments: second storefront driver, admin test/live keys, Qwik checkout, mobile hosted WebView, mode-scoped webhook HMAC. |
 | 2026-09-14 | Verify-email auto-sends OTP; signed-in checkout requires email verification. |
 | 2026-09-14 | Account menus hide Orders and Reward Points; Credits & Coupons uses the Reward Points layout. |
 | 2026-09-14 | Consoles header item is a POS category dropdown (excludes digital games / gift cards). |

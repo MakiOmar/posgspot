@@ -221,11 +221,18 @@ class SettingsApiService
         $gateway = $settings['gateway'] ?? [];
         $provider = $gateway['provider'] ?? null;
         $enabled = ! empty($gateway['enabled']) && ! empty($provider);
+        $geidea = is_array($gateway['geidea'] ?? null) ? $gateway['geidea'] : [];
+        $region = (string) ($geidea['region'] ?? 'EGY-PROD');
+        $mode = ($geidea['mode'] ?? 'test') === 'live' ? 'live' : 'test';
 
         return [
             'enabled' => $enabled,
             'provider' => $enabled ? (string) $provider : null,
             'label' => $enabled ? (string) (config("storefront-payments.labels.{$provider}") ?? ucfirst((string) $provider)) : null,
+            'region' => $enabled && $provider === 'geidea' ? $region : null,
+            'environment' => $enabled && $provider === 'geidea'
+                ? ($mode === 'live' ? 'prod' : 'test')
+                : null,
         ];
     }
 

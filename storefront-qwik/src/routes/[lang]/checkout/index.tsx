@@ -8,7 +8,7 @@ import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoSta
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
-import { storeFawryPaymentSession } from "~/lib/fawry-pay";
+import { storePaymentSession } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -112,8 +112,8 @@ export default component$(() => {
   const couponDiscount = useSignal(0);
   const couponCodes = useSignal<string[]>(loadAppliedCoupons().map((coupon) => coupon.code));
   const stackWithRewardPoints = useSignal(true);
-  const paymentMethod = useSignal<"cod" | "fawry">(
-    settings.value.cod_enabled ? "cod" : settings.value.online_payments.enabled ? "fawry" : "cod",
+  const paymentMethod = useSignal<"cod" | "online">(
+    settings.value.cod_enabled ? "cod" : settings.value.online_payments.enabled ? "online" : "cod",
   );
 
   const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
@@ -121,8 +121,10 @@ export default component$(() => {
   const couponCodesKey = couponCodes.value.join("|");
   const bostaEnabled = settings.value.couriers?.bosta?.enabled ?? false;
 
-  const onlinePaymentsEnabled =
-    settings.value.online_payments.enabled && settings.value.online_payments.provider === "fawry";
+  const onlinePaymentsEnabled = Boolean(
+    settings.value.online_payments.enabled && settings.value.online_payments.provider,
+  );
+  const onlineProvider = settings.value.online_payments.provider || "online";
   const canCheckout = settings.value.cod_enabled || onlinePaymentsEnabled;
 
   const cartItemsKey = cart.items
@@ -448,7 +450,7 @@ export default component$(() => {
 
       const formData = new FormData(form);
       const selectedPayment = String(formData.get("payment_method") || paymentMethod.value);
-      const resolvedPayment = selectedPayment === "fawry" && onlinePaymentsEnabled ? "fawry" : "cod";
+      const resolvedPayment = selectedPayment === "online" && onlinePaymentsEnabled ? onlineProvider : "cod";
       const items = cart.items.map(toCartApiItem);
       const selectedRate =
         availableRates.value.find((r) => r.id === shippingRateId.value) ?? null;
@@ -549,8 +551,8 @@ export default component$(() => {
         const { data } = await checkout(payload, auth.token ?? undefined);
         clearCart(cart);
 
-        if (resolvedPayment === "fawry" && data.payment) {
-          storeFawryPaymentSession(data.payment);
+        if (resolvedPayment !== "cod" && data.payment) {
+          storePaymentSession(data.payment);
           await nav(
             localePath(locale, `/checkout/payment/?order=${encodeURIComponent(data.storefront_order_id)}`),
           );
@@ -875,16 +877,16 @@ export default component$(() => {
                 ) : null}
                 {onlinePaymentsEnabled ? (
                   <label
-                    class={`checkout-choice${paymentMethod.value === "fawry" ? " checkout-choice--selected" : ""}${!settings.value.cod_enabled ? " checkout-choice--solo" : ""}`}
+                    class={`checkout-choice${paymentMethod.value === "online" ? " checkout-choice--selected" : ""}${!settings.value.cod_enabled ? " checkout-choice--solo" : ""}`}
                   >
                     <input
                       type="radio"
                       name="payment_method"
-                      value="fawry"
+                      value="online"
                       class="checkout-choice__input"
-                      checked={paymentMethod.value === "fawry"}
+                      checked={paymentMethod.value === "online"}
                       onChange$={() => {
-                        paymentMethod.value = "fawry";
+                        paymentMethod.value = "online";
                       }}
                     />
                     {settings.value.cod_enabled ? (
@@ -1053,7 +1055,7 @@ export default component$(() => {
             >
               {submitting.value
                 ? tStatic(locale, "checkout.placingOrder")
-                : paymentMethod.value === "fawry"
+                : paymentMethod.value === "online"
                   ? tStatic(locale, "checkout.continueToPayment")
                   : tStatic(locale, "checkout.placeOrder")}
             </button>

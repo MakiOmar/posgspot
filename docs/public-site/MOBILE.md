@@ -11,11 +11,11 @@ React Native (Expo Dev Client) iOS/Android client for the same Storefront API as
 |-------|--------|
 | App | React Native + TypeScript, Expo Router, Expo Development Builds |
 | Auth | Laravel **Sanctum** bearer tokens on `Contact` (same as web) — **not** Passport |
-| Payments | Official [`@fawry_pay/rn-fawry-pay-sdk`](https://github.com/FawryPay/ReactNative-Fawrypay-Anonymous-sample) (iOS + Android) |
+| Payments | Fawry: [`@fawry_pay/rn-fawry-pay-sdk`](https://github.com/FawryPay/ReactNative-Fawrypay-Anonymous-sample). Geidea: hosted HPP in WebView now (`src/lib/geidea.ts`); native `payWithGeidea` when `@geidea/payment-sdk-react-native` is installed. |
 | API | `/api/storefront/v1/*` + `Authorization: Bearer` + `X-Content-Locale` |
 | Push | FCM HTTP v1 via Laravel jobs; device tokens on `storefront_device_tokens` |
 
-**Expo Go is not supported** — Fawry uses Nitro native modules. Use `npx expo prebuild` + Dev Client / EAS Build.
+**Expo Go is not supported** for native payment SDKs. Use `npx expo prebuild` + Dev Client / EAS Build. Geidea hosted checkout still runs in the existing WebView without the vendor tarball.
 
 ## Repo
 
@@ -36,7 +36,7 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 | Category / brand | `/category/[slug]`, `/brands`, `/brands/[slug]` | categories, brands |
 | PDP | `/products/[slug]` | product detail, availability, reviews |
 | Cart / checkout | `/(tabs)/cart`, `/checkout` | cart validate, checkout |
-| Fawry pay | `/checkout/payment` | checkout payment block + RN SDK |
+| Online pay | `/checkout/payment` | checkout `payment` block; Fawry RN SDK or Geidea hosted WebView |
 | Auth / account | `/login`, `/register`, `/(tabs)/account/*`, `/account/security`, `/account/payments`, `/account/invoice` | auth, Login & Security, Payments & Payouts, in-app invoice |
 | Wishlist | `/wishlist` | wishlist |
 | Games / cards | `/games`, `/games/[id]`, `/gift-cards` | digital catalog |
@@ -51,7 +51,11 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 - Header `X-Storefront-Client: mobile` on all requests
 - Digital line meta (`kind`, `line_key`, `price`) identical to web checkout
 
-## Fawry (mobile)
+## Online payments (mobile)
+
+Checkout sends `payment_method` as the active provider slug from `GET /settings` (`fawry` or `geidea`).
+
+### Fawry
 
 1. `POST /checkout` with `payment_method: fawry` → signed `payment` / session from Laravel.
 2. Map server fields into `startPayment` from `@fawry_pay/rn-fawry-pay-sdk`.
@@ -59,7 +63,15 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 4. Listen for SDK success/fail; Laravel **webhook** remains source of truth for `payment_status`.
 5. Optional `POST /payments/fawry/return` or `POST /payments/fawry/session` for recovery.
 
-Geidea as an additional provider (native RN SDK vs hosted-page fallback): [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
+### Geidea
+
+1. `POST /checkout` with `payment_method: geidea` → client-safe session (`session_id`, `sdk_url`, `region`, `environment`). No keys or signatures.
+2. `startGeideaPayment` tries native `payWithGeidea` when `@geidea/payment-sdk-react-native` is linked; otherwise loads HPP HTML in `react-native-webview`.
+3. WebView `postMessage` (`completed` / `canceled` / `failed`) only drives navigation. Fulfilment is `POST /payments/geidea/webhook`.
+4. `POST /payments/geidea/return` is optional recovery; Laravel re-fetches remote `detailedStatus`.
+5. Gradle: `expo-build-properties` `minSdkVersion: 24` plus no-op-until-installed `plugins/withGeideaSdk.js`. Do not replace Expo `android/build.gradle`. Skip vendor cleartext `network_security_config.xml`.
+
+Details: [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
 
 ## Push devices
 

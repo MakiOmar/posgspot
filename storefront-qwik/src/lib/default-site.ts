@@ -14,7 +14,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   catalog: { show_availability_on_cards: true },
   cod_enabled: true,
   maintenance_mode: false,
-  online_payments: { enabled: false, provider: null, label: null },
+  online_payments: { enabled: false, provider: null, label: null, region: null, environment: null },
   reward_points: { enabled: false, name: "Reward Points" },
   promo_codes: { enabled_at_checkout: true, allow_stacking: false },
   payment_icons: [],

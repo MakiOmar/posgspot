@@ -85,7 +85,7 @@ export default function CheckoutScreen() {
   const [rewardValid, setRewardValid] = useState(true);
   const [pointsBalance, setPointsBalance] =
     useState<RewardPointsBalance | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "fawry">("cod");
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "online">("cod");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -103,9 +103,11 @@ export default function CheckoutScreen() {
   const [quoteSubtotal, setQuoteSubtotal] = useState(subtotal);
 
   const bostaEnabled = !!settings?.couriers?.bosta?.enabled;
-  const fawryEnabled =
-    !!settings?.online_payments?.enabled &&
-    settings?.online_payments?.provider === "fawry";
+  const onlineEnabled =
+    !!settings?.online_payments?.enabled && !!settings?.online_payments?.provider;
+  const onlineProvider = settings?.online_payments?.provider || "online";
+  const onlineLabel =
+    settings?.online_payments?.label || t("checkout.online");
   const codEnabled = settings?.cod_enabled !== false;
   const selectedRate = rates.find((r) => r.id === selectedRateId);
   const pickupMode = isPickupRate(selectedRate);
@@ -114,6 +116,12 @@ export default function CheckoutScreen() {
   const useStateSelect = states.length > 0;
   const needDistrict =
     showAddress && bostaEnabled && districts.length > 0 && !districtId;
+
+  useEffect(() => {
+    if (!codEnabled && onlineEnabled) {
+      setPaymentMethod("online");
+    }
+  }, [codEnabled, onlineEnabled]);
 
   const selectableLocations = useMemo(() => {
     if (!pickupMode) return locations;
@@ -362,7 +370,7 @@ export default function CheckoutScreen() {
       const order = await checkout(
         {
           idempotency_key: idempotencyKey,
-          payment_method: paymentMethod,
+          payment_method: paymentMethod === "online" ? onlineProvider : "cod",
           shipping_rate_id: selectedRateId,
           location_id: fulfillmentLocationId,
           items: items.map(toCartApiItem),
@@ -387,7 +395,7 @@ export default function CheckoutScreen() {
         token,
       );
 
-      if (paymentMethod === "fawry" && order.data.payment) {
+      if (paymentMethod === "online" && order.data.payment) {
         router.replace({
           pathname: "/checkout/payment",
           params: {
@@ -606,16 +614,16 @@ export default function CheckoutScreen() {
               onPress={() => setPaymentMethod("cod")}
             />
           ) : null}
-          {fawryEnabled ? (
+          {onlineEnabled ? (
             <>
               <View style={{ height: 8 }} />
               <PrimaryButton
                 label={
-                  paymentMethod === "fawry"
-                    ? `✓ ${t("checkout.fawry")}`
-                    : t("checkout.fawry")
+                  paymentMethod === "online"
+                    ? `✓ ${onlineLabel}`
+                    : onlineLabel
                 }
-                onPress={() => setPaymentMethod("fawry")}
+                onPress={() => setPaymentMethod("online")}
               />
             </>
           ) : null}

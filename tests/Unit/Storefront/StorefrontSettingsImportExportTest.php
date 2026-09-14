@@ -46,6 +46,13 @@ class StorefrontSettingsImportExportTest extends TestCase
                     'security_key' => 'fawry-secret',
                     'staging' => true,
                 ],
+                'geidea' => [
+                    'mode' => 'test',
+                    'test_public_key' => 'pk-test',
+                    'test_api_password' => 'geidea-test-secret',
+                    'live_public_key' => 'pk-live',
+                    'live_api_password' => 'geidea-live-secret',
+                ],
             ],
         ]);
 
@@ -58,6 +65,9 @@ class StorefrontSettingsImportExportTest extends TestCase
         $this->assertNull($envelope['settings']['turnstile']['secret_key']);
         $this->assertNull($envelope['settings']['gateway']['fawry']['security_key']);
         $this->assertSame('M123', $envelope['settings']['gateway']['fawry']['merchant_code']);
+        $this->assertNull($envelope['settings']['gateway']['geidea']['test_api_password']);
+        $this->assertNull($envelope['settings']['gateway']['geidea']['live_api_password']);
+        $this->assertSame('pk-test', $envelope['settings']['gateway']['geidea']['test_public_key']);
     }
 
     public function test_import_merges_settings_and_preserves_existing_secrets(): void

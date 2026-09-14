@@ -65,14 +65,14 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://www.atfawry.com https://atfawry.fawrystaging.com https://www.merchant.geidea.net https://www.ksamerchant.geidea.net https://payments.geidea.ae https://challenges.cloudflare.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
-    `connect-src ${connectSrc.join(" ")} https://challenges.cloudflare.com`,
-    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
+    `connect-src ${connectSrc.join(" ")} https://challenges.cloudflare.com https://api.merchant.geidea.net https://api.ksamerchant.geidea.net https://api.geidea.ae https://www.merchant.geidea.net https://www.ksamerchant.geidea.net https://payments.geidea.ae`,
+    "frame-src 'self' https://www.google.com https://maps.google.com https://www.atfawry.com https://atfawry.fawrystaging.com https://www.merchant.geidea.net https://www.ksamerchant.geidea.net https://payments.geidea.ae https://api.merchant.geidea.net https://api.ksamerchant.geidea.net https://api.geidea.ae https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com",
     "media-src 'self' https: blob:",
-    "form-action 'self' https://www.atfawry.com https://atfawry.fawrystaging.com",
+    "form-action 'self' https://www.atfawry.com https://atfawry.fawrystaging.com https://www.merchant.geidea.net https://www.ksamerchant.geidea.net https://payments.geidea.ae",
   ];
 
   return directives.join("; ");

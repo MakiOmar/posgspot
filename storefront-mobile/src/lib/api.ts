@@ -12,8 +12,8 @@ import type {
   Category,
   CheckoutOrder,
   ContentLocale,
-  FawryPaymentSession,
   HomepageSection,
+  PaymentSession,
   ProductAvailability,
   ProductDetail,
   ProductReviewItem,
@@ -312,7 +312,7 @@ export function fetchPaymentSession(
   locale?: ContentLocale,
   token?: string | null,
 ) {
-  return storefrontFetch<FawryPaymentSession>(`/payments/${provider}/session`, {
+  return storefrontFetch<PaymentSession | { already_paid: boolean }>(`/payments/${provider}/session`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({
