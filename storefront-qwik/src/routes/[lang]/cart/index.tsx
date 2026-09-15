@@ -53,7 +53,7 @@ export default component$(() => {
 
   // Inspect prices/stock and auto-remove fully OOS lines whenever the cart changes.
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(async ({ track }) => {
+  useVisibleTask$(({ track, cleanup }) => {
     // Track store contents directly — a render-time string is not a signal.
     const itemsKey = track(() => cartItemsFingerprint(cart.items));
     track(() => cart.hydrated);
@@ -81,6 +81,7 @@ export default component$(() => {
       validatedTotal.value = null;
       appliedCoupons.value = [];
       couponDiscount.value = 0;
+      validating.value = false;
       return;
     }
 
@@ -92,72 +93,76 @@ export default component$(() => {
       localSubtotalBefore - couponDiscount.value + validatedShipping.value,
     );
 
-    validating.value = true;
-    errorNotice.value = null;
-    try {
-      const couponPayload =
-        auth.token && promoAtCheckout
-          ? couponRequestPayload(couponCodes.value, allowCouponStacking)
-          : {};
-      const { data } = await inspectCart(
-        {
-          ...couponPayload,
-          items: cart.items.map(toCartApiItem),
-        },
-        auth.token ?? undefined,
-      );
-      const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
-      pricesUpdated.value = pricesChanged;
-      const inspectMissesDigital = cart.items.some(
-        (item) => item.digital && !data.lines.some((line) => line.variation_id === item.variationId),
-      );
-      const localSubtotal = cartSubtotal(cart);
-      validatedSubtotal.value = inspectMissesDigital ? localSubtotal : data.subtotal;
-      validatedShipping.value = data.shipping;
-      validatedTotal.value = inspectMissesDigital
-        ? localSubtotal + data.shipping
-        : data.total;
-      appliedCoupons.value = data.coupons?.length
-        ? data.coupons
-        : data.coupon
-          ? [data.coupon]
-          : [];
-      couponDiscount.value = data.coupon_discount ?? 0;
-      const nextCodes = appliedCoupons.value.map((coupon) => coupon.code);
-      if (!sameCouponCodes(couponCodes.value, nextCodes)) {
-        couponCodes.value = nextCodes;
-      }
-      if (nextCodes.length === 0) {
-        clearAppliedCoupon();
-      } else {
-        persistAppliedCoupons(
-          appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+    const timer = setTimeout(async () => {
+      validating.value = true;
+      errorNotice.value = null;
+      try {
+        const couponPayload =
+          auth.token && promoAtCheckout
+            ? couponRequestPayload(couponCodes.value, allowCouponStacking)
+            : {};
+        const { data } = await inspectCart(
+          {
+            ...couponPayload,
+            items: cart.items.map(toCartApiItem),
+          },
+          auth.token ?? undefined,
         );
+        const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
+        pricesUpdated.value = pricesChanged;
+        const inspectMissesDigital = cart.items.some(
+          (item) => item.digital && !data.lines.some((line) => line.variation_id === item.variationId),
+        );
+        const localSubtotal = cartSubtotal(cart);
+        validatedSubtotal.value = inspectMissesDigital ? localSubtotal : data.subtotal;
+        validatedShipping.value = data.shipping;
+        validatedTotal.value = inspectMissesDigital
+          ? localSubtotal + data.shipping
+          : data.total;
+        appliedCoupons.value = data.coupons?.length
+          ? data.coupons
+          : data.coupon
+            ? [data.coupon]
+            : [];
+        couponDiscount.value = data.coupon_discount ?? 0;
+        const nextCodes = appliedCoupons.value.map((coupon) => coupon.code);
+        if (!sameCouponCodes(couponCodes.value, nextCodes)) {
+          couponCodes.value = nextCodes;
+        }
+        if (nextCodes.length === 0) {
+          clearAppliedCoupon();
+        } else {
+          persistAppliedCoupons(
+            appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
+          );
+        }
+        removedNotice.value =
+          removedCount > 0
+            ? tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) })
+            : null;
+      } catch (err) {
+        pricesUpdated.value = false;
+        // Keep optimistic local totals on inspect failure.
+        const localSubtotal = cartSubtotal(cart);
+        validatedSubtotal.value = localSubtotal;
+        validatedTotal.value = Math.max(
+          0,
+          localSubtotal - couponDiscount.value + validatedShipping.value,
+        );
+        removedNotice.value = null;
+        if (err instanceof ApiError) {
+          const messages = Object.values(err.errors).flat();
+          errorNotice.value = messages.length ? messages.join(" ") : err.message;
+        } else {
+          errorNotice.value =
+            err instanceof Error ? err.message : tStatic(locale, "cart.stockIssue");
+        }
+      } finally {
+        validating.value = false;
       }
-      removedNotice.value =
-        removedCount > 0
-          ? tStatic(locale, "cart.removedOutOfStock", { count: String(removedCount) })
-          : null;
-    } catch (err) {
-      pricesUpdated.value = false;
-      // Keep optimistic local totals on inspect failure.
-      const localSubtotal = cartSubtotal(cart);
-      validatedSubtotal.value = localSubtotal;
-      validatedTotal.value = Math.max(
-        0,
-        localSubtotal - couponDiscount.value + validatedShipping.value,
-      );
-      removedNotice.value = null;
-      if (err instanceof ApiError) {
-        const messages = Object.values(err.errors).flat();
-        errorNotice.value = messages.length ? messages.join(" ") : err.message;
-      } else {
-        errorNotice.value =
-          err instanceof Error ? err.message : tStatic(locale, "cart.stockIssue");
-      }
-    } finally {
-      validating.value = false;
-    }
+    }, 350);
+
+    cleanup(() => clearTimeout(timer));
   });
 
   const goToCheckout$ = $(async () => {

@@ -292,6 +292,10 @@ export default component$(() => {
         validatedTotal.value = data.total;
         availableRates.value = data.available_rates ?? [];
         digitalOnly.value = Boolean(data.digital_only ?? cartIsDigitalOnly);
+        const shippingNotice =
+          typeof data.shipping_notice === "string" && data.shipping_notice.trim() !== ""
+            ? data.shipping_notice.trim()
+            : null;
 
         const nextRateId = data.shipping_rate?.id || "";
         const rates = data.available_rates ?? [];
@@ -302,6 +306,8 @@ export default component$(() => {
           shippingRateId.value = nextRateId;
         } else if (digitalOnly.value && nextRateId && nextRateId !== currentRateId) {
           shippingRateId.value = nextRateId;
+        } else if (currentRateId && rates.length > 0 && !rates.some((r) => r.id === currentRateId)) {
+          shippingRateId.value = nextRateId || rates[0]?.id || "";
         }
 
         appliedCoupons.value = data.coupons?.length
@@ -324,7 +330,7 @@ export default component$(() => {
             appliedCoupons.value.map((coupon) => ({ code: coupon.code, label: coupon.label })),
           );
         }
-        stockWarning.value = null;
+        stockWarning.value = shippingNotice;
       } catch (err) {
         if (err instanceof ApiError) {
           const messages = Object.values(err.errors).flat();

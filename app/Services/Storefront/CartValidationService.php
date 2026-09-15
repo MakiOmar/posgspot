@@ -190,16 +190,16 @@ class CartValidationService
             $shippingQuote['available_rates'] = $resolved['available_rates'];
         }
 
-        // Address validation (Phase 2): delivery destination with no rates.
+        // Address soft-check: empty rates for a destination must not 422 the whole
+        // validate — checkout needs the payload to render pickup / error UI.
         $digitalOnly = ! empty($shippingQuote['digital_only']);
         $hideUntilAddress = $digitalOnly
             ? false
             : (bool) ($settings['shipping']['hide_rates_until_address'] ?? true);
         $hasAddress = ! empty($destination['country']) || ! empty($destination['state']);
+        $shippingNotice = null;
         if (! $digitalOnly && $hasAddress && empty($shippingQuote['available_rates'])) {
-            throw ValidationException::withMessages([
-                'shipping_address' => ['We do not deliver to this address. Please choose pickup or another region.'],
-            ]);
+            $shippingNotice = 'We do not deliver to this address. Please choose pickup or another region.';
         }
 
         $shipping = (float) $shippingQuote['shipping'];
@@ -218,6 +218,7 @@ class CartValidationService
             'matched_zone_id' => $shippingQuote['matched_zone_id'],
             'hide_rates_until_address' => $hideUntilAddress,
             'digital_only' => $digitalOnly,
+            'shipping_notice' => $shippingNotice,
         ];
 
         return $this->mergeCouponTotals(

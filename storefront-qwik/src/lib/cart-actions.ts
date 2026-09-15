@@ -363,7 +363,7 @@ export const syncCartFromInspection = (
   const statusByVariation = new Map(inspection.line_status.map((line) => [line.variation_id, line]));
   let removedCount = 0;
 
-  cart.items = cart.items.filter((item, index) => {
+  const kept = cart.items.filter((item, index) => {
     const status = inspection.line_status[index] ?? statusByVariation.get(item.variationId);
     if (status && shouldAutoRemoveCartLine(status, item)) {
       removedCount += 1;
@@ -371,6 +371,12 @@ export const syncCartFromInspection = (
     }
     return true;
   });
+
+  // Only replace the array when lines were removed — a no-op `cart.items = filter(...)`
+  // still assigns a new array and retriggers any task that tracks cart.items (validate loop).
+  if (removedCount > 0) {
+    cart.items = kept;
+  }
 
   const pricesChanged = applyCartValidation(cart, inspection.lines);
   for (const item of cart.items) {

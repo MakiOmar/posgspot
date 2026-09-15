@@ -254,6 +254,18 @@ class ShippingQuoteService
             }
         }
 
+        // State-specific zones may exclude this governorate — fall back to country-wide zones.
+        if ($country !== '' && $state !== '') {
+            foreach ($zones as $zone) {
+                if ($zone->is_catch_all) {
+                    continue;
+                }
+                if ($this->zoneMatchesCountryOnly($zone, $country)) {
+                    return $zone;
+                }
+            }
+        }
+
         // Pickup-only browse: use first non-catch-all zone that has pickup, else catch-all.
         if ($country === '' && $state === '') {
             foreach ($zones as $zone) {
@@ -304,6 +316,30 @@ class ShippingQuoteService
                 || $code === strtoupper($state)
                 || strcasecmp((string) $loc->code, $state) === 0;
         });
+    }
+
+    /** Country-level zone (no state rows, or only country rows) that covers the country. */
+    private function zoneMatchesCountryOnly(StorefrontShippingZone $zone, string $country): bool
+    {
+        if ($country === '') {
+            return false;
+        }
+
+        $locations = $zone->locations;
+        if ($locations->isEmpty()) {
+            return false;
+        }
+
+        $hasCountry = $locations->contains(function ($loc) use ($country) {
+            return $loc->type === 'country' && strtoupper($loc->code) === $country;
+        });
+
+        if (! $hasCountry) {
+            return false;
+        }
+
+        // Prefer true country-wide zones (no state filters).
+        return $locations->where('type', 'state')->isEmpty();
     }
 
     private function normalizeCountryCode(string $country): string

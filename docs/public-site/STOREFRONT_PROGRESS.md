@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Fix cart inspect loop (no-op items reassign); soft shipping_notice + country-wide zone fallback so checkout rates load for EG governorates. |
 | 2026-09-15 | Fix checkout validate loop: only rewrite couponCodes/shippingRateId when values change (stops Place order flicker). |
 | 2026-09-15 | Checkout: close SearchableSelect on outside click; load governorates for default Egypt without re-select. |
 | 2026-09-15 | Fix cart Remove/qty: re-track cart fingerprint so inspect + totals refresh; show live subtotal. |

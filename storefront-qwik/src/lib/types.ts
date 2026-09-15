@@ -413,6 +413,8 @@ export interface CartValidation {
   shipping_rate?: ShippingRate | null;
   matched_zone_id?: number | null;
   hide_rates_until_address?: boolean;
+  /** Soft message when destination has no matching delivery rates (not a hard 422). */
+  shipping_notice?: string | null;
   /** True when every cart line is digital (games/gift card) — free digital delivery. */
   digital_only?: boolean;
   coupon?: AppliedCouponInfo | null;
