@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useTask$, type QRL } from "@builder.io/qwik";
+import { $, component$, useOnDocument, useSignal, useTask$, type QRL } from "@builder.io/qwik";
 import { ApiError, fetchAvailableCoupons } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -106,6 +106,28 @@ export const CouponPicker = component$<CouponPickerProps>((props) => {
 
   const canShowPicker =
     props.items.length > 0 && (props.allowStacking || props.appliedCoupons.length === 0);
+
+  useOnDocument(
+    "click",
+    $((event) => {
+      if (!open.value) {
+        return;
+      }
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest(".coupon-picker")) {
+        open.value = false;
+      }
+    }),
+  );
+
+  useOnDocument(
+    "keydown",
+    $((event) => {
+      if (open.value && (event as KeyboardEvent).key === "Escape") {
+        open.value = false;
+      }
+    }),
+  );
 
   if (!canShowPicker) {
     return null;

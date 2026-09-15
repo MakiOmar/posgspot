@@ -136,14 +136,17 @@ export default component$(() => {
     phoneReady.value = true;
   });
 
-  // Seed country/state from profile once auth is ready.
+  // Seed country/state from profile once auth is ready (avoid no-op reassigns).
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => auth.contact?.country);
     track(() => auth.contact?.state);
     track(() => auth.contact?.city);
     if (auth.contact?.country) {
-      shipCountry.value = normalizeCheckoutCountry(auth.contact.country);
+      const nextCountry = normalizeCheckoutCountry(auth.contact.country);
+      if (nextCountry && nextCountry !== shipCountry.value) {
+        shipCountry.value = nextCountry;
+      }
     }
     if (auth.contact?.state && !shipState.value) {
       shipState.value = auth.contact.state;
@@ -153,31 +156,46 @@ export default component$(() => {
     }
   });
 
-  // Load governorates/states when country changes.
+  // Load governorates/states when country is set (including default Egypt on first paint).
   // eslint-disable-next-line qwik/no-use-visible-task
-  useVisibleTask$(async ({ track }) => {
-    track(() => shipCountry.value);
-    const country = normalizeCheckoutCountry(shipCountry.value);
-    shipCountry.value = country;
+  useVisibleTask$(async ({ track, cleanup }) => {
+    const rawCountry = track(() => shipCountry.value);
+    const country = normalizeCheckoutCountry(rawCountry);
+    // Do not write shipCountry here — mutating a tracked signal aborts/restarts this task.
     if (!country) {
       geoStates.value = [];
       shipState.value = "";
+      geoStatesLoading.value = false;
       return;
     }
+
+    let cancelled = false;
+    cleanup(() => {
+      cancelled = true;
+    });
+
     geoStatesLoading.value = true;
     try {
       const { data } = await fetchGeoStates(country);
+      if (cancelled) {
+        return;
+      }
       geoStates.value = data;
-      if (data.length > 0 && !data.some((s) => s.code === shipState.value)) {
+      if (data.length > 0 && shipState.value && !data.some((s) => s.code === shipState.value)) {
         shipState.value = "";
         shippingRateId.value = "";
       }
     } catch {
+      if (cancelled) {
+        return;
+      }
       geoStates.value = [];
       shipState.value = "";
       shippingRateId.value = "";
     } finally {
-      geoStatesLoading.value = false;
+      if (!cancelled) {
+        geoStatesLoading.value = false;
+      }
     }
   });
 

@@ -1,4 +1,4 @@
-import { $, component$, useSignal, type QRL } from "@builder.io/qwik";
+import { $, component$, useOnDocument, useSignal, type QRL } from "@builder.io/qwik";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 
 export type SelectOption = {
@@ -35,6 +35,7 @@ export const SearchableSelect = component$<Props>((props) => {
   const open = useSignal(false);
   const query = useSignal("");
   const activeId = useSignal("");
+  const rootId = `searchable-select-${props.id}`;
 
   const selected =
     props.options.find((o) => o.value === props.value) ??
@@ -56,8 +57,35 @@ export const SearchableSelect = component$<Props>((props) => {
     close$();
   });
 
+  // Close when clicking outside this instance (not other searchable selects).
+  useOnDocument(
+    "click",
+    $((event) => {
+      if (!open.value) {
+        return;
+      }
+      const root = document.getElementById(rootId);
+      const target = event.target as Node | null;
+      if (root && target && !root.contains(target)) {
+        close$();
+      }
+    }),
+  );
+
+  useOnDocument(
+    "keydown",
+    $((event) => {
+      if (open.value && (event as KeyboardEvent).key === "Escape") {
+        close$();
+      }
+    }),
+  );
+
   return (
-    <div class={`searchable-select${open.value ? " searchable-select--open" : ""}`}>
+    <div
+      id={rootId}
+      class={`searchable-select${open.value ? " searchable-select--open" : ""}`}
+    >
       <button
         type="button"
         id={props.id}

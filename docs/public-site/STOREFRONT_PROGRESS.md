@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Checkout: close SearchableSelect on outside click; load governorates for default Egypt without re-select. |
 | 2026-09-15 | Fix cart Remove/qty: re-track cart fingerprint so inspect + totals refresh; show live subtotal. |
 | 2026-09-15 | Fix digital cart qty: merge/hydrate clamp to 1; cart table shows real qty (badge/total no longer disagree with Qty column). |
 | 2026-09-15 | Fix account order detail: null-safe sell lines/location + guard digital deliveries so View order does not 500; Qwik shows retry instead of stuck loading. |
