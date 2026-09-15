@@ -69,6 +69,45 @@ export function getActiveContentLocale(): string {
   return activeContentLocale;
 }
 
+/** True when the browser could not complete the request (CORS-masked 5xx, offline, abort). */
+export function isNetworkFetchError(err: unknown): boolean {
+  if (err instanceof ApiError) {
+    return err.status === 0 || err.status >= 500;
+  }
+  if (!(err instanceof Error)) {
+    return false;
+  }
+  const msg = err.message.toLowerCase();
+  return (
+    err.name === "TypeError" ||
+    msg.includes("networkerror") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("load failed") ||
+    msg.includes("network request failed")
+  );
+}
+
+/** Retry transient network / 5xx failures (e.g. brief POS DB blips). */
+export async function withNetworkRetry<T>(
+  run: () => Promise<T>,
+  attempts = 3,
+  delayMs = 400,
+): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await run();
+    } catch (err) {
+      last = err;
+      if (!isNetworkFetchError(err) || i === attempts - 1) {
+        throw err;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 /** Perform a JSON request against the Storefront API envelope. */
 export async function storefrontFetch<T>(
   path: string,
@@ -87,11 +126,21 @@ export async function storefrontFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(url, {
-    credentials: "include",
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    // Normalize Firefox/Chrome CORS-masked failures into ApiError(0) for callers.
+    throw new ApiError(
+      0,
+      err instanceof Error ? err.message : "Network request failed",
+      {},
+    );
+  }
 
   const json = (await response.json().catch(() => null)) as ApiEnvelope<T> | ApiErrorBody | null;
 

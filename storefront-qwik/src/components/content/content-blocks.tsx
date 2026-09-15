@@ -128,7 +128,7 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
         }
 
         return (
-          <Link key={item.href} href={item.href} class={linkClass}>
+          <Link key={item.href} href={item.href} class={linkClass} prefetch={false}>
             {item.label}
           </Link>
         );

@@ -306,6 +306,7 @@
     "total": "Total",
     "signInToRedeem": "to redeem reward points at checkout.",
     "stockUnavailable": "Some items are no longer available.",
+    "networkTransient": "Store connection hiccup. Retrying — refresh if shipping options stay empty.",
     "emptyOrNoLocation": "Cart is empty or no store location selected.",
     "fixRewardPoints": "Please fix reward points before placing your order.",
     "failed": "Checkout failed.",

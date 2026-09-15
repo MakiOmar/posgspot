@@ -149,7 +149,9 @@ export const SiteFooter = component$<SiteFooterProps>(({ settings, locations }) 
                         {link.label}
                       </a>
                     ) : (
-                      <Link href={resolved.href}>{link.label}</Link>
+                      <Link href={resolved.href} prefetch={false}>
+                        {link.label}
+                      </Link>
                     )}
                   </li>
                 );

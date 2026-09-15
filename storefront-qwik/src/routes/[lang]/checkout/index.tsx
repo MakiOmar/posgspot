@@ -4,7 +4,21 @@ import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { SearchableSelect } from "~/components/forms/searchable-select";
-import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart, type BostaDistrict } from "~/lib/api";
+import {
+  ApiError,
+  checkout,
+  fetchBostaDistricts,
+  fetchGeoCountries,
+  fetchGeoStates,
+  fetchLocations,
+  fetchPhoneCountries,
+  fetchRewardPoints,
+  isNetworkFetchError,
+  validateCart,
+  withNetworkRetry,
+  type BostaDistrict,
+} from "~/lib/api";
+import { EGYPT_GEO_STATES } from "~/lib/geo-eg-states";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponCodesKey, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, sameCouponCodes, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -176,7 +190,7 @@ export default component$(() => {
 
     geoStatesLoading.value = true;
     try {
-      const { data } = await fetchGeoStates(country);
+      const { data } = await withNetworkRetry(() => fetchGeoStates(country));
       if (cancelled) {
         return;
       }
@@ -189,9 +203,12 @@ export default component$(() => {
       if (cancelled) {
         return;
       }
-      geoStates.value = [];
-      shipState.value = "";
-      shippingRateId.value = "";
+      // POS DB blips return opaque NetworkError/CORS; keep Egypt checkout usable.
+      geoStates.value = country === "EG" ? EGYPT_GEO_STATES : [];
+      if (geoStates.value.length === 0) {
+        shipState.value = "";
+        shippingRateId.value = "";
+      }
     } finally {
       if (!cancelled) {
         geoStatesLoading.value = false;
@@ -277,15 +294,17 @@ export default component$(() => {
                   city: shipCity.value || undefined,
                 }
               : undefined;
-        const { data } = await validateCart(
-          {
-            location_id: locationId.value,
-            ...couponPayload,
-            items: cart.items.map(toCartApiItem),
-            destination,
-            shipping_rate_id: shippingRateId.value || undefined,
-          },
-          auth.token ?? undefined,
+        const { data } = await withNetworkRetry(() =>
+          validateCart(
+            {
+              location_id: locationId.value,
+              ...couponPayload,
+              items: cart.items.map(toCartApiItem),
+              destination,
+              shipping_rate_id: shippingRateId.value || undefined,
+            },
+            auth.token ?? undefined,
+          ),
         );
         validatedSubtotal.value = data.subtotal;
         validatedShipping.value = data.shipping;
@@ -332,7 +351,9 @@ export default component$(() => {
         }
         stockWarning.value = shippingNotice;
       } catch (err) {
-        if (err instanceof ApiError) {
+        if (isNetworkFetchError(err)) {
+          stockWarning.value = tStatic(locale, "checkout.networkTransient");
+        } else if (err instanceof ApiError) {
           const messages = Object.values(err.errors).flat();
           stockWarning.value = messages.length ? messages.join(" ") : err.message;
         } else {

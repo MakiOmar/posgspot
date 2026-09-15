@@ -69,6 +69,7 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
                               <Link
                                 href={child.href}
                                 class="side-drawer-link"
+                                prefetch={false}
                                 onClick$={onClose$}
                               >
                                 {child.label}
@@ -106,6 +107,7 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
                     <Link
                       href={item.href}
                       class="side-drawer-link"
+                      prefetch={false}
                       onClick$={onClose$}
                     >
                       {item.label}

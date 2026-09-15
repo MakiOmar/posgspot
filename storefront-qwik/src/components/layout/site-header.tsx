@@ -77,7 +77,12 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
         <div class="header-main">
           <div class="container header-main-inner">
-            <Link href={localePath(locale, "/")} class="brand" aria-label={settings.business_name}>
+            <Link
+              href={localePath(locale, "/")}
+              class="brand"
+              aria-label={settings.business_name}
+              prefetch={false}
+            >
               {settings.logo_url ? (
                 <img
                   src={settings.logo_url}
@@ -135,6 +140,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
               <Link
                 href={localePath(locale, signedIn ? "/account" : "/login")}
                 class="action-link"
+                prefetch={false}
                 aria-label={signedIn ? tStatic(locale, "header.myAccount") : tStatic(locale, "header.signIn")}
               >
                 {signedIn && auth.contact?.avatar_url ? (
