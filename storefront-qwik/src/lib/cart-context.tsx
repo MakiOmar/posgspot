@@ -14,6 +14,7 @@ import {
   loadGuestCartFromStorage,
   mergeCartItems,
   mergeGuestCartForUser,
+  normalizeDigitalCartQuantities,
   parseStoredCart,
   persistCartState,
   type CartState,
@@ -54,6 +55,11 @@ export const CartProvider = component$(() => {
         const userItems = parseStoredCart(localStorage.getItem(userCartStorageKey(contactId)));
         cart.items = mergeCartItems(userItems, cart.items);
         cart.mergedForContactId = contactId;
+      } else {
+        const { items, changed } = normalizeDigitalCartQuantities(cart.items);
+        if (changed) {
+          cart.items = items;
+        }
       }
       cart.hydrated = true;
       persistCartState(cart);
@@ -70,6 +76,7 @@ export const CartProvider = component$(() => {
     }
 
     cart.hydrated = true;
+    persistCartState(cart);
   });
 
   // When auth becomes ready, merge guest session cart with the customer's saved cart.

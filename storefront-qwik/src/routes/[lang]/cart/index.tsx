@@ -325,7 +325,7 @@ export default component$(() => {
               <td>{formatPrice(line.price, settings.value.currency, locale)}</td>
               <td>
                 {line.digital ? (
-                  <span>1</span>
+                  <span>{line.quantity}</span>
                 ) : (
                   <QuantityStepper
                     value={line.quantity}

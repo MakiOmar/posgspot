@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Fix digital cart qty: merge/hydrate clamp to 1; cart table shows real qty (badge/total no longer disagree with Qty column). |
 | 2026-09-15 | Fix account order detail: null-safe sell lines/location + guard digital deliveries so View order does not 500; Qwik shows retry instead of stuck loading. |
 | 2026-09-14 | Digital cart: do not auto-remove Accounts games/cards from POS SKU stock; disable add when live check-stock is OOS. |
 | 2026-09-14 | Digital games: platform-strict stock (no PS4 fallback on PS5), check-stock ignores missing quantity, PDP no longer redirects to the list on load errors. |

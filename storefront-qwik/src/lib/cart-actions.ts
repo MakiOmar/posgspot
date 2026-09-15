@@ -130,6 +130,10 @@ export const parseStoredCart = (raw: string | null): CartItem[] => {
       if (next.digital?.kind && (next.digital.price == null || !Number.isFinite(Number(next.digital.price)))) {
         next.digital = { ...next.digital, price: next.price };
       }
+      // Digital secrets are always one unit per line (heal older/merged carts).
+      if (next.digital?.kind && next.quantity !== 1) {
+        next.quantity = 1;
+      }
       return next;
     });
   } catch {
@@ -160,7 +164,7 @@ export interface CartApiItem {
 export const toCartApiItem = (line: CartItem): CartApiItem => {
   const item: CartApiItem = {
     variation_id: line.variationId,
-    quantity: line.quantity,
+    quantity: line.digital?.kind ? 1 : line.quantity,
   };
   if (line.digital?.kind) {
     const price = Number(line.digital.price ?? line.price);
@@ -174,21 +178,44 @@ export const toCartApiItem = (line: CartItem): CartApiItem => {
   return item;
 };
 
-/** Merge two carts, summing quantity for the same line key. */
+/**
+ * Clamp digital lines to quantity 1 in memory (and report whether anything changed).
+ * Use after hydrate / merge so badge, table qty, and totals stay aligned.
+ */
+export const normalizeDigitalCartQuantities = (
+  items: CartItem[],
+): { items: CartItem[]; changed: boolean } => {
+  let changed = false;
+  const next = items.map((line) => {
+    if (line.digital?.kind && line.quantity !== 1) {
+      changed = true;
+      return { ...line, quantity: 1 };
+    }
+    return line;
+  });
+  return { items: changed ? next : items, changed };
+};
+
+/** Merge two carts, summing quantity for the same physical line key. */
 export const mergeCartItems = (left: CartItem[], right: CartItem[]): CartItem[] => {
   const merged = new Map<string, CartItem>();
   for (const line of [...left, ...right]) {
     const key = cartLineKey(line);
     const existing = merged.get(key);
     if (existing) {
+      const digital = line.digital ?? existing.digital;
       merged.set(key, {
         ...existing,
         ...line,
-        digital: line.digital ?? existing.digital,
-        quantity: existing.quantity + line.quantity,
+        digital,
+        // Digital deliveries are one secret per line — never sum quantities.
+        quantity: digital?.kind ? 1 : existing.quantity + line.quantity,
       });
     } else {
-      merged.set(key, { ...line });
+      merged.set(key, {
+        ...line,
+        quantity: line.digital?.kind ? 1 : line.quantity,
+      });
     }
   }
   return Array.from(merged.values());
