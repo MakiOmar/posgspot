@@ -6,7 +6,7 @@ import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial
 import { SearchableSelect } from "~/components/forms/searchable-select";
 import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart, type BostaDistrict } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponCodesKey, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, sameCouponCodes, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storePaymentSession } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
@@ -228,7 +228,7 @@ export default component$(() => {
   useVisibleTask$(({ track, cleanup }) => {
     track(() => locationId.value);
     track(() => cartItemsFingerprint(cart.items));
-    track(() => couponCodes.value.join("|"));
+    track(() => couponCodesKey(couponCodes.value));
     track(() => auth.token);
     track(() => promoAtCheckout);
     track(() => shipCountry.value);
@@ -236,7 +236,9 @@ export default component$(() => {
     track(() => shippingRateId.value);
 
     if (!auth.token || !promoAtCheckout) {
-      couponCodes.value = [];
+      if (couponCodes.value.length > 0) {
+        couponCodes.value = [];
+      }
       appliedCoupons.value = [];
       couponDiscount.value = 0;
       clearAppliedCoupon();
@@ -290,17 +292,18 @@ export default component$(() => {
         validatedTotal.value = data.total;
         availableRates.value = data.available_rates ?? [];
         digitalOnly.value = Boolean(data.digital_only ?? cartIsDigitalOnly);
-        if (data.shipping_rate?.id && !shippingRateId.value) {
-          shippingRateId.value = data.shipping_rate.id;
-        } else if (
-          shippingRateId.value &&
-          !(data.available_rates ?? []).some((r) => r.id === shippingRateId.value) &&
-          data.shipping_rate?.id
-        ) {
-          shippingRateId.value = data.shipping_rate.id;
-        } else if (digitalOnly.value && data.shipping_rate?.id) {
-          shippingRateId.value = data.shipping_rate.id;
+
+        const nextRateId = data.shipping_rate?.id || "";
+        const rates = data.available_rates ?? [];
+        const currentRateId = shippingRateId.value;
+        if (!currentRateId && nextRateId) {
+          shippingRateId.value = nextRateId;
+        } else if (currentRateId && !rates.some((r) => r.id === currentRateId) && nextRateId) {
+          shippingRateId.value = nextRateId;
+        } else if (digitalOnly.value && nextRateId && nextRateId !== currentRateId) {
+          shippingRateId.value = nextRateId;
         }
+
         appliedCoupons.value = data.coupons?.length
           ? data.coupons
           : data.coupon
@@ -308,8 +311,13 @@ export default component$(() => {
             : [];
         couponDiscount.value = data.coupon_discount ?? 0;
         stackWithRewardPoints.value = data.stack_with_reward_points ?? true;
-        couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
-        if (appliedCoupons.value.length === 0) {
+        const nextCodes = appliedCoupons.value.map((coupon) => coupon.code);
+        // Only write when codes actually change — assigning a new [] every time
+        // re-triggers this task (tracked via couponCodes) and loops validate forever.
+        if (!sameCouponCodes(couponCodes.value, nextCodes)) {
+          couponCodes.value = nextCodes;
+        }
+        if (nextCodes.length === 0) {
           clearAppliedCoupon();
         } else {
           persistAppliedCoupons(

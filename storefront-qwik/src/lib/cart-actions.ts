@@ -90,6 +90,14 @@ export const couponRequestPayload = (
   return { coupon_code: normalized[0] };
 };
 
+/** Stable key for comparing applied promo code lists (order-sensitive). */
+export const couponCodesKey = (codes: string[]): string =>
+  codes.map((code) => code.trim()).filter(Boolean).join("|");
+
+/** True when two promo code lists match after trim/filter. */
+export const sameCouponCodes = (left: string[], right: string[]): boolean =>
+  couponCodesKey(left) === couponCodesKey(right);
+
 /** Legacy single-key cart persisted before guest/user split. */
 export const LEGACY_CART_STORAGE_KEY = "gs-cart-v1";
 

@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Fix checkout validate loop: only rewrite couponCodes/shippingRateId when values change (stops Place order flicker). |
 | 2026-09-15 | Checkout: close SearchableSelect on outside click; load governorates for default Egypt without re-select. |
 | 2026-09-15 | Fix cart Remove/qty: re-track cart fingerprint so inspect + totals refresh; show live subtotal. |
 | 2026-09-15 | Fix digital cart qty: merge/hydrate clamp to 1; cart table shows real qty (badge/total no longer disagree with Qty column). |

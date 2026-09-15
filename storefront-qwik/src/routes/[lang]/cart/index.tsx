@@ -7,11 +7,13 @@ import { ApiError, inspectCart } from "~/lib/api";
 import {
   cartSubtotal,
   clearAppliedCoupon,
+  couponCodesKey,
   couponRequestPayload,
   formatMaxCartQuantity,
   loadAppliedCoupons,
   persistAppliedCoupons,
   removeCartItem,
+  sameCouponCodes,
   setCartQuantity,
   syncCartFromInspection,
   cartItemsFingerprint,
@@ -55,7 +57,7 @@ export default component$(() => {
     // Track store contents directly — a render-time string is not a signal.
     const itemsKey = track(() => cartItemsFingerprint(cart.items));
     track(() => cart.hydrated);
-    track(() => couponCodes.value.join("|"));
+    track(() => couponCodesKey(couponCodes.value));
     track(() => auth.token);
     track(() => promoAtCheckout);
 
@@ -119,8 +121,11 @@ export default component$(() => {
           ? [data.coupon]
           : [];
       couponDiscount.value = data.coupon_discount ?? 0;
-      couponCodes.value = appliedCoupons.value.map((coupon) => coupon.code);
-      if (appliedCoupons.value.length === 0) {
+      const nextCodes = appliedCoupons.value.map((coupon) => coupon.code);
+      if (!sameCouponCodes(couponCodes.value, nextCodes)) {
+        couponCodes.value = nextCodes;
+      }
+      if (nextCodes.length === 0) {
         clearAppliedCoupon();
       } else {
         persistAppliedCoupons(
