@@ -28,6 +28,8 @@ const toastBase = {
   toast: true,
   position: "top-end" as const,
   showConfirmButton: false,
+  showCloseButton: true,
+  closeButtonAriaLabel: "Dismiss",
   timer: 3500,
   timerProgressBar: true,
 };
