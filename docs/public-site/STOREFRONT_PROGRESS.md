@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-14 |
+| **Last updated** | 2026-09-15 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -45,7 +45,7 @@
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP** (App Link backup); 30-day token TTL, reset revokes sessions |
-| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=` |
+| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger |
 | Reward points API | ✅ | Balance + validate redeem |
 | Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Fix account order detail: null-safe sell lines/location + guard digital deliveries so View order does not 500; Qwik shows retry instead of stuck loading. |
 | 2026-09-14 | Digital cart: do not auto-remove Accounts games/cards from POS SKU stock; disable add when live check-stock is OOS. |
 | 2026-09-14 | Digital games: platform-strict stock (no PS4 fallback on PS5), check-stock ignores missing quantity, PDP no longer redirects to the list on load errors. |
 | 2026-09-14 | Fix empty cart after add: persist lines to localStorage on mutate (Qwik `track(cart.items)` missed `push`). |

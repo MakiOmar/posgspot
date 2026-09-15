@@ -39,24 +39,39 @@ export default component$(() => {
   const { locale } = useI18n();
   const state = useStore<{ order: AccountOrderDetail | null }>({ order: null });
   const loading = useSignal(true);
+  const loadError = useSignal<string | null>(null);
   const printUrl = useSignal<string | null>(null);
   const reordering = useSignal(false);
+  const reloadToken = useSignal(0);
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
+    track(() => auth.ready);
     track(() => auth.token);
-    if (!auth.token) {
+    track(() => loc.params.id);
+    track(() => reloadToken.value);
+
+    if (!auth.ready) {
       return;
     }
+    if (!auth.token) {
+      loading.value = false;
+      return;
+    }
+
     const orderId = Number(loc.params.id);
-    if (!Number.isFinite(orderId)) {
-      await toastError(tStatic(locale, "account.invalidOrder"));
+    if (!Number.isFinite(orderId) || orderId <= 0) {
+      loadError.value = tStatic(locale, "account.invalidOrder");
+      state.order = null;
       loading.value = false;
       return;
     }
 
     loading.value = true;
+    loadError.value = null;
     printUrl.value = null;
+    state.order = null;
+
     try {
       const { data } = await fetchOrder(auth.token, orderId);
       state.order = data;
@@ -74,11 +89,15 @@ export default component$(() => {
         }
       }
     } catch (e) {
-      await toastError(
+      const message =
         e instanceof ApiError && e.status === 404
           ? tStatic(locale, "account.orderNotFound")
-          : tStatic(locale, "account.loadOrderFailed"),
-      );
+          : tStatic(locale, "account.loadOrderFailed");
+      loadError.value = message;
+      // Clear loading before toast so the page is not stuck on "Loading…".
+      loading.value = false;
+      await toastError(message);
+      return;
     } finally {
       loading.value = false;
     }
@@ -89,12 +108,27 @@ export default component$(() => {
   return (
     <div>
       <p style={{ marginBottom: "1rem" }}>
-        <Link href={localePath(locale, "/account/orders")} class="link-accent">
+        <Link href={localePath(locale, "/account/payments/list")} class="link-accent">
           {tStatic(locale, "account.backToOrders")}
         </Link>
       </p>
 
       {loading.value ? <p class="footer-muted">{tStatic(locale, "account.loadingOrder")}</p> : null}
+
+      {!loading.value && loadError.value ? (
+        <div class="empty-state" style={{ marginTop: "1rem" }}>
+          <p>{loadError.value}</p>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onClick$={() => {
+              reloadToken.value += 1;
+            }}
+          >
+            {tStatic(locale, "digital.retry")}
+          </button>
+        </div>
+      ) : null}
 
       {order ? (
         <>
@@ -260,7 +294,11 @@ export default component$(() => {
                       border: "1px solid var(--gs-border, #ddd)",
                     }}
                   >
-                    {delivery.title ? <p style={{ margin: "0 0 0.5rem" }}><strong>{delivery.title}</strong></p> : null}
+                    {delivery.title ? (
+                      <p style={{ margin: "0 0 0.5rem" }}>
+                        <strong>{delivery.title}</strong>
+                      </p>
+                    ) : null}
                     {delivery.kind === "card" ? (
                       <p style={{ margin: 0 }}>
                         <strong>{tStatic(locale, "digital.code")}:</strong> {delivery.code}

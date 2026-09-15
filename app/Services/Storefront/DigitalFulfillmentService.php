@@ -8,6 +8,7 @@ use App\StorefrontDigitalFulfillment;
 use App\Transaction;
 use App\TransactionSellLine;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Allocates Accounts secrets for paid storefront digital lines and tracks the POS↔Accounts trip.
@@ -239,6 +240,10 @@ class DigitalFulfillmentService
         }
 
         if (! $this->exposeCredentialsToCustomer((int) $transaction->business_id)) {
+            return [];
+        }
+
+        if (! Schema::hasTable('storefront_digital_fulfillments')) {
             return [];
         }
 

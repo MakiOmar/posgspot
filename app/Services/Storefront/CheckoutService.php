@@ -337,7 +337,11 @@ class CheckoutService
         $paymentStatus = (string) ($transaction->payment_status ?? '');
         $invoiceUrl = null;
         if (strtolower(trim($paymentStatus)) === 'paid') {
-            $invoiceUrl = $this->invoicePrintUrl((int) $transaction->business_id, $transaction);
+            try {
+                $invoiceUrl = $this->invoicePrintUrl((int) $transaction->business_id, $transaction);
+            } catch (\Throwable $e) {
+                $invoiceUrl = null;
+            }
         }
 
         return [
@@ -452,7 +456,8 @@ class CheckoutService
 
         $data = $this->formatOrderResponse($transaction);
         $data['shipping_address'] = $this->shippingAddressPayload($transaction);
-        $data['fulfillment_location'] = $transaction->location->name ?? null;
+        // Location / product rows can be missing (deleted warehouse or catalog item).
+        $data['fulfillment_location'] = $transaction->location?->name;
         $data['subtotal'] = (float) $transaction->total_before_tax;
         $data['discount_amount'] = (float) $transaction->discount_amount;
         $data['discount_type'] = $transaction->discount_type;
@@ -467,20 +472,34 @@ class CheckoutService
             $meta = json_decode($meta, true);
         }
         $data['shipping_meta'] = is_array($meta) ? $meta : null;
-        $data['lines'] = $transaction->sell_lines->map(fn ($line) => [
-            'product_id' => $line->product_id,
-            'variation_id' => $line->variation_id,
-            'product_name' => $line->product->name ?? null,
-            'variation_name' => $line->variations->name ?? null,
-            'slug' => $line->product->slug ?? null,
-            'image_url' => $line->product->image_url ?? null,
-            'quantity' => (float) $line->quantity,
-            'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
-            'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,
-        ])->values()->all();
-        $data['invoice_print_url'] = $this->invoicePrintUrl($businessId, $transaction);
-        $data['digital_deliveries'] = app(DigitalFulfillmentService::class)
-            ->customerDeliveriesForTransaction($transaction);
+        $data['lines'] = $transaction->sell_lines->map(function ($line) {
+            $product = $line->product;
+            $variation = $line->variations;
+
+            return [
+                'product_id' => (int) $line->product_id,
+                'variation_id' => (int) $line->variation_id,
+                'product_name' => $product?->name,
+                'variation_name' => $variation?->name,
+                'slug' => $product?->slug,
+                'image_url' => $product?->image_url,
+                'quantity' => (float) $line->quantity,
+                'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
+                'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,
+            ];
+        })->values()->all();
+        try {
+            $data['invoice_print_url'] = $this->invoicePrintUrl($businessId, $transaction);
+        } catch (\Throwable $e) {
+            $data['invoice_print_url'] = null;
+        }
+        try {
+            $data['digital_deliveries'] = app(DigitalFulfillmentService::class)
+                ->customerDeliveriesForTransaction($transaction);
+        } catch (\Throwable $e) {
+            // Missing ledger table or decrypt issues must not blank the whole order page.
+            $data['digital_deliveries'] = [];
+        }
 
         return $data;
     }

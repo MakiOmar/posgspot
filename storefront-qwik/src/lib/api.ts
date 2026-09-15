@@ -93,10 +93,10 @@ export async function storefrontFetch<T>(
     headers,
   });
 
-  const json = (await response.json()) as ApiEnvelope<T> | ApiErrorBody;
+  const json = (await response.json().catch(() => null)) as ApiEnvelope<T> | ApiErrorBody | null;
 
-  if (!response.ok || !json.success) {
-    const err = json as ApiErrorBody;
+  if (!response.ok || !json || !json.success) {
+    const err = (json ?? {}) as ApiErrorBody;
     const authHeader = headers.Authorization || headers.authorization;
     const isPublicAuthAttempt =
       path === "/auth/login" ||
