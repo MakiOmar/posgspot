@@ -6,7 +6,7 @@ import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial
 import { SearchableSelect } from "~/components/forms/searchable-select";
 import { ApiError, checkout, fetchBostaDistricts, fetchGeoCountries, fetchGeoStates, fetchLocations, fetchPhoneCountries, fetchRewardPoints, validateCart, type BostaDistrict } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, clearAppliedCoupon, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storePaymentSession } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
@@ -118,7 +118,6 @@ export default component$(() => {
 
   const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
   const allowCouponStacking = settings.value.promo_codes?.allow_stacking ?? false;
-  const couponCodesKey = couponCodes.value.join("|");
   const bostaEnabled = settings.value.couriers?.bosta?.enabled ?? false;
 
   const onlinePaymentsEnabled = Boolean(
@@ -126,10 +125,6 @@ export default component$(() => {
   );
   const onlineProvider = settings.value.online_payments.provider || "online";
   const canCheckout = settings.value.cod_enabled || onlinePaymentsEnabled;
-
-  const cartItemsKey = cart.items
-    .map((line) => `${line.variationId}:${line.quantity}`)
-    .join("|");
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
@@ -214,8 +209,8 @@ export default component$(() => {
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track, cleanup }) => {
     track(() => locationId.value);
-    track(() => cartItemsKey);
-    track(() => couponCodesKey);
+    track(() => cartItemsFingerprint(cart.items));
+    track(() => couponCodes.value.join("|"));
     track(() => auth.token);
     track(() => promoAtCheckout);
     track(() => shipCountry.value);

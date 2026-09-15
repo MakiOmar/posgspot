@@ -14,6 +14,7 @@ import {
   removeCartItem,
   setCartQuantity,
   syncCartFromInspection,
+  cartItemsFingerprint,
   cartLineKey,
   toCartApiItem,
 } from "~/lib/cart-actions";
@@ -47,18 +48,14 @@ export default component$(() => {
 
   const promoAtCheckout = settings.value.promo_codes?.enabled_at_checkout ?? true;
   const allowCouponStacking = settings.value.promo_codes?.allow_stacking ?? false;
-  const couponCodesKey = couponCodes.value.join("|");
-
-  const cartItemsKey = cart.items
-    .map((line) => `${line.variationId}:${line.quantity}`)
-    .join("|");
 
   // Inspect prices/stock and auto-remove fully OOS lines whenever the cart changes.
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async ({ track }) => {
-    track(() => cartItemsKey);
+    // Track store contents directly — a render-time string is not a signal.
+    const itemsKey = track(() => cartItemsFingerprint(cart.items));
     track(() => cart.hydrated);
-    track(() => couponCodesKey);
+    track(() => couponCodes.value.join("|"));
     track(() => auth.token);
     track(() => promoAtCheckout);
 
@@ -71,7 +68,7 @@ export default component$(() => {
 
     checkoutQuantityIssues.value = [];
 
-    if (!cart.hydrated || cart.items.length === 0) {
+    if (!cart.hydrated || cart.items.length === 0 || !itemsKey) {
       removedNotice.value = null;
       errorNotice.value = null;
       pricesUpdated.value = false;
@@ -82,6 +79,14 @@ export default component$(() => {
       couponDiscount.value = 0;
       return;
     }
+
+    // Optimistic totals from local lines so remove/qty changes update immediately.
+    const localSubtotalBefore = cartSubtotal(cart);
+    validatedSubtotal.value = localSubtotalBefore;
+    validatedTotal.value = Math.max(
+      0,
+      localSubtotalBefore - couponDiscount.value + validatedShipping.value,
+    );
 
     validating.value = true;
     errorNotice.value = null;
@@ -128,8 +133,13 @@ export default component$(() => {
           : null;
     } catch (err) {
       pricesUpdated.value = false;
-      validatedSubtotal.value = null;
-      validatedTotal.value = null;
+      // Keep optimistic local totals on inspect failure.
+      const localSubtotal = cartSubtotal(cart);
+      validatedSubtotal.value = localSubtotal;
+      validatedTotal.value = Math.max(
+        0,
+        localSubtotal - couponDiscount.value + validatedShipping.value,
+      );
       removedNotice.value = null;
       if (err instanceof ApiError) {
         const messages = Object.values(err.errors).flat();
@@ -229,12 +239,14 @@ export default component$(() => {
     );
   }
 
-  const subtotal =
-    validatedSubtotal.value !== null ? validatedSubtotal.value : cartSubtotal(cart);
+  // Always prefer live line math for merchandise subtotal so Remove/qty feel instant.
+  // Server inspect still refreshes prices, shipping, and coupons via the signals above.
+  const liveSubtotal = cartSubtotal(cart);
+  const subtotal = liveSubtotal;
   const orderTotal =
     validatedTotal.value !== null
-      ? validatedTotal.value
-      : Math.max(0, subtotal - couponDiscount.value + validatedShipping.value);
+      ? Math.max(0, liveSubtotal - couponDiscount.value + validatedShipping.value)
+      : liveSubtotal;
 
   const onCouponApplied$ = $(
     (
