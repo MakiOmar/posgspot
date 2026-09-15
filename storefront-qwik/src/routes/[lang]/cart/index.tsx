@@ -62,7 +62,9 @@ export default component$(() => {
     track(() => promoAtCheckout);
 
     if (!auth.token || !promoAtCheckout) {
-      couponCodes.value = [];
+      if (couponCodes.value.length > 0) {
+        couponCodes.value = [];
+      }
       appliedCoupons.value = [];
       couponDiscount.value = 0;
       clearAppliedCoupon();
