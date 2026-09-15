@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-14 |
+| **Last updated** | 2026-09-15 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Digital games grid + auth-gated repair/console tracking |
 
@@ -61,6 +61,7 @@
 | Login email / phone tabs | Done |
 | Login & Security (password + on-device passkey) | Done |
 | Payments & Payouts hub (methods stub, payments by status, coupon wallet) | Done |
+| Order list status badges + circular open chevron | Done |
 | Orders paginated (20) + in-app invoice view/print | Done |
 | Account stack back buttons | Done |
 | Personal Info load loop fix | Done |
@@ -78,6 +79,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-15 | Payments/Orders list: colored payment-status badges + circular chevron open control (`OrderListCard`). |
 | 2026-09-14 | Geidea checkout: hosted HPP WebView, provider from settings, Expo `withGeideaSdk` no-op plugin + minSdk 24. |
 | 2026-09-14 | Verify-email sends a code on open; checkout blocked until email is verified. |
 | 2026-09-14 | Account menu hides Orders and Reward Points; Credits & Coupons matches the Reward Points page. |

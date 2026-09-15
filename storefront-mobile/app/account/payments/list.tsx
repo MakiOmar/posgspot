@@ -2,15 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
 } from "react-native";
-import { Link, Redirect } from "expo-router";
+import { Redirect } from "expo-router";
 import { fetchOrders } from "../../../src/lib/api";
 import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { UnderlineTabs } from "../../../src/components/account/UnderlineTabs";
+import { OrderListCard } from "../../../src/components/account/OrderListCard";
 import { ErrorBlock, LoadingBlock, Screen } from "../../../src/components/ui";
 
 type PayFilter = "all" | "due" | "paid" | "pending" | "failed";
@@ -98,21 +98,7 @@ export default function PaymentsListScreen() {
               />
             ) : null
           }
-          renderItem={({ item }) => (
-            <Link href={`/account/orders/${item.id}`} asChild>
-              <Pressable style={styles.card}>
-                <Text style={styles.title}>
-                  {item.invoice_no || item.storefront_order_id || `#${item.id}`}
-                </Text>
-                <Text style={styles.meta}>
-                  {item.payment_status || "—"}
-                  {item.final_total != null
-                    ? ` · ${Number(item.final_total).toFixed(2)} EGP`
-                    : ""}
-                </Text>
-              </Pressable>
-            </Link>
-          )}
+          renderItem={({ item }) => <OrderListCard order={item} />}
           ListEmptyComponent={
             <Text style={styles.empty}>{t("account.noOrders")}</Text>
           }
@@ -124,13 +110,5 @@ export default function PaymentsListScreen() {
 
 const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 48 },
-  card: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  title: { fontWeight: "800", marginBottom: 4 },
-  meta: { color: "#555" },
   empty: { textAlign: "center", color: "#666", marginTop: 24 },
 });
