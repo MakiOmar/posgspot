@@ -307,9 +307,16 @@ export const getPartialStockIssues = (lineStatus: CartLineStatus[]): CartLineSta
       line.requested_quantity > line.max_quantity,
   );
 
-/** True when the line should be dropped from the cart (OOS or unavailable). */
-export const shouldAutoRemoveCartLine = (line: CartLineStatus): boolean =>
-  line.max_quantity !== null && line.max_quantity <= 0;
+/**
+ * True when a physical line should be dropped (OOS or unavailable).
+ * Digital games/cards use Accounts stock, not POS SKU qty — never auto-remove those.
+ */
+export const shouldAutoRemoveCartLine = (line: CartLineStatus, item?: CartItem): boolean => {
+  if (item?.digital?.kind) {
+    return false;
+  }
+  return line.max_quantity !== null && line.max_quantity <= 0;
+};
 
 /**
  * Apply inspect API results: drop OOS lines, refresh prices, return sync metadata.
@@ -321,9 +328,9 @@ export const syncCartFromInspection = (
   const statusByVariation = new Map(inspection.line_status.map((line) => [line.variation_id, line]));
   let removedCount = 0;
 
-  cart.items = cart.items.filter((item) => {
-    const status = statusByVariation.get(item.variationId);
-    if (status && shouldAutoRemoveCartLine(status)) {
+  cart.items = cart.items.filter((item, index) => {
+    const status = inspection.line_status[index] ?? statusByVariation.get(item.variationId);
+    if (status && shouldAutoRemoveCartLine(status, item)) {
       removedCount += 1;
       return false;
     }

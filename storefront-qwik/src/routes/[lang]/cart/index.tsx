@@ -99,9 +99,15 @@ export default component$(() => {
       );
       const { removedCount, pricesChanged } = syncCartFromInspection(cart, data);
       pricesUpdated.value = pricesChanged;
-      validatedSubtotal.value = data.subtotal;
+      const inspectMissesDigital = cart.items.some(
+        (item) => item.digital && !data.lines.some((line) => line.variation_id === item.variationId),
+      );
+      const localSubtotal = cartSubtotal(cart);
+      validatedSubtotal.value = inspectMissesDigital ? localSubtotal : data.subtotal;
       validatedShipping.value = data.shipping;
-      validatedTotal.value = data.total;
+      validatedTotal.value = inspectMissesDigital
+        ? localSubtotal + data.shipping
+        : data.total;
       appliedCoupons.value = data.coupons?.length
         ? data.coupons
         : data.coupon

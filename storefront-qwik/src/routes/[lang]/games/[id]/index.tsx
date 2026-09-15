@@ -1,4 +1,4 @@
-import { $, component$, useSignal } from "@builder.io/qwik";
+import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -59,6 +59,35 @@ export default component$(() => {
   const loc = useLocation();
   const lang = (loc.params.lang || "en") as "en" | "ar";
   const pending = useSignal<GameOffer | null>(null);
+  const livePrimaryOut = useSignal(false);
+  const liveSecondaryOut = useSignal(false);
+
+  // Confirm Accounts stock after paint so an OOS offer cannot stay clickable.
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    const gameData = detail.value.game;
+    const plat = detail.value.platform;
+    if (!gameData) {
+      return;
+    }
+    const confirm = async (offer: GameOffer): Promise<boolean> => {
+      if (!digitalOfferInStock(gameData, plat, offer)) {
+        return true;
+      }
+      try {
+        const stockCheck = await checkDigitalGameStock({
+          game_id: Number(gameData.id),
+          type: offer,
+          platform: plat,
+        });
+        return liveCheckStockIsOut(stockCheck.data as { is_available?: boolean; stock?: number | string });
+      } catch (e) {
+        return e instanceof ApiError && e.status === 422;
+      }
+    };
+    livePrimaryOut.value = await confirm("primary");
+    liveSecondaryOut.value = await confirm("secondary");
+  });
 
   if (!detail.value.ok || !detail.value.game) {
     return (
@@ -106,8 +135,10 @@ export default component$(() => {
   const secondaryPrice = digitalOfferPrice(game, platform, "secondary");
   const primaryOk = digitalOfferEnabled(game, platform, "primary");
   const secondaryOk = digitalOfferEnabled(game, platform, "secondary");
-  const primaryInStock = digitalOfferInStock(game, platform, "primary");
-  const secondaryInStock = digitalOfferInStock(game, platform, "secondary");
+  const primaryInStock =
+    digitalOfferInStock(game, platform, "primary") && !livePrimaryOut.value;
+  const secondaryInStock =
+    digitalOfferInStock(game, platform, "secondary") && !liveSecondaryOut.value;
 
   const addOffer$ = $(async (offer: GameOffer) => {
     const gameData = detail.value.game;
@@ -129,6 +160,11 @@ export default component$(() => {
       return;
     }
     if (stock <= 0) {
+      if (offer === "primary") {
+        livePrimaryOut.value = true;
+      } else {
+        liveSecondaryOut.value = true;
+      }
       await toastError(tStatic(lang, "digital.outOfStock"));
       return;
     }
@@ -148,6 +184,11 @@ export default component$(() => {
       });
       const stockData = stockCheck.data as { is_available?: boolean; stock?: number | string };
       if (liveCheckStockIsOut(stockData)) {
+        if (offer === "primary") {
+          livePrimaryOut.value = true;
+        } else {
+          liveSecondaryOut.value = true;
+        }
         await toastError(tStatic(lang, "digital.outOfStock"));
         return;
       }
@@ -174,6 +215,13 @@ export default component$(() => {
       await toastSuccess(tStatic(lang, "digital.addedToCart"));
       await nav(localePath(lang, "/cart"));
     } catch (e) {
+      if (e instanceof ApiError && e.status === 422) {
+        if (offer === "primary") {
+          livePrimaryOut.value = true;
+        } else {
+          liveSecondaryOut.value = true;
+        }
+      }
       await toastError(
         e instanceof Error ? e.message : tStatic(lang, "digital.stockFailed"),
       );

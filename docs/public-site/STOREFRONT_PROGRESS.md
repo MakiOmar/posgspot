@@ -234,6 +234,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-14 | Digital cart: do not auto-remove Accounts games/cards from POS SKU stock; disable add when live check-stock is OOS. |
 | 2026-09-14 | Digital games: platform-strict stock (no PS4 fallback on PS5), check-stock ignores missing quantity, PDP no longer redirects to the list on load errors. |
 | 2026-09-14 | Fix empty cart after add: persist lines to localStorage on mutate (Qwik `track(cart.items)` missed `push`). |
 | 2026-09-14 | Verify-email auto-sends OTP; signed-in checkout requires email verification. |
