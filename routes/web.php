@@ -558,9 +558,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
 //     Route::post('orders', [SellPosController::class, 'placeOrdersApi']);
 // });
 
-//common route
+//common route — GET helper for header links; POST `logout` (above) keeps the canonical name
 Route::middleware(['auth'])->group(function () {
-    Route::get('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+    Route::get('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout.get');
 });
 
 Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone'])->group(function () {
