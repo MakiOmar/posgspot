@@ -9,6 +9,7 @@ import {
   SUPPORT_OPEN_EVENT,
   createSupportConversation,
   escalateSupportConversation,
+  formatSupportDateTime,
   getActiveConversationUuid,
   getSupportConversation,
   listSupportConversations,
@@ -60,7 +61,7 @@ export const SupportChatWidget = component$(() => {
     error.value = "";
     try {
       const token = auth.token;
-      let uuid = getActiveConversationUuid();
+      const uuid = getActiveConversationUuid();
       if (uuid) {
         try {
           const { data } = await getSupportConversation(uuid, token, locale);
@@ -285,7 +286,11 @@ export const SupportChatWidget = component$(() => {
                     <li key={item.uuid}>
                       <button type="button" onClick$={() => openHistoryItem$(item.uuid)}>
                         <span>{item.title || tStatic(locale, "support.untitled")}</span>
-                        <small>{item.last_message_at || item.status}</small>
+                        <small>
+                          {item.last_message_at
+                            ? formatSupportDateTime(item.last_message_at, locale)
+                            : item.status}
+                        </small>
                       </button>
                     </li>
                   ))}

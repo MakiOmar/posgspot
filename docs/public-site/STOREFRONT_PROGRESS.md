@@ -236,6 +236,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Support chat UI: dark text on light bubbles, panel above sticky header, human-friendly history dates. |
 | 2026-09-16 | AI support chat v1: conversations API, OpenAI tools, CRM escalate, Qwik floating widget (Current/History), Expo `/support`, `SupportChatTest`. |
 | 2026-09-16 | Social login (Google/Facebook Socialite): identities table, web one-time exchange + mobile token, Qwik login/register/callback + Login & Security Connect/Disconnect. |
 | 2026-09-16 | AI support: Egyptian Arabic scenarios as RTL HTML (`AI_SUPPORT_SCENARIOS.html`); linked from storefront requirements Support section. |

@@ -54,7 +54,7 @@ export class ApiError extends Error {
   }
 }
 
-type FetchResult<T> = { data: T; meta: Record<string, unknown> };
+export type FetchResult<T> = { data: T; meta: Record<string, unknown> };
 
 let activeContentLocale = "en";
 

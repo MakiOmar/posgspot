@@ -2,6 +2,8 @@
 
 Operator-facing environment and config notes for this fork. Prefer **`.env.example`** as the key inventory; this file explains non-obvious behavior.
 
+**Deploy the public Qwik storefront** (Node Express SSR, env, CORS, reverse proxy): [`docs/public-site/DEPLOY.md`](public-site/DEPLOY.md).
+
 ## Storefront social login (Google + Facebook)
 
 Uses **Laravel Socialite**. Credentials are **env-only** (never Storefront Settings JSON / POS admin).

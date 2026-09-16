@@ -16,6 +16,7 @@ import { PrimaryButton, Screen } from "../src/components/ui";
 import {
   createSupportConversation,
   escalateSupportConversation,
+  formatSupportDateTime,
   getActiveConversationUuid,
   getSupportConversation,
   listSupportConversations,
@@ -222,7 +223,11 @@ export default function SupportScreen() {
               onPress={() => void openHistoryItem(item.uuid)}
             >
               <Text style={styles.historyTitle}>{item.title || t("support.untitled")}</Text>
-              <Text style={styles.muted}>{item.last_message_at || item.status}</Text>
+              <Text style={styles.muted}>
+                {item.last_message_at
+                  ? formatSupportDateTime(item.last_message_at, locale)
+                  : item.status}
+              </Text>
             </Pressable>
           ))}
         </ScrollView>

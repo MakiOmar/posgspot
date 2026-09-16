@@ -169,3 +169,17 @@ export function whatsappHref(raw: string): string {
   const digits = raw.replace(/\D+/g, "");
   return digits ? `https://wa.me/${digits}` : "#";
 }
+
+/** Human-friendly timestamp for history list (EN / Egyptian Arabic). */
+export function formatSupportDateTime(
+  iso: string | null | undefined,
+  locale: string,
+): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}

@@ -1,6 +1,10 @@
 # Games Spot — Qwik Storefront
 
-Public shop UI for the Laravel POS. **Implementation progress:** [`../docs/public-site/STOREFRONT_PROGRESS.md`](../docs/public-site/STOREFRONT_PROGRESS.md) · **API:** [`../docs/public-site/API.md`](../docs/public-site/API.md)
+Public shop UI for the Laravel POS.
+
+- **Deploy (production):** [`../docs/public-site/DEPLOY.md`](../docs/public-site/DEPLOY.md)
+- **Implementation progress:** [`../docs/public-site/STOREFRONT_PROGRESS.md`](../docs/public-site/STOREFRONT_PROGRESS.md)
+- **API:** [`../docs/public-site/API.md`](../docs/public-site/API.md)
 
 ---
 
