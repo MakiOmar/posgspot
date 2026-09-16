@@ -21,8 +21,19 @@ import {
 
 type TabId = "current" | "history";
 
+/** Chat bubble SVG icon for the floating launcher. */
+const ChatIcon = () => (
+  <svg class="support-chat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path
+      fill="currentColor"
+      d="M4.5 4.75h15a1.75 1.75 0 0 1 1.75 1.75v8.5A1.75 1.75 0 0 1 19.5 16.75H13.1l-3.55 3.2a.75.75 0 0 1-1.25-.55v-2.65H4.5A1.75 1.75 0 0 1 2.75 15V6.5A1.75 1.75 0 0 1 4.5 4.75Zm1.25 3.5a.75.75 0 0 0 0 1.5h11.5a.75.75 0 0 0 0-1.5H5.75Zm0 3.25a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5h-7.5Z"
+    />
+  </svg>
+);
+
 /**
  * Floating AI support chat. Lazy-mounted from the lang layout when enabled.
+ * Visual language matches the dark Games Spot storefront shell.
  */
 export const SupportChatWidget = component$(() => {
   const { locale } = useI18n();
@@ -42,6 +53,7 @@ export const SupportChatWidget = component$(() => {
   const enabled = Boolean(settings.support_chat?.enabled);
   const phone = settings.contact?.phone?.trim() || "17797";
   const whatsapp = settings.contact?.whatsapp?.trim() || "";
+  const brand = settings.business_name?.trim() || "Games Spot";
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ cleanup }) => {
@@ -212,25 +224,44 @@ export const SupportChatWidget = component$(() => {
   }
 
   return (
-    <div class="support-chat" dir={locale === "ar" ? "rtl" : "ltr"}>
-      {/* Launcher */}
+    <div
+      class={`support-chat${open.value ? " support-chat--open" : ""}`}
+      dir={locale === "ar" ? "rtl" : "ltr"}
+    >
+      {/* Floating launcher */}
       <button
         type="button"
         class="support-chat__launcher"
+        aria-expanded={open.value}
         aria-label={tStatic(locale, "support.open")}
         onClick$={() => {
           open.value = !open.value;
         }}
       >
-        {open.value ? "×" : "💬"}
+        {open.value ? (
+          <span class="support-chat__launcher-x" aria-hidden="true">
+            ×
+          </span>
+        ) : (
+          <ChatIcon />
+        )}
       </button>
 
       {open.value ? (
         <section class="support-chat__panel" aria-label={tStatic(locale, "support.title")}>
+          {/* Brand header */}
           <header class="support-chat__header">
-            <div>
-              <strong>{tStatic(locale, "support.title")}</strong>
-              <p class="support-chat__subtitle">{tStatic(locale, "support.subtitle")}</p>
+            <div class="support-chat__brand">
+              <span class="support-chat__avatar" aria-hidden="true">
+                GS
+              </span>
+              <div class="support-chat__brand-text">
+                <strong class="support-chat__title">{tStatic(locale, "support.title")}</strong>
+                <p class="support-chat__subtitle">
+                  <span class="support-chat__online" aria-hidden="true" />
+                  {tStatic(locale, "support.subtitle")}
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -273,7 +304,11 @@ export const SupportChatWidget = component$(() => {
 
           {tab.value === "history" ? (
             <div class="support-chat__history">
-              <button type="button" class="btn btn-primary support-chat__new" onClick$={newChat$}>
+              <button
+                type="button"
+                class="btn btn-primary support-chat__new"
+                onClick$={newChat$}
+              >
                 {tStatic(locale, "support.newChat")}
               </button>
               {loading.value ? (
@@ -285,7 +320,9 @@ export const SupportChatWidget = component$(() => {
                   {history.value.map((item) => (
                     <li key={item.uuid}>
                       <button type="button" onClick$={() => openHistoryItem$(item.uuid)}>
-                        <span>{item.title || tStatic(locale, "support.untitled")}</span>
+                        <span class="support-chat__history-title">
+                          {item.title || tStatic(locale, "support.untitled")}
+                        </span>
                         <small>
                           {item.last_message_at
                             ? formatSupportDateTime(item.last_message_at, locale)
@@ -303,8 +340,12 @@ export const SupportChatWidget = component$(() => {
                 {loading.value && !conversation.value ? (
                   <p class="support-chat__muted">{tStatic(locale, "support.loading")}</p>
                 ) : null}
-                {!loading.value && (!conversation.value || conversation.value.messages.length === 0) ? (
-                  <p class="support-chat__muted">{tStatic(locale, "support.emptyCurrent")}</p>
+                {!loading.value &&
+                (!conversation.value || conversation.value.messages.length === 0) ? (
+                  <div class="support-chat__welcome">
+                    <p class="support-chat__welcome-brand">{brand}</p>
+                    <p class="support-chat__muted">{tStatic(locale, "support.emptyCurrent")}</p>
+                  </div>
                 ) : null}
                 {(conversation.value?.messages || [])
                   .filter((m) => m.role === "user" || m.role === "assistant")
@@ -326,32 +367,45 @@ export const SupportChatWidget = component$(() => {
                 <label class="sr-only" for="support-chat-input">
                   {tStatic(locale, "support.messageLabel")}
                 </label>
-                <textarea
-                  id="support-chat-input"
-                  rows={2}
-                  value={draft.value}
-                  disabled={sending.value}
-                  placeholder={tStatic(locale, "support.placeholder")}
-                  onInput$={(e) => {
-                    draft.value = (e.target as HTMLTextAreaElement).value;
-                  }}
-                />
-                <button type="submit" class="btn btn-primary" disabled={sending.value}>
-                  {sending.value
-                    ? tStatic(locale, "support.sending")
-                    : tStatic(locale, "support.send")}
-                </button>
+                <div class="support-chat__composer-row">
+                  <textarea
+                    id="support-chat-input"
+                    rows={2}
+                    value={draft.value}
+                    disabled={sending.value}
+                    placeholder={tStatic(locale, "support.placeholder")}
+                    onInput$={(e) => {
+                      draft.value = (e.target as HTMLTextAreaElement).value;
+                    }}
+                    onKeyDown$={(e) => {
+                      // Enter sends; Shift+Enter keeps a newline
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void send$();
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    class="support-chat__send"
+                    disabled={sending.value}
+                  >
+                    {sending.value
+                      ? tStatic(locale, "support.sending")
+                      : tStatic(locale, "support.send")}
+                  </button>
+                </div>
               </form>
             </>
           )}
 
           <footer class="support-chat__handoff">
-            <a class="support-chat__link" href={`tel:${phone}`}>
+            <a class="support-chat__chip" href={`tel:${phone}`}>
               {tStatic(locale, "support.call")}
             </a>
             {whatsapp ? (
               <a
-                class="support-chat__link"
+                class="support-chat__chip"
                 href={whatsappHref(whatsapp)}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -359,15 +413,15 @@ export const SupportChatWidget = component$(() => {
                 {tStatic(locale, "support.whatsapp")}
               </a>
             ) : null}
-            <a class="support-chat__link" href={localePath(locale, "/contact")}>
+            <a class="support-chat__chip" href={localePath(locale, "/contact")}>
               {tStatic(locale, "support.contactForm")}
             </a>
             {auth.token && conversation.value?.escalation_available ? (
-              <button type="button" class="support-chat__link" onClick$={escalate$}>
+              <button type="button" class="support-chat__chip" onClick$={escalate$}>
                 {tStatic(locale, "support.escalate")}
               </button>
             ) : null}
-            <button type="button" class="support-chat__link" onClick$={newChat$}>
+            <button type="button" class="support-chat__chip" onClick$={newChat$}>
               {tStatic(locale, "support.newChat")}
             </button>
           </footer>
