@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-15 |
+| **Last updated** | 2026-09-16 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
 
@@ -44,7 +44,7 @@
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*` |
-| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP** (App Link backup); 30-day token TTL, reset revokes sessions |
+| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP**; **Google/Facebook Socialite** (web exchange code + mobile token); Connect/Disconnect on Login & Security |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger |
 | Reward points API | ✅ | Balance + validate redeem |
 | Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
@@ -85,7 +85,7 @@
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry or Geidea HPP SDK from the payment route only |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + provider reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security, Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security (password + social Connect/Disconnect), Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
@@ -197,7 +197,7 @@
 
 | Suite | Status |
 |-------|--------|
-| Ping, catalog, auth, password reset | ✅ | Forgot password email OTP (`CustomerAccountAuthTest`) |
+| Ping, catalog, auth, password reset | ✅ | Forgot password email OTP (`CustomerAccountAuthTest`); social OAuth (`SocialAuthTest`) |
 | Coupon wallet + payment_status orders | ✅ | `AccountCouponWalletTest` |
 | Product search autocomplete API | ✅ | `GET /search?q=&limit=&type=products\|games\|gift_cards` |
 | Settings / locations email obfuscation | ✅ |
@@ -227,6 +227,7 @@
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
 3. Mobile Phase 4 — Fawry RN SDK via Dev Client; EAS project IDs, store listings (Geidea native SDK 0.0.12 vendored — rebuild Dev Client)
+4. AI support assistant Phase A — scenarios: [`AI_SUPPORT_SCENARIOS.html`](./AI_SUPPORT_SCENARIOS.html); then chat API + Qwik widget + human handoff
 
 ---
 
@@ -234,6 +235,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Social login (Google/Facebook Socialite): identities table, web one-time exchange + mobile token, Qwik login/register/callback + Login & Security Connect/Disconnect. |
+| 2026-09-16 | AI support: Egyptian Arabic scenarios as RTL HTML (`AI_SUPPORT_SCENARIOS.html`); linked from storefront requirements Support section. |
 | 2026-09-15 | Fix cart inspect loop (no-op items reassign); soft shipping_notice + country-wide zone fallback so checkout rates load for EG governorates. |
 | 2026-09-15 | Fix checkout validate loop: only rewrite couponCodes/shippingRateId when values change (stops Place order flicker). |
 | 2026-09-15 | Checkout: close SearchableSelect on outside click; load governorates for default Egypt without re-select. |

@@ -61,6 +61,11 @@ export interface StoreSettings {
   sale_badge?: { text?: string };
   catalog?: { show_availability_on_cards?: boolean };
   repair?: { lookup_enabled?: boolean; lookup_by_mobile?: boolean };
+  /** Env-driven OAuth flags (never secrets). */
+  social_login?: {
+    google_enabled?: boolean;
+    facebook_enabled?: boolean;
+  };
   banners?: Array<{
     id?: string | number;
     placement?: string;

@@ -10,6 +10,7 @@ import { UnderlineTabs } from "../src/components/account/UnderlineTabs";
 import { LabeledInput } from "../src/components/LabeledInput";
 import { PhoneInput } from "../src/components/PhoneInput";
 import { PrimaryButton } from "../src/components/ui";
+import { SocialLoginButtons } from "../src/components/auth/SocialLoginButtons";
 import { useRtl } from "../src/lib/rtl";
 
 type LoginMethod = "email" | "phone" | "passkey";
@@ -165,6 +166,10 @@ export default function LoginScreen() {
                 )
                 .finally(() => setBusy(false));
             }}
+          />
+          <SocialLoginButtons
+            intent="login"
+            onSuccess={() => router.replace("/(tabs)/account")}
           />
         </>
       )}

@@ -40,4 +40,20 @@ return [
         'password' => env('ACCOUNTS_AUTH_PASSWORD'),
     ],
 
+    /*
+    | Storefront social login (Laravel Socialite). Redirect URI must match the
+    | API callback: {APP_URL}/api/storefront/v1/auth/social/{provider}/callback
+    */
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/api/storefront/v1/auth/social/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/api/storefront/v1/auth/social/facebook/callback'),
+    ],
+
 ];

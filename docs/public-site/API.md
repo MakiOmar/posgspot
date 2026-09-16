@@ -59,6 +59,7 @@ Public `GET /settings` also exposes:
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
+- `social_login.google_enabled`, `social_login.facebook_enabled` — env-driven OAuth (Socialite); never secrets
 
 ### Homepage sections (`GET /homepage`)
 
@@ -192,6 +193,12 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | POST | `/auth/reset-password` | Reset password (`email`, `token` = 6-digit code or legacy long token, `password`, `password_confirmation`) |
 | POST | `/auth/email/verify` | Verify email OTP (`code` required; `email` required unless Bearer token present). Sets `email_verified` |
 | POST | `/auth/email/resend` | Resend verification OTP (`email` or Bearer). Authenticated resend returns 422 if mail cannot be sent; public resend never enumerates accounts. OTP is sent synchronously (`sendNow`) |
+| GET | `/auth/social/{provider}/redirect` | Start OAuth (`provider` = `google` \| `facebook`). Query: `intent` (`login` \| `link`), `locale`, `next`, optional `format=json` (returns `{ url }` for SPA/Bearer link). Link intent requires Bearer. Disabled provider → 404. |
+| GET | `/auth/social/{provider}/callback` | Provider return. Issues a **one-time exchange code** and redirects to `{STOREFRONT_URL}/{locale}/auth/social/callback?code=…` (never puts Sanctum token in the URL). |
+| POST | `/auth/social/exchange` | Body `{ code }` → `{ token, contact }` (single-use, ~60s TTL). |
+| POST | `/auth/social/{provider}/token` | Mobile / native: body `{ access_token?`, `id_token?`, `intent? }`. Google prefers `id_token` (aud must match web or `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID`). Link intent requires Bearer. |
+
+Social accounts live in `storefront_social_identities` (not columns on `contacts`). Verified provider email sets `contacts.email_verified_at`. Existing email+password without a matching social link returns 422 `account_exists` (sign in with password, then Connect). Env: see root `.env.example` + [`docs/CONFIGURATION.md`](../CONFIGURATION.md).
 
 ## Account (auth required)
 
@@ -202,6 +209,8 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | POST | `/account/profile/avatar` | Upload profile photo — multipart field `avatar` (jpeg/png/webp, max 2MB). Replaces prior photo. Returns updated contact with `avatar_url` |
 | DELETE | `/account/profile/avatar` | Remove profile photo. Returns updated contact (`avatar_url` null) |
 | PUT | `/account/password` | Change password (`current_password`, `password`, `password_confirmation`). Revokes prior tokens; returns new `token` |
+| GET | `/account/social` | Linked social providers `{ identities: [{ provider, email, connected }] }` |
+| DELETE | `/account/social/{provider}` | Disconnect provider. 422 if contact would have no password and no remaining identities |
 | POST | `/account/delete-request` | Request account deletion (sets `storefront_delete_requested_at`; does not hard-delete) |
 | PUT | `/account/address` | Update single shipping address |
 | GET | `/account/orders` | Order history — query `page` (default 1), `per_page` (default 20, max 50), optional `payment_status` (`due` \| `paid` \| `pending` \| `failed`). Meta: `current_page`, `last_page`, `per_page`, `total`. Paid orders include `invoice_print_url` when available |
@@ -296,7 +305,7 @@ location ~* ^/uploads/storefront_(homepage|library)/ {
 - **Transactional mail (system-wide Mailgun API):** set `MAIL_MAILER=mailgun`, `MAILGUN_DOMAIN`, `MAILGUN_SECRET`, optional `MAILGUN_ENDPOINT` (`api.mailgun.net` or `api.eu.mailgun.net`), plus `MAIL_FROM_*`. Requires `symfony/mailgun-mailer` + `symfony/http-client`. Businesses that enable **Use superadmin email settings** send via this transport (From name/address can still come from business settings). Otherwise per-business SMTP in Business Settings is used. See root `.env.example`. Smoke test: `php artisan tinker` then `Mail::raw('…', fn ($m) => $m->to('you@example.com')->subject('Test'));` (authorize sandbox recipients in the Mailgun dashboard). Sync verification OTP (prints SENT/FAILED + mailer table): `php artisan storefront:send-verification you@example.com` (`--force`, `--show-code`, `--business_id=`). **Auth emails** (verification OTP + password reset) use `Mail::sendNow` so they do not depend on queue workers; other storefront mail may still be queued.
 - Digital allocate when a sell becomes **paid** (any POS path via `updatePaymentStatus`): Accounts `receiveOrder`, credentials on Staff note + sell line. Retry: `php artisan storefront:fulfill-digital` (optional `--transaction=ID`)
 - Rate limit (`throttle:storefront`, per IP): reads (GET/HEAD) use `STOREFRONT_RATE_LIMIT_READ` (default **600**/min); writes use `STOREFRONT_RATE_LIMIT` (default **120**/min). The Qwik SSR process also caches settings/categories for ~30s so layout loaders do not hit Laravel on every navigation.
-- Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
+- Auth endpoints (`/auth/register`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/social/*`) use a tighter `throttle:storefront-auth` budget (`STOREFRONT_AUTH_RATE_LIMIT`, default **20**/min per IP).
 - Password reset tokens expire after `STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES` (default **60**).
 - Customer Sanctum bearer tokens expire after `STOREFRONT_SANCTUM_EXPIRATION_MINUTES` (default **43200** = 30 days). Password reset revokes all active storefront tokens; a new login also replaces any prior token (single active session).
 - Mobile clients should send `X-Storefront-Client: mobile` on Storefront API requests. Push: configure `STOREFRONT_FCM_PROJECT_ID` + `STOREFRONT_FCM_CREDENTIALS_PATH` (service account JSON). Device register/unregister under `/account/devices`. See [`MOBILE.md`](./MOBILE.md).

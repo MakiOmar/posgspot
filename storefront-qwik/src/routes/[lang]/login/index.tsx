@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { ApiError, loginCustomer } from "~/lib/api";
+import { SocialLoginButtons } from "~/components/auth/social-login-buttons";
 import { useAuth } from "~/lib/auth-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -53,6 +54,15 @@ export default component$(() => {
     <section class="auth-page container">
       <div class="auth-card">
         <h1 class="page-title">{tStatic(locale, "auth.login")}</h1>
+
+        <SocialLoginButtons
+          intent="login"
+          next={(() => {
+            const raw = loc.url.searchParams.get("next");
+            if (!raw) return "/account";
+            return raw.replace(/^\/(en|ar)(?=\/|$)/, "") || "/account";
+          })()}
+        />
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-field form-field--full">

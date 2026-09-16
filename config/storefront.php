@@ -55,4 +55,30 @@ return [
     'fcm_project_id' => (string) env('STOREFRONT_FCM_PROJECT_ID', ''),
     'fcm_credentials_path' => (string) env('STOREFRONT_FCM_CREDENTIALS_PATH', ''),
 
+    /*
+    | Social login (Google / Facebook via Socialite). Enabled only when the
+    | matching client id + secret are set (or explicitly forced via env).
+    | Public clients see social_login.* flags — never secrets.
+    */
+    'social_login' => [
+        'google' => [
+            'enabled' => filter_var(
+                env('STOREFRONT_SOCIAL_GOOGLE', null),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? (filled(env('GOOGLE_CLIENT_ID')) && filled(env('GOOGLE_CLIENT_SECRET'))),
+        ],
+        'facebook' => [
+            'enabled' => filter_var(
+                env('STOREFRONT_SOCIAL_FACEBOOK', null),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? (filled(env('FACEBOOK_CLIENT_ID')) && filled(env('FACEBOOK_CLIENT_SECRET'))),
+        ],
+        /** One-time web exchange code TTL (seconds). */
+        'exchange_ttl_seconds' => (int) env('STOREFRONT_SOCIAL_EXCHANGE_TTL', 60),
+        /** OAuth state payload TTL (seconds). */
+        'state_ttl_seconds' => (int) env('STOREFRONT_SOCIAL_STATE_TTL', 600),
+    ],
+
 ];

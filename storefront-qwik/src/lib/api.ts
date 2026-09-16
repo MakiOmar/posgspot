@@ -151,7 +151,8 @@ export async function storefrontFetch<T>(
       path === "/auth/login" ||
       path === "/auth/register" ||
       path.startsWith("/auth/forgot-password") ||
-      path.startsWith("/auth/reset-password");
+      path.startsWith("/auth/reset-password") ||
+      path.startsWith("/auth/social/");
     if (response.status === 401 && authHeader && !isPublicAuthAttempt) {
       dispatchAuthSessionExpired();
     }
@@ -495,6 +496,74 @@ export function resetPassword(payload: {
   return storefrontFetch<{ message: string }>("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export type SocialProvider = "google" | "facebook";
+
+export function fetchSocialRedirectUrl(
+  provider: SocialProvider,
+  params: {
+    intent?: "login" | "link";
+    locale?: string;
+    next?: string;
+    token?: string | null;
+  } = {},
+) {
+  const qs = new URLSearchParams({
+    format: "json",
+    intent: params.intent || "login",
+  });
+  if (params.locale) qs.set("locale", params.locale);
+  if (params.next) qs.set("next", params.next);
+
+  return storefrontFetch<{ url: string }>(
+    `/auth/social/${provider}/redirect?${qs.toString()}`,
+    {
+      method: "GET",
+      headers: params.token ? authHeaders(params.token) : undefined,
+    },
+  );
+}
+
+export function exchangeSocialCode(code: string) {
+  return storefrontFetch<AuthSession>("/auth/social/exchange", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+}
+
+export function loginWithSocialToken(
+  provider: SocialProvider,
+  payload: {
+    access_token?: string;
+    id_token?: string;
+    intent?: "login" | "link";
+  },
+  token?: string | null,
+) {
+  return storefrontFetch<AuthSession>(`/auth/social/${provider}/token`, {
+    method: "POST",
+    headers: token ? authHeaders(token) : undefined,
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fetchSocialIdentities(token: string) {
+  return storefrontFetch<{
+    identities: Array<{ provider: string; email: string | null; connected: boolean }>;
+  }>("/account/social", {
+    headers: authHeaders(token),
+  });
+}
+
+export function disconnectSocialProvider(token: string, provider: SocialProvider) {
+  return storefrontFetch<{
+    message: string;
+    identities: Array<{ provider: string; email: string | null; connected: boolean }>;
+  }>(`/account/social/${provider}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
   });
 }
 

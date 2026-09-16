@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Storefront\ProductReviewController;
 use App\Http\Controllers\Api\Storefront\RepairStatusController;
 use App\Http\Controllers\Api\Storefront\SearchController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
+use App\Http\Controllers\Api\Storefront\SocialAuthController;
 use App\Http\Controllers\Api\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -88,6 +89,14 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
         Route::post('/email/resend', [AuthController::class, 'resendEmailVerification']);
 
+        Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirect'])
+            ->where('provider', 'google|facebook');
+        Route::get('/social/{provider}/callback', [SocialAuthController::class, 'callback'])
+            ->where('provider', 'google|facebook');
+        Route::post('/social/exchange', [SocialAuthController::class, 'exchange']);
+        Route::post('/social/{provider}/token', [SocialAuthController::class, 'token'])
+            ->where('provider', 'google|facebook');
+
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
         });
@@ -121,6 +130,9 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/coupons/used', [AccountController::class, 'usedCoupons']);
         Route::get('/coupons', [AccountController::class, 'coupons']);
         Route::post('/coupons', [AccountController::class, 'saveCoupon']);
+        Route::get('/social', [SocialAuthController::class, 'index']);
+        Route::delete('/social/{provider}', [SocialAuthController::class, 'destroy'])
+            ->where('provider', 'google|facebook');
         Route::post('/devices', [DeviceController::class, 'store']);
         Route::delete('/devices/{token}', [DeviceController::class, 'destroy'])->where('token', '.*');
     });

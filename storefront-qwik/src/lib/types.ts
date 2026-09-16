@@ -109,6 +109,11 @@ export interface StoreSettings {
   digital?: {
     enabled: boolean;
   };
+  /** OAuth social login flags (env-driven; not contact social links). */
+  social_login?: {
+    google_enabled: boolean;
+    facebook_enabled: boolean;
+  };
   locales: string[];
 }
 

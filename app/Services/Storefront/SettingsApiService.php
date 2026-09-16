@@ -95,6 +95,11 @@ class SettingsApiService
             'digital' => [
                 'enabled' => ! empty($settings['digital']['enabled']),
             ],
+            // OAuth providers — env-driven; do not collide with contact "social" links.
+            'social_login' => [
+                'google_enabled' => (bool) config('storefront.social_login.google.enabled'),
+                'facebook_enabled' => (bool) config('storefront.social_login.facebook.enabled'),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }

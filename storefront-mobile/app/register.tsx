@@ -9,6 +9,7 @@ import {
 import { LabeledInput } from "../src/components/LabeledInput";
 import { PhoneInput } from "../src/components/PhoneInput";
 import { PrimaryButton } from "../src/components/ui";
+import { SocialLoginButtons } from "../src/components/auth/SocialLoginButtons";
 import { useRtl } from "../src/lib/rtl";
 
 export default function RegisterScreen() {
@@ -118,6 +119,10 @@ export default function RegisterScreen() {
             )
             .finally(() => setBusy(false));
         }}
+      />
+      <SocialLoginButtons
+        intent="login"
+        onSuccess={() => router.replace("/(tabs)/account")}
       />
     </AuthScreenShell>
   );

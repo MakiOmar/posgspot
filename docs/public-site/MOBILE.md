@@ -25,7 +25,7 @@ docs/public-site/MOBILE.md
 docs/public-site/MOBILE_PROGRESS.md
 ```
 
-Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags from `GET /settings`.
+Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags from `GET /settings`. Social OAuth public client IDs: `EXPO_PUBLIC_GOOGLE_*` / `EXPO_PUBLIC_FACEBOOK_APP_ID` (see [`CONFIGURATION.md`](../CONFIGURATION.md)).
 
 ## Screen map
 
@@ -37,7 +37,7 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 | PDP | `/products/[slug]` | product detail, availability, reviews |
 | Cart / checkout | `/(tabs)/cart`, `/checkout` | cart validate, checkout |
 | Online pay | `/checkout/payment` | checkout `payment` block; Fawry RN SDK or Geidea hosted WebView |
-| Auth / account | `/login`, `/register`, `/(tabs)/account/*`, `/account/security`, `/account/payments`, `/account/invoice` | auth, Login & Security, Payments & Payouts, in-app invoice |
+| Auth / account | `/login`, `/register`, `/(tabs)/account/*`, `/account/security`, `/account/payments`, `/account/invoice` | auth + social OAuth, Login & Security (password/passkey/social), Payments & Payouts, invoice **PDF download** (share/save sheet) |
 | Wishlist | `/wishlist` | wishlist |
 | Games / cards | `/games`, `/games/[id]`, `/gift-cards` | digital catalog |
 | Stores / contact / repair | `/stores`, `/contact`, `/repair-status` | locations, contact, repair |

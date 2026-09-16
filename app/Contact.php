@@ -68,6 +68,14 @@ class Contact extends Authenticatable
     }
 
     /**
+     * Linked OAuth providers for storefront social login.
+     */
+    public function socialIdentities()
+    {
+        return $this->hasMany(\App\StorefrontSocialIdentity::class);
+    }
+
+    /**
      * Get the business that owns the user.
      */
     public function business()

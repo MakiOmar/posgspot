@@ -35,3 +35,17 @@ export const TRACK_CONSOLE_URL =
   "https://accounts.gamesspoteg.com/device/track";
 
 export const CLIENT_HEADER = "mobile";
+
+/** Public OAuth client IDs (never secrets). See docs/CONFIGURATION.md. */
+export const GOOGLE_ANDROID_CLIENT_ID = (
+  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || ""
+).trim();
+export const GOOGLE_IOS_CLIENT_ID = (
+  process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || ""
+).trim();
+export const GOOGLE_WEB_CLIENT_ID = (
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || ""
+).trim();
+export const FACEBOOK_APP_ID = (
+  process.env.EXPO_PUBLIC_FACEBOOK_APP_ID || ""
+).trim();

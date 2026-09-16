@@ -60,9 +60,11 @@
 | Phone dial-code selectors (login/register/profile) | Done |
 | Login email / phone tabs | Done |
 | Login & Security (password + on-device passkey) | Done |
+| Social login (Google / Facebook AuthSession → token API) | Done |
+| Social Connect / Disconnect on Login & Security | Done |
 | Payments & Payouts hub (methods stub, payments by status, coupon wallet) | Done |
 | Order list status badges + circular open chevron | Done |
-| Orders paginated (20) + in-app invoice view/print | Done |
+| Orders paginated (20) + invoice PDF download | Done |
 | Account stack back buttons | Done |
 | Personal Info load loop fix | Done |
 | Keyboard-safe forms (Keyboard Controller + aware scroll) | Done |
@@ -79,6 +81,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Social login: `expo-auth-session` Google/Facebook → `POST /auth/social/{provider}/token`; Connect/Disconnect on Login & Security; `social_login` settings flags. |
+| 2026-09-16 | Invoice: download POS receipt as PDF via share/save sheet (no WebView browse/print). |
 | 2026-09-16 | Geidea Android crash fix: add `material-icons-extended` (ClassNotFoundException Icons.AutoMirrored.Filled). |
 | 2026-09-16 | Geidea Android: native BottomSheet presentation (Push was clearing singleTask MainActivity mid-pay); auth snapshot on pending payment. |
 | 2026-09-15 | Geidea: keep native `payWithGeidea` on Android+iOS; pending-payment resume + order Pay now (handles MainActivity remount / unpaid retry). |
