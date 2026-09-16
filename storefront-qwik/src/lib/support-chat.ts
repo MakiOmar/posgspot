@@ -1,6 +1,7 @@
 /** Client helpers for storefront AI support chat persistence + API. */
 
 import { storefrontFetch, type FetchResult } from "~/lib/api";
+import { localePath } from "~/lib/i18n/paths";
 
 export const SUPPORT_GUEST_TOKEN_KEY = "gs-support-guest-v1";
 export const SUPPORT_ACTIVE_UUID_KEY = "gs-support-active-v1";
@@ -168,6 +169,109 @@ export function claimSupportConversations(
 export function whatsappHref(raw: string): string {
   const digits = raw.replace(/\D+/g, "");
   return digits ? `https://wa.me/${digits}` : "#";
+}
+
+function escapeHtml(raw: string): string {
+  return raw
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(raw: string): string {
+  return escapeHtml(raw).replace(/'/g, "&#39;");
+}
+
+/** Resolve markdown / bare hrefs; locale-prefix storefront-relative paths. */
+function resolveSupportHref(href: string, locale: string): string | null {
+  const trimmed = href.trim();
+  if (!trimmed || /^javascript:/i.test(trimmed)) {
+    return null;
+  }
+  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/")) {
+    return localePath(locale, trimmed);
+  }
+  // Models sometimes omit the leading slash (e.g. contact or contact/).
+  if (/^[a-z][\w/-]*$/i.test(trimmed) && !trimmed.includes("://")) {
+    return localePath(locale, `/${trimmed}`);
+  }
+  return null;
+}
+
+function isExternalHref(href: string): boolean {
+  return /^(https?:|mailto:)/i.test(href);
+}
+
+function isPhoneCandidate(digits: string, hotlineDigits: string): boolean {
+  if (!digits) return false;
+  if (hotlineDigits && digits === hotlineDigits) return true;
+  // Egyptian mobiles
+  if (/^01[0125]\d{8}$/.test(digits)) return true;
+  // International E.164-ish
+  if (/^\d{8,15}$/.test(digits) && digits.startsWith("20")) return true;
+  if (/^\d{10,15}$/.test(digits)) return true;
+  // Local service / hotline numbers (e.g. 17797)
+  if (/^1\d{3,5}$/.test(digits)) return true;
+  return false;
+}
+
+/**
+ * Turn assistant/user chat text into safe HTML: markdown links, bare URLs, and tel: phones.
+ * Output must be passed through DOMPurify before inserting into the DOM.
+ */
+export function formatSupportMessageHtml(
+  raw: string,
+  opts?: { locale?: string; hotline?: string },
+): string {
+  if (!raw) return "";
+
+  const locale = opts?.locale || "en";
+  const hotlineDigits = (opts?.hotline || "17797").replace(/\D+/g, "");
+  let text = escapeHtml(raw);
+
+  const slots: string[] = [];
+  const park = (html: string): string => {
+    const i = slots.length;
+    slots.push(html);
+    return `\u0000${i}\u0000`;
+  };
+
+  // Markdown links: [label](href)
+  text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
+    const safeHref = resolveSupportHref(href, locale);
+    if (!safeHref) return label;
+    const attrs = isExternalHref(safeHref)
+      ? ` target="_blank" rel="noopener noreferrer"`
+      : "";
+    return park(`<a href="${escapeAttr(safeHref)}"${attrs}>${label}</a>`);
+  });
+
+  // Bare http(s) URLs
+  text = text.replace(/https?:\/\/[^\s<]+/gi, (url) => {
+    const cleaned = url.replace(/[.,;:!?)]+$/, "");
+    const trail = url.slice(cleaned.length);
+    return (
+      park(
+        `<a href="${escapeAttr(cleaned)}" target="_blank" rel="noopener noreferrer">${cleaned}</a>`,
+      ) + trail
+    );
+  });
+
+  // Phone numbers (after links so we do not touch digits inside hrefs)
+  text = text.replace(
+    /(?:\+?\d[\d\s\-()]{3,18}\d|\b1\d{3,5}\b|\b01[0125]\d{8}\b)/g,
+    (match) => {
+      const digits = match.replace(/\D+/g, "");
+      if (!isPhoneCandidate(digits, hotlineDigits)) return match;
+      return park(`<a href="tel:${escapeAttr(digits)}">${match}</a>`);
+    },
+  );
+
+  return text.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => slots[Number(i)] || "");
 }
 
 /** Human-friendly timestamp for history list (EN / Egyptian Arabic). */

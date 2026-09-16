@@ -85,6 +85,59 @@ class CheckoutServiceInvoicePrintTest extends TestCase
         $this->assertNull($order['invoice_print_url']);
     }
 
+    public function test_get_order_for_contact_resolves_invoice_no_and_storefront_order_id(): void
+    {
+        $contact = Contact::create([
+            'business_id' => $this->businessId,
+            'type' => 'customer',
+            'name' => 'Invoice Lookup Test',
+            'email' => 'invoice_lookup_'.uniqid().'@example.com',
+            'mobile' => '01'.random_int(100000000, 999999999),
+            'created_by' => 1,
+        ]);
+
+        $invoiceNo = (string) random_int(35000, 39999);
+        $storefrontId = 'SF-LOOKUP-'.uniqid();
+
+        $transaction = Transaction::create([
+            'business_id' => $this->businessId,
+            'location_id' => 1,
+            'contact_id' => $contact->id,
+            'type' => 'sell',
+            'status' => 'final',
+            'payment_status' => 'due',
+            'source' => 'storefront',
+            'storefront_order_id' => $storefrontId,
+            'invoice_no' => $invoiceNo,
+            'transaction_date' => now()->format('Y-m-d H:i:s'),
+            'final_total' => 1189.9,
+            'created_by' => 1,
+        ]);
+
+        $checkout = app(CheckoutService::class);
+
+        $byInvoice = $checkout->getOrderForContact($this->businessId, $contact->id, $invoiceNo);
+        $this->assertNotNull($byInvoice);
+        $this->assertSame($transaction->id, $byInvoice['id']);
+
+        $byStorefront = $checkout->getOrderForContact($this->businessId, $contact->id, $storefrontId);
+        $this->assertNotNull($byStorefront);
+        $this->assertSame($transaction->id, $byStorefront['id']);
+
+        $other = Contact::create([
+            'business_id' => $this->businessId,
+            'type' => 'customer',
+            'name' => 'Other Customer',
+            'email' => 'other_lookup_'.uniqid().'@example.com',
+            'mobile' => '01'.random_int(100000000, 999999999),
+            'created_by' => 1,
+        ]);
+
+        $this->assertNull(
+            $checkout->getOrderForContact($this->businessId, $other->id, $invoiceNo)
+        );
+    }
+
     public function test_paid_pos_order_without_storefront_source_includes_invoice_print_url(): void
     {
         $contact = Contact::create([

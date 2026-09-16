@@ -441,12 +441,30 @@ class CheckoutService
         ];
     }
 
-    public function getOrderForContact(int $businessId, int $contactId, int $orderId): ?array
+    public function getOrderForContact(int $businessId, int $contactId, int|string $orderId): ?array
     {
-        $transaction = $this->contactOrdersQuery($businessId, $contactId)
-            ->with(['sell_lines', 'location'])
-            ->where('id', $orderId)
-            ->first();
+        $ref = trim((string) $orderId);
+        if ($ref === '') {
+            return null;
+        }
+
+        $base = $this->contactOrdersQuery($businessId, $contactId)
+            ->with(['sell_lines', 'location']);
+
+        // Prefer internal id (account URLs). Customers usually quote invoice_no from the UI.
+        $transaction = null;
+        if (ctype_digit($ref)) {
+            $transaction = (clone $base)->where('id', (int) $ref)->first();
+        }
+        if (empty($transaction)) {
+            $transaction = (clone $base)
+                ->where(function ($q) use ($ref) {
+                    $q->where('invoice_no', $ref)
+                        ->orWhere('storefront_order_id', $ref);
+                })
+                ->orderByDesc('id')
+                ->first();
+        }
 
         if (empty($transaction)) {
             return null;

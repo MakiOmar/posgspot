@@ -5,11 +5,13 @@ import { ApiError } from "~/lib/api";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { useSiteShell } from "~/lib/site-shell-context";
+import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import {
   SUPPORT_OPEN_EVENT,
   createSupportConversation,
   escalateSupportConversation,
   formatSupportDateTime,
+  formatSupportMessageHtml,
   getActiveConversationUuid,
   getSupportConversation,
   listSupportConversations,
@@ -350,12 +352,14 @@ export const SupportChatWidget = component$(() => {
                 {(conversation.value?.messages || [])
                   .filter((m) => m.role === "user" || m.role === "assistant")
                   .map((m) => (
-                    <div
+                    <SanitizedHtml
                       key={m.id}
                       class={`support-chat__bubble support-chat__bubble--${m.role}`}
-                    >
-                      {m.content}
-                    </div>
+                      html={formatSupportMessageHtml(m.content, {
+                        locale,
+                        hotline: phone,
+                      })}
+                    />
                   ))}
               </div>
 

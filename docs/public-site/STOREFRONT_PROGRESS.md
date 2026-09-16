@@ -236,6 +236,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | AI support `get_order_detail`: resolve customer-facing invoice_no / storefront_order_id (not only transaction id). |
+| 2026-09-16 | Support chat bubbles: render markdown links + clickable `tel:` phones (hotline). |
 | 2026-09-16 | Support chat dark redesign (brand header, chips, accent bubbles) + deploy docs. |
 | 2026-09-16 | Support chat UI: dark text on light bubbles, panel above sticky header, human-friendly history dates. |
 | 2026-09-16 | AI support chat v1: conversations API, OpenAI tools, CRM escalate, Qwik floating widget (Current/History), Expo `/support`, `SupportChatTest`. |

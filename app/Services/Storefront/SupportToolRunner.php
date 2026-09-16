@@ -92,11 +92,14 @@ class SupportToolRunner
             'type' => 'function',
             'function' => [
                 'name' => 'get_order_detail',
-                'description' => 'Get one order by id for the signed-in customer only.',
+                'description' => 'Get one order for the signed-in customer. Pass the customer-facing order number (invoice_no as shown in Account / Payments, e.g. 35289) or the internal transaction id.',
                 'parameters' => [
                     'type' => 'object',
                     'properties' => [
-                        'order_id' => ['type' => 'integer'],
+                        'order_id' => [
+                            'type' => 'string',
+                            'description' => 'Invoice number, storefront_order_id, or internal transaction id',
+                        ],
                     ],
                     'required' => ['order_id'],
                 ],
@@ -148,7 +151,11 @@ class SupportToolRunner
             ),
             'get_contact_channels' => $this->contactChannels($businessId),
             'get_my_orders' => $this->myOrders($businessId, $contact, $arguments),
-            'get_order_detail' => $this->orderDetail($businessId, $contact, (int) ($arguments['order_id'] ?? 0)),
+            'get_order_detail' => $this->orderDetail(
+                $businessId,
+                $contact,
+                (string) ($arguments['order_id'] ?? '')
+            ),
             'get_my_repairs' => $this->myRepairs($businessId, $contact, $locale),
             'get_my_device_services' => $this->myDevices($contact),
             default => ['error' => 'Unknown tool'],
@@ -249,12 +256,13 @@ class SupportToolRunner
     /**
      * @return array<string, mixed>
      */
-    private function orderDetail(int $businessId, ?Contact $contact, int $orderId): array
+    private function orderDetail(int $businessId, ?Contact $contact, string $orderId): array
     {
         if (! $contact) {
             return ['error' => 'Sign in required'];
         }
-        if ($orderId < 1) {
+        $orderId = trim($orderId);
+        if ($orderId === '') {
             return ['error' => 'order_id required'];
         }
 

@@ -371,6 +371,7 @@ class SupportChatService
             $authLine,
             $escalateLine,
             'Never invent prices, stock, payment success, or order/repair status without tool results.',
+            'When the customer quotes an order number from the website (Order #…), pass that same value to get_order_detail — it is usually invoice_no, not only the internal id.',
             'Digital codes are usually non-refundable after reveal. Trade-in values require in-store inspection.',
             'End with one clear next step when possible.',
             'Handoff channels JSON: '.json_encode($channels, JSON_UNESCAPED_UNICODE),
