@@ -5,7 +5,8 @@ import type { AuthContact, AuthSession } from "./types";
 const AUTH_KEY = "gs-auth-v1";
 
 const SECURE_OPTS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  // Survives brief lock / remount better than WHEN_UNLOCKED_* during payment UI.
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
 };
 
 /** Always wipe both stores so a SecureStore write cannot leave a stale AsyncStorage copy. */

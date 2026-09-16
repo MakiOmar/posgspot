@@ -11,7 +11,7 @@ React Native (Expo Dev Client) iOS/Android client for the same Storefront API as
 |-------|--------|
 | App | React Native + TypeScript, Expo Router, Expo Development Builds |
 | Auth | Laravel **Sanctum** bearer tokens on `Contact` (same as web) — **not** Passport |
-| Payments | Fawry: [`@fawry_pay/rn-fawry-pay-sdk`](https://github.com/FawryPay/ReactNative-Fawrypay-Anonymous-sample). Geidea: hosted HPP in WebView now (`src/lib/geidea.ts`); native `payWithGeidea` when `@geidea/payment-sdk-react-native` is installed. |
+| Payments | Fawry: [`@fawry_pay/rn-fawry-pay-sdk`](https://github.com/FawryPay/ReactNative-Fawrypay-Anonymous-sample). Geidea: native `payWithGeidea` via vendored `@geidea/payment-sdk-react-native@0.0.12` (`vendor/geidea/…tgz`); hosted HPP WebView fallback if the native module is not linked. Pending-payment resume + order **Pay now** for remounts. |
 | API | `/api/storefront/v1/*` + `Authorization: Bearer` + `X-Content-Locale` |
 | Push | FCM HTTP v1 via Laravel jobs; device tokens on `storefront_device_tokens` |
 
@@ -65,11 +65,12 @@ Checkout sends `payment_method` as the active provider slug from `GET /settings`
 
 ### Geidea
 
-1. `POST /checkout` with `payment_method: geidea` → client-safe session (`session_id`, `sdk_url`, `region`, `environment`). No keys or signatures.
-2. `startGeideaPayment` tries native `payWithGeidea` when `@geidea/payment-sdk-react-native` is linked; otherwise loads HPP HTML in `react-native-webview`.
-3. WebView `postMessage` (`completed` / `canceled` / `failed`) only drives navigation. Fulfilment is `POST /payments/geidea/webhook`.
-4. `POST /payments/geidea/return` is optional recovery; Laravel re-fetches remote `detailedStatus`.
-5. Gradle: `expo-build-properties` `minSdkVersion: 24` plus no-op-until-installed `plugins/withGeideaSdk.js`. Do not replace Expo `android/build.gradle`. Skip vendor cleartext `network_security_config.xml`.
+1. `POST /checkout` with `payment_method: geidea` → client-safe session (`session_id`, `sdk_url`, `region`, `environment`). No keys or signatures. Create Session already sets `callbackUrl` to `{APP_URL}/api/storefront/v1/payments/geidea/webhook`.
+2. `startGeideaPayment` prefers native `payWithGeidea` from vendored `@geidea/payment-sdk-react-native@0.0.12` on iOS and Android. Android native UI uses **BottomSheet** (not Push activity) so Expo `singleTask` does not wipe checkout mid-pay. Maps `environment` `prod`→`production` / `test`→`sandbox`, `locale`→`en|ar`, `region`→`egypt|ksa|uae`. Falls back to HPP HTML in `react-native-webview` if the native module is absent.
+3. Native Promise / WebView `postMessage` (`completed` / `canceled` / `failed`) only drives navigation. **Fulfilment is always** `POST /payments/geidea/webhook`.
+4. Pending payment is persisted (`gs-pending-payment-v1`); remount restores the Sanctum session (even with passkey lock) and routes to payment resume. Unpaid orders show **Pay now** on order detail (fresh `POST /payments/{provider}/session`).
+5. `POST /payments/geidea/return` is optional recovery after success (passes Geidea `orderId` when present); Laravel re-fetches remote `detailedStatus`.
+6. Gradle: `expo-build-properties` `minSdkVersion: 24` plus `plugins/withGeideaSdk.js` (flatDir + Compose deps when the package is installed). Do not replace Expo `android/build.gradle`. Rebuild Dev Client after installing the tarball (`npx expo prebuild` / `expo run:android`). Expo Go cannot load the native SDK.
 
 Details: [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md).
 

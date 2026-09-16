@@ -26,9 +26,20 @@ function isPaidOrder(paymentStatus: string | undefined): boolean {
   return (paymentStatus ?? "").trim().toLowerCase() === "paid";
 }
 
+/** Unpaid statuses that can still open online checkout for this order. */
+function canPayOnline(paymentStatus: string | undefined): boolean {
+  const status = (paymentStatus ?? "").trim().toLowerCase();
+  return (
+    status === "due" ||
+    status === "pending" ||
+    status === "partial" ||
+    status === "failed"
+  );
+}
+
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, t, accent } = useApp();
+  const { token, t, accent, settings } = useApp();
   const { addItem } = useCart();
   const router = useRouter();
   const [order, setOrder] = useState<AccountOrderDetail | null>(null);
@@ -36,6 +47,9 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const onlineEnabled =
+    !!settings?.online_payments?.enabled && !!settings?.online_payments?.provider;
 
   // Reduce screenshot risk while digital secrets are on screen (Android FLAG_SECURE).
   useEffect(() => {
@@ -104,6 +118,11 @@ export default function OrderDetailScreen() {
     );
   }
 
+  const showPayNow =
+    onlineEnabled &&
+    !!order.storefront_order_id &&
+    canPayOnline(order.payment_status);
+
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
@@ -127,6 +146,20 @@ export default function OrderDetailScreen() {
           <PrimaryButton
             label={t("account.openTracking")}
             onPress={() => void Linking.openURL(order.shipping_tracking_url!)}
+          />
+        ) : null}
+        {showPayNow ? (
+          <PrimaryButton
+            label={t("account.payNow")}
+            onPress={() => {
+              router.push({
+                pathname: "/checkout/payment",
+                params: {
+                  storefrontOrderId: order.storefront_order_id!,
+                  orderId: String(order.id),
+                },
+              });
+            }}
           />
         ) : null}
         {invoiceUrl ? (

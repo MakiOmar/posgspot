@@ -54,6 +54,49 @@ class GeideaPaymentTest extends TestCase
         $this->assertSame('test', $transaction->storefront_payment_meta['mode'] ?? null);
     }
 
+    public function test_geidea_create_session_includes_checkout_street_and_city(): void
+    {
+        Mail::fake();
+        [$location, $variation] = $this->resolveCheckoutFixtures();
+        if ($location === null) {
+            return;
+        }
+
+        $this->saveGeideaSettings($location->id);
+        Http::fake([
+            'https://api.merchant.geidea.net/payment-intent/api/v2/direct/session' => Http::response([
+                'session' => ['id' => 'sess-addr'],
+            ], 200),
+        ]);
+
+        $orderKey = 'SF-GEIDEA-ADDR-'.uniqid();
+        $this->postCheckout($orderKey, $location->id, $variation->id, [
+            'address_line_1' => '12 Nile Corniche',
+            'city' => 'Alexandria',
+            'state' => 'ALX',
+            'country' => 'EG',
+            'zip_code' => '21500',
+        ])->assertCreated();
+
+        Http::assertSent(function ($request) {
+            if (! str_contains($request->url(), '/payment-intent/api/v2/direct/session')) {
+                return false;
+            }
+            $body = $request->data();
+            $billing = $body['customer']['address']['billing'] ?? null;
+            $shipping = $body['customer']['address']['shipping'] ?? null;
+
+            return is_array($billing)
+                && ($billing['street'] ?? null) === '12 Nile Corniche'
+                && ($billing['city'] ?? null) === 'Alexandria'
+                && ($billing['country'] ?? null) === 'EGY'
+                && ($billing['postalCode'] ?? null) === '21500'
+                && is_array($shipping)
+                && ($shipping['street'] ?? null) === '12 Nile Corniche'
+                && ($shipping['city'] ?? null) === 'Alexandria';
+        });
+    }
+
     public function test_geidea_webhook_marks_order_paid_with_valid_signature(): void
     {
         Mail::fake();
@@ -354,8 +397,12 @@ class GeideaPaymentTest extends TestCase
         ];
     }
 
-    private function postCheckout(string $orderKey, int $locationId, int $variationId)
-    {
+    private function postCheckout(
+        string $orderKey,
+        int $locationId,
+        int $variationId,
+        ?array $shippingAddress = null,
+    ) {
         return $this->postJson('/api/storefront/v1/checkout', [
             'idempotency_key' => $orderKey,
             'location_id' => $locationId,
@@ -369,7 +416,7 @@ class GeideaPaymentTest extends TestCase
                 'email' => 'geidea-test@example.com',
                 'mobile' => '+201000000009',
             ],
-            'shipping_address' => [
+            'shipping_address' => $shippingAddress ?? [
                 'address_line_1' => 'Test address',
                 'city' => 'Cairo',
                 'state' => 'C',

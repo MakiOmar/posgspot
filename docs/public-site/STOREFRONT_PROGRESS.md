@@ -226,7 +226,7 @@
 
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
-3. Mobile Phase 4 — native Geidea SDK when the vendor tarball arrives; Fawry RN SDK via Dev Client; EAS project IDs, store listings (see [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md))
+3. Mobile Phase 4 — Fawry RN SDK via Dev Client; EAS project IDs, store listings (Geidea native SDK 0.0.12 vendored — rebuild Dev Client)
 
 ---
 
@@ -347,6 +347,8 @@
 | 2026-07-04 | Fix SPA pagination (trailing-slash URLs); stop 429s on shell loaders (drop double throttle, higher GET budget, 30s SSR cache for settings/categories). |
 | 2026-07-01 | Sprint 2: PLP sort/in-stock toolbar (`product-list-toolbar`), header search autocomplete (`GET /search`), search API tests. |
 | 2026-07-01 | Sprint 1 launch hygiene: legal pages (terms, privacy, return), footer policy links, dynamic robots.txt + sitemap.xml, checkout E2E tests. |
+| 2026-09-15 | Mobile: vendor Geidea RN SDK 0.0.12 and prefer native `payWithGeidea` (webhook unchanged). |
+| 2026-09-15 | Geidea Create Session sends checkout street/city on `customer.address` so HPP prefills billing/shipping. |
 | 2026-09-15 | Checkout resilience: Egypt states fallback + network retries; disable nav/footer Link prefetch spam; API exception CORS + 503 on DB blips. |
 | 2026-06-30 | Progress tracker created; reflects Phase 1 MVP state through reward points, contact, add-customer, invoice print, OOS card actions, 4-col grid, theme SPA fix. |
 

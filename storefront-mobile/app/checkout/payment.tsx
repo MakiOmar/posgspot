@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 import {
@@ -16,6 +16,10 @@ import {
   parseGeideaWebViewMessage,
   startGeideaPayment,
 } from "../../src/lib/geidea";
+import {
+  clearPendingPayment,
+  savePendingPayment,
+} from "../../src/lib/pending-payment";
 import { useApp } from "../../src/contexts/AppContext";
 import {
   ErrorBlock,
@@ -23,12 +27,17 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
-import type { FawryPaymentSession, GeideaPaymentSession, PaymentSession } from "../../src/lib/types";
+import type {
+  FawryPaymentSession,
+  GeideaPaymentSession,
+  PaymentSession,
+} from "../../src/lib/types";
 
 export default function PaymentScreen() {
-  const { storefrontOrderId, orderId } = useLocalSearchParams<{
+  const { storefrontOrderId, orderId, resume } = useLocalSearchParams<{
     storefrontOrderId: string;
     orderId: string;
+    resume?: string;
   }>();
   const { t, locale, token, contact, settings } = useApp();
   const router = useRouter();
@@ -37,8 +46,11 @@ export default function PaymentScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [hostedHtml, setHostedHtml] = useState<string | null>(null);
+  const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const resumeHandled = useRef(false);
 
   const finishPaid = useCallback(async () => {
+    await clearPendingPayment();
     if (token && orderId) {
       try {
         await fetchOrder(token, Number(orderId));
@@ -63,6 +75,20 @@ export default function PaymentScreen() {
     [provider, token],
   );
 
+  const markPending = useCallback(async () => {
+    if (!storefrontOrderId || !orderId) {
+      return;
+    }
+    await savePendingPayment({
+      storefrontOrderId,
+      orderId: String(orderId),
+      provider,
+      ...(token && contact
+        ? { authToken: token, authContact: contact }
+        : {}),
+    });
+  }, [contact, orderId, provider, storefrontOrderId, token]);
+
   const launch = useCallback(async () => {
     if (!storefrontOrderId) {
       setError("Missing order");
@@ -71,7 +97,9 @@ export default function PaymentScreen() {
     setBusy(true);
     setError(null);
     setHostedHtml(null);
+    setAwaitingContinue(false);
     try {
+      await markPending();
       const { data } = await fetchPaymentSession(
         provider,
         storefrontOrderId,
@@ -93,6 +121,7 @@ export default function PaymentScreen() {
           return;
         }
         if (!launched.ok) {
+          await clearPendingPayment();
           setError(launched.reason);
           setBusy(false);
           return;
@@ -100,6 +129,8 @@ export default function PaymentScreen() {
         await confirmReturn({
           storefront_order_id: storefrontOrderId,
           merchantRefNumber: storefrontOrderId,
+          merchantReferenceId: storefrontOrderId,
+          ...(launched.orderId ? { orderId: launched.orderId } : {}),
           payload: launched.payload,
         });
         await finishPaid();
@@ -107,6 +138,7 @@ export default function PaymentScreen() {
       }
 
       if (!isFawrySdkAvailable()) {
+        await clearPendingPayment();
         setError(t("payment.fawrySdkMissing"));
         setBusy(false);
         return;
@@ -131,6 +163,7 @@ export default function PaymentScreen() {
       setStatus(t("payment.opening"));
       const result = await startFawryPayment(model);
       if (!result.ok) {
+        await clearPendingPayment();
         setError(result.reason);
         setBusy(false);
         return;
@@ -149,6 +182,63 @@ export default function PaymentScreen() {
     contact,
     finishPaid,
     locale,
+    markPending,
+    provider,
+    storefrontOrderId,
+    t,
+    token,
+  ]);
+
+  /** After a remount: reconcile with Laravel before offering Continue. */
+  const reconcileResume = useCallback(async () => {
+    if (!storefrontOrderId) {
+      setError("Missing order");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setStatus(t("payment.checking"));
+    try {
+      await markPending();
+      const { data } = await fetchPaymentSession(
+        provider,
+        storefrontOrderId,
+        locale,
+        token,
+      );
+      if ("already_paid" in data && data.already_paid) {
+        await finishPaid();
+        return;
+      }
+      // Optional recovery if Geidea already captured but webhook lagged.
+      await confirmReturn({
+        storefront_order_id: storefrontOrderId,
+        merchantRefNumber: storefrontOrderId,
+        merchantReferenceId: storefrontOrderId,
+      });
+      const again = await fetchPaymentSession(
+        provider,
+        storefrontOrderId,
+        locale,
+        token,
+      );
+      if ("already_paid" in again.data && again.data.already_paid) {
+        await finishPaid();
+        return;
+      }
+      setStatus(t("payment.interrupted"));
+      setAwaitingContinue(true);
+      setBusy(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("common.error"));
+      setAwaitingContinue(true);
+      setBusy(false);
+    }
+  }, [
+    confirmReturn,
+    finishPaid,
+    locale,
+    markPending,
     provider,
     storefrontOrderId,
     t,
@@ -156,8 +246,16 @@ export default function PaymentScreen() {
   ]);
 
   useEffect(() => {
+    if (resume === "1") {
+      if (resumeHandled.current) {
+        return;
+      }
+      resumeHandled.current = true;
+      void reconcileResume();
+      return;
+    }
     void launch();
-    // Launch once on mount; webhook remains the fulfilment source of truth.
+    // Launch / resume once on mount; webhook remains the fulfilment source of truth.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -168,6 +266,7 @@ export default function PaymentScreen() {
     }
     setHostedHtml(null);
     if (!parsed.ok) {
+      await clearPendingPayment();
       setError(parsed.reason);
       setBusy(false);
       return;
@@ -175,6 +274,7 @@ export default function PaymentScreen() {
     await confirmReturn({
       storefront_order_id: storefrontOrderId,
       merchantRefNumber: storefrontOrderId,
+      merchantReferenceId: storefrontOrderId,
       payload: parsed.payload,
     });
     await finishPaid();
@@ -211,7 +311,21 @@ export default function PaymentScreen() {
       ) : (
         <View style={styles.box}>
           <Text style={styles.status}>{status}</Text>
-          <PrimaryButton label={t("payment.retry")} onPress={() => void launch()} />
+          <PrimaryButton
+            label={
+              awaitingContinue ? t("payment.continue") : t("payment.retry")
+            }
+            onPress={() => void launch()}
+          />
+          {orderId ? (
+            <PrimaryButton
+              label={t("payment.viewOrder")}
+              onPress={() => {
+                void clearPendingPayment();
+                router.replace(`/account/orders/${orderId}`);
+              }}
+            />
+          ) : null}
         </View>
       )}
     </Screen>

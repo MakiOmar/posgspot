@@ -25,6 +25,10 @@ import {
   saveAuthSession,
 } from "../lib/auth-storage";
 import {
+  loadPendingPayment,
+  pendingAuthSession,
+} from "../lib/pending-payment";
+import {
   authenticateBiometric,
   deviceHasBiometrics,
   isBiometricUnlockEnabled,
@@ -138,7 +142,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const stored = await loadAuthSession();
+        const storedSecure = await loadAuthSession();
+        const pending = await loadPendingPayment();
+        const stored = storedSecure ?? pendingAuthSession(pending);
+        // Re-seed SecureStore after remount if we only had the pending snapshot.
+        if (!storedSecure && stored) {
+          await saveAuthSession(stored).catch(() => undefined);
+        }
         const bioOn = await isBiometricUnlockEnabled();
         const hardware = await deviceHasBiometrics();
         if (!cancelled) {
@@ -146,7 +156,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setPasskeyHardware(hardware);
           setPasskeyCanUnlock(!!stored && bioOn);
         }
-        if (stored && !bioOn && !cancelled) {
+        // Mid-checkout remount: restore the Sanctum session even when passkey
+        // lock is on, so payment resume does not look like a forced logout.
+        const resumePayment = !!pending;
+        if (stored && (!bioOn || resumePayment) && !cancelled) {
           setSession(stored);
           try {
             const { data } = await fetchProfile(stored.token);

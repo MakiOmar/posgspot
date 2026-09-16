@@ -1,6 +1,6 @@
 # Geidea Payment Gateway — Integration Notes
 
-**Status:** implemented (HPP Checkout on Qwik + hosted WebView on mobile). Native RN SDK is scaffolded and stays gated on the vendor tarball.
+**Status:** implemented (HPP Checkout on Qwik + **native RN SDK 0.0.12** on mobile Dev Client, with hosted WebView fallback).
 **Scope:** **Geidea** is a second online payment driver alongside FawryPay. One active provider at a time (`settings.gateway.provider`).
 
 **Related repo docs:** [`API.md`](./API.md) · [`STOREFRONT_PROGRESS.md`](./STOREFRONT_PROGRESS.md) · [`MOBILE.md`](./MOBILE.md) · [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md)
@@ -8,6 +8,66 @@
 
 > Any Geidea documentation page can be read as markdown by appending `.md` to its URL.
 > Contract below was confirmed against WooCommerce plugin **3.6.1** (supersedes vendor HTML docs where they disagree).
+
+---
+
+## Quick reference (Games Spot)
+
+### Which base URL we use
+
+| | Value |
+|---|---|
+| **Active region** | Egypt — settings key `gateway.geidea.region` = **`EGY-PROD`** (default) |
+| **API base** | `https://api.merchant.geidea.net` |
+| **Create Session** | `POST https://api.merchant.geidea.net/payment-intent/api/v2/direct/session` |
+| **HPP script** | `https://www.merchant.geidea.net/hpp/geideaCheckout.min.js` |
+
+KSA (`https://api.ksamerchant.geidea.net`) and UAE (`https://api.geidea.ae`) are coded but only used if admin changes `region`. **Test vs live does not change the host** — only which Merchant Public Key / API Password pair is used (`gateway.geidea.mode` = `test` \| `live`).
+
+### Where hosts are saved (not in `.env`)
+
+| What | Where |
+|---|---|
+| Region → API + HPP URLs | Hardcoded map in [`app/Services/Storefront/Payment/GeideaApiClient.php`](../../app/Services/Storefront/Payment/GeideaApiClient.php) → `regions()` |
+| Which region is active | Storefront settings JSON: `gateway.geidea.region` (default `EGY-PROD` in [`StorefrontSettingService`](../../app/Services/Storefront/StorefrontSettingService.php)) |
+| Test/live credentials | Encrypted in storefront settings: `gateway.geidea.test_*` / `live_*` (admin Payment gateway UI) |
+| Client HPP URL at runtime | Returned on the payment session as `sdk_url` from Create Session — clients do not hardcode the Egypt host |
+
+### Source files
+
+**Backend (Laravel POS)**
+
+| File | Role |
+|---|---|
+| `app/Services/Storefront/Payment/GeideaApiClient.php` | Regional API/HPP hosts + HTTP Basic client |
+| `app/Services/Storefront/Payment/GeideaPaymentGateway.php` | Driver: Create Session body (incl. `customer.address` prefill), webhook/return verify, mark paid |
+| `app/Services/Storefront/Payment/GeideaSignature.php` | Session + callback HMAC |
+| `app/Services/Storefront/Payment/PaymentGatewayManager.php` | Resolves active provider |
+| `app/Services/Storefront/Payment/PaymentGatewayInterface.php` | Driver contract |
+| `config/storefront-payments.php` | Registers `geidea` driver |
+| `app/Http/Controllers/Api/Storefront/PaymentReturnController.php` | `session` / `return` / webhook routing |
+| `routes/storefront.php` | `POST /api/storefront/v1/payments/{provider}/…` |
+| `resources/views/storefront/settings.blade.php` | Admin Geidea keys, region, HPP appearance |
+| `tests/Feature/Storefront/GeideaPaymentTest.php` | Checkout session + webhook feature tests |
+| `tests/Unit/Storefront/Payment/GeideaSignatureTest.php` | Signature unit tests |
+
+**Frontend — Qwik shop**
+
+| File | Role |
+|---|---|
+| `storefront-qwik/src/lib/geidea-checkout.ts` | Load HPP script + `GeideaCheckout.startPayment(sessionId)` |
+| `storefront-qwik/src/routes/[lang]/checkout/payment/index.tsx` | Payment page; mounts drop-in / launches Geidea |
+| `storefront-qwik/src/lib/types.ts` | `GeideaPaymentSession` type |
+| `storefront-qwik/src/lib/security/csp.ts` | Allows Geidea script/frame hosts |
+
+**Frontend — mobile**
+
+| File | Role |
+|---|---|
+| `storefront-mobile/src/lib/geidea.ts` | Native `payWithGeidea` (0.0.12) on iOS+Android + hosted HPP HTML fallback |
+| `storefront-mobile/vendor/geidea/` | Vendored `geidea-payment-sdk-react-native-0.0.12.tgz` |
+| `storefront-mobile/app/checkout/payment.tsx` | Payment screen / native or WebView |
+| `storefront-mobile/plugins/withGeideaSdk.js` | Expo config plugin (flatDir + Compose when SDK installed) |
 
 ---
 
@@ -300,12 +360,12 @@ From [React Native](https://docs.geidea.net/docs/react-native-1):
 
 | Item | Requirement |
 |---|---|
-| Package | `@geidea/payment-sdk-react-native`, delivered as a **`.tgz` archive from Geidea** — it is not on public npm, so the tarball must be vendored in the repo or hosted in a private registry |
-| Entry point | `payWithGeidea({ sessionId, merchantId, language, environment, region, primaryColor, secondaryColor, merchantLogo })` |
-| Mode + region | The SDK mirrors the same two axes as the server: `region` (`egypt`, …) and `environment` (the vendor sample passes `prod`). **Confirm the sandbox value with Geidea** — it is not documented. Derive both from our storefront settings and return them alongside the session id, so the app never hardcodes a stage |
-| Result | A status of `completed` or `canceled`, plus a result payload |
+| Package | `@geidea/payment-sdk-react-native@0.0.12`, vendored at `storefront-mobile/vendor/geidea/geidea-payment-sdk-react-native-0.0.12.tgz` (`file:` dependency) |
+| Entry point | `payWithGeidea({ sessionId, language, environment, region, merchantId?, … })` |
+| Mode + region | SDK `environment`: `production` \| `sandbox`. Laravel session still sends `prod`/`test`; mobile maps them in `src/lib/geidea.ts`. `region`: `egypt` \| `ksa` \| `uae`. |
+| Result | `status` of `completed` or `canceled`, plus optional `result.orderId` |
 | Android toolchain | minSdk **24** via `expo-build-properties`. Do **not** pin Kotlin 1.9.24 / AGP 8.7.3 — those conflict with Expo SDK 57 / RN 0.86. |
-| Android Gradle edits | Additive only: `storefront-mobile/plugins/withGeideaSdk.js` adds `flatDir` + Compose/navigation/`androidx.activity`/`kotlinx-collections-immutable` **when** `@geidea/payment-sdk-react-native` is installed. Never replace `android/build.gradle` wholesale. |
+| Android Gradle edits | Additive only: `storefront-mobile/plugins/withGeideaSdk.js` adds `flatDir` + Compose/navigation/`material-icons-extended`/`androidx.activity`/`kotlinx-collections-immutable` **when** `@geidea/payment-sdk-react-native` is installed. Never replace `android/build.gradle` wholesale. |
 | Android manifest | Skip the vendor `network_security_config.xml` cleartext block (Metro `10.0.2.2` only — must not ship). |
 | Assets | Native SDK `merchantLogo` is a **resource name**. HPP uses `appearance.merchant.logoUrl` (HTTPS URL). The config plugin copies `assets/images/geidea-merchant-logo.png` to `res/drawable` when both the SDK and the file exist. |
 | iOS | `pod install` after adding the package |
@@ -314,18 +374,20 @@ From [React Native](https://docs.geidea.net/docs/react-native-1):
 **Expo-specific constraints (the vendor docs assume bare React Native):**
 
 - Encapsulate Gradle in **`plugins/withGeideaSdk.js`** (registered in `app.json`). Hand edits to `android/build.gradle` are destroyed on the next `expo prebuild --clean`.
-- **Expo Go cannot work** for the native module. Hosted WebView **does** work in the current Dev Client without the tarball.
+- **Expo Go cannot work** for the native module. Hosted WebView remains the fallback when the native binary is missing.
 - Resolve SDK version clashes with `expo-build-properties` (`minSdkVersion: 24`), never by rewriting generated Gradle.
-- Native `payWithGeidea` is attempted first in `src/lib/geidea.ts`; if the package is missing, the same function falls back to hosted HTML. The checkout screen does not change.
+- Native `payWithGeidea` is attempted first on iOS and Android in `src/lib/geidea.ts`; if the package is missing or unlinkable, the same function falls back to hosted HTML.
+- Android bridge presents with `SDKPresentationStyle.BottomSheet` (not `Push`). `Push` opens `GDPaymentActivity`, which Expo `singleTask` MainActivity can clear mid-3DS / “processing”, remounting RN and looking like a logout.
+- Mid-checkout remounts still persist `gs-pending-payment-v1` (optional short-lived auth snapshot), restore auth past passkey lock, and resume via `/checkout/payment?resume=1`. Unpaid orders expose **Pay now** on account order detail.
 
-**Server vs client mode:** Laravel selects test/live **only** by which credential pair signs Create Session. There is no sandbox API host. The **client SDK** still needs `environment` (`prod` when live, `test` when test) plus `region` on the session payload — it must match the credentials the server used. Clients never hardcode a stage. The native sandbox enum remains unconfirmed; hosted HPP does not need it.
+**Server vs client mode:** Laravel selects test/live **only** by which credential pair signs Create Session. There is no sandbox API host. The **client SDK** needs `environment` (`production` when live, `sandbox` when test) plus `region` — mapped from the session payload. Clients never hardcode a stage. Server `callbackUrl` stays `{APP_URL}/api/storefront/v1/payments/geidea/webhook`.
 
-### 7.2 Option B — hosted page in a WebView (**ships now**)
+### 7.2 Option B — hosted page in a WebView (fallback)
 
-1. Laravel creates the session exactly as for web.
-2. `startGeideaPayment` loads `geideaCheckout.min.js` inside `react-native-webview` and `postMessage`s `completed` / `canceled` / `failed`.
+1. Laravel creates the session exactly as for web (same `callbackUrl` webhook).
+2. `startGeideaPayment` loads `geideaCheckout.min.js` inside `react-native-webview` and `postMessage`s `completed` / `canceled` / `failed` when native SDK is unavailable.
 3. Browser `returnUrl` is the storefront payment return page; the WebView message only drives in-app navigation. Fulfilment is the webhook.
-4. Optional `POST /payments/geidea/return` after the WebView result; Laravel re-fetches remote status.
+4. Optional `POST /payments/geidea/return` after success; Laravel re-fetches remote status.
 
 Native `payWithGeidea` drops in behind the same `startGeideaPayment` seam when the tarball is installed — no checkout-screen change.
 
@@ -357,7 +419,7 @@ Each of these is a **Create Session parameter or a portal switch**, not a new in
 | BNPL (UAE/KSA only) | Tamara needs full customer + `order.items` detail; Tabby needs `returnUrl`, phone, and items | [Tamara](https://docs.geidea.net/docs/tamara) · [Tabby](https://docs.geidea.net/docs/tabby-uae-ksa) |
 | Recurring / subscriptions | Auto-debit via stored token, or recurring payment links | [Recurring Payments](https://docs.geidea.net/docs/recurring) · [Subscriptions](https://docs.geidea.net/docs/subscriptions) |
 
-**Data-quality note:** if BNPL or installments are ever enabled, the session must carry the richer `customer` and `order.items` objects (id, name, description, categories, count, price, sku, plus billing/shipping address). Our checkout already has all of it. Send it from day one so enabling a method later is a settings change rather than a code change.
+**Data-quality note:** Create Session already sends checkout `customer.address.billing` / `shipping` (`street` ← `address_line_1`, `city`, ISO-3 `country`, `postalCode`) so Geidea HPP can prefill Street / City when **Show address on HPP** is enabled. Digital/pickup placeholders (`Digital delivery`, `Store pickup`) are omitted. Richer `order.items` detail remains available if BNPL/installments are turned on later.
 
 ---
 
@@ -397,13 +459,18 @@ Mode-specific scenarios, easy to forget and expensive to miss:
 
 ---
 
-## 11. Open items (native SDK only)
+## 11. Open items (native SDK)
 
-Phases 1–6 are implemented. Remaining Geidea-side item:
+Phases 1–6 plus mobile native SDK **0.0.12** are implemented:
 
-1. **`geidea-payment-sdk-react-native-0.0.1.tgz`** — package, minimum RN version, whether it ships an Expo config plugin, and the sandbox value of the SDK `environment` enum (sample only shows `prod`). Until it arrives, mobile uses the hosted WebView.
+- Vendored at `storefront-mobile/vendor/geidea/geidea-payment-sdk-react-native-0.0.12.tgz`
+- Dependency: `"@geidea/payment-sdk-react-native": "file:vendor/geidea/…0.0.12.tgz"`
+- `environment` enum on the RN bridge is `production` \| `sandbox` (Laravel session still sends `prod`/`test`; mobile maps them)
+- Server `callbackUrl` unchanged: `{APP_URL}/api/storefront/v1/payments/geidea/webhook`
 
-Closed from the original list: region (Egypt default `EGY-PROD`); `merchantReferenceId` is `storefront_order_id`; callback HMAC uses `status` (not `detailedStatus`); one active provider; `paymentOperation: Pay`; refunds portal/unsigned for v1; test+live are two key pairs on **one** merchant account; one `callbackUrl` for both modes; hosted mobile ships now.
+Remaining: rebuild Dev Client after install; confirm Apple Pay `merchantId` if wallets are enabled on iOS; optional branding colors/logo on `payWithGeidea`.
+
+Closed from the original list: region (Egypt default `EGY-PROD`); `merchantReferenceId` is `storefront_order_id`; callback HMAC uses `status` (not `detailedStatus`); one active provider; `paymentOperation: Pay`; refunds portal/unsigned for v1; test+live are two key pairs on **one** merchant account; one `callbackUrl` for both modes; hosted mobile fallback still ships.
 
 ---
 

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-15 |
+| **Last updated** | 2026-09-16 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Digital games grid + auth-gated repair/console tracking |
 
@@ -21,7 +21,7 @@
 | Expo scaffold (Router, i18n, API client, SecureStore) | Done |
 | Device tokens + FCM push jobs | Done |
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
-| Geidea hosted checkout (WebView) | Done — `src/lib/geidea.ts`; native SDK gated on vendor tarball + `plugins/withGeideaSdk.js` |
+| Geidea native + HPP fallback | Done — native `payWithGeidea` BottomSheet (not Push) on Android; pending-payment + auth snapshot resume; Pay now |
 | M1 shop core (browse → COD checkout → orders) | Done |
 | Home section UI (hero, promos, shelves, rails) | Done |
 | Home brand rail display-only (no brand PLP links) | Done |
@@ -79,6 +79,10 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Geidea Android crash fix: add `material-icons-extended` (ClassNotFoundException Icons.AutoMirrored.Filled). |
+| 2026-09-16 | Geidea Android: native BottomSheet presentation (Push was clearing singleTask MainActivity mid-pay); auth snapshot on pending payment. |
+| 2026-09-15 | Geidea: keep native `payWithGeidea` on Android+iOS; pending-payment resume + order Pay now (handles MainActivity remount / unpaid retry). |
+| 2026-09-15 | Geidea: vendor RN SDK 0.0.12 + prefer native `payWithGeidea` (webhook unchanged; WebView fallback). |
 | 2026-09-15 | Payments/Orders list: colored payment-status badges + circular chevron open control (`OrderListCard`). |
 | 2026-09-14 | Geidea checkout: hosted HPP WebView, provider from settings, Expo `withGeideaSdk` no-op plugin + minSdk 24. |
 | 2026-09-14 | Verify-email sends a code on open; checkout blocked until email is verified. |

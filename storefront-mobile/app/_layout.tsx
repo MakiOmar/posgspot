@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { BrandSplash } from "../src/components/BrandSplash";
 import { MaintenanceGate } from "../src/components/MaintenanceGate";
+import { PaymentResumeGate } from "../src/components/PaymentResumeGate";
 import { ToastHost } from "../src/components/ToastHost";
 import { AppProvider, useApp } from "../src/contexts/AppContext";
 import { CartProvider } from "../src/contexts/CartContext";
@@ -51,6 +52,7 @@ export default function RootLayout() {
           <CartProvider>
             <WishlistProvider>
               <SplashGate>
+                <PaymentResumeGate />
                 <MaintenanceGate>
                 <Stack
                   screenOptions={{

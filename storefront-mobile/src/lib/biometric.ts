@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 const FLAG_KEY = "gs-biometric-unlock-v1";
 
 const SECURE_OPTS: SecureStore.SecureStoreOptions = {
-  keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
 };
 
 export async function isBiometricUnlockEnabled(): Promise<boolean> {

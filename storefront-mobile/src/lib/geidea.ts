@@ -1,24 +1,47 @@
 /**
  * Geidea checkout launcher.
  *
- * Hosted HPP in a WebView ships now. Native `payWithGeidea` is used only when
- * `@geidea/payment-sdk-react-native` is installed (gated on the vendor tarball).
- * Fulfilment is always the Laravel webhook — this module only reports UX events.
+ * Prefers native `@geidea/payment-sdk-react-native` (vendored tarball) via
+ * `payWithGeidea` on iOS and Android. Android bridge uses BottomSheet (not Push)
+ * so Expo `singleTask` MainActivity does not clear a separate payment activity
+ * mid-checkout. Falls back to hosted HPP in a WebView when the native module
+ * is missing (Expo Go / incomplete native rebuild).
+ *
+ * If the JS runtime still remounts, payment screens persist `gs-pending-payment-v1`
+ * (with a short-lived auth snapshot) and AppContext restores the session.
+ *
+ * Fulfilment is always the Laravel webhook (`callbackUrl` on Create Session) —
+ * this module only reports UX events. Keep `POST /payments/geidea/webhook`.
  */
 import type { GeideaPaymentSession } from "./types";
 
 export type GeideaLaunchResult =
-  | { ok: true; event: "completed"; payload?: unknown }
+  | { ok: true; event: "completed"; payload?: unknown; orderId?: string }
   | { ok: false; event: "canceled" | "failed"; reason: string; payload?: unknown };
 
-type PayWithGeideaFn = (options: Record<string, unknown>) => Promise<{
+type GeideaNativeEnvironment = "production" | "sandbox";
+type GeideaNativeRegion = "egypt" | "ksa" | "uae";
+type GeideaNativeLanguage = "en" | "ar";
+
+type PayWithGeideaFn = (options: {
+  sessionId: string;
+  language?: GeideaNativeLanguage;
+  environment?: GeideaNativeEnvironment;
+  region?: GeideaNativeRegion;
+  merchantId?: string;
+  merchantName?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+}) => Promise<{
   status?: string;
+  result?: { orderId?: string; [key: string]: unknown };
   [key: string]: unknown;
 }>;
 
 function loadNativeSdk(): { payWithGeidea: PayWithGeideaFn } | null {
   try {
-    // Dynamic require so Expo Go / web still bundle without the native module.
+    // Dynamic require so Metro still resolves when the package is present but
+    // the native binary is not linked yet (Expo Go / web).
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require("@geidea/payment-sdk-react-native");
     if (mod?.payWithGeidea) {
@@ -32,6 +55,32 @@ function loadNativeSdk(): { payWithGeidea: PayWithGeideaFn } | null {
 
 export function isGeideaNativeSdkAvailable(): boolean {
   return loadNativeSdk() !== null;
+}
+
+/** Map Laravel session environment (`prod`/`test`) to SDK 0.0.12 enums. */
+export function mapGeideaNativeEnvironment(
+  environment: string | undefined,
+): GeideaNativeEnvironment {
+  const raw = (environment || "").toLowerCase();
+  if (raw === "prod" || raw === "production" || raw === "live") {
+    return "production";
+  }
+  return "sandbox";
+}
+
+export function mapGeideaNativeRegion(region: string | undefined): GeideaNativeRegion {
+  const raw = (region || "egypt").toLowerCase();
+  if (raw === "ksa" || raw === "ksa-prod") {
+    return "ksa";
+  }
+  if (raw === "uae" || raw === "uae-prod") {
+    return "uae";
+  }
+  return "egypt";
+}
+
+export function mapGeideaNativeLanguage(locale: string | undefined): GeideaNativeLanguage {
+  return (locale || "en").toLowerCase().startsWith("ar") ? "ar" : "en";
 }
 
 /**
@@ -79,10 +128,14 @@ export function buildGeideaHostedHtml(session: GeideaPaymentSession): string {
         var containerId = ${containerId};
         var api = new GeideaCheckout(
           function () { send("completed"); },
-          function (err) { send("failed", (err && err.responseMessage) || "Payment error"); },
+          function (err) { send("failed", (err && err.message) || String(err || "failed")); },
           function () { send("canceled"); }
         );
-        ${dropin ? "api.startPayment(sessionId, null, containerId);" : "api.startPayment(sessionId);"}
+        if (${dropin ? "true" : "false"} && containerId) {
+          api.startPayment(sessionId, null, containerId);
+        } else {
+          api.startPayment(sessionId);
+        }
       })();
     </script>
   </body>
@@ -93,10 +146,10 @@ export function parseGeideaWebViewMessage(raw: string): GeideaLaunchResult | nul
   try {
     const parsed = JSON.parse(raw) as { type?: string; message?: string };
     if (parsed.type === "completed") {
-      return { ok: true, event: "completed", payload: parsed };
+      return { ok: true, event: "completed" };
     }
     if (parsed.type === "canceled") {
-      return { ok: false, event: "canceled", reason: parsed.message || "canceled" };
+      return { ok: false, event: "canceled", reason: "canceled" };
     }
     if (parsed.type === "failed") {
       return { ok: false, event: "failed", reason: parsed.message || "failed" };
@@ -108,8 +161,8 @@ export function parseGeideaWebViewMessage(raw: string): GeideaLaunchResult | nul
 }
 
 /**
- * Native SDK path. Returns null when the tarball is not installed so callers
- * can fall back to the hosted WebView without changing the checkout screen.
+ * Native SDK path (0.0.12+). Returns null when the package is not linked so
+ * callers can fall back to the hosted WebView without changing the screen.
  */
 export async function tryNativeGeideaPayment(
   session: GeideaPaymentSession,
@@ -119,16 +172,23 @@ export async function tryNativeGeideaPayment(
     return null;
   }
 
+  if (!session.session_id) {
+    return { ok: false, event: "failed", reason: "Missing Geidea session id" };
+  }
+
   try {
     const result = await sdk.payWithGeidea({
       sessionId: session.session_id,
-      language: session.locale === "ar" ? "AR" : "EN",
-      environment: session.environment,
-      region: session.region,
+      language: mapGeideaNativeLanguage(session.locale),
+      environment: mapGeideaNativeEnvironment(session.environment),
+      region: mapGeideaNativeRegion(session.region),
     });
     const status = String(result?.status || "").toLowerCase();
+    const orderId =
+      typeof result?.result?.orderId === "string" ? result.result.orderId : undefined;
+
     if (status === "completed" || status === "success") {
-      return { ok: true, event: "completed", payload: result };
+      return { ok: true, event: "completed", payload: result, orderId };
     }
     if (status === "canceled" || status === "cancelled") {
       return { ok: false, event: "canceled", reason: status, payload: result };
@@ -144,8 +204,7 @@ export async function tryNativeGeideaPayment(
 }
 
 /**
- * Native SDK when installed; otherwise return hosted HTML for a WebView.
- * Checkout screens should not branch on the SDK being present.
+ * Native `payWithGeidea` when the vendored SDK is linked; otherwise hosted HTML.
  */
 export async function startGeideaPayment(
   session: GeideaPaymentSession,

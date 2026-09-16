@@ -165,6 +165,11 @@ const en: Record<string, string> = {
   "payment.preparing": "Preparing payment…",
   "payment.opening": "Opening payment…",
   "payment.retry": "Retry payment",
+  "payment.continue": "Continue payment",
+  "payment.checking": "Checking payment status…",
+  "payment.interrupted":
+    "Payment was interrupted. You can continue or open the order.",
+  "payment.viewOrder": "View order",
   "payment.fawrySdkMissing":
     "Fawry native SDK is not linked. Build with Expo Dev Client after installing @fawry_pay/rn-fawry-pay-sdk.",
   "checkout.shipping": "Shipping",
@@ -268,6 +273,7 @@ const en: Record<string, string> = {
   "account.payPaid": "Paid",
   "account.payPending": "Pending",
   "account.payFailed": "Failed",
+  "account.payNow": "Pay now",
   "account.couponAdd": "Add",
   "account.couponUnused": "Not used",
   "account.couponUsed": "Used",
@@ -538,6 +544,10 @@ const ar: Record<string, string> = {
   "payment.preparing": "جاري تجهيز الدفع…",
   "payment.opening": "جاري فتح صفحة الدفع…",
   "payment.retry": "إعادة المحاولة",
+  "payment.continue": "متابعة الدفع",
+  "payment.checking": "جاري التحقق من حالة الدفع…",
+  "payment.interrupted": "تم قطع الدفع. يمكنك المتابعة أو فتح الطلب.",
+  "payment.viewOrder": "عرض الطلب",
   "payment.fawrySdkMissing":
     "حزمة فوري غير مربوطة. استخدم Expo Dev Client بعد تثبيت @fawry_pay/rn-fawry-pay-sdk.",
   "checkout.shipping": "الشحن",
@@ -641,6 +651,7 @@ const ar: Record<string, string> = {
   "account.payPaid": "مدفوع",
   "account.payPending": "قيد الانتظار",
   "account.payFailed": "فشل",
+  "account.payNow": "ادفع الآن",
   "account.couponAdd": "إضافة",
   "account.couponUnused": "غير مستخدم",
   "account.couponUsed": "مستخدم",

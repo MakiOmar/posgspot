@@ -48,6 +48,7 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
         $ref = $order['merchantReferenceId']
             ?? $payload['merchantReferenceId']
             ?? $payload['merchantRefNumber']
+            ?? $payload['storefront_order_id']
             ?? null;
         if (is_array($payload['order'] ?? null) === false && is_string($payload['order'] ?? null)) {
             $ref = $ref ?? $payload['order'];
@@ -370,6 +371,20 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
             $logoUrl = '';
         }
 
+        $customer = [
+            'create' => false,
+            'setDefaultMethod' => false,
+            'email' => (string) ($contact->email ?? ''),
+            'phoneNumber' => $phone !== '' ? $phone : null,
+            'firstName' => (string) ($contact->first_name ?? $contact->name ?? 'Customer'),
+            'lastName' => (string) ($contact->last_name ?? ''),
+        ];
+
+        $geideaAddress = $this->customerAddressForSession($transaction);
+        if ($geideaAddress !== null) {
+            $customer['address'] = $geideaAddress;
+        }
+
         return [
             'merchantPublicKey' => $resolved['public_key'],
             'apiPassword' => $resolved['api_password'],
@@ -383,14 +398,7 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
             'timestamp' => $timestamp,
             'paymentOperation' => 'Pay',
             'signature' => $sessionSignature,
-            'customer' => [
-                'create' => false,
-                'setDefaultMethod' => false,
-                'email' => (string) ($contact->email ?? ''),
-                'phoneNumber' => $phone !== '' ? $phone : null,
-                'firstName' => (string) ($contact->first_name ?? $contact->name ?? 'Customer'),
-                'lastName' => (string) ($contact->last_name ?? ''),
-            ],
+            'customer' => $customer,
             'appearance' => [
                 'showAddress' => $resolved['show_address'],
                 'showEmail' => $resolved['show_email'],
@@ -415,6 +423,124 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
                 'pluginVersion' => 'storefront-geidea',
             ],
         ];
+    }
+
+    /**
+     * Map checkout order_addresses into Geidea Create Session customer.address
+     * so HPP can prefill Street / City (and related fields).
+     *
+     * @return array{billing: array<string, string>, shipping: array<string, string>}|null
+     */
+    private function customerAddressForSession(Transaction $transaction): ?array
+    {
+        $addresses = ! empty($transaction->order_addresses)
+            ? json_decode((string) $transaction->order_addresses, true)
+            : [];
+
+        if (! is_array($addresses)) {
+            $addresses = [];
+        }
+
+        $shippingRaw = is_array($addresses['shipping_address'] ?? null)
+            ? $addresses['shipping_address']
+            : [];
+        $billingRaw = is_array($addresses['billing_address'] ?? null)
+            ? $addresses['billing_address']
+            : [];
+
+        $shipping = $this->mapStorefrontAddressToGeidea($shippingRaw);
+        $billing = $this->mapStorefrontAddressToGeidea($billingRaw !== [] ? $billingRaw : $shippingRaw);
+
+        if ($shipping === null && $billing === null) {
+            return null;
+        }
+
+        // Prefer whichever side we have; mirror so HPP "same as billing" stays consistent.
+        $shipping = $shipping ?? $billing;
+        $billing = $billing ?? $shipping;
+
+        return [
+            'billing' => $billing,
+            'shipping' => $shipping,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $raw
+     * @return array<string, string>|null
+     */
+    private function mapStorefrontAddressToGeidea(array $raw): ?array
+    {
+        $line1 = trim((string) ($raw['address_line_1'] ?? $raw['shipping_address_line_1'] ?? ''));
+        $line2 = trim((string) ($raw['address_line_2'] ?? $raw['shipping_address_line_2'] ?? ''));
+        $city = trim((string) ($raw['city'] ?? $raw['shipping_city'] ?? ''));
+        $country = trim((string) ($raw['country'] ?? $raw['shipping_country'] ?? ''));
+        $postal = trim((string) ($raw['zip_code'] ?? $raw['shipping_zip_code'] ?? ''));
+
+        if ($this->isPlaceholderStreet($line1)) {
+            $line1 = '';
+        }
+
+        $street = trim($line1.($line2 !== '' ? ' '.$line2 : ''));
+        if ($street === '' && $city === '') {
+            return null;
+        }
+
+        $mapped = [];
+        if ($street !== '') {
+            $mapped['street'] = $street;
+        }
+        if ($city !== '') {
+            $mapped['city'] = $city;
+        }
+
+        $iso3 = $this->toGeideaCountryCode($country);
+        if ($iso3 !== '') {
+            $mapped['country'] = $iso3;
+        }
+        if ($postal !== '') {
+            $mapped['postalCode'] = $postal;
+        }
+
+        return $mapped !== [] ? $mapped : null;
+    }
+
+    private function isPlaceholderStreet(string $street): bool
+    {
+        $normalized = mb_strtolower(trim($street));
+
+        return in_array($normalized, ['digital delivery', 'store pickup'], true);
+    }
+
+    /**
+     * Geidea Create Session expects ISO-3166-1 alpha-3 (e.g. EGY).
+     */
+    private function toGeideaCountryCode(string $country): string
+    {
+        $country = strtoupper(trim($country));
+        if ($country === '') {
+            return '';
+        }
+
+        if (strlen($country) === 3) {
+            return $country;
+        }
+
+        $map = [
+            'EG' => 'EGY',
+            'EGYPT' => 'EGY',
+            'SA' => 'SAU',
+            'AE' => 'ARE',
+            'KW' => 'KWT',
+            'BH' => 'BHR',
+            'QA' => 'QAT',
+            'OM' => 'OMN',
+            'JO' => 'JOR',
+            'US' => 'USA',
+            'GB' => 'GBR',
+        ];
+
+        return $map[$country] ?? $country;
     }
 
     /**
