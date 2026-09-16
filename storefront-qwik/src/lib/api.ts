@@ -467,8 +467,16 @@ export function registerCustomer(payload: {
 }
 
 export function loginCustomer(payload: { login: string; password: string }) {
+  const headers: Record<string, string> = {};
+  if (typeof localStorage !== "undefined") {
+    const guest = localStorage.getItem("gs-support-guest-v1");
+    if (guest) {
+      headers["X-Support-Guest-Token"] = guest;
+    }
+  }
   return storefrontFetch<AuthSession>("/auth/login", {
     method: "POST",
+    headers,
     body: JSON.stringify(payload),
   });
 }

@@ -81,4 +81,18 @@ return [
         'state_ttl_seconds' => (int) env('STOREFRONT_SOCIAL_STATE_TTL', 600),
     ],
 
+    /*
+    | AI support chat (OpenAI). Enabled only when STOREFRONT_SUPPORT_CHAT=true
+    | and OPENAI_API_KEY is set. Escalation into CRM requires employee/location/user ids.
+    */
+    'support_chat' => [
+        'enabled' => filter_var(env('STOREFRONT_SUPPORT_CHAT', false), FILTER_VALIDATE_BOOLEAN),
+        'model' => (string) env('STOREFRONT_SUPPORT_CHAT_MODEL', 'gpt-4o-mini'),
+        'rate_limit_per_minute' => (int) env('STOREFRONT_SUPPORT_CHAT_RATE_LIMIT', 30),
+        'escalation_employee_id' => (int) env('STOREFRONT_SUPPORT_ESCALATION_EMPLOYEE_ID', 0),
+        'escalation_location_id' => (int) env('STOREFRONT_SUPPORT_ESCALATION_LOCATION_ID', 0),
+        'escalation_created_by' => (int) env('STOREFRONT_SUPPORT_ESCALATION_CREATED_BY', 0),
+        'escalation_source_name' => (string) env('STOREFRONT_SUPPORT_ESCALATION_SOURCE_NAME', 'Storefront AI Chat'),
+    ],
+
 ];

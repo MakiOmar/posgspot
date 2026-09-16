@@ -39,6 +39,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
   const navLinks = buildMainNavLinks(locale, {
     digitalEnabled: settings.digital?.enabled !== false,
     categories,
+    supportChatEnabled: settings.support_chat?.enabled === true,
   });
   const categoriesOpen = headerMenu.openId === "categories";
   const mobileNavOpen = headerMenu.openId === "mobileNav";

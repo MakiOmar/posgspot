@@ -28,6 +28,7 @@ use App\Http\Controllers\Api\Storefront\RepairStatusController;
 use App\Http\Controllers\Api\Storefront\SearchController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
 use App\Http\Controllers\Api\Storefront\SocialAuthController;
+use App\Http\Controllers\Api\Storefront\SupportChatController;
 use App\Http\Controllers\Api\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +64,18 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
+
+    Route::prefix('support')->middleware('throttle:storefront-support-chat')->group(function () {
+        Route::get('/conversations', [SupportChatController::class, 'index']);
+        Route::post('/conversations', [SupportChatController::class, 'store']);
+        Route::post('/conversations/claim', [SupportChatController::class, 'claim']);
+        Route::get('/conversations/{uuid}', [SupportChatController::class, 'show'])
+            ->where('uuid', '[0-9a-fA-F-]{36}');
+        Route::post('/conversations/{uuid}/messages', [SupportChatController::class, 'storeMessage'])
+            ->where('uuid', '[0-9a-fA-F-]{36}');
+        Route::post('/conversations/{uuid}/escalate', [SupportChatController::class, 'escalate'])
+            ->where('uuid', '[0-9a-fA-F-]{36}');
+    });
     Route::post('/repair/status', [RepairStatusController::class, 'store']);
     Route::post('/device/track', [DeviceTrackController::class, 'store']);
 

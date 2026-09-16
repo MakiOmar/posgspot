@@ -93,6 +93,7 @@ export default function RootLayout() {
                 <Stack.Screen name="account" options={{ headerShown: false }} />
                 <Stack.Screen name="stores" options={{ title: "Stores" }} />
                 <Stack.Screen name="contact" options={{ title: "Contact" }} />
+                <Stack.Screen name="support" options={{ title: "Support" }} />
                 <Stack.Screen name="repair-status" options={{ title: "Repair" }} />
                 <Stack.Screen name="about" options={{ title: "About" }} />
                 <Stack.Screen name="faq" options={{ title: "FAQ" }} />

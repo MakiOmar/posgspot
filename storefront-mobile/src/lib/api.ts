@@ -38,6 +38,7 @@ export class ApiError extends Error {
 }
 
 type FetchResult<T> = { data: T; meta: Record<string, unknown> };
+export type { FetchResult };
 
 let activeContentLocale: ContentLocale = "en";
 let onUnauthorized: (() => void) | null = null;
@@ -222,9 +223,17 @@ export function fetchLocations(sellingOnly = false, locale?: ContentLocale) {
   return storefrontFetch<StoreLocation[]>(`/locations${qs}`, {}, locale);
 }
 
-export function login(loginId: string, password: string) {
+export async function login(loginId: string, password: string) {
+  let headers: Record<string, string> = {};
+  try {
+    const { guestTokenHeader } = await import("./support-chat");
+    headers = await guestTokenHeader();
+  } catch {
+    // optional
+  }
   return storefrontFetch<AuthSession>("/auth/login", {
     method: "POST",
+    headers,
     body: JSON.stringify({ login: loginId, password }),
   });
 }

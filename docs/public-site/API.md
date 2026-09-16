@@ -60,6 +60,7 @@ Public `GET /settings` also exposes:
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 - `social_login.google_enabled`, `social_login.facebook_enabled` — env-driven OAuth (Socialite); never secrets
+- `support_chat.enabled` — env `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` (never the API key itself)
 
 ### Homepage sections (`GET /homepage`)
 
@@ -166,6 +167,12 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | GET | `/products/{id}/availability?variation_id=` | Per-store stock modal — stock across **active locations with Show on storefront** (incl. out-of-stock), not only public selling locations. Hidden warehouses are omitted. Each location row includes `address`, `latitude`, `longitude`, and a ready `maps_url` (lat/lng preferred, address fallback). Coordinates are set per location in **Settings → Business Locations** |
 | GET | `/search?q=&limit=&type=` | Search autocomplete (header dropdown). `type` is `products` (default), `games` (PS4+PS5 digital titles), or `gift_cards`. Hits include `kind` + `href`. Full results UI is the Qwik `/[lang]/search` page (`GET /products?q=` for products; same `/search` endpoint for digital types). |
 | POST | `/contact` | Public contact form — emails the business inbox (`mail_username` when it is a valid email, else From address). Queued for async delivery. Transport is system Mailgun/SMTP when the business uses superadmin email settings, otherwise per-business SMTP. Optional `turnstile_token` when Turnstile is enabled in storefront settings |
+| GET | `/support/conversations` | AI support chat history. Requires `X-Support-Guest-Token` (UUID) for guests; optional Sanctum Bearer. Returns `{ conversations[] }` with uuid, title, status, preview, last_message_at. 503 when `STOREFRONT_SUPPORT_CHAT` off or `OPENAI_API_KEY` missing. Throttled via `storefront-support-chat`. |
+| POST | `/support/conversations` | Start a new conversation (`locale` optional). Closes prior active threads for the same identity. |
+| GET | `/support/conversations/{uuid}` | Full thread (`messages[]`, `escalation_available`). |
+| POST | `/support/conversations/{uuid}/messages` | Body `{ message, locale?, page_context?, turnstile_token? }`. Persists user + assistant reply (OpenAI + tools). Guests may need Turnstile when configured. |
+| POST | `/support/conversations/{uuid}/escalate` | **Auth required.** Creates CRM escalation (env-configured assignee/location/source). Guests get 401 — use WhatsApp/contact handoff instead. |
+| POST | `/support/conversations/claim` | **Auth required.** Attach guest threads (`X-Support-Guest-Token`) to the signed-in contact. Also runs automatically on `POST /auth/login` when the guest header is present. |
 | POST | `/repair/status` | Public repair lookup — body `{ search_type: job_sheet_no\|invoice_no\|mobile_num, search_number, serial_no? }`. Scoped to storefront business. Returns `{ repairs[] }` with status, device info, and activity timeline (no customer PII). `mobile_num` only when `repair.lookup_by_mobile` is true; mobile match accepts with/without country code or leading `0` (e.g. `+2010…` / `010…` / `10…`). 404 when no match; 503 when repair module unavailable. |
 | POST | `/device/track` | Public console/device service lookup (proxies Accounts `POST /api/device/track`). Body `{ phone_number }` or `{ phone }` (max 20). Returns `{ count, services[] }` with `tracking_code`, `status`/`status_display`, serial, model, store, notes, timestamps. 404 when none; 422 invalid phone; 429 upstream throttle; 503 when `ACCOUNTS_BASE_URL` unset or Accounts unreachable. |
 | GET | `/digital/games?platform=&page=&q=` | Digital games catalog (Accounts proxy). `platform` = `4` (PS4) or `5` (PS5). Optional `q` filters by title/code. Returns normalized `games[]` + POS `skus` map. `primary_status` / `secondary_status` are true only when that platform offer is available **and** stock > 0. 503 when `digital.enabled` is off. |

@@ -739,5 +739,27 @@
     "brandsTitle": "العلامات التجارية — {businessName}",
     "brandsDescription": "تصفح المنتجات حسب العلامة التجارية في {businessName}.",
     "brandDescription": "تسوق منتجات {name} من {businessName}."
+  },
+  "support": {
+    "open": "فتح محادثة الدعم",
+    "close": "إغلاق محادثة الدعم",
+    "title": "دعم Games Spot",
+    "subtitle": "مساعد ذكي — نقدر نحوّلك لموظف في أي وقت",
+    "tabCurrent": "الحالية",
+    "tabHistory": "السجل",
+    "newChat": "محادثة جديدة",
+    "loading": "جارٍ التحميل…",
+    "emptyCurrent": "اسأل عن الطلبات أو الصيانة أو التوصيل أو المنتجات.",
+    "emptyHistory": "مفيش محادثات سابقة لسه.",
+    "untitled": "محادثة",
+    "messageLabel": "رسالتك",
+    "placeholder": "اكتب سؤالك…",
+    "send": "إرسال",
+    "sending": "جارٍ الإرسال…",
+    "call": "اتصال",
+    "whatsapp": "واتساب",
+    "contactForm": "نموذج اتصل بنا",
+    "escalate": "تصعيد لفريق الدعم",
+    "errorGeneric": "حصلت مشكلة. جرّب تاني."
   }
 }

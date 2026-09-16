@@ -80,6 +80,19 @@ class AuthController extends StorefrontController
 
         $result = $this->authService->login($this->businessId($request), $data['login'], $data['password']);
 
+        $guestToken = $request->header('X-Support-Guest-Token');
+        if (is_string($guestToken) && $guestToken !== '' && ! empty($result['contact']['id'])) {
+            try {
+                app(\App\Services\Storefront\SupportChatService::class)->claimGuestConversations(
+                    $this->businessId($request),
+                    (int) $result['contact']['id'],
+                    $guestToken
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
         return $this->jsonSuccess($result);
     }
 

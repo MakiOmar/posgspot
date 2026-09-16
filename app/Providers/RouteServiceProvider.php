@@ -76,5 +76,11 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute(max(1, $perMinute))->by($request->ip());
         });
+
+        RateLimiter::for('storefront-support-chat', function (Request $request) {
+            $perMinute = (int) config('storefront.support_chat.rate_limit_per_minute', 30);
+
+            return Limit::perMinute(max(1, $perMinute))->by($request->ip());
+        });
     }
 }

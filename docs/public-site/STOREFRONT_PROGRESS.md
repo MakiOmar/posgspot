@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-09-16 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
-| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done** |
+| **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
 **Status legend:** ✅ Done · 🟡 Partial · ⬜ Not started
 
@@ -23,7 +23,7 @@
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry + Geidea) | ✅ | Pluggable gateway layer; Fawry hosted checkout; Geidea HPP session + webhook HMAC; one active provider |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
-| Automated tests | 🟡 API feature tests incl. checkout E2E + `CouponTest`; no Qwik tests |
+| Automated tests | 🟡 API feature tests incl. checkout E2E + `CouponTest` + `SupportChatTest`; no Qwik tests |
 
 ---
 
@@ -66,6 +66,7 @@
 | Bilingual storefront settings (announcement, sale badge, RP name) | ✅ | EN + AR fields on `/storefront/settings` only |
 | Wishlist API (list, add, remove, merge) | ✅ | `WishlistService`, `storefront_wishlist_items` |
 | Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
+| AI support chat | ✅ | `STOREFRONT_SUPPORT_CHAT` + OpenAI; conversations/messages; guest token + Sanctum; tools (orders/repairs/devices/catalog); CRM escalate when env assignee set; `SupportChatTest` |
 
 ---
 
@@ -88,7 +89,7 @@
 | `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security (password + social Connect/Disconnect), Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
-| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team` |
+| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating AI support widget when enabled |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); platform-strict stock; add primary/secondary → cart with digital meta; failed PDP shows retry (no silent redirect to list) |
@@ -227,7 +228,7 @@
 1. Returns / cancel order — **deferred** (product decisions: cancel eligibility + exchange-only policy vs RMA)
 2. Bosta webhooks / label download when live volume needs it; second courier (Aramex) later
 3. Mobile Phase 4 — Fawry RN SDK via Dev Client; EAS project IDs, store listings (Geidea native SDK 0.0.12 vendored — rebuild Dev Client)
-4. AI support assistant Phase A — scenarios: [`AI_SUPPORT_SCENARIOS.html`](./AI_SUPPORT_SCENARIOS.html); then chat API + Qwik widget + human handoff
+4. AI support — streaming replies; guest escalation path; tune CRM assignee defaults in production
 
 ---
 
@@ -235,6 +236,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | AI support chat v1: conversations API, OpenAI tools, CRM escalate, Qwik floating widget (Current/History), Expo `/support`, `SupportChatTest`. |
 | 2026-09-16 | Social login (Google/Facebook Socialite): identities table, web one-time exchange + mobile token, Qwik login/register/callback + Login & Security Connect/Disconnect. |
 | 2026-09-16 | AI support: Egyptian Arabic scenarios as RTL HTML (`AI_SUPPORT_SCENARIOS.html`); linked from storefront requirements Support section. |
 | 2026-09-15 | Fix cart inspect loop (no-op items reassign); soft shipping_notice + country-wide zone fallback so checkout rates load for EG governorates. |

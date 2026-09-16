@@ -114,6 +114,9 @@ export interface StoreSettings {
     google_enabled: boolean;
     facebook_enabled: boolean;
   };
+  support_chat?: {
+    enabled: boolean;
+  };
   locales: string[];
 }
 

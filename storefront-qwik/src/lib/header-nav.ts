@@ -9,6 +9,8 @@ export interface ResolvedNavChild {
   href?: string;
   disabled?: boolean;
   hint?: string;
+  /** Client action (e.g. open floating support chat). */
+  action?: "open-support-chat";
 }
 
 export interface ResolvedNavItem {
@@ -26,9 +28,10 @@ const HOTLINE = "17797";
  */
 export function buildMainNavLinks(
   lang: StoreLocaleCode,
-  options?: { digitalEnabled?: boolean; categories?: Category[] },
+  options?: { digitalEnabled?: boolean; categories?: Category[]; supportChatEnabled?: boolean },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
+  const supportChatEnabled = Boolean(options?.supportChatEnabled);
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
     href: category.slug
@@ -75,11 +78,16 @@ export function buildMainNavLinks(
       label: tStatic(lang, "nav.contact"),
       children: [
         { label: tStatic(lang, "nav.callUs"), href: `tel:${HOTLINE}` },
-        {
-          label: tStatic(lang, "nav.liveChat"),
-          disabled: true,
-          hint: tStatic(lang, "nav.comingSoon"),
-        },
+        supportChatEnabled
+          ? {
+              label: tStatic(lang, "nav.liveChat"),
+              action: "open-support-chat" as const,
+            }
+          : {
+              label: tStatic(lang, "nav.liveChat"),
+              disabled: true,
+              hint: tStatic(lang, "nav.comingSoon"),
+            },
         {
           label: tStatic(lang, "nav.leaveMessage"),
           href: localePath(lang, "/contact"),

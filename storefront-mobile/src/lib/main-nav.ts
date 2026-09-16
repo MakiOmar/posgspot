@@ -23,9 +23,10 @@ const HOTLINE = "17797";
  */
 export function buildMainNavLinks(
   locale: ContentLocale,
-  options?: { digitalEnabled?: boolean; categories?: Category[] },
+  options?: { digitalEnabled?: boolean; categories?: Category[]; supportChatEnabled?: boolean },
 ): MainNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
+  const supportChatEnabled = Boolean(options?.supportChatEnabled);
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
     href: `/category/${category.slug}`,
@@ -63,11 +64,13 @@ export function buildMainNavLinks(
       label: t(locale, "common.contact"),
       children: [
         { label: t(locale, "contact.callUs"), href: `tel:${HOTLINE}` },
-        {
-          label: t(locale, "contact.liveChat"),
-          disabled: true,
-          hint: t(locale, "contact.comingSoon"),
-        },
+        supportChatEnabled
+          ? { label: t(locale, "contact.liveChat"), href: "/support" }
+          : {
+              label: t(locale, "contact.liveChat"),
+              disabled: true,
+              hint: t(locale, "contact.comingSoon"),
+            },
         { label: t(locale, "contact.leaveMessage"), href: "/contact" },
       ],
     },

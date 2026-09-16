@@ -484,6 +484,9 @@ When checkout completes, the storefront must create a POS sale with at minimum:
 | **Transactional email** | Order confirm, shipped, delivered, password reset. | Must |
 | **SMS notifications** | Optional via Twilio for order updates. | Could |
 | **FAQ & self-service** | Reduce ticket volume. | Should |
+| **AI support assistant** | In-app chat (web + mobile) for deflection, order/repair tools, and CRM escalation (auth). | Done (v1) |
+
+**AI assistant scenarios (Egyptian Arabic):** [`AI_SUPPORT_SCENARIOS.html`](./AI_SUPPORT_SCENARIOS.html) — RTL HTML; customer intents, sample dialogues, and how the bot should help by phase (A/B/C).
 
 ---
 

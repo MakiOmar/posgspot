@@ -739,5 +739,27 @@
     "brandsTitle": "Brands — {businessName}",
     "brandsDescription": "Browse products by brand at {businessName}.",
     "brandDescription": "Shop {name} products at {businessName}."
+  },
+  "support": {
+    "open": "Open support chat",
+    "close": "Close support chat",
+    "title": "Games Spot support",
+    "subtitle": "AI assistant — we can hand you to a human anytime",
+    "tabCurrent": "Current",
+    "tabHistory": "History",
+    "newChat": "New chat",
+    "loading": "Loading…",
+    "emptyCurrent": "Ask about orders, repairs, delivery, or products.",
+    "emptyHistory": "No previous chats yet.",
+    "untitled": "Conversation",
+    "messageLabel": "Your message",
+    "placeholder": "Type your question…",
+    "send": "Send",
+    "sending": "Sending…",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "contactForm": "Contact form",
+    "escalate": "Escalate to team",
+    "errorGeneric": "Something went wrong. Please try again."
   }
 }

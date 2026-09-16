@@ -5,6 +5,7 @@ import {
   useHeaderDropdown,
 } from "~/lib/header-dropdown-context";
 import type { ResolvedNavItem } from "~/lib/header-nav";
+import { openSupportChatEvent } from "~/lib/support-chat";
 
 interface HeaderNavItemsProps {
   links: ResolvedNavItem[];
@@ -77,8 +78,21 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
               {isOpen ? (
                 <ul class="header-nav-dropdown__menu" role="menu">
                   {item.children.map((child) => (
-                    <li key={child.href || child.label} role="none">
-                      {child.disabled || !child.href ? (
+                    <li key={child.href || child.action || child.label} role="none">
+                      {child.action === "open-support-chat" ? (
+                        <button
+                          type="button"
+                          class="header-nav-dropdown__option"
+                          role="menuitem"
+                          onClick$={() => {
+                            openKey.value = null;
+                            closeHeaderDropdown(headerMenu, "nav");
+                            openSupportChatEvent();
+                          }}
+                        >
+                          {child.label}
+                        </button>
+                      ) : child.disabled || !child.href ? (
                         <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
                           {child.label}
                           {child.hint ? ` (${child.hint})` : ""}

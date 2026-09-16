@@ -31,3 +31,19 @@ Public client IDs in `storefront-mobile/.env` (never secrets):
 Scheme: `gamesspot` (see `app.json`). Register the AuthSession redirect URI in Google Cloud / Meta consoles.
 
 API contract: [`docs/public-site/API.md`](public-site/API.md) (Auth → social).
+
+## Storefront AI support chat
+
+| Variable | Purpose |
+|----------|---------|
+| `STOREFRONT_SUPPORT_CHAT` | Enable chat API + `settings.support_chat.enabled` (also needs `OPENAI_API_KEY`) |
+| `STOREFRONT_SUPPORT_CHAT_MODEL` | OpenAI chat model (default `gpt-4o-mini`) |
+| `STOREFRONT_SUPPORT_CHAT_RATE_LIMIT` | Per-IP requests/minute for `/support/*` (default `30`) |
+| `STOREFRONT_SUPPORT_ESCALATION_EMPLOYEE_ID` | CRM `employee_id` for AI-created escalations |
+| `STOREFRONT_SUPPORT_ESCALATION_LOCATION_ID` | CRM `location_id` |
+| `STOREFRONT_SUPPORT_ESCALATION_CREATED_BY` | CRM `created_by` user id |
+| `STOREFRONT_SUPPORT_ESCALATION_SOURCE_NAME` | Escalation source name (default `Storefront AI Chat`; auto-created when possible) |
+
+Config: `config/storefront.php` → `support_chat.*`, `config/openai.php`. Scenarios: [`docs/public-site/AI_SUPPORT_SCENARIOS.html`](public-site/AI_SUPPORT_SCENARIOS.html).
+
+Guests send `X-Support-Guest-Token` (UUID). Escalation to CRM requires a signed-in storefront customer.

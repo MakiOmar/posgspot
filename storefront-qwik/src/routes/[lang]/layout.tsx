@@ -4,6 +4,7 @@ import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
 import { MobileBottomNav } from "~/components/layout/mobile-bottom-nav";
 import { CookieConsentBanner } from "~/components/layout/cookie-consent-banner";
+import { SupportChatWidget } from "~/components/support/support-chat-widget";
 import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
 import {
   EMPTY_NAV_CATEGORIES,
@@ -171,6 +172,7 @@ export default component$(() => {
                 <SiteShellFooter />
                 <MobileBottomNav />
                 <CookieConsentBanner />
+                <SupportChatWidget />
               </div>
             )}
             </CartProvider>

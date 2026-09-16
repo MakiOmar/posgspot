@@ -3,6 +3,7 @@ import { Link } from "@builder.io/qwik-city";
 import { CloseIcon } from "~/components/icons";
 import type { ResolvedNavItem } from "~/lib/header-nav";
 import { tStatic, useI18n } from "~/lib/i18n/context";
+import { openSupportChatEvent } from "~/lib/support-chat";
 
 interface MobileNavDrawerProps {
   links: ResolvedNavItem[];
@@ -55,8 +56,19 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
                       <span class="side-drawer-group-label">{item.label}</span>
                       <ul class="side-drawer-sublist">
                         {item.children.map((child) => (
-                          <li key={child.href || child.label}>
-                            {child.disabled || !child.href ? (
+                          <li key={child.href || child.action || child.label}>
+                            {child.action === "open-support-chat" ? (
+                              <button
+                                type="button"
+                                class="side-drawer-link"
+                                onClick$={() => {
+                                  openSupportChatEvent();
+                                  onClose$();
+                                }}
+                              >
+                                {child.label}
+                              </button>
+                            ) : child.disabled || !child.href ? (
                               <span class="side-drawer-link side-drawer-link--disabled">
                                 {child.label}
                                 {child.hint ? ` (${child.hint})` : ""}

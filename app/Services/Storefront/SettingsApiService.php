@@ -100,6 +100,10 @@ class SettingsApiService
                 'google_enabled' => (bool) config('storefront.social_login.google.enabled'),
                 'facebook_enabled' => (bool) config('storefront.social_login.facebook.enabled'),
             ],
+            'support_chat' => [
+                'enabled' => (bool) config('storefront.support_chat.enabled')
+                    && filled(config('openai.api_key')),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }

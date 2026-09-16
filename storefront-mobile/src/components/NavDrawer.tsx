@@ -59,8 +59,11 @@ export function NavDrawer({ visible, onClose }: Props) {
       buildMainNavLinks(locale, {
         digitalEnabled: settings?.digital?.enabled !== false,
         categories,
+        supportChatEnabled: Boolean(
+          (settings as { support_chat?: { enabled?: boolean } } | null)?.support_chat?.enabled,
+        ),
       }),
-    [locale, settings?.digital?.enabled, categories],
+    [locale, settings, categories],
   );
 
   const loadCategories = useCallback(async () => {
