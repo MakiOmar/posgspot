@@ -12,7 +12,9 @@ Route::middleware('web', 'authh', 'SetSessionData', 'auth', 'language', 'timezon
     Route::get('contact-sells', [Modules\Crm\Http\Controllers\SellController::class, 'getSellList']);
     Route::get('contact-ledger', [Modules\Crm\Http\Controllers\LedgerController::class, 'index']);
     Route::get('contact-get-ledger', [Modules\Crm\Http\Controllers\LedgerController::class, 'getLedger']);
-    Route::resource('bookings', 'Modules\Crm\Http\Controllers\ContactBookingController');
+    // Namespaced names — Restaurant also registers Route::resource('bookings') as bookings.*
+    Route::resource('bookings', 'Modules\Crm\Http\Controllers\ContactBookingController')
+        ->names('contact.bookings');
     Route::resource('order-request', 'Modules\Crm\Http\Controllers\OrderRequestController');
     Route::get('products/list', [\App\Http\Controllers\ProductController::class, 'getProducts']);
     Route::get('order-request/get_product_row/{variation_id}/{location_id}', [Modules\Crm\Http\Controllers\OrderRequestController::class, 'getProductRow']);
