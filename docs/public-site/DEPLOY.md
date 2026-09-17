@@ -196,6 +196,8 @@ npm run build
 
 POS-only changes (settings, catalog, payments) usually need **no** shop rebuild — only Qwik/code or `PUBLIC_*` env changes do.
 
+**CSS / theme looks broken (Times New Roman, black page):** usually a UTF-8 BOM at the start of `src/global.css` survived into `dist/assets/*-style.css`, so the browser treats the first rule as `ï»¿ :root` and theme variables never apply. Rebuild from a BOM-free `global.css` (file must start with `/**` or `:root`, bytes `2F-2A` or `3A-72`), re-upload **both** `dist/` and `server/`, then `tmp/restart.txt`. Hard-refresh after deploy — the CSS filename hash changes every build.
+
 ---
 
 ## 7. Local development (not production)

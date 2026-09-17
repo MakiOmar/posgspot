@@ -206,6 +206,21 @@ function isExternalHref(href: string): boolean {
   return /^(https?:|mailto:)/i.test(href);
 }
 
+function linkHtml(href: string, label: string): string {
+  const attrs = isExternalHref(href)
+    ? ` target="_blank" rel="noopener noreferrer"`
+    : "";
+  return `<a href="${escapeAttr(href)}"${attrs}>${label}</a>`;
+}
+
+/** Plain-language contact mentions the model often writes without Markdown. */
+const CONTACT_PHRASE_RE =
+  /(?:زيارة\s+)?صفحة\s+(?:الاتصال|التواصل(?:\s+معنا)?)\s*(?:هنا)?|(?:visit\s+(?:the\s+)?)?contact\s+(?:page|form|us)\b/gi;
+
+/** Storefront paths the assistant may paste as bare text. */
+const BARE_PATH_RE =
+  /(?:^|[\s(])(\/(?:contact|faq|stores|repair-status|track-console|account\/orders)\/?)(?=[\s).,]|$)/g;
+
 function isPhoneCandidate(digits: string, hotlineDigits: string): boolean {
   if (!digits) return false;
   if (hotlineDigits && digits === hotlineDigits) return true;
@@ -231,6 +246,7 @@ export function formatSupportMessageHtml(
 
   const locale = opts?.locale || "en";
   const hotlineDigits = (opts?.hotline || "17797").replace(/\D+/g, "");
+  const contactHref = localePath(locale, "/contact");
   let text = escapeHtml(raw);
 
   const slots: string[] = [];
@@ -244,21 +260,32 @@ export function formatSupportMessageHtml(
   text = text.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, label: string, href: string) => {
     const safeHref = resolveSupportHref(href, locale);
     if (!safeHref) return label;
-    const attrs = isExternalHref(safeHref)
-      ? ` target="_blank" rel="noopener noreferrer"`
-      : "";
-    return park(`<a href="${escapeAttr(safeHref)}"${attrs}>${label}</a>`);
+    return park(linkHtml(safeHref, label));
+  });
+
+  // RTL / model quirk: (href)[label]
+  text = text.replace(/\(([^)\s]+)\)\[([^\]]+)\]/g, (_m, href: string, label: string) => {
+    const safeHref = resolveSupportHref(href, locale);
+    if (!safeHref) return label;
+    return park(linkHtml(safeHref, label));
   });
 
   // Bare http(s) URLs
   text = text.replace(/https?:\/\/[^\s<]+/gi, (url) => {
     const cleaned = url.replace(/[.,;:!?)]+$/, "");
     const trail = url.slice(cleaned.length);
-    return (
-      park(
-        `<a href="${escapeAttr(cleaned)}" target="_blank" rel="noopener noreferrer">${cleaned}</a>`,
-      ) + trail
-    );
+    return park(linkHtml(cleaned, cleaned)) + trail;
+  });
+
+  // Plain "صفحة الاتصال هنا" / "contact page" (no markdown)
+  text = text.replace(CONTACT_PHRASE_RE, (phrase) => park(linkHtml(contactHref, phrase)));
+
+  // Bare storefront paths like /contact
+  text = text.replace(BARE_PATH_RE, (full, path: string) => {
+    const safeHref = resolveSupportHref(path, locale);
+    if (!safeHref) return full;
+    const prefix = full.slice(0, full.length - path.length);
+    return prefix + park(linkHtml(safeHref, path));
   });
 
   // Phone numbers (after links so we do not touch digits inside hrefs)

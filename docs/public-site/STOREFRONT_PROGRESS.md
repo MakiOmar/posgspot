@@ -236,6 +236,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-16 | Support chat: auto-link plain “صفحة الاتصال هنا” / contact phrases + require Markdown links in AI prompt. |
 | 2026-09-16 | AI support `get_order_detail`: resolve customer-facing invoice_no / storefront_order_id (not only transaction id). |
 | 2026-09-16 | Support chat bubbles: render markdown links + clickable `tel:` phones (hotline). |
 | 2026-09-16 | Support chat dark redesign (brand header, chips, accent bubbles) + deploy docs. |
