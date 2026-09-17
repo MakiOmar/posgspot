@@ -40,7 +40,11 @@ Env: `EXPO_PUBLIC_API_BASE` (Laravel origin, no trailing slash). Feature flags f
 | Auth / account | `/login`, `/register`, `/(tabs)/account/*`, `/account/security`, `/account/payments`, `/account/invoice` | auth + social OAuth, Login & Security (password/passkey/social), Payments & Payouts, invoice **PDF download** (share/save sheet) |
 | Wishlist | `/wishlist` | wishlist |
 | Games / cards | `/games`, `/games/[id]`, `/gift-cards` | digital catalog |
-| Stores / contact / repair | `/stores`, `/contact`, `/repair-status` | locations, contact, repair |
+| Stores / contact / repair | `/stores`, `/contact`, `/repair-status`, `/track-console` | locations, contact, repair, device track |
+| Services | `/track-order`, `/repair-truck-request` | `POST /track-order`; truck coming soon |
+| Community | `/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | `GET /community/posts` (flag) |
+| Request a product | `/request-a-product` | `GET/POST /request-product/*` (flag) |
+| Shop extras | `/custom-bundle`, `/sell-to-us` | notices when flags on (full builders web-first) |
 | Content | `/about`, `/faq`, `/legal/[slug]` | static + settings |
 
 ## Client patterns (parity with Qwik)

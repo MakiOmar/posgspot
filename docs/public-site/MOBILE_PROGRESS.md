@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-09-17 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Digital games grid + auth-gated repair/console tracking |
+| **Overall** | Shop/Services/Community nav; Track Order; Community CMS; Request a product; digital + auth-gated repair/console |
 
 **Status legend:** Done · Partial · Not started
 
@@ -38,11 +38,15 @@
 | Profile avatar upload + welcome/header display | Done |
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`; track-console in-app) |
 | AI support chat (`/support`, Current/History) | Done — same Storefront API as Qwik; SecureStore guest token |
-| Custom Bundle screen | Not started — API ready: `GET /custom-bundle/meta` + `/products` (`STOREFRONT_CUSTOM_BUNDLE`); add lines via existing cart → checkout |
-| Sell to us / trade-in screen | Not started — API ready: `GET /sell-to-us/meta`, `POST /sell-to-us/verify-invoice`, `POST /sell-to-us/requests` (`STOREFRONT_SELL_TO_US`) |
+| Custom Bundle screen | Partial — notice screen + nav when `STOREFRONT_CUSTOM_BUNDLE`; full builder still web |
+| Sell to us / trade-in screen | Partial — notice + login hint when `STOREFRONT_SELL_TO_US`; full form still web |
+| Track order | Done — guest lookup + signed-in recent orders |
+| Community (tournaments / events / news) | Done — lists + detail; gated by `STOREFRONT_COMMUNITY` |
+| Request a product | Done — form + API; gated by `STOREFRONT_REQUEST_PRODUCT` |
+| Repair truck request | Done — coming-soon placeholder |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
-| Header nav drawer (menu + categories + language) | Done | Consoles dropdown = POS categories except digital/gift-card; bottom tab label is Shop |
+| Header nav drawer (menu + categories + language) | Done | Shop / Services / Community IA (parity with Qwik) |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
 | Star ratings on cards + PDP | Done |
@@ -84,6 +88,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Nav IA Shop/Services/Community; Track Order; Community CMS screens; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
 | 2026-09-17 | Sell to us: shared API documented; Expo UI still Not started (reuse `/sell-to-us/*`). |
 | 2026-09-17 | Custom Bundle: shared API documented; Expo UI still Not started (reuse `/custom-bundle/*` + cart). |
 | 2026-09-16 | AI support chat: `/support` screen (Current/History), guest SecureStore token, Live chat nav when enabled. |

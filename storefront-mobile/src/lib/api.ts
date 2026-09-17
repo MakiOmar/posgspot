@@ -811,3 +811,85 @@ export function checkDigitalCardStock(
     locale,
   );
 }
+
+/** Guest order lookup by invoice + phone or email. */
+export function trackOrderLookup(
+  payload: { invoice_no: string; phone?: string; email?: string },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<import("./types").TrackedOrder>(
+    "/track-order",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+export function fetchCommunityPosts(
+  params: {
+    type?: import("./types").CommunityPostType;
+    scope?: "upcoming" | "previous";
+  } = {},
+  locale?: ContentLocale,
+) {
+  const qs = new URLSearchParams();
+  if (params.type) qs.set("type", params.type);
+  if (params.scope) qs.set("scope", params.scope);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return storefrontFetch<import("./types").CommunityPostSummary[]>(
+    `/community/posts${suffix}`,
+    {},
+    locale,
+  );
+}
+
+export function fetchCommunityPost(slug: string, locale?: ContentLocale) {
+  return storefrontFetch<import("./types").CommunityPostDetail>(
+    `/community/posts/${encodeURIComponent(slug)}`,
+    {},
+    locale,
+  );
+}
+
+export function fetchRequestProductMeta(locale?: ContentLocale) {
+  return storefrontFetch<import("./types").RequestProductMeta>(
+    "/request-product/meta",
+    {},
+    locale,
+  );
+}
+
+export function submitRequestProduct(
+  payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    dial_code?: string;
+    product_name: string;
+    platform?: string;
+    notes?: string;
+    turnstile_token?: string;
+  },
+  token?: string | null,
+) {
+  return storefrontFetch<{ id: number; status: string; product_name: string }>(
+    "/request-product/requests",
+    {
+      method: "POST",
+      headers: token ? authHeaders(token) : undefined,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function fetchSellToUsMeta(locale?: ContentLocale) {
+  return storefrontFetch<Record<string, unknown>>("/sell-to-us/meta", {}, locale);
+}
+
+export function fetchCustomBundleMeta(locale?: ContentLocale, platform?: string) {
+  const qs = platform ? `?platform=${encodeURIComponent(platform)}` : "";
+  return storefrontFetch<Record<string, unknown>>(
+    `/custom-bundle/meta${qs}`,
+    {},
+    locale,
+  );
+}

@@ -102,10 +102,10 @@
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE` |
 | `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo API-ready |
-| `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders` |
-| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; gated by `STOREFRONT_COMMUNITY`; upcoming/previous for tourneys/events |
-| `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile; gated by `STOREFRONT_REQUEST_PRODUCT` |
-| `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (no form in v1) |
+| `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders`; Expo `/track-order` |
+| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; gated by `STOREFRONT_COMMUNITY`; Expo lists/details |
+| `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
+| `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Expo: Shop/Services/Community nav parity; Track Order; Community lists/details; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
 | 2026-09-17 | Nav IA: Shop mega + Services + Community; Track Order API/page; Community Qwik pages; Request a product Qwik page; `TrackOrderTest`. |
 | 2026-09-17 | Sell to us trade-in: `STOREFRONT_SELL_TO_US` + API verify/create + Qwik `/sell-to-us` + POS sell-requests + notify email. |
 | 2026-09-17 | Community CMS + Request a product: env flags, storefront API, POS admin, notify email setting, feature tests. |

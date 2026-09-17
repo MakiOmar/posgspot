@@ -59,9 +59,11 @@ export function NavDrawer({ visible, onClose }: Props) {
       buildMainNavLinks(locale, {
         digitalEnabled: settings?.digital?.enabled !== false,
         categories,
-        supportChatEnabled: Boolean(
-          (settings as { support_chat?: { enabled?: boolean } } | null)?.support_chat?.enabled,
-        ),
+        supportChatEnabled: Boolean(settings?.support_chat?.enabled),
+        customBundleEnabled: Boolean(settings?.custom_bundle?.enabled),
+        sellToUsEnabled: Boolean(settings?.sell_to_us?.enabled),
+        communityEnabled: Boolean(settings?.community?.enabled),
+        requestProductEnabled: Boolean(settings?.request_product?.enabled),
       }),
     [locale, settings, categories],
   );

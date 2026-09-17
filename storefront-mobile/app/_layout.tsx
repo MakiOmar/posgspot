@@ -95,6 +95,24 @@ export default function RootLayout() {
                 <Stack.Screen name="contact" options={{ title: "Contact" }} />
                 <Stack.Screen name="support" options={{ title: "Support" }} />
                 <Stack.Screen name="repair-status" options={{ title: "Repair" }} />
+                <Stack.Screen name="track-console" options={{ title: "Track console" }} />
+                <Stack.Screen name="track-order" options={{ title: "Track order" }} />
+                <Stack.Screen
+                  name="repair-truck-request"
+                  options={{ title: "Repair truck" }}
+                />
+                <Stack.Screen
+                  name="request-a-product"
+                  options={{ title: "Request a product" }}
+                />
+                <Stack.Screen name="tournaments/index" options={{ title: "Tournaments" }} />
+                <Stack.Screen name="tournaments/[slug]" options={{ title: "Tournament" }} />
+                <Stack.Screen name="events/index" options={{ title: "Events" }} />
+                <Stack.Screen name="events/[slug]" options={{ title: "Event" }} />
+                <Stack.Screen name="gaming-news/index" options={{ title: "Gaming news" }} />
+                <Stack.Screen name="gaming-news/[slug]" options={{ title: "News" }} />
+                <Stack.Screen name="custom-bundle" options={{ title: "Custom bundle" }} />
+                <Stack.Screen name="sell-to-us" options={{ title: "Sell to us" }} />
                 <Stack.Screen name="about" options={{ title: "About" }} />
                 <Stack.Screen name="faq" options={{ title: "FAQ" }} />
                 <Stack.Screen name="legal/[slug]" options={{ title: "Legal" }} />
