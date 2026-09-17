@@ -95,4 +95,14 @@ return [
         'escalation_source_name' => (string) env('STOREFRONT_SUPPORT_ESCALATION_SOURCE_NAME', 'Storefront AI Chat'),
     ],
 
+    /*
+    | Custom Bundle builder (physical catalog only). Web + mobile share
+    | GET /custom-bundle/* when enabled.
+    */
+    'custom_bundle' => [
+        'enabled' => filter_var(env('STOREFRONT_CUSTOM_BUNDLE', false), FILTER_VALIDATE_BOOLEAN),
+        'min_items' => max(1, (int) env('STOREFRONT_CUSTOM_BUNDLE_MIN_ITEMS', 2)),
+        'max_items' => max(1, (int) env('STOREFRONT_CUSTOM_BUNDLE_MAX_ITEMS', 15)),
+    ],
+
 ];

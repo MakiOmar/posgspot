@@ -40,6 +40,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
     digitalEnabled: settings.digital?.enabled !== false,
     categories,
     supportChatEnabled: settings.support_chat?.enabled === true,
+    customBundleEnabled: settings.custom_bundle?.enabled === true,
   });
   const categoriesOpen = headerMenu.openId === "categories";
   const mobileNavOpen = headerMenu.openId === "mobileNav";

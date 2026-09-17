@@ -117,6 +117,12 @@ export interface StoreSettings {
   support_chat?: {
     enabled: boolean;
   };
+  /** Physical custom-bundle builder (env STOREFRONT_CUSTOM_BUNDLE). */
+  custom_bundle?: {
+    enabled: boolean;
+    min_items?: number;
+    max_items?: number;
+  };
   locales: string[];
 }
 
@@ -276,6 +282,15 @@ export interface ProductSummary {
   in_stock: boolean;
   rating_average?: number;
   rating_count?: number;
+}
+
+/** GET /custom-bundle/meta */
+export interface CustomBundleMeta {
+  enabled: boolean;
+  min_items: number;
+  max_items: number;
+  platforms: Array<{ id: string; label: string }>;
+  tabs: Array<{ id: string; label: string }>;
 }
 
 export interface ProductVariation {

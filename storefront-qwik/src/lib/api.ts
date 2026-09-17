@@ -18,6 +18,7 @@ import type {
   Category,
   CheckoutOrder,
   CouponApplyResult,
+  CustomBundleMeta,
   PaymentReturnResult,
   PaymentSession,
   ProductAvailability,
@@ -255,6 +256,50 @@ export async function fetchProductsPage(
 
 export function fetchProduct(idOrSlug: string, locale?: string) {
   return storefrontFetch<ProductDetail>(`/products/${encodeURIComponent(idOrSlug)}`, {}, locale);
+}
+
+/** Custom Bundle builder meta (platforms, tabs, min/max). */
+export function fetchCustomBundleMeta(locale?: string) {
+  return storefrontFetch<CustomBundleMeta>("/custom-bundle/meta", {}, locale);
+}
+
+/** Physical in-stock products for the Custom Bundle picker. */
+export async function fetchCustomBundleProducts(
+  params: {
+    platform: string;
+    tab?: string;
+    q?: string;
+    page?: number;
+    per_page?: number;
+  },
+  locale?: string,
+) {
+  const qs = new URLSearchParams();
+  qs.set("platform", params.platform);
+  if (params.tab) qs.set("tab", params.tab);
+  if (params.q) qs.set("q", params.q);
+  if (params.page) qs.set("page", String(params.page));
+  if (params.per_page) qs.set("per_page", String(params.per_page));
+  const contentLocale = locale ?? activeContentLocale;
+  const url = `${API_BASE}${PREFIX}/custom-bundle/products?${qs.toString()}`;
+  const response = await fetch(url, {
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "X-Content-Locale": contentLocale,
+    },
+  });
+  const json = (await response.json()) as ApiEnvelope<ProductSummary[]>;
+  if (!response.ok || !json.success) {
+    throw new ApiError(
+      response.status,
+      (json as { message?: string }).message || "Failed to load bundle products",
+    );
+  }
+  return {
+    data: json.data,
+    meta: json.meta as unknown as ProductsMeta & { min_items?: number; max_items?: number },
+  };
 }
 
 export async function fetchProductReviews(

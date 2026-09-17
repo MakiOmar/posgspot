@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-16 |
+| **Last updated** | 2026-09-17 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Digital games grid + auth-gated repair/console tracking |
 
@@ -38,6 +38,7 @@
 | Profile avatar upload + welcome/header display | Done |
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`; track-console in-app) |
 | AI support chat (`/support`, Current/History) | Done — same Storefront API as Qwik; SecureStore guest token |
+| Custom Bundle screen | Not started — API ready: `GET /custom-bundle/meta` + `/products` (`STOREFRONT_CUSTOM_BUNDLE`); add lines via existing cart → checkout |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
 | Header nav drawer (menu + categories + language) | Done | Consoles dropdown = POS categories except digital/gift-card; bottom tab label is Shop |
@@ -82,6 +83,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Custom Bundle: shared API documented; Expo UI still Not started (reuse `/custom-bundle/*` + cart). |
 | 2026-09-16 | AI support chat: `/support` screen (Current/History), guest SecureStore token, Live chat nav when enabled. |
 | 2026-09-16 | Social login: `expo-auth-session` Google/Facebook → `POST /auth/social/{provider}/token`; Connect/Disconnect on Login & Security; `social_login` settings flags. |
 | 2026-09-16 | Invoice: download POS receipt as PDF via share/save sheet (no WebView browse/print). |

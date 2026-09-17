@@ -49,3 +49,15 @@ API contract: [`docs/public-site/API.md`](public-site/API.md) (Auth → social).
 Config: `config/storefront.php` → `support_chat.*`, `config/openai.php`. Scenarios: [`docs/public-site/AI_SUPPORT_SCENARIOS.html`](public-site/AI_SUPPORT_SCENARIOS.html).
 
 Guests send `X-Support-Guest-Token` (UUID). Escalation to CRM requires a signed-in storefront customer.
+
+## Storefront Custom Bundle
+
+Physical-only “build a console package” flow (web `/[lang]/custom-bundle`; Expo can reuse the same API later).
+
+| Variable | Purpose |
+|----------|---------|
+| `STOREFRONT_CUSTOM_BUNDLE` | Enable API + `settings.custom_bundle.enabled` (default `false`) |
+| `STOREFRONT_CUSTOM_BUNDLE_MIN_ITEMS` | Min selected lines before checkout (default `2`) |
+| `STOREFRONT_CUSTOM_BUNDLE_MAX_ITEMS` | Max selected lines (default `15`) |
+
+Config: `config/storefront.php` → `custom_bundle.*`. Contract: [`docs/public-site/API.md`](public-site/API.md) (Custom Bundle).

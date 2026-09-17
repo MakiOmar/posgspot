@@ -55,12 +55,24 @@ Public `GET /settings` also exposes:
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 - `about.team[]` — `{ name, role, image_url, social }` for the About page team rail (**Storefront Settings → About team**: photo upload or URL, EN/AR role, social URLs)
 - `favicon_url` — absolute URL for the browser tab icon (**Storefront Settings → Appearance → Favicon**); null when unset (Qwik falls back to `/favicon.svg`)
-- `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object). Public response always includes Customer → **Delete Account** (`/delete-account`) when missing from saved settings.
+- `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object). Public response always includes Customer → **Delete Account** (`/delete-account`) when missing from saved settings, and **Custom Bundle** (`/custom-bundle`) when `STOREFRONT_CUSTOM_BUNDLE` is enabled.
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 - `social_login.google_enabled`, `social_login.facebook_enabled` — env-driven OAuth (Socialite); never secrets
 - `support_chat.enabled` — env `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` (never the API key itself)
+- `custom_bundle.enabled`, `custom_bundle.min_items`, `custom_bundle.max_items` — env `STOREFRONT_CUSTOM_BUNDLE` (+ optional min/max). Physical-only bundle builder; when enabled, Customer footer may include `/custom-bundle`.
+
+### Custom Bundle
+
+Physical catalog builder shared by web (`/[lang]/custom-bundle`) and future Expo. **No digital games or gift cards.** Submit maps to normal cart lines `{ variation_id, quantity }` → existing `/cart/validate` + `/checkout`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/custom-bundle/meta` | Platforms, tabs, `min_items` / `max_items`. **404** when feature disabled. |
+| GET | `/custom-bundle/products` | Query: `platform=ps4\|ps5` (required), `tab=all\|consoles\|accessories\|games`, `q`, `page`, `per_page`. Same product-summary rows as `GET /products`; in-stock only; excludes digital/gift-card categories. Meta includes pagination + min/max. **404** when disabled. |
+
+Clients must pick a variation when `has_options` is true (same as PDP). Selection count should stay within `min_items`–`max_items` before adding to cart.
 
 ### Homepage sections (`GET /homepage`)
 
@@ -160,6 +172,8 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
 | GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
+| GET | `/custom-bundle/meta` | Bundle builder meta (platforms, tabs, min/max). Requires `STOREFRONT_CUSTOM_BUNDLE`. See Custom Bundle section. |
+| GET | `/custom-bundle/products` | Physical in-stock products for bundle builder (`platform`, `tab`, `q`). See Custom Bundle section. |
 | GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). `images[]` prefers POS **product gallery** media (`model_media_type=product_gallery`) when any exist; otherwise main `image_url` (+ image-like media, excluding brochure). Variation `images[]` still override on the PDP when present. Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. Brand object includes `slug` when available. |
 | GET | `/products/{idOrSlug}/reviews` | Approved reviews only (paginated). Each item: `id`, `rating`, `title`, `body`, `is_verified_purchase`, `author_name` (masked), timestamps. |
 | GET | `/products/{idOrSlug}/reviews/eligibility` | **Auth required.** `{ can_review, already_reviewed, reason }` — reasons: `not_purchased`, `pending`, `already_reviewed`, `not_found`. |

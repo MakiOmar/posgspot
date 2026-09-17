@@ -28,10 +28,16 @@ const HOTLINE = "17797";
  */
 export function buildMainNavLinks(
   lang: StoreLocaleCode,
-  options?: { digitalEnabled?: boolean; categories?: Category[]; supportChatEnabled?: boolean },
+  options?: {
+    digitalEnabled?: boolean;
+    categories?: Category[];
+    supportChatEnabled?: boolean;
+    customBundleEnabled?: boolean;
+  },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
   const supportChatEnabled = Boolean(options?.supportChatEnabled);
+  const customBundleEnabled = Boolean(options?.customBundleEnabled);
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
     href: category.slug
@@ -39,15 +45,26 @@ export function buildMainNavLinks(
       : localePath(lang, `/products?category_id=${category.id}`),
   }));
 
+  const consoleItem: ResolvedNavItem = {
+    label: tStatic(lang, "nav.consoles"),
+    children: [
+      { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
+      ...consoleChildren,
+    ],
+  };
+  if (customBundleEnabled) {
+    consoleItem.children = [
+      ...(consoleItem.children ?? []),
+      {
+        label: tStatic(lang, "nav.customBundle"),
+        href: localePath(lang, "/custom-bundle"),
+      },
+    ];
+  }
+
   const items: ResolvedNavItem[] = [
     { label: tStatic(lang, "nav.home"), href: localePath(lang, "/") },
-    {
-      label: tStatic(lang, "nav.consoles"),
-      children: [
-        { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
-        ...consoleChildren,
-      ],
-    },
+    consoleItem,
   ];
 
   if (digitalEnabled) {

@@ -96,6 +96,7 @@
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
+| `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE` |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
@@ -139,13 +140,13 @@
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
-| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | Consoles is a category dropdown (excludes digital/gift-card catalog); Digital games stays PS4/PS5 |
+| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | Consoles is a category dropdown (excludes digital/gift-card catalog) + Custom Bundle when `STOREFRONT_CUSTOM_BUNDLE`; Digital games stays PS4/PS5 |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | 4-col footer: locations (`GET /locations`) + social/WhatsApp; 3 editable menus from `settings.footer` |
-| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; Customer menu includes Delete Account → `/delete-account` (ensured on public `GET /settings`); newsletter + `payment_icons` in bottom bar |
+| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; Customer menu includes Delete Account → `/delete-account` and Custom Bundle → `/custom-bundle` when enabled; newsletter + `payment_icons` in bottom bar |
 | Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
 ---
@@ -237,6 +238,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Custom Bundle: `STOREFRONT_CUSTOM_BUNDLE` + `/custom-bundle/meta|products` API + Qwik `/[lang]/custom-bundle` (physical → cart → checkout). |
 | 2026-09-17 | Public `/[lang]/delete-account` how-to + Customer footer link (defaults + public settings ensure). |
 | 2026-09-17 | Qwik account Login & Security: Delete my account (calls `POST /account/delete-request`). |
 | 2026-09-16 | Support chat: auto-link plain “صفحة الاتصال هنا” / contact phrases + require Markdown links in AI prompt. |

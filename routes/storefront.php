@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Storefront\CategoryController;
 use App\Http\Controllers\Api\Storefront\CheckoutController;
 use App\Http\Controllers\Api\Storefront\ContactController;
 use App\Http\Controllers\Api\Storefront\CouponController;
+use App\Http\Controllers\Api\Storefront\CustomBundleController;
 use App\Http\Controllers\Api\Storefront\CustomerRegistrationController;
 use App\Http\Controllers\Api\Storefront\DeviceController;
 use App\Http\Controllers\Api\Storefront\DeviceTrackController;
@@ -61,6 +62,9 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/products/{idOrSlug}', [ProductController::class, 'show']);
     Route::get('/products/{productId}/availability', [AvailabilityController::class, 'show']);
     Route::get('/search', [SearchController::class, 'index']);
+
+    Route::get('/custom-bundle/meta', [CustomBundleController::class, 'meta']);
+    Route::get('/custom-bundle/products', [CustomBundleController::class, 'products']);
 
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);

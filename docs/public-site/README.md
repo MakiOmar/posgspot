@@ -231,7 +231,7 @@ Features every visitor should have without signing in.
 |------|-------------------|
 | **Single product** | Simple add-to-cart. |
 | **Variable product** | Select options (e.g. platform, edition, region); price/stock per variation. |
-| **Combo / bundle** | Show included items and bundle price; validate component stock. |
+| **Combo / bundle** | Show included items and bundle price; validate component stock. **Also:** Custom Bundle builder (`/[lang]/custom-bundle`) lets shoppers multi-select physical products (no digital/gift cards) and add them to cart at list prices — see API Custom Bundle. |
 | **Digital / service** | No shipping; instant or email delivery workflow. |
 | **Subscription** (if used) | Recurring billing UI tied to POS subscription module. |
 

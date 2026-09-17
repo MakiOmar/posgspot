@@ -104,6 +104,11 @@ class SettingsApiService
                 'enabled' => (bool) config('storefront.support_chat.enabled')
                     && filled(config('openai.api_key')),
             ],
+            'custom_bundle' => [
+                'enabled' => (bool) config('storefront.custom_bundle.enabled'),
+                'min_items' => (int) config('storefront.custom_bundle.min_items', 2),
+                'max_items' => (int) config('storefront.custom_bundle.max_items', 15),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }
@@ -267,8 +272,10 @@ class SettingsApiService
      */
     private function footerPayload(array $settings, string $locale): array
     {
-        $footer = $this->storefrontSettings->ensureDeleteAccountFooterLink(
-            $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
+        $footer = $this->storefrontSettings->ensureCustomBundleFooterLink(
+            $this->storefrontSettings->ensureDeleteAccountFooterLink(
+                $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
+            )
         );
         $columns = [];
         foreach ($footer['columns'] as $col) {

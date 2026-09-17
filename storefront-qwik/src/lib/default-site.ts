@@ -30,6 +30,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
           { id: "lnk_orders", label: "Track My Order", url: "/account/orders" },
           { id: "lnk_returns", label: "Return Policy", url: "/return-policy" },
           { id: "lnk_delete_account", label: "Delete Account", url: "/delete-account" },
+          { id: "lnk_custom_bundle", label: "Custom Bundle", url: "/custom-bundle" },
         ],
       },
       {
@@ -57,6 +58,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
   couriers: { bosta: { enabled: false } },
   repair: { lookup_enabled: true, lookup_by_mobile: true },
   support_chat: { enabled: false },
+  custom_bundle: { enabled: false, min_items: 2, max_items: 15 },
   locales: ["en"],
 };
 

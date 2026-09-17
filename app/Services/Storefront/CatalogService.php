@@ -249,11 +249,33 @@ class CatalogService
         $query = $this->baseProductQuery($businessId, $locationIds);
         $this->applyLocaleProductFilter($query, $locale);
 
-        if (! empty($filters['category_id'])) {
+        if (! empty($filters['category_ids']) && is_array($filters['category_ids'])) {
+            $categoryIds = array_values(array_unique(array_filter(array_map('intval', $filters['category_ids']))));
+            if ($categoryIds === []) {
+                return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            }
+            $query->where(function (Builder $q) use ($categoryIds) {
+                $q->whereIn('products.category_id', $categoryIds)
+                    ->orWhereIn('products.sub_category_id', $categoryIds);
+            });
+        } elseif (! empty($filters['category_id'])) {
             $query->where(function (Builder $q) use ($filters) {
                 $q->where('products.category_id', $filters['category_id'])
                     ->orWhere('products.sub_category_id', $filters['category_id']);
             });
+        }
+
+        if (! empty($filters['exclude_category_ids']) && is_array($filters['exclude_category_ids'])) {
+            $excludeIds = array_values(array_unique(array_filter(array_map('intval', $filters['exclude_category_ids']))));
+            if ($excludeIds !== []) {
+                $query->where(function (Builder $q) use ($excludeIds) {
+                    $q->whereNotIn('products.category_id', $excludeIds)
+                        ->where(function (Builder $inner) use ($excludeIds) {
+                            $inner->whereNull('products.sub_category_id')
+                                ->orWhereNotIn('products.sub_category_id', $excludeIds);
+                        });
+                });
+            }
         }
 
         if (! empty($filters['brand_id'])) {
