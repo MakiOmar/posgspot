@@ -31,6 +31,9 @@ import type {
   RewardPointsValidation,
   SavedCoupon,
   SearchHit,
+  SellToUsMeta,
+  SellToUsRequestResult,
+  SellToUsVerifyResult,
   StoreLocation,
   StoreSettings,
   UsedCoupon,
@@ -262,6 +265,29 @@ export function fetchProduct(idOrSlug: string, locale?: string) {
 export function fetchCustomBundleMeta(locale?: string, platform?: string) {
   const qs = platform ? `?platform=${encodeURIComponent(platform)}` : "";
   return storefrontFetch<CustomBundleMeta>(`/custom-bundle/meta${qs}`, {}, locale);
+}
+
+/** Sell to us / trade-in form options. */
+export function fetchSellToUsMeta(locale?: string) {
+  return storefrontFetch<SellToUsMeta>(`/sell-to-us/meta`, {}, locale);
+}
+
+/** Verify an invoice belongs to the signed-in customer. */
+export function verifySellToUsInvoice(token: string, invoiceNo: string) {
+  return storefrontFetch<SellToUsVerifyResult>(`/sell-to-us/verify-invoice`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ invoice_no: invoiceNo }),
+  });
+}
+
+/** Submit a trade-in request (multipart when photos are attached). */
+export function submitSellToUsRequest(token: string, form: FormData) {
+  return storefrontFetch<SellToUsRequestResult>(`/sell-to-us/requests`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: form,
+  });
 }
 
 /** Physical in-stock products for the Custom Bundle picker. */

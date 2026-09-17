@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Storefront\ProductController;
 use App\Http\Controllers\Api\Storefront\ProductReviewController;
 use App\Http\Controllers\Api\Storefront\RepairStatusController;
 use App\Http\Controllers\Api\Storefront\SearchController;
+use App\Http\Controllers\Api\Storefront\SellToUsController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
 use App\Http\Controllers\Api\Storefront\SocialAuthController;
 use App\Http\Controllers\Api\Storefront\SupportChatController;
@@ -65,6 +66,8 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::get('/custom-bundle/meta', [CustomBundleController::class, 'meta']);
     Route::get('/custom-bundle/products', [CustomBundleController::class, 'products']);
+
+    Route::get('/sell-to-us/meta', [SellToUsController::class, 'meta']);
 
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
@@ -127,6 +130,9 @@ Route::prefix('storefront/v1')->group(function () {
 
         Route::get('/products/{idOrSlug}/reviews/eligibility', [ProductReviewController::class, 'eligibility']);
         Route::post('/products/{idOrSlug}/reviews', [ProductReviewController::class, 'store']);
+
+        Route::post('/sell-to-us/verify-invoice', [SellToUsController::class, 'verifyInvoice']);
+        Route::post('/sell-to-us/requests', [SellToUsController::class, 'store']);
     });
 
     Route::middleware('auth:sanctum')->prefix('account')->group(function () {

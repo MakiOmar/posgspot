@@ -61,3 +61,17 @@ Physical-only “build a console package” flow (web `/[lang]/custom-bundle`; E
 | `STOREFRONT_CUSTOM_BUNDLE_MAX_ITEMS` | Max selected lines (default `15`) |
 
 Config: `config/storefront.php` → `custom_bundle.*`. Contract: [`docs/public-site/API.md`](public-site/API.md) (Custom Bundle).
+
+## Storefront Sell to us (trade-in)
+
+Logged-in customers submit trade-in requests (digital account / disc / device). Optional invoice verify against their orders. Staff get a POS list plus email.
+
+| Variable | Purpose |
+|----------|---------|
+| `STOREFRONT_SELL_TO_US` | Enable API + `settings.sell_to_us.enabled` (default `false`) |
+| `STOREFRONT_SELL_TO_US_MAX_PHOTOS` | Max photos per device request (default `6`) |
+| `STOREFRONT_SELL_TO_US_MAX_PHOTO_KB` | Max size per photo in KB (default `4096`) |
+
+Notify inbox: **Storefront Settings → Contact → Sell to us notify email** (`settings.sell_to_us.notify_email`; falls back to contact form inbox).
+
+Config: `config/storefront.php` → `sell_to_us.*`. Contract: [`docs/public-site/API.md`](public-site/API.md) (Sell to us).

@@ -123,6 +123,10 @@ export interface StoreSettings {
     min_items?: number;
     max_items?: number;
   };
+  /** Sell to us / trade-in (env STOREFRONT_SELL_TO_US). */
+  sell_to_us?: {
+    enabled: boolean;
+  };
   locales: string[];
 }
 
@@ -291,6 +295,43 @@ export interface CustomBundleMeta {
   max_items: number;
   platforms: Array<{ id: string; label: string }>;
   tabs: Array<{ id: string; label: string }>;
+}
+
+/** GET /sell-to-us/meta */
+export interface SellToUsMeta {
+  enabled: boolean;
+  types: Array<{ id: string; label: string }>;
+  cities: Array<{ id: string; label: string }>;
+  platforms: Array<{ id: string; label: string }>;
+  device_models: Array<{ id: string; label: string }>;
+  storage_options: Array<{ id: string; label: string }>;
+  conditions: Array<{ id: string; label: string }>;
+  purchased_from_us: {
+    invoice_required_when_yes: boolean;
+    verify_required_when_yes: boolean;
+  };
+  max_photos: number;
+  max_photo_kb: number;
+}
+
+export type SellToUsType = "account" | "disc" | "device";
+
+export interface SellToUsVerifyResult {
+  valid: boolean;
+  order: {
+    id: number;
+    invoice_no: string | null;
+    storefront_order_id: string | null;
+    final_total: number | null;
+    created_at: string | null;
+  } | null;
+}
+
+export interface SellToUsRequestResult {
+  id: number;
+  type: SellToUsType;
+  status: string;
+  photos: Array<{ id: number; url: string; sort_order: number }>;
 }
 
 export interface ProductVariation {

@@ -681,6 +681,18 @@
                 </div>
 
                 <hr>
+                <h4>Sell to us (trade-in)</h4>
+                <p class="help-block">Requires <code>STOREFRONT_SELL_TO_US=true</code>. Leave blank to use the contact form inbox.</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('sell_to_us_notify_email', 'Sell to us notify email') !!}
+                            {!! Form::email('sell_to_us_notify_email', $settings['sell_to_us']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'tradein@example.com']) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <h4>Social links</h4>
                 <div class="row">
                     <div class="col-md-3">

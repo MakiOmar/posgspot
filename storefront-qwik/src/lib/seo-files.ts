@@ -62,6 +62,7 @@ const STATIC_SITEMAP_SUFFIXES = [
   "/return-policy",
   "/delete-account",
   "/custom-bundle",
+  "/sell-to-us",
 ] as const;
 
 export function staticSitemapPaths(): string[] {

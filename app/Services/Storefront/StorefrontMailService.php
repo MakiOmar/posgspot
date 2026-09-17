@@ -117,6 +117,20 @@ class StorefrontMailService
     }
 
     /**
+     * Inbox for Sell to us trade-in requests (settings override, else contact inbox).
+     */
+    public function sellToUsRecipient(int $businessId): string
+    {
+        $settings = $this->storefrontSettings->get($businessId);
+        $email = trim((string) ($settings['sell_to_us']['notify_email'] ?? ''));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $email;
+        }
+
+        return $this->contactRecipient($businessId);
+    }
+
+    /**
      * Email customer when a storefront order is marked shipped.
      */
     public function sendShippedNotification(Transaction $transaction): void

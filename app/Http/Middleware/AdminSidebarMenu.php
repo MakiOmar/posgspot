@@ -840,6 +840,11 @@ class AdminSidebarMenu
                                 'Storefront Translations',
                                 ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'translations']
                             );
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontSellRequestController::class, 'index']),
+                                'Sell to us requests',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'sell-requests']
+                            );
                         }
                         if (auth()->user()->can('coupon.access')) {
                             $sub->url(

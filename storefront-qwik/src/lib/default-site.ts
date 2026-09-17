@@ -31,6 +31,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
           { id: "lnk_returns", label: "Return Policy", url: "/return-policy" },
           { id: "lnk_delete_account", label: "Delete Account", url: "/delete-account" },
           { id: "lnk_custom_bundle", label: "Custom Bundle", url: "/custom-bundle" },
+          { id: "lnk_sell_to_us", label: "Sell to Us", url: "/sell-to-us" },
         ],
       },
       {

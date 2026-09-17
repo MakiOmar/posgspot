@@ -86,6 +86,10 @@ class StorefrontSettingService
                 'email' => '',
                 'whatsapp' => '',
             ],
+            // Trade-in notify inbox (enabled via STOREFRONT_SELL_TO_US env).
+            'sell_to_us' => [
+                'notify_email' => '',
+            ],
             'social' => [
                 'facebook' => '',
                 'instagram' => '',
@@ -1620,6 +1624,7 @@ class StorefrontSettingService
                         ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
                         ['id' => 'lnk_delete_account', 'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'], 'url' => '/delete-account'],
                         ['id' => 'lnk_custom_bundle', 'label' => ['en' => 'Custom Bundle', 'ar' => 'باقة مخصصة'], 'url' => '/custom-bundle'],
+                        ['id' => 'lnk_sell_to_us', 'label' => ['en' => 'Sell to Us', 'ar' => 'بع لنا'], 'url' => '/sell-to-us'],
                         ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
                         ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/account/wishlist'],
                         ['id' => 'lnk_newsletter', 'label' => ['en' => 'Newsletter', 'ar' => 'النشرة البريدية'], 'url' => '/#newsletter'],
@@ -1720,11 +1725,46 @@ class StorefrontSettingService
             return $footer;
         }
 
-        $linkId = 'lnk_custom_bundle';
-        $url = '/custom-bundle';
+        return $this->ensureFooterCustomerLink(
+            $footer,
+            'lnk_custom_bundle',
+            '/custom-bundle',
+            ['en' => 'Custom Bundle', 'ar' => 'باقة مخصصة']
+        );
+    }
+
+    /**
+     * Ensure Customer column exposes /sell-to-us when trade-in is enabled.
+     *
+     * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function ensureSellToUsFooterLink(array $footer): array
+    {
+        if (! config('storefront.sell_to_us.enabled')) {
+            return $footer;
+        }
+
+        return $this->ensureFooterCustomerLink(
+            $footer,
+            'lnk_sell_to_us',
+            '/sell-to-us',
+            ['en' => 'Sell to Us', 'ar' => 'بع لنا']
+        );
+    }
+
+    /**
+     * Append a Customer-column footer link when missing (by id or URL).
+     *
+     * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
+     * @param  array{en: string, ar: string}  $label
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    private function ensureFooterCustomerLink(array $footer, string $linkId, string $url, array $label): array
+    {
         $newLink = [
             'id' => $linkId,
-            'label' => ['en' => 'Custom Bundle', 'ar' => 'باقة مخصصة'],
+            'label' => $label,
             'url' => $url,
         ];
 

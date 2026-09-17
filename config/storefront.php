@@ -105,4 +105,14 @@ return [
         'max_items' => max(1, (int) env('STOREFRONT_CUSTOM_BUNDLE_MAX_ITEMS', 15)),
     ],
 
+    /*
+    | Sell to us / trade-in. Enabled via STOREFRONT_SELL_TO_US; notify email
+    | is configured in Storefront Settings (sell_to_us.notify_email).
+    */
+    'sell_to_us' => [
+        'enabled' => filter_var(env('STOREFRONT_SELL_TO_US', false), FILTER_VALIDATE_BOOLEAN),
+        'max_photos' => max(1, (int) env('STOREFRONT_SELL_TO_US_MAX_PHOTOS', 6)),
+        'max_photo_kb' => max(100, (int) env('STOREFRONT_SELL_TO_US_MAX_PHOTO_KB', 4096)),
+    ],
+
 ];

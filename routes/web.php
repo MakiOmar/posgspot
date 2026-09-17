@@ -153,6 +153,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/storefront/settings', [\App\Http\Controllers\StorefrontSettingController::class, 'update'])->name('storefront.settings.update');
     Route::get('/storefront/settings/export', [\App\Http\Controllers\StorefrontSettingController::class, 'export'])->name('storefront.settings.export');
     Route::post('/storefront/settings/import', [\App\Http\Controllers\StorefrontSettingController::class, 'import'])->name('storefront.settings.import');
+    Route::get('/storefront/sell-requests', [\App\Http\Controllers\StorefrontSellRequestController::class, 'index'])->name('storefront.sell-requests.index');
+    Route::get('/storefront/sell-requests/{id}', [\App\Http\Controllers\StorefrontSellRequestController::class, 'show'])->name('storefront.sell-requests.show');
+    Route::post('/storefront/sell-requests/{id}/status', [\App\Http\Controllers\StorefrontSellRequestController::class, 'updateStatus'])->name('storefront.sell-requests.status');
     Route::post('/storefront/homepage-sections', [\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections'])->name('storefront.homepage-sections.update');
     Route::post('/storefront/homepage-media', [\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia'])->name('storefront.homepage-media.upload');
     Route::get('/storefront/media', [\App\Http\Controllers\StorefrontSettingController::class, 'listMedia'])->name('storefront.media.index');

@@ -33,6 +33,7 @@ export function buildMainNavLinks(
     categories?: Category[];
     supportChatEnabled?: boolean;
     customBundleEnabled?: boolean;
+    sellToUsEnabled?: boolean;
   },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
@@ -66,6 +67,13 @@ export function buildMainNavLinks(
     { label: tStatic(lang, "nav.home"), href: localePath(lang, "/") },
     consoleItem,
   ];
+
+  if (options?.sellToUsEnabled) {
+    items.push({
+      label: tStatic(lang, "nav.sellToUs"),
+      href: localePath(lang, "/sell-to-us"),
+    });
+  }
 
   if (digitalEnabled) {
     items.push({

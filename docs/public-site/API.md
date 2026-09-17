@@ -55,13 +55,14 @@ Public `GET /settings` also exposes:
 - `payment_icons[]` — `{ label, icon_url }` for footer payment method icons (upload or external URL under **Storefront Settings → Footer payment icons**)
 - `about.team[]` — `{ name, role, image_url, social }` for the About page team rail (**Storefront Settings → About team**: photo upload or URL, EN/AR role, social URLs)
 - `favicon_url` — absolute URL for the browser tab icon (**Storefront Settings → Appearance → Favicon**); null when unset (Qwik falls back to `/favicon.svg`)
-- `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object). Public response always includes Customer → **Delete Account** (`/delete-account`) when missing from saved settings, and **Custom Bundle** (`/custom-bundle`) when `STOREFRONT_CUSTOM_BUNDLE` is enabled.
+- `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object). Public response always includes Customer → **Delete Account** (`/delete-account`) when missing from saved settings, **Custom Bundle** (`/custom-bundle`) when `STOREFRONT_CUSTOM_BUNDLE` is enabled, and **Sell to Us** (`/sell-to-us`) when `STOREFRONT_SELL_TO_US` is enabled.
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
 - `repair.lookup_enabled`, `repair.lookup_by_mobile` — public repair status lookup flags (no PII)
 - `social_login.google_enabled`, `social_login.facebook_enabled` — env-driven OAuth (Socialite); never secrets
 - `support_chat.enabled` — env `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` (never the API key itself)
 - `custom_bundle.enabled`, `custom_bundle.min_items`, `custom_bundle.max_items` — env `STOREFRONT_CUSTOM_BUNDLE` (+ optional min/max). Physical-only bundle builder; when enabled, Customer footer may include `/custom-bundle`.
+- `sell_to_us.enabled` — env `STOREFRONT_SELL_TO_US`. Trade-in form; notify email is admin-only (`settings.sell_to_us.notify_email`, not in public payload). When enabled, Customer footer may include `/sell-to-us`.
 
 ### Custom Bundle
 
@@ -73,6 +74,18 @@ Physical catalog builder shared by web (`/[lang]/custom-bundle`) and future Expo
 | GET | `/custom-bundle/products` | Query: `platform=ps4\|ps5` (required), `tab=all\|cat:{id}`, `q`, `page`, `per_page`. Same product-summary rows as `GET /products`; in-stock only; excludes digital/gift-card categories. Meta includes pagination + min/max. **404** when disabled. |
 
 Clients must pick a variation when `has_options` is true (same as PDP). Selection count should stay within `min_items`–`max_items` before adding to cart.
+
+### Sell to us (trade-in)
+
+Logged-in customers only for verify + submit. Types: `account` | `disc` | `device`. Optional invoice verify against the customer’s own orders when they claim “purchased from us”. Staff get POS list + queued email.
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| GET | `/sell-to-us/meta` | no | Types, cities, platforms, device models/storage/conditions, photo limits, purchased-from-us rules. **404** when `STOREFRONT_SELL_TO_US` off. |
+| POST | `/sell-to-us/verify-invoice` | Sanctum | Body `{ invoice_no }`. Returns `{ valid, order: { id, invoice_no, storefront_order_id, final_total, created_at } }` or **422** if not found on this contact. |
+| POST | `/sell-to-us/requests` | Sanctum | Multipart or JSON: `type`, `name`, `phone`, `email`, `city`, `notes`, `purchased_from_us`, optional `invoice_no` / `transaction_id`, `details` (JSON object or string), `photos[]` (images). When `purchased_from_us` is true, invoice must verify. Creates DB row + queues notify mail. **201** + request summary. |
+
+`details` by type: account `{ account_note }`; disc `{ game_title, platform, condition, product_id? }`; device `{ model, storage, condition }`.
 
 ### Homepage sections (`GET /homepage`)
 
@@ -174,6 +187,7 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
 | GET | `/custom-bundle/meta` | Bundle builder meta (platforms, tabs, min/max). Requires `STOREFRONT_CUSTOM_BUNDLE`. See Custom Bundle section. |
 | GET | `/custom-bundle/products` | Physical in-stock products for bundle builder (`platform`, `tab`, `q`). See Custom Bundle section. |
+| GET | `/sell-to-us/meta` | Trade-in form options. Requires `STOREFRONT_SELL_TO_US`. See Sell to us section. |
 | GET | `/products/{idOrSlug}` | Product detail (`description` HTML is sanitized server-side). `images[]` prefers POS **product gallery** media (`model_media_type=product_gallery`) when any exist; otherwise main `image_url` (+ image-like media, excluding brochure). Variation `images[]` still override on the PDP when present. Includes `related_products[]` (ProductSummary shape, up to 8): same category/subcategory first, then same brand fill; excludes self; locale-filtered like list/search. Includes `rating: { average, count }` from approved reviews. ProductSummary list rows also include `rating_average` / `rating_count`. Brand object includes `slug` when available. |
 | GET | `/products/{idOrSlug}/reviews` | Approved reviews only (paginated). Each item: `id`, `rating`, `title`, `body`, `is_verified_purchase`, `author_name` (masked), timestamps. |
 | GET | `/products/{idOrSlug}/reviews/eligibility` | **Auth required.** `{ can_review, already_reviewed, reason }` — reasons: `not_purchased`, `pending`, `already_reviewed`, `not_found`. |
@@ -246,6 +260,8 @@ Social accounts live in `storefront_social_identities` (not columns on `contacts
 | GET | `/account/coupons/used` | Coupon redemptions (`code`, `order_id`, `invoice_no`, `discount_amount`, `redeemed_at`) |
 | POST | `/account/devices` | Register push device — body `{ platform: "ios"\|"android", token, locale? }` (mobile app). Returns `{ id, platform, locale }`. |
 | DELETE | `/account/devices/{token}` | Unregister push token (URL-encoded token). |
+| POST | `/sell-to-us/verify-invoice` | **Auth required.** Verify invoice belongs to this contact. See Sell to us section. |
+| POST | `/sell-to-us/requests` | **Auth required.** Create trade-in request (+ optional photos). See Sell to us section. |
 
 ## Wishlist (auth required)
 
