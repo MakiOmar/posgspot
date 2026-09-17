@@ -8,10 +8,10 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { fetchCommunityPosts } from "../../src/lib/api";
-import { useApp } from "../../src/contexts/AppContext";
-import { LoadingBlock, Screen } from "../../src/components/ui";
-import type { CommunityPostSummary, CommunityPostType } from "../../src/lib/types";
+import { fetchCommunityPosts } from "../../lib/api";
+import { useApp } from "../../contexts/AppContext";
+import { LoadingBlock, Screen } from "../ui";
+import type { CommunityPostSummary, CommunityPostType } from "../../lib/types";
 
 type Props = {
   type: CommunityPostType;

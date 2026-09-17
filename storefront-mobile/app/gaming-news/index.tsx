@@ -1,4 +1,4 @@
-import { CommunityListScreen } from "../src/components/community/CommunityListScreen";
+import { CommunityListScreen } from "../../src/components/community/CommunityListScreen";
 
 export default function GamingNewsScreen() {
   return (

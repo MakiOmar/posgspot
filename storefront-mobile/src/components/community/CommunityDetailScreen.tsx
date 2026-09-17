@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { fetchCommunityPost } from "../../src/lib/api";
-import { useApp } from "../../src/contexts/AppContext";
-import { LoadingBlock, PrimaryButton, Screen } from "../../src/components/ui";
-import type { CommunityPostDetail, CommunityPostType } from "../../src/lib/types";
+import { fetchCommunityPost } from "../../lib/api";
+import { useApp } from "../../contexts/AppContext";
+import { LoadingBlock, PrimaryButton, Screen } from "../ui";
+import type { CommunityPostDetail, CommunityPostType } from "../../lib/types";
 
 function stripHtml(html: string | undefined): string {
   if (!html) return "";

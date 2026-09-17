@@ -21,9 +21,9 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            $table->unique(['business_id', 'slug']);
-            $table->index(['business_id', 'type', 'status']);
-            $table->index(['business_id', 'starts_at']);
+            $table->unique(['business_id', 'slug'], 'sf_community_posts_biz_slug_unique');
+            $table->index(['business_id', 'type', 'status'], 'sf_community_posts_biz_type_status');
+            $table->index(['business_id', 'starts_at'], 'sf_community_posts_biz_starts');
         });
 
         Schema::create('storefront_community_post_translations', function (Blueprint $table) {
@@ -35,9 +35,10 @@ return new class extends Migration
             $table->longText('body')->nullable();
             $table->timestamps();
 
-            $table->unique(['community_post_id', 'locale']);
+            // MySQL identifier limit is 64 chars — default unique name is too long.
+            $table->unique(['community_post_id', 'locale'], 'sf_community_post_tr_locale_unique');
             $table->index('locale');
-            $table->foreign('community_post_id')
+            $table->foreign('community_post_id', 'sf_community_post_tr_post_fk')
                 ->references('id')
                 ->on('storefront_community_posts')
                 ->onDelete('cascade');
