@@ -69,8 +69,8 @@ Physical catalog builder shared by web (`/[lang]/custom-bundle`) and future Expo
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/custom-bundle/meta` | Platforms, tabs, `min_items` / `max_items`. **404** when feature disabled. |
-| GET | `/custom-bundle/products` | Query: `platform=ps4\|ps5` (required), `tab=all\|consoles\|accessories\|games`, `q`, `page`, `per_page`. Same product-summary rows as `GET /products`; in-stock only; excludes digital/gift-card categories. Meta includes pagination + min/max. **404** when disabled. |
+| GET | `/custom-bundle/meta` | Platforms, `min_items` / `max_items`, and tabs. Optional `?platform=ps4\|ps5` fills tabs with **All** plus real POS categories under that platform (excludes digital/gift-card). Without platform, tabs is only All. **404** when feature disabled. |
+| GET | `/custom-bundle/products` | Query: `platform=ps4\|ps5` (required), `tab=all\|cat:{id}`, `q`, `page`, `per_page`. Same product-summary rows as `GET /products`; in-stock only; excludes digital/gift-card categories. Meta includes pagination + min/max. **404** when disabled. |
 
 Clients must pick a variation when `has_options` is true (same as PDP). Selection count should stay within `min_items`–`max_items` before adding to cart.
 

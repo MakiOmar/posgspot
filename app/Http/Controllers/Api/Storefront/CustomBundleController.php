@@ -18,9 +18,17 @@ class CustomBundleController extends StorefrontController
             return $this->jsonError('Custom Bundle is not available.', 404);
         }
 
+        $validated = $request->validate([
+            'platform' => 'nullable|string|in:ps4,ps5',
+        ]);
+
         $locale = StorefrontLocale::fromRequest($request);
 
-        return $this->jsonSuccess($this->customBundle->meta($locale));
+        return $this->jsonSuccess($this->customBundle->meta(
+            $this->businessId($request),
+            $locale,
+            $validated['platform'] ?? null
+        ));
     }
 
     public function products(Request $request)
@@ -31,7 +39,8 @@ class CustomBundleController extends StorefrontController
 
         $validated = $request->validate([
             'platform' => 'required|string|in:ps4,ps5',
-            'tab' => 'nullable|string|in:all,consoles,accessories,games',
+            // all | cat:{categoryId} — real POS categories, not Games/Accessories heuristics
+            'tab' => ['nullable', 'string', 'max:40', 'regex:/^(all|cat:\d+)$/'],
             'q' => 'nullable|string|max:120',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:50',

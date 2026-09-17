@@ -8,13 +8,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Custom Bundle builder: physical catalog only (no digital games / gift cards).
+ * Tabs are real POS categories under the selected platform (plus All).
  * Shared by Qwik and future Expo clients via GET /custom-bundle/*.
  */
 class CustomBundleService
 {
     public const PLATFORMS = ['ps5', 'ps4'];
-
-    public const TABS = ['all', 'consoles', 'accessories', 'games'];
 
     public function __construct(private CatalogService $catalog)
     {
@@ -49,9 +48,25 @@ class CustomBundleService
      *   tabs: list<array{id: string, label: string}>
      * }
      */
-    public function meta(string $locale = StorefrontLocale::DEFAULT): array
-    {
+    public function meta(
+        int $businessId,
+        string $locale = StorefrontLocale::DEFAULT,
+        ?string $platform = null
+    ): array {
         $ar = $locale === 'ar';
+        $platform = $platform !== null ? strtolower(trim($platform)) : null;
+        if ($platform !== null && ! in_array($platform, self::PLATFORMS, true)) {
+            $platform = null;
+        }
+
+        $tabs = [
+            ['id' => 'all', 'label' => $ar ? 'الكل' : 'All'],
+        ];
+        if ($platform !== null) {
+            foreach ($this->categoryTabsForPlatform($businessId, $platform, $locale) as $tab) {
+                $tabs[] = $tab;
+            }
+        }
 
         return [
             'enabled' => $this->isEnabled(),
@@ -61,12 +76,7 @@ class CustomBundleService
                 ['id' => 'ps5', 'label' => 'PS5'],
                 ['id' => 'ps4', 'label' => 'PS4'],
             ],
-            'tabs' => [
-                ['id' => 'all', 'label' => $ar ? 'الكل' : 'All'],
-                ['id' => 'consoles', 'label' => $ar ? 'أجهزة' : 'Consoles'],
-                ['id' => 'accessories', 'label' => $ar ? 'إكسسوارات' : 'Accessories'],
-                ['id' => 'games', 'label' => $ar ? 'ألعاب' : 'Games'],
-            ],
+            'tabs' => $tabs,
         ];
     }
 
@@ -84,11 +94,11 @@ class CustomBundleService
         if (! in_array($platform, self::PLATFORMS, true)) {
             return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
-        if (! in_array($tab, self::TABS, true)) {
+        if (! $this->isValidTab($tab)) {
             $tab = 'all';
         }
 
-        $tree = Category::catAndSubCategories($businessId);
+        $tree = $this->categoryTree($businessId, $locale);
         $digitalIds = $this->collectDigitalCategoryIds($tree);
         $categoryIds = $this->resolveCategoryIds($tree, $platform, $tab, $digitalIds);
 
@@ -111,6 +121,88 @@ class CustomBundleService
     }
 
     /**
+     * Top-level browse tabs: All is separate; here one tab per category under the platform.
+     *
+     * @return list<array{id: string, label: string}>
+     */
+    private function categoryTabsForPlatform(int $businessId, string $platform, string $locale): array
+    {
+        $tree = $this->categoryTree($businessId, $locale);
+        $digitalLookup = array_fill_keys($this->collectDigitalCategoryIds($tree), true);
+        $platformNodes = $this->findPlatformNodes($tree, $platform);
+
+        $tabNodes = [];
+        if ($platformNodes !== []) {
+            // Prefer direct children of the matched PS4/PS5 category(ies).
+            foreach ($platformNodes as $node) {
+                $subs = $node['sub_categories'] ?? [];
+                if (is_array($subs) && $subs !== []) {
+                    foreach ($subs as $child) {
+                        if (is_array($child) && ! empty($child['id']) && ! isset($digitalLookup[(int) $child['id']])) {
+                            $tabNodes[] = $child;
+                        }
+                    }
+                } else {
+                    // Platform category is a leaf — still offer it as a tab.
+                    if (! isset($digitalLookup[(int) ($node['id'] ?? 0)])) {
+                        $tabNodes[] = $node;
+                    }
+                }
+            }
+        } else {
+            // No PS4/PS5 parent found: expose all top-level physical categories.
+            foreach ($tree as $node) {
+                if (! is_array($node) || empty($node['id'])) {
+                    continue;
+                }
+                if (isset($digitalLookup[(int) $node['id']])) {
+                    continue;
+                }
+                $tabNodes[] = $node;
+            }
+        }
+
+        $tabs = [];
+        $seen = [];
+        foreach ($tabNodes as $node) {
+            $id = (int) ($node['id'] ?? 0);
+            if ($id < 1 || isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            $label = trim((string) ($node['name'] ?? ''));
+            if ($label === '') {
+                $label = 'Category '.$id;
+            }
+            $tabs[] = [
+                'id' => 'cat:'.$id,
+                'label' => $label,
+            ];
+        }
+
+        return $tabs;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function categoryTree(int $businessId, string $locale): array
+    {
+        $tree = $this->catalog->getCategories($businessId, $locale);
+        if ($tree !== []) {
+            return $tree;
+        }
+
+        // Fallback when locale filter empties the tree (e.g. missing AR translations).
+        return Category::catAndSubCategories($businessId);
+    }
+
+    private function isValidTab(string $tab): bool
+    {
+        return $tab === 'all' || (bool) preg_match('/^cat:\d+$/', $tab);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $tree
      * @param  list<int>  $digitalIds
      * @return list<int>
@@ -120,7 +212,6 @@ class CustomBundleService
         $digitalLookup = array_fill_keys($digitalIds, true);
         $platformNodes = $this->findPlatformNodes($tree, $platform);
 
-        // Prefer categories under a matching PS4/PS5 parent; else all non-digital.
         $scope = $platformNodes !== []
             ? $this->flattenCategoryNodes($platformNodes)
             : $this->flattenCategoryNodes($tree);
@@ -137,20 +228,45 @@ class CustomBundleService
             )));
         }
 
-        $matched = array_values(array_filter(
-            $scope,
-            fn (array $node) => $this->matchesTab($node, $tab)
-        ));
+        if (preg_match('/^cat:(\d+)$/', $tab, $m)) {
+            $targetId = (int) $m[1];
+            $targetNode = $this->findNodeById($scope, $targetId);
+            if ($targetNode === null) {
+                // Category outside platform scope — still allow if non-digital in full tree.
+                $targetNode = $this->findNodeById($this->flattenCategoryNodes($tree), $targetId);
+                if ($targetNode === null || isset($digitalLookup[$targetId])) {
+                    return [];
+                }
+            }
 
-        // If tab heuristics miss (e.g. flat category tree), fall back to platform scope.
-        if ($matched === []) {
-            $matched = $scope;
+            return array_values(array_unique(array_map(
+                fn (array $node) => (int) $node['id'],
+                $this->flattenCategoryNodes([$targetNode])
+            )));
         }
 
         return array_values(array_unique(array_map(
             fn (array $node) => (int) $node['id'],
-            $matched
+            $scope
         )));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes
+     * @return array<string, mixed>|null
+     */
+    private function findNodeById(array $nodes, int $id): ?array
+    {
+        foreach ($nodes as $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+            if ((int) ($node['id'] ?? 0) === $id) {
+                return $node;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -243,24 +359,5 @@ class CustomBundleService
         }
 
         return (bool) preg_match('/ps\s*4|playstation\s*4|بلايستيشن\s*4|بلاي\s*ستيشن\s*4/u', $hay);
-    }
-
-    /**
-     * @param  array<string, mixed>  $category
-     */
-    private function matchesTab(array $category, string $tab): bool
-    {
-        if ($this->isDigitalCatalogCategory($category)) {
-            return false;
-        }
-        $hay = strtolower(trim(($category['slug'] ?? '').' '.($category['name'] ?? '')));
-
-        return match ($tab) {
-            'consoles' => (bool) preg_match('/console|consoles|كونسول|أجهزة|اجهزة/u', $hay),
-            'accessories' => (bool) preg_match('/accessor|controller|headset|إكسسوار|اكسسوار|ذراع/u', $hay),
-            'games' => (bool) preg_match('/\bgames?\b|cd\s*games?|disc|ألعاب|العاب/u', $hay)
-                && ! preg_match('/digital/u', $hay),
-            default => true,
-        };
     }
 }

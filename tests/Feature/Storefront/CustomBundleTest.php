@@ -55,6 +55,13 @@ class CustomBundleTest extends TestCase
             ->assertJsonPath('data.tabs.0.id', 'all');
     }
 
+    public function test_meta_with_platform_keeps_all_tab_first(): void
+    {
+        $this->getJson('/api/storefront/v1/custom-bundle/meta?platform=ps5')
+            ->assertOk()
+            ->assertJsonPath('data.tabs.0.id', 'all');
+    }
+
     public function test_products_require_platform(): void
     {
         $this->getJson('/api/storefront/v1/custom-bundle/products')

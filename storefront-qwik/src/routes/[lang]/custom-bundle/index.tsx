@@ -63,12 +63,7 @@ export const useCustomBundlePage = routeLoader$(async ({ params, redirect, resol
           { id: "ps5", label: "PS5" },
           { id: "ps4", label: "PS4" },
         ],
-        tabs: [
-          { id: "all", label: tStatic(locale, "customBundle.tabAll") },
-          { id: "consoles", label: tStatic(locale, "customBundle.tabConsoles") },
-          { id: "accessories", label: tStatic(locale, "customBundle.tabAccessories") },
-          { id: "games", label: tStatic(locale, "customBundle.tabGames") },
-        ],
+        tabs: [{ id: "all", label: tStatic(locale, "customBundle.tabAll") }],
       } satisfies CustomBundleMeta,
       unavailable: true as const,
     };
@@ -87,6 +82,9 @@ export default component$(() => {
   const platform = useSignal<string>("");
   const tab = useSignal<string>("all");
   const query = useSignal("");
+  const categoryTabs = useSignal<Array<{ id: string; label: string }>>([
+    { id: "all", label: tStatic(locale, "customBundle.tabAll") },
+  ]);
   const products = useSignal<ProductSummary[]>([]);
   const loading = useSignal(false);
   const loadError = useSignal("");
@@ -142,6 +140,29 @@ export default component$(() => {
           : tStatic(locale, "customBundle.loadFailed");
     } finally {
       loading.value = false;
+    }
+  });
+
+  useTask$(async ({ track }) => {
+    track(() => platform.value);
+    if (!platform.value) {
+      categoryTabs.value = [{ id: "all", label: tStatic(locale, "customBundle.tabAll") }];
+      tab.value = "all";
+      products.value = [];
+      return;
+    }
+    try {
+      const { data } = await fetchCustomBundleMeta(locale, platform.value);
+      const tabs = data.tabs?.length
+        ? data.tabs
+        : [{ id: "all", label: tStatic(locale, "customBundle.tabAll") }];
+      categoryTabs.value = tabs;
+      if (!tabs.some((t) => t.id === tab.value)) {
+        tab.value = "all";
+      }
+    } catch {
+      categoryTabs.value = [{ id: "all", label: tStatic(locale, "customBundle.tabAll") }];
+      tab.value = "all";
     }
   });
 
@@ -422,7 +443,7 @@ export default component$(() => {
             ) : (
               <>
                 <div class="custom-bundle-tabs" role="tablist">
-                  {meta.tabs.map((t) => (
+                  {categoryTabs.value.map((t) => (
                     <button
                       key={t.id}
                       type="button"

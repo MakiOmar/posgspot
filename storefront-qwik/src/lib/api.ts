@@ -259,8 +259,9 @@ export function fetchProduct(idOrSlug: string, locale?: string) {
 }
 
 /** Custom Bundle builder meta (platforms, tabs, min/max). */
-export function fetchCustomBundleMeta(locale?: string) {
-  return storefrontFetch<CustomBundleMeta>("/custom-bundle/meta", {}, locale);
+export function fetchCustomBundleMeta(locale?: string, platform?: string) {
+  const qs = platform ? `?platform=${encodeURIComponent(platform)}` : "";
+  return storefrontFetch<CustomBundleMeta>(`/custom-bundle/meta${qs}`, {}, locale);
 }
 
 /** Physical in-stock products for the Custom Bundle picker. */
