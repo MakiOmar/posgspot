@@ -268,6 +268,7 @@ class StorefrontSettingController extends Controller
             'contact_email' => 'nullable|email|max:191',
             'contact_whatsapp' => 'nullable|string|max:50',
             'sell_to_us_notify_email' => 'nullable|email|max:191',
+            'request_product_notify_email' => 'nullable|email|max:191',
             'announcement_message_en' => 'nullable|string|max:500',
             'announcement_message_ar' => 'nullable|string|max:500',
             'announcement_link' => 'nullable|string|max:500',
@@ -412,6 +413,9 @@ class StorefrontSettingController extends Controller
             ],
             'sell_to_us' => [
                 'notify_email' => $validated['sell_to_us_notify_email'] ?? '',
+            ],
+            'request_product' => [
+                'notify_email' => $validated['request_product_notify_email'] ?? '',
             ],
             'announcement' => [
                 'message' => [

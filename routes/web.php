@@ -156,6 +156,15 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/storefront/sell-requests', [\App\Http\Controllers\StorefrontSellRequestController::class, 'index'])->name('storefront.sell-requests.index');
     Route::get('/storefront/sell-requests/{id}', [\App\Http\Controllers\StorefrontSellRequestController::class, 'show'])->name('storefront.sell-requests.show');
     Route::post('/storefront/sell-requests/{id}/status', [\App\Http\Controllers\StorefrontSellRequestController::class, 'updateStatus'])->name('storefront.sell-requests.status');
+    Route::get('/storefront/community', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'index'])->name('storefront.community.index');
+    Route::get('/storefront/community/create', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'create'])->name('storefront.community.create');
+    Route::post('/storefront/community', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'store'])->name('storefront.community.store');
+    Route::get('/storefront/community/{id}/edit', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'edit'])->name('storefront.community.edit');
+    Route::put('/storefront/community/{id}', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'update'])->name('storefront.community.update');
+    Route::delete('/storefront/community/{id}', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'destroy'])->name('storefront.community.destroy');
+    Route::get('/storefront/product-requests', [\App\Http\Controllers\StorefrontProductRequestController::class, 'index'])->name('storefront.product-requests.index');
+    Route::get('/storefront/product-requests/{id}', [\App\Http\Controllers\StorefrontProductRequestController::class, 'show'])->name('storefront.product-requests.show');
+    Route::post('/storefront/product-requests/{id}/status', [\App\Http\Controllers\StorefrontProductRequestController::class, 'updateStatus'])->name('storefront.product-requests.status');
     Route::post('/storefront/homepage-sections', [\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections'])->name('storefront.homepage-sections.update');
     Route::post('/storefront/homepage-media', [\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia'])->name('storefront.homepage-media.upload');
     Route::get('/storefront/media', [\App\Http\Controllers\StorefrontSettingController::class, 'listMedia'])->name('storefront.media.index');

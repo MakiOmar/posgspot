@@ -51,6 +51,7 @@
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
+| Track order API | ✅ | `POST /track-order` (invoice + phone/email); Qwik `/track-order`; `TrackOrderTest` |
 | Digital catalog + fulfillment | ✅ | Proxy games/cards; platform-strict list/PDP stock; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
@@ -68,6 +69,8 @@
 | Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
 | AI support chat | ✅ | `STOREFRONT_SUPPORT_CHAT` + OpenAI; conversations/messages; guest token + Sanctum; tools (orders/repairs/devices/catalog); CRM escalate when env assignee set; `SupportChatTest` |
 | Sell to us / trade-in | ✅ | `STOREFRONT_SELL_TO_US`; `/sell-to-us/meta|verify-invoice|requests`; POS `/storefront/sell-requests`; notify email in settings; `SellToUsTest` |
+| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; `GET /community/posts`; POS `/storefront/community`; translations EN/AR; `CommunityPostTest` |
+| Request a product | ✅ | `STOREFRONT_REQUEST_PRODUCT`; `/request-product/meta|requests`; POS `/storefront/product-requests`; notify email in settings; `RequestProductTest` |
 
 ---
 
@@ -99,6 +102,10 @@
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE` |
 | `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo API-ready |
+| `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders` |
+| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; gated by `STOREFRONT_COMMUNITY`; upcoming/previous for tourneys/events |
+| `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile; gated by `STOREFRONT_REQUEST_PRODUCT` |
+| `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
@@ -142,7 +149,7 @@
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
-| Main nav (shop, games, gift cards, stores, contact, FAQ, about, external trackers) | ✅ | Consoles is a category dropdown (excludes digital/gift-card catalog) + Custom Bundle when `STOREFRONT_CUSTOM_BUNDLE`; Sell to Us when `STOREFRONT_SELL_TO_US`; Digital games stays PS4/PS5 |
+| Main nav (Shop mega, Services, Community, stores, contact, FAQ, about) | ✅ | Shop mega: catalog + sell/request; Services: repair/console/order/truck; Community when `STOREFRONT_COMMUNITY` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
@@ -242,7 +249,9 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Nav IA: Shop mega + Services + Community; Track Order API/page; Community Qwik pages; Request a product Qwik page; `TrackOrderTest`. |
 | 2026-09-17 | Sell to us trade-in: `STOREFRONT_SELL_TO_US` + API verify/create + Qwik `/sell-to-us` + POS sell-requests + notify email. |
+| 2026-09-17 | Community CMS + Request a product: env flags, storefront API, POS admin, notify email setting, feature tests. |
 | 2026-09-17 | Custom Bundle: `STOREFRONT_CUSTOM_BUNDLE` + `/custom-bundle/meta|products` API + Qwik `/[lang]/custom-bundle` (physical → cart → checkout). |
 | 2026-09-17 | Public `/[lang]/delete-account` how-to + Customer footer link (defaults + public settings ensure). |
 | 2026-09-17 | Qwik account Login & Security: Delete my account (calls `POST /account/delete-request`). |

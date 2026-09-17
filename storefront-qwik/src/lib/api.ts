@@ -835,6 +835,73 @@ export function submitContactForm(payload: ContactFormPayload) {
   });
 }
 
+/** Guest order lookup by invoice + phone or email. */
+export function trackOrderLookup(
+  payload: { invoice_no: string; phone?: string; email?: string },
+  locale?: string,
+) {
+  return storefrontFetch<import("./types").TrackedOrder>(
+    "/track-order",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+/** Community CMS list (tournaments / events / news). */
+export function fetchCommunityPosts(
+  params: { type?: import("./types").CommunityPostType; scope?: "upcoming" | "previous" } = {},
+  locale?: string,
+) {
+  const qs = new URLSearchParams();
+  if (params.type) qs.set("type", params.type);
+  if (params.scope) qs.set("scope", params.scope);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return storefrontFetch<import("./types").CommunityPostSummary[]>(
+    `/community/posts${suffix}`,
+    {},
+    locale,
+  );
+}
+
+export function fetchCommunityPost(slug: string, locale?: string) {
+  return storefrontFetch<import("./types").CommunityPostDetail>(
+    `/community/posts/${encodeURIComponent(slug)}`,
+    {},
+    locale,
+  );
+}
+
+export function fetchRequestProductMeta(locale?: string) {
+  return storefrontFetch<import("./types").RequestProductMeta>(
+    "/request-product/meta",
+    {},
+    locale,
+  );
+}
+
+export function submitRequestProduct(
+  payload: {
+    name: string;
+    email: string;
+    phone?: string;
+    dial_code?: string;
+    product_name: string;
+    platform?: string;
+    notes?: string;
+    turnstile_token?: string;
+  },
+  token?: string | null,
+) {
+  return storefrontFetch<{ id: number; status: string; product_name: string }>(
+    "/request-product/requests",
+    {
+      method: "POST",
+      headers: token ? authHeaders(token) : undefined,
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export type RepairStatusSearchType = "job_sheet_no" | "invoice_no" | "mobile_num";
 
 export type RepairStatusActivity = {

@@ -90,6 +90,10 @@ class StorefrontSettingService
             'sell_to_us' => [
                 'notify_email' => '',
             ],
+            // Request-a-product notify inbox (enabled via STOREFRONT_REQUEST_PRODUCT env).
+            'request_product' => [
+                'notify_email' => '',
+            ],
             'social' => [
                 'facebook' => '',
                 'instagram' => '',

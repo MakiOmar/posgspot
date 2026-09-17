@@ -6,6 +6,8 @@ import {
   type DocumentHead,
 } from "@builder.io/qwik-city";
 import { JsonLd } from "~/components/seo/json-ld";
+import { LockIcon } from "~/components/icons";
+import { SearchableSelect } from "~/components/forms/searchable-select";
 import {
   ApiError,
   fetchSellToUsMeta,
@@ -242,6 +244,49 @@ export default component$(() => {
     ],
   };
 
+  // Full page gate until auth is known and the customer is signed in.
+  if (!auth.ready || !signedIn) {
+    return (
+      <article class="content-page sell-to-us-page sell-to-us-page--gate">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
+          <span aria-hidden="true">/</span>
+          <span>{tStatic(locale, "nav.sellToUs")}</span>
+        </nav>
+
+        <div class="sell-to-us-gate">
+          {!auth.ready ? (
+            <p class="footer-muted sell-to-us-gate__loading" aria-live="polite">
+              …
+            </p>
+          ) : (
+            <div class="sell-to-us-gate__card">
+              <p class="sell-to-us-gate__badge">{tStatic(locale, "sellToUs.gateBadge")}</p>
+              <div class="sell-to-us-gate__icon" aria-hidden="true">
+                <LockIcon size={48} />
+              </div>
+              <h1 class="sell-to-us-gate__title">{tStatic(locale, "sellToUs.gateTitle")}</h1>
+              <p class="sell-to-us-gate__lead">{tStatic(locale, "sellToUs.gateLead")}</p>
+              <Link
+                class="btn btn-primary sell-to-us-gate__cta"
+                href={localePath(locale, `/login?next=${loginNext}`)}
+              >
+                {tStatic(locale, "sellToUs.loginCta")}
+              </Link>
+              <p class="sell-to-us-gate__register">
+                {tStatic(locale, "sellToUs.gateRegisterBefore")}{" "}
+                <Link href={localePath(locale, `/register?next=${loginNext}`)}>
+                  {tStatic(locale, "sellToUs.gateRegisterLink")}
+                </Link>{" "}
+                {tStatic(locale, "sellToUs.gateRegisterAfter")}
+              </p>
+            </div>
+          )}
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article class="content-page sell-to-us-page">
       <JsonLd data={howLd} />
@@ -296,14 +341,7 @@ export default component$(() => {
             ))}
           </div>
 
-          {!auth.ready ? null : !signedIn ? (
-            <div class="sell-to-us-login-prompt">
-              <p>{tStatic(locale, "sellToUs.loginRequired")}</p>
-              <Link class="btn btn-primary" href={localePath(locale, `/login?next=${loginNext}`)}>
-                {tStatic(locale, "sellToUs.loginCta")}
-              </Link>
-            </div>
-          ) : type.value ? (
+          {type.value ? (
             <form
               class="sell-to-us-form"
               preventdefault:submit
@@ -345,19 +383,18 @@ export default component$(() => {
                 </label>
                 <label>
                   <span>{tStatic(locale, "sellToUs.city")}</span>
-                  <select
+                  <SearchableSelect
+                    id="sell-city"
                     value={form.city}
-                    onChange$={(e) => {
-                      form.city = (e.target as HTMLSelectElement).value;
+                    placeholder={tStatic(locale, "sellToUs.selectCity")}
+                    options={meta.cities.map((c) => ({
+                      value: c.label,
+                      label: c.label,
+                    }))}
+                    onChange$={(value) => {
+                      form.city = value;
                     }}
-                  >
-                    <option value="">{tStatic(locale, "sellToUs.selectCity")}</option>
-                    {meta.cities.map((c) => (
-                      <option key={c.id} value={c.label}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </label>
               </div>
 
@@ -436,35 +473,33 @@ export default component$(() => {
                   </label>
                   <label>
                     <span>{tStatic(locale, "sellToUs.platform")}</span>
-                    <select
+                    <SearchableSelect
+                      id="sell-disc-platform"
                       value={form.platform}
-                      onChange$={(e) => {
-                        form.platform = (e.target as HTMLSelectElement).value;
+                      placeholder="—"
+                      options={meta.platforms.map((p) => ({
+                        value: p.id,
+                        label: p.label,
+                      }))}
+                      onChange$={(value) => {
+                        form.platform = value;
                       }}
-                    >
-                      <option value="">—</option>
-                      {meta.platforms.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                   <label>
                     <span>{tStatic(locale, "sellToUs.condition")}</span>
-                    <select
+                    <SearchableSelect
+                      id="sell-disc-condition"
                       value={form.condition}
-                      onChange$={(e) => {
-                        form.condition = (e.target as HTMLSelectElement).value;
+                      placeholder="—"
+                      options={meta.conditions.map((c) => ({
+                        value: c.id,
+                        label: c.label,
+                      }))}
+                      onChange$={(value) => {
+                        form.condition = value;
                       }}
-                    >
-                      <option value="">—</option>
-                      {meta.conditions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </label>
                 </div>
               ) : null}
@@ -474,53 +509,50 @@ export default component$(() => {
                   <div class="sell-to-us-grid">
                     <label>
                       <span>{tStatic(locale, "sellToUs.model")}</span>
-                      <select
-                        required
+                      <SearchableSelect
+                        id="sell-device-model"
                         value={form.model}
-                        onChange$={(e) => {
-                          form.model = (e.target as HTMLSelectElement).value;
+                        placeholder="—"
+                        required
+                        options={meta.device_models.map((m) => ({
+                          value: m.id,
+                          label: m.label,
+                        }))}
+                        onChange$={(value) => {
+                          form.model = value;
                         }}
-                      >
-                        <option value="">—</option>
-                        {meta.device_models.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </label>
                     <label>
                       <span>{tStatic(locale, "sellToUs.storage")}</span>
-                      <select
+                      <SearchableSelect
+                        id="sell-device-storage"
                         value={form.storage}
-                        onChange$={(e) => {
-                          form.storage = (e.target as HTMLSelectElement).value;
+                        placeholder="—"
+                        options={meta.storage_options.map((s) => ({
+                          value: s.id,
+                          label: s.label,
+                        }))}
+                        onChange$={(value) => {
+                          form.storage = value;
                         }}
-                      >
-                        <option value="">—</option>
-                        {meta.storage_options.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </label>
                     <label>
                       <span>{tStatic(locale, "sellToUs.condition")}</span>
-                      <select
-                        required
+                      <SearchableSelect
+                        id="sell-device-condition"
                         value={form.condition}
-                        onChange$={(e) => {
-                          form.condition = (e.target as HTMLSelectElement).value;
+                        placeholder="—"
+                        required
+                        options={meta.conditions.map((c) => ({
+                          value: c.id,
+                          label: c.label,
+                        }))}
+                        onChange$={(value) => {
+                          form.condition = value;
                         }}
-                      >
-                        <option value="">—</option>
-                        {meta.conditions.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </label>
                   </div>
                   <label class="sell-to-us-block">

@@ -115,4 +115,12 @@ return [
         'max_photo_kb' => max(100, (int) env('STOREFRONT_SELL_TO_US_MAX_PHOTO_KB', 4096)),
     ],
 
+    'community' => [
+        'enabled' => filter_var(env('STOREFRONT_COMMUNITY', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
+    'request_product' => [
+        'enabled' => filter_var(env('STOREFRONT_REQUEST_PRODUCT', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

@@ -27,10 +27,13 @@ use App\Http\Controllers\Api\Storefront\ProductController;
 use App\Http\Controllers\Api\Storefront\ProductReviewController;
 use App\Http\Controllers\Api\Storefront\RepairStatusController;
 use App\Http\Controllers\Api\Storefront\SearchController;
+use App\Http\Controllers\Api\Storefront\CommunityPostController;
+use App\Http\Controllers\Api\Storefront\RequestProductController;
 use App\Http\Controllers\Api\Storefront\SellToUsController;
 use App\Http\Controllers\Api\Storefront\SettingsController;
 use App\Http\Controllers\Api\Storefront\SocialAuthController;
 use App\Http\Controllers\Api\Storefront\SupportChatController;
+use App\Http\Controllers\Api\Storefront\TrackOrderController;
 use App\Http\Controllers\Api\Storefront\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,8 +72,16 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::get('/sell-to-us/meta', [SellToUsController::class, 'meta']);
 
+    Route::get('/community/posts', [CommunityPostController::class, 'index']);
+    Route::get('/community/posts/{slug}', [CommunityPostController::class, 'show']);
+
+    Route::get('/request-product/meta', [RequestProductController::class, 'meta']);
+    Route::post('/request-product/requests', [RequestProductController::class, 'store']);
+
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
+    Route::post('/track-order', [TrackOrderController::class, 'store'])
+        ->middleware('throttle:20,1');
 
     Route::prefix('support')->middleware('throttle:storefront-support-chat')->group(function () {
         Route::get('/conversations', [SupportChatController::class, 'index']);

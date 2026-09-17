@@ -63,6 +63,8 @@ Public `GET /settings` also exposes:
 - `support_chat.enabled` — env `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` (never the API key itself)
 - `custom_bundle.enabled`, `custom_bundle.min_items`, `custom_bundle.max_items` — env `STOREFRONT_CUSTOM_BUNDLE` (+ optional min/max). Physical-only bundle builder; when enabled, Customer footer may include `/custom-bundle`.
 - `sell_to_us.enabled` — env `STOREFRONT_SELL_TO_US`. Trade-in form; notify email is admin-only (`settings.sell_to_us.notify_email`, not in public payload). When enabled, Customer footer may include `/sell-to-us`.
+- `community.enabled` — env `STOREFRONT_COMMUNITY`. CMS posts (tournaments, events, news); managed in POS.
+- `request_product.enabled` — env `STOREFRONT_REQUEST_PRODUCT`. Product request form; notify email is admin-only (`settings.request_product.notify_email`).
 
 ### Custom Bundle
 
@@ -86,6 +88,32 @@ Logged-in customers only for verify + submit. Types: `account` | `disc` | `devic
 | POST | `/sell-to-us/requests` | Sanctum | Multipart or JSON: `type`, `name`, `phone`, `email`, `city`, `notes`, `purchased_from_us`, optional `invoice_no` / `transaction_id`, `details` (JSON object or string), `photos[]` (images). When `purchased_from_us` is true, invoice must verify. Creates DB row + queues notify mail. **201** + request summary. |
 
 `details` by type: account `{ account_note }`; disc `{ game_title, platform, condition, product_id? }`; device `{ model, storage, condition }`.
+
+### Community
+
+Published posts only. Locale via `X-Content-Locale` (strict — no fallback when translation missing).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/community/posts` | Query: optional `type=tournament\|event\|news`, `scope=upcoming\|previous` (tournament/event only). List items omit full `body`. **404** when `STOREFRONT_COMMUNITY` off. |
+| GET | `/community/posts/{slug}` | Detail includes sanitized HTML `body`. **404** when disabled or not found. |
+
+### Request a product
+
+Guest or signed-in (optional Sanctum — contact linked when authenticated). Turnstile when configured (same as contact form).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/request-product/meta` | Platform options. **404** when `STOREFRONT_REQUEST_PRODUCT` off. |
+| POST | `/request-product/requests` | JSON: `name`, `email`, optional `phone`, `dial_code`, `product_name`, optional `platform`, `notes`, `turnstile_token`. **201** + request summary; queues staff email. |
+
+### Track order
+
+Public guest lookup (throttled). Match invoice **and** phone or email to the order contact (phone national-digit normalize like repair). Returns a safe subset only (no extra PII). **404** on miss (no enumeration).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/track-order` | Body `{ invoice_no, phone? \| email? }` (at least one of phone/email). Returns `{ id, invoice_no, storefront_order_id, status, payment_status, shipping_status, shipping_carrier, shipping_tracking_number, shipping_tracking_url, final_total, transaction_date, lines[] }`. Throttle `20/min`. Signed-in customers also use `GET /account/orders` on the Qwik page. |
 
 ### Homepage sections (`GET /homepage`)
 

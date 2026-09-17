@@ -63,6 +63,12 @@ const STATIC_SITEMAP_SUFFIXES = [
   "/delete-account",
   "/custom-bundle",
   "/sell-to-us",
+  "/repair-truck-request",
+  "/track-order",
+  "/request-a-product",
+  "/tournaments",
+  "/events",
+  "/gaming-news",
 ] as const;
 
 export function staticSitemapPaths(): string[] {

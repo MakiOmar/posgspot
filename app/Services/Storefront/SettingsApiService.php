@@ -112,6 +112,12 @@ class SettingsApiService
             'sell_to_us' => [
                 'enabled' => (bool) config('storefront.sell_to_us.enabled'),
             ],
+            'community' => [
+                'enabled' => (bool) config('storefront.community.enabled'),
+            ],
+            'request_product' => [
+                'enabled' => (bool) config('storefront.request_product.enabled'),
+            ],
             'locales' => ['en', 'ar'],
         ];
     }

@@ -311,6 +311,151 @@ button.header-nav-dropdown__trigger {
   color: var(--gs-muted);
 }
 
+.header-nav-dropdown--mega {
+  position: static;
+}
+
+.header-nav-mega {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1.25rem 1.75rem;
+  width: min(52rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 1.25rem 1.35rem;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.header-nav-mega__title {
+  margin: 0 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gs-accent, #00d4aa);
+}
+
+.header-nav-mega__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.header-nav-mega__list .header-nav-dropdown__option {
+  white-space: normal;
+}
+
+.side-drawer-mega-col {
+  margin-top: 0.5rem;
+}
+
+.coming-soon-badge {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gs-accent, #00d4aa);
+}
+.coming-soon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Community CMS lists */
+.community-scope-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0 1.5rem;
+}
+.community-scope-tabs button {
+  border: 1px solid color-mix(in srgb, var(--gs-accent, #00d4aa) 35%, transparent);
+  background: transparent;
+  color: inherit;
+  border-radius: var(--gs-radius, 8px);
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  font: inherit;
+}
+.community-scope-tabs button.is-active {
+  background: var(--gs-accent, #00d4aa);
+  color: #041510;
+  border-color: transparent;
+  font-weight: 600;
+}
+.community-post-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.community-post-card {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: var(--gs-radius, 8px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: color-mix(in srgb, var(--gs-surface, #0f1a17) 80%, transparent);
+}
+.community-post-card__cover {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+.community-post-card__cover img,
+.community-detail__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.community-post-card__body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.community-post-card__body h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+.community-post-card__body h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+.community-post-card__meta {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+.community-detail__cover {
+  margin: 0 0 1.25rem;
+  border-radius: var(--gs-radius, 8px);
+  overflow: hidden;
+  max-height: 360px;
+}
+.track-order-lines {
+  margin: 0.75rem 0 0;
+  padding-inline-start: 1.1rem;
+}
+.request-product-form {
+  max-width: 32rem;
+}
+
+
 .header-nav-categories {
   display: inline-flex;
   align-items: center;
@@ -4290,13 +4435,81 @@ body.is-globally-pending {
   box-shadow: 0 0 0 1px var(--gs-accent, #00d4aa);
 }
 .sell-to-us-type span { font-size: 0.85rem; color: var(--gs-muted, #9aa0a6); }
-.sell-to-us-login-prompt {
-  padding: 1.25rem;
-  border: 1px dashed var(--gs-border, #2a2a2a);
-  border-radius: 8px;
+.sell-to-us-page--gate {
+  min-height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+}
+.sell-to-us-gate {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 0 3rem;
+}
+.sell-to-us-gate__loading {
+  margin: 0;
   text-align: center;
 }
-.sell-to-us-login-prompt .btn { margin-top: 0.75rem; }
+.sell-to-us-gate__card {
+  width: min(100%, 28rem);
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: center;
+  border: 1px solid var(--gs-border, #2a2a2a);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.sell-to-us-gate__badge {
+  display: inline-block;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--gs-accent, #00d4aa) 55%, transparent);
+  border-radius: 999px;
+  color: var(--gs-accent, #00d4aa);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.sell-to-us-gate__icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: var(--gs-accent, #00d4aa);
+}
+.sell-to-us-gate__title {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.35rem, 3vw, 1.65rem);
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--gs-text);
+}
+.sell-to-us-gate__lead {
+  margin: 0 0 1.5rem;
+  color: var(--gs-muted, #9aa0a6);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.sell-to-us-gate__cta {
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+.sell-to-us-gate__register {
+  margin: 1.1rem 0 0;
+  font-size: 0.875rem;
+  color: var(--gs-muted, #9aa0a6);
+}
+.sell-to-us-gate__register a {
+  color: var(--gs-accent, #00d4aa);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .sell-to-us-form { margin-top: 0.5rem; }
 .sell-to-us-grid {
   display: grid;
@@ -4314,13 +4527,21 @@ body.is-globally-pending {
   gap: 0.35rem;
 }
 .sell-to-us-form input,
-.sell-to-us-form select,
 .sell-to-us-form textarea {
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--gs-border, #2a2a2a);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.2);
   color: inherit;
+}
+.sell-to-us-form .searchable-select {
+  width: 100%;
+}
+.sell-to-us-form .searchable-select__trigger {
+  min-height: 2.5rem;
+  padding: 0.55rem 0.7rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
 }
 .sell-to-us-block { margin-bottom: 1rem; }
 .sell-to-us-fieldset {

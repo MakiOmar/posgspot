@@ -75,3 +75,31 @@ Logged-in customers submit trade-in requests (digital account / disc / device). 
 Notify inbox: **Storefront Settings → Contact → Sell to us notify email** (`settings.sell_to_us.notify_email`; falls back to contact form inbox).
 
 Config: `config/storefront.php` → `sell_to_us.*`. Contract: [`docs/public-site/API.md`](public-site/API.md) (Sell to us).
+
+## Storefront Community CMS
+
+Tournaments, events, and news posts managed in POS (**Community posts**). Public API lists/shows published posts per `X-Content-Locale` (strict — no fallback). Qwik routes: `/tournaments`, `/events`, `/gaming-news`.
+
+| Variable | Purpose |
+|----------|---------|
+| `STOREFRONT_COMMUNITY` | Enable `GET /community/posts` API (default `false`) |
+
+Config: `config/storefront.php` → `community.enabled`.
+
+## Storefront Track order
+
+Public guest lookup by invoice + phone/email (`POST /track-order`). Qwik page `/[lang]/track-order` also lists signed-in account orders.
+
+No env flag — always available (throttled). Phone matching uses the same national-digit normalize as repair lookup.
+
+## Storefront Request a product
+
+Guest or signed-in customers submit product requests; staff get POS list + email.
+
+| Variable | Purpose |
+|----------|---------|
+| `STOREFRONT_REQUEST_PRODUCT` | Enable `GET /request-product/meta` + `POST /request-product/requests` (default `false`) |
+
+Notify inbox: **Storefront Settings → Request a product notify email** (`settings.request_product.notify_email`; falls back to contact form inbox).
+
+Config: `config/storefront.php` → `request_product.enabled`.

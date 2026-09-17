@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
-import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ApiError, fetchPhoneCountries, registerCustomer } from "~/lib/api";
@@ -26,6 +26,7 @@ export default component$(() => {
   const auth = useAuth();
   const settings = useSiteSettings();
   const nav = useNavigate();
+  const loc = useLocation();
   const pending = usePendingState();
   const phoneCountries = useRegisterPhoneCountries();
   const turnstileToken = useSignal("");
@@ -46,15 +47,17 @@ export default component$(() => {
   const succeeded = useSignal(false);
 
   const { locale } = useI18n();
-  const accountPath = localePath(locale, "/account");
+  const defaultNext = localePath(locale, "/account");
+  const nextUrl = loc.url.searchParams.get("next") || defaultNext;
+  const verifyNext = encodeURIComponent(nextUrl);
 
-  // Already signed in: go to account.
+  // Already signed in: continue to next (or account).
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => auth.ready);
     track(() => auth.token);
     if (auth.ready && auth.token) {
-      nav(accountPath);
+      nav(nextUrl);
     }
   });
 
@@ -90,7 +93,7 @@ export default component$(() => {
         succeeded.value = true;
         auth.token = data.token;
         auth.contact = data.contact;
-        await nav(localePath(locale, "/verify-email?next=/account"));
+        await nav(localePath(locale, `/verify-email?next=${verifyNext}`));
       } catch (e) {
         if (e instanceof ApiError && e.errors) {
           const first = Object.values(e.errors)[0]?.[0];
@@ -124,7 +127,7 @@ export default component$(() => {
       <div class="auth-card">
         <h1 class="page-title">{tStatic(locale, "auth.register")}</h1>
 
-        <SocialLoginButtons intent="login" next="/account" />
+        <SocialLoginButtons intent="login" next={nextUrl} />
 
         <form preventdefault:submit onSubmit$={submit$} class="account-form">
           <div class="form-grid">

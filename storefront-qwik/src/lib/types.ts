@@ -127,6 +127,12 @@ export interface StoreSettings {
   sell_to_us?: {
     enabled: boolean;
   };
+  community?: {
+    enabled: boolean;
+  };
+  request_product?: {
+    enabled: boolean;
+  };
   locales: string[];
 }
 
@@ -685,6 +691,45 @@ export interface AccountOrder {
   final_total: number;
   transaction_date: string;
   shipping_status: string;
+}
+
+/** Guest track-order lookup result (safe subset, no extra PII). */
+export interface TrackedOrder {
+  id: number;
+  invoice_no: string | null;
+  storefront_order_id: string | null;
+  status: string | null;
+  payment_status: string | null;
+  shipping_status: string | null;
+  shipping_carrier: string | null;
+  shipping_tracking_number: string | null;
+  shipping_tracking_url: string | null;
+  final_total: number | string | null;
+  transaction_date: string | null;
+  lines: Array<{ product_name: string | null; quantity: number }>;
+}
+
+export type CommunityPostType = "tournament" | "event" | "news";
+
+export interface CommunityPostSummary {
+  id: number;
+  type: CommunityPostType;
+  slug: string;
+  title: string;
+  excerpt: string;
+  cover_url: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  published_at: string | null;
+}
+
+export interface CommunityPostDetail extends CommunityPostSummary {
+  body: string;
+}
+
+export interface RequestProductMeta {
+  enabled: boolean;
+  platforms: Array<{ id: string; label: string }>;
 }
 
 export interface AccountOrderLine {

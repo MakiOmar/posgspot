@@ -131,6 +131,20 @@ class StorefrontMailService
     }
 
     /**
+     * Inbox for Request a product submissions (settings override, else contact inbox).
+     */
+    public function requestProductRecipient(int $businessId): string
+    {
+        $settings = $this->storefrontSettings->get($businessId);
+        $email = trim((string) ($settings['request_product']['notify_email'] ?? ''));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $email;
+        }
+
+        return $this->contactRecipient($businessId);
+    }
+
+    /**
      * Email customer when a storefront order is marked shipped.
      */
     public function sendShippedNotification(Transaction $transaction): void

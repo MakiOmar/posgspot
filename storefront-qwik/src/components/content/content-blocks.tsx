@@ -4,12 +4,16 @@ import {
   closeHeaderDropdown,
   useHeaderDropdown,
 } from "~/lib/header-dropdown-context";
-import type { ResolvedNavItem } from "~/lib/header-nav";
+import type { ResolvedNavChild, ResolvedNavItem } from "~/lib/header-nav";
 import { openSupportChatEvent } from "~/lib/support-chat";
 
 interface HeaderNavItemsProps {
   links: ResolvedNavItem[];
   linkClass: string;
+}
+
+function childKey(child: ResolvedNavChild): string {
+  return child.href || child.action || child.label;
 }
 
 export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClass }) => {
@@ -49,18 +53,22 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
   return (
     <>
       {links.map((item) => {
-        if (item.children && item.children.length > 0) {
+        const hasMega = Boolean(item.mega?.columns?.length);
+        const hasChildren = Boolean(item.children && item.children.length > 0);
+        if (hasMega || hasChildren) {
           const key = item.label;
           const isOpen = navOpen && openKey.value === key;
           return (
             <div
               key={key}
-              class={`header-nav-dropdown${isOpen ? " header-nav-dropdown--open" : ""}`}
+              class={`header-nav-dropdown${hasMega ? " header-nav-dropdown--mega" : ""}${
+                isOpen ? " header-nav-dropdown--open" : ""
+              }`}
             >
               <button
                 type="button"
                 class={`${linkClass} header-nav-dropdown__trigger`}
-                aria-haspopup="menu"
+                aria-haspopup={hasMega ? "true" : "menu"}
                 aria-expanded={isOpen}
                 onClick$={() => {
                   if (headerMenu.openId === "nav" && openKey.value === key) {
@@ -75,10 +83,63 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                 <span>{item.label}</span>
                 <span class="header-nav-dropdown__caret" aria-hidden="true" />
               </button>
-              {isOpen ? (
+              {isOpen && hasMega && item.mega ? (
+                <div class="header-nav-mega" role="menu">
+                  {item.mega.columns.map((col) => (
+                    <div key={col.title || col.links[0]?.label} class="header-nav-mega__col">
+                      {col.title ? (
+                        <p class="header-nav-mega__title">{col.title}</p>
+                      ) : null}
+                      <ul class="header-nav-mega__list">
+                        {col.links.map((child) => (
+                          <li key={childKey(child)} role="none">
+                            {child.action === "open-support-chat" ? (
+                              <button
+                                type="button"
+                                class="header-nav-dropdown__option"
+                                role="menuitem"
+                                onClick$={() => {
+                                  openKey.value = null;
+                                  closeHeaderDropdown(headerMenu, "nav");
+                                  openSupportChatEvent();
+                                }}
+                              >
+                                {child.label}
+                              </button>
+                            ) : child.disabled || !child.href ? (
+                              <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
+                                {child.label}
+                                {child.hint ? ` (${child.hint})` : ""}
+                              </span>
+                            ) : child.href.startsWith("tel:") ? (
+                              <a
+                                href={child.href}
+                                class="header-nav-dropdown__option"
+                                role="menuitem"
+                              >
+                                {child.label}
+                              </a>
+                            ) : (
+                              <button
+                                type="button"
+                                class="header-nav-dropdown__option"
+                                role="menuitem"
+                                onClick$={() => go$(child.href!)}
+                              >
+                                {child.label}
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {isOpen && !hasMega && item.children ? (
                 <ul class="header-nav-dropdown__menu" role="menu">
                   {item.children.map((child) => (
-                    <li key={child.href || child.action || child.label} role="none">
+                    <li key={childKey(child)} role="none">
                       {child.action === "open-support-chat" ? (
                         <button
                           type="button"
@@ -178,7 +239,7 @@ export const FaqAccordion = component$<FaqAccordionProps>(
               >
                 <span>{item.question}</span>
                 <span class="faq-toggle" aria-hidden="true">
-                  {open ? "−" : "+"}
+                  {open ? "-" : "+"}
                 </span>
               </button>
               {open ? (

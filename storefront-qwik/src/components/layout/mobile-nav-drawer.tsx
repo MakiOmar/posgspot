@@ -50,6 +50,58 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
           <nav class="side-drawer-nav" aria-label={tStatic(locale, "header.mainNav")}>
             <ul class="side-drawer-list">
               {links.map((item) => {
+                const megaColumns = item.mega?.columns;
+                if (megaColumns && megaColumns.length > 0) {
+                  return (
+                    <li key={item.label} class="side-drawer-group">
+                      <span class="side-drawer-group-label">{item.label}</span>
+                      {megaColumns.map((col) => (
+                        <div key={col.title || col.links[0]?.label} class="side-drawer-mega-col">
+                          {col.title ? (
+                            <span class="side-drawer-mega-title">{col.title}</span>
+                          ) : null}
+                          <ul class="side-drawer-sublist">
+                            {col.links.map((child) => (
+                              <li key={child.href || child.action || child.label}>
+                                {child.action === "open-support-chat" ? (
+                                  <button
+                                    type="button"
+                                    class="side-drawer-link"
+                                    onClick$={() => {
+                                      openSupportChatEvent();
+                                      onClose$();
+                                    }}
+                                  >
+                                    {child.label}
+                                  </button>
+                                ) : child.disabled || !child.href ? (
+                                  <span class="side-drawer-link side-drawer-link--disabled">
+                                    {child.label}
+                                    {child.hint ? ` (${child.hint})` : ""}
+                                  </span>
+                                ) : child.href.startsWith("tel:") ? (
+                                  <a href={child.href} class="side-drawer-link" onClick$={onClose$}>
+                                    {child.label}
+                                  </a>
+                                ) : (
+                                  <Link
+                                    href={child.href}
+                                    class="side-drawer-link"
+                                    prefetch={false}
+                                    onClick$={onClose$}
+                                  >
+                                    {child.label}
+                                  </Link>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </li>
+                  );
+                }
+
                 if (item.children && item.children.length > 0) {
                   return (
                     <li key={item.label} class="side-drawer-group">

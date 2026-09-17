@@ -693,6 +693,18 @@
                 </div>
 
                 <hr>
+                <h4>Request a product</h4>
+                <p class="help-block">Requires <code>STOREFRONT_REQUEST_PRODUCT=true</code>. Leave blank to use the contact form inbox.</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('request_product_notify_email', 'Request product notify email') !!}
+                            {!! Form::email('request_product_notify_email', $settings['request_product']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'requests@example.com']) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <h4>Social links</h4>
                 <div class="row">
                     <div class="col-md-3">

@@ -845,6 +845,16 @@ class AdminSidebarMenu
                                 'Sell to us requests',
                                 ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'sell-requests']
                             );
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontCommunityPostController::class, 'index']),
+                                'Community posts',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'community']
+                            );
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontProductRequestController::class, 'index']),
+                                'Product requests',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'product-requests']
+                            );
                         }
                         if (auth()->user()->can('coupon.access')) {
                             $sub->url(
