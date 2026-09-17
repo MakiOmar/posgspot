@@ -267,7 +267,9 @@ class SettingsApiService
      */
     private function footerPayload(array $settings, string $locale): array
     {
-        $footer = $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null);
+        $footer = $this->storefrontSettings->ensureDeleteAccountFooterLink(
+            $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
+        );
         $columns = [];
         foreach ($footer['columns'] as $col) {
             if (! is_array($col)) {

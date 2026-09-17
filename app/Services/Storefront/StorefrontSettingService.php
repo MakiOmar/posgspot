@@ -1618,6 +1618,7 @@ class StorefrontSettingService
                         ['id' => 'lnk_account', 'label' => ['en' => 'My Account', 'ar' => 'حسابي'], 'url' => '/account'],
                         ['id' => 'lnk_orders', 'label' => ['en' => 'Track My Order', 'ar' => 'تتبع طلبي'], 'url' => '/account/orders'],
                         ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
+                        ['id' => 'lnk_delete_account', 'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'], 'url' => '/delete-account'],
                         ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
                         ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/account/wishlist'],
                         ['id' => 'lnk_newsletter', 'label' => ['en' => 'Newsletter', 'ar' => 'النشرة البريدية'], 'url' => '/#newsletter'],
@@ -1645,6 +1646,65 @@ class StorefrontSettingService
                 ],
             ],
         ];
+    }
+
+    /**
+     * Ensure Customer column exposes /delete-account (App Store / privacy compliance).
+     * No-op when the link already exists by id or URL.
+     *
+     * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function ensureDeleteAccountFooterLink(array $footer): array
+    {
+        $linkId = 'lnk_delete_account';
+        $url = '/delete-account';
+        $newLink = [
+            'id' => $linkId,
+            'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'],
+            'url' => $url,
+        ];
+
+        foreach ($footer['columns'] as $col) {
+            if (! is_array($col)) {
+                continue;
+            }
+            foreach ($col['links'] ?? [] as $link) {
+                if (! is_array($link)) {
+                    continue;
+                }
+                $existingId = (string) ($link['id'] ?? '');
+                $existingUrl = trim((string) ($link['url'] ?? ''));
+                if ($existingId === $linkId || $existingUrl === $url) {
+                    return $footer;
+                }
+            }
+        }
+
+        $targetIndex = 0;
+        foreach ($footer['columns'] as $i => $col) {
+            if (is_array($col) && ($col['id'] ?? '') === 'col_customer') {
+                $targetIndex = $i;
+                break;
+            }
+        }
+
+        if (! isset($footer['columns'][$targetIndex]) || ! is_array($footer['columns'][$targetIndex])) {
+            return $footer;
+        }
+
+        $links = array_values($footer['columns'][$targetIndex]['links'] ?? []);
+        if (! is_array($links)) {
+            $links = [];
+        }
+        // Keep within normalizeFooter's 12-link cap.
+        if (count($links) >= 12) {
+            array_pop($links);
+        }
+        $links[] = $newLink;
+        $footer['columns'][$targetIndex]['links'] = $links;
+
+        return $footer;
     }
 
     /**

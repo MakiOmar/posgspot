@@ -60,6 +60,7 @@ const STATIC_SITEMAP_SUFFIXES = [
   "/terms-and-conditions",
   "/privacy-policy",
   "/return-policy",
+  "/delete-account",
 ] as const;
 
 export function staticSitemapPaths(): string[] {

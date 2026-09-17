@@ -95,6 +95,7 @@
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); platform-strict stock; add primary/secondary → cart with digital meta; failed PDP shows retry (no silent redirect to list) |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
+| `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
 | `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
@@ -144,7 +145,7 @@
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
 | Footer contact, social, shop links | ✅ | 4-col footer: locations (`GET /locations`) + social/WhatsApp; 3 editable menus from `settings.footer` |
-| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; newsletter + `payment_icons` in bottom bar |
+| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; Customer menu includes Delete Account → `/delete-account` (ensured on public `GET /settings`); newsletter + `payment_icons` in bottom bar |
 | Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
 ---
@@ -163,7 +164,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
-| Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings` |
+| Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
 | Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
@@ -236,6 +237,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Public `/[lang]/delete-account` how-to + Customer footer link (defaults + public settings ensure). |
 | 2026-09-17 | Qwik account Login & Security: Delete my account (calls `POST /account/delete-request`). |
 | 2026-09-16 | Support chat: auto-link plain “صفحة الاتصال هنا” / contact phrases + require Markdown links in AI prompt. |
 | 2026-09-16 | AI support `get_order_detail`: resolve customer-facing invoice_no / storefront_order_id (not only transaction id). |

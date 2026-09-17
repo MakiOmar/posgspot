@@ -29,6 +29,7 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
           { id: "lnk_account", label: "My Account", url: "/account" },
           { id: "lnk_orders", label: "Track My Order", url: "/account/orders" },
           { id: "lnk_returns", label: "Return Policy", url: "/return-policy" },
+          { id: "lnk_delete_account", label: "Delete Account", url: "/delete-account" },
         ],
       },
       {
