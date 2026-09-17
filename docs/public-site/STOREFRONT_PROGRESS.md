@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-16 |
+| **Last updated** | 2026-09-17 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -45,7 +45,7 @@
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*` |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP**; **Google/Facebook Socialite** (web exchange code + mobile token); Connect/Disconnect on Login & Security |
-| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger |
+| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger; Qwik Login & Security has delete-account request |
 | Reward points API | ✅ | Balance + validate redeem |
 | Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
@@ -86,7 +86,7 @@
 | `/[lang]/checkout/payment` | ✅ | Lazy-load Fawry or Geidea HPP SDK from the payment route only |
 | `/[lang]/checkout/payment/return` | ✅ | Server-confirmed return + provider reference |
 | `/[lang]/login`, register, forgot/reset | ✅ | Phone validation, Sanctum token in `localStorage`; Turnstile when configured; 30-day TTL; session-expired toast on 401; reset uses in-app 6-digit code |
-| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security (password + social Connect/Disconnect), Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
+| `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security (password + social Connect/Disconnect + delete-account request), Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating AI support widget when enabled |
@@ -236,6 +236,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Qwik account Login & Security: Delete my account (calls `POST /account/delete-request`). |
 | 2026-09-16 | Support chat: auto-link plain “صفحة الاتصال هنا” / contact phrases + require Markdown links in AI prompt. |
 | 2026-09-16 | AI support `get_order_detail`: resolve customer-facing invoice_no / storefront_order_id (not only transaction id). |
 | 2026-09-16 | Support chat bubbles: render markdown links + clickable `tel:` phones (hotline). |

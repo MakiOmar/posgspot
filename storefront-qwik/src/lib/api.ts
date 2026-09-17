@@ -649,6 +649,14 @@ export function changePassword(
   });
 }
 
+/** Soft delete request — staff processes offline; does not hard-delete the contact. */
+export function requestAccountDeletion(token: string) {
+  return storefrontFetch<{ message: string; contact: AuthContact }>("/account/delete-request", {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}
+
 export function updateAddress(
   token: string,
   payload: {

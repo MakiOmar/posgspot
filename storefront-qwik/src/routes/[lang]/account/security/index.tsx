@@ -6,11 +6,12 @@ import {
   changePassword,
   disconnectSocialProvider,
   fetchSocialIdentities,
+  requestAccountDeletion,
   type SocialProvider,
 } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
-import { toastError, toastSuccess } from "~/lib/notify";
+import { confirmAction, toastError, toastInfo, toastSuccess } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
@@ -98,6 +99,45 @@ export default component$(() => {
         e instanceof ApiError
           ? e.message || tStatic(locale, "auth.socialDisconnectFailed")
           : tStatic(locale, "auth.socialDisconnectFailed"),
+      );
+    }
+  });
+
+  const requestDelete$ = $(async () => {
+    if (!auth.token) {
+      return;
+    }
+    if (auth.contact?.delete_requested) {
+      await toastInfo(tStatic(locale, "account.deleteRequested"));
+      return;
+    }
+
+    const ok = await confirmAction({
+      title: tStatic(locale, "account.deleteRequest"),
+      text: tStatic(locale, "account.deleteConfirm"),
+      confirmText: tStatic(locale, "account.deleteRequest"),
+      cancelText: tStatic(locale, "common.cancel"),
+      icon: "warning",
+      danger: true,
+      dir: locale === "ar" ? "rtl" : "ltr",
+    });
+    if (!ok) {
+      return;
+    }
+
+    try {
+      const { data } = await requestAccountDeletion(auth.token);
+      if (data.contact) {
+        auth.contact = data.contact;
+      } else if (auth.contact) {
+        auth.contact = { ...auth.contact, delete_requested: true };
+      }
+      await toastSuccess(tStatic(locale, "account.deleteRequested"));
+    } catch (e) {
+      await toastError(
+        e instanceof ApiError
+          ? e.message || tStatic(locale, "account.deleteFailed")
+          : tStatic(locale, "account.deleteFailed"),
       );
     }
   });
@@ -210,6 +250,20 @@ export default component$(() => {
           ) : null}
         </section>
       ) : null}
+
+      <section class="account-form account-danger-zone" style={{ marginTop: "2.5rem" }}>
+        <h2>{tStatic(locale, "account.deleteSection")}</h2>
+        <p class="footer-muted">{tStatic(locale, "account.deleteHint")}</p>
+        {auth.contact?.delete_requested ? (
+          <p class="alert alert-info" role="status">
+            {tStatic(locale, "account.deleteRequested")}
+          </p>
+        ) : (
+          <button type="button" class="btn btn-danger" onClick$={requestDelete$}>
+            {tStatic(locale, "account.deleteMyAccount")}
+          </button>
+        )}
+      </section>
     </div>
   );
 });

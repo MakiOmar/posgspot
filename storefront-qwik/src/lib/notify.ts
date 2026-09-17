@@ -57,6 +57,8 @@ export async function confirmAction(options: {
   cancelText?: string;
   icon?: "warning" | "question";
   dir?: "ltr" | "rtl";
+  /** Destructive actions (e.g. delete account). */
+  danger?: boolean;
 }): Promise<boolean> {
   const Swal = await getSwal();
   const rtl = options.dir === "rtl";
@@ -67,7 +69,7 @@ export async function confirmAction(options: {
     showCancelButton: true,
     confirmButtonText: options.confirmText ?? "Confirm",
     cancelButtonText: options.cancelText ?? "Cancel",
-    confirmButtonColor: "#00d4aa",
+    confirmButtonColor: options.danger ? "#dc2626" : "#00d4aa",
     reverseButtons: !rtl,
     focusCancel: true,
   });
