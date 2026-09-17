@@ -79,6 +79,7 @@ export const useCustomBundlePage = routeLoader$(async ({ params, redirect, resol
 export default component$(() => {
   const page = useCustomBundlePage();
   const settings = useSiteSettings();
+  const currency = settings.value.currency;
   const { locale } = useI18n();
   const cart = useCart();
   const nav = useNavigate();
@@ -491,7 +492,7 @@ export default component$(() => {
                             <div class="footer-muted">{product.variation_name}</div>
                           ) : null}
                           <div class="custom-bundle-product__price">
-                            {formatPrice(product.price, settings.currency, locale)}
+                            {formatPrice(product.price, currency, locale)}
                           </div>
                         </div>
                         <button
@@ -527,7 +528,7 @@ export default component$(() => {
                       <div class="footer-muted">{line.variationName}</div>
                     ) : null}
                     <div class="custom-bundle-tray-item__price">
-                      {formatPrice(line.price * line.quantity, settings.currency, locale)}
+                      {formatPrice(line.price * line.quantity, currency, locale)}
                     </div>
                   </div>
                   <div class="custom-bundle-tray-item__actions">
@@ -559,7 +560,7 @@ export default component$(() => {
               })}
             </div>
             <div class="custom-bundle-tray-total">
-              {formatPrice(selectionTotal.value, settings.currency, locale)}
+              {formatPrice(selectionTotal.value, currency, locale)}
             </div>
           </div>
 
@@ -594,7 +595,7 @@ export default component$(() => {
                     class="btn btn-secondary"
                     onClick$={() => pickVariation$(opt.id)}
                   >
-                    {opt.name} — {formatPrice(opt.price, settings.currency, locale)}
+                    {opt.name} — {formatPrice(opt.price, currency, locale)}
                   </button>
                 </li>
               ))}

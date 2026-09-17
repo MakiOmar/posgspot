@@ -5,18 +5,24 @@ import { localePath } from "./i18n/paths";
 /** Format a price using storefront currency settings and locale. */
 export function formatPrice(
   amount: number,
-  currency: StoreSettings["currency"],
+  currency: StoreSettings["currency"] | null | undefined,
   locale: StoreLocaleCode | string = "en",
 ): string {
+  const safe = currency ?? {
+    code: "EGP",
+    symbol: "L.E.",
+    precision: 2,
+    symbol_placement: "before" as const,
+  };
   const intl = localeDefinition(locale).intl;
   const formatted = new Intl.NumberFormat(intl, {
-    minimumFractionDigits: currency.precision,
-    maximumFractionDigits: currency.precision,
+    minimumFractionDigits: safe.precision,
+    maximumFractionDigits: safe.precision,
   }).format(amount);
 
-  return currency.symbol_placement === "before"
-    ? `${currency.symbol}${formatted}`
-    : `${formatted} ${currency.symbol}`;
+  return safe.symbol_placement === "before"
+    ? `${safe.symbol}${formatted}`
+    : `${formatted} ${safe.symbol}`;
 }
 
 /** Format integers with locale grouping. */
