@@ -1,6 +1,7 @@
 /** Storefront layout variants controlled by build-time env (PUBLIC_* / VITE_*). */
 
 export type HeaderStyle = "one" | "two";
+export type FontFamily = "default" | "playfair";
 
 function envString(name: string): string {
   const fromProcess =
@@ -22,6 +23,14 @@ function parseHeaderStyle(raw: string | undefined): HeaderStyle {
   return "two";
 }
 
+function parseFontFamily(raw: string | undefined): FontFamily {
+  const normalized = (raw ?? "default").toLowerCase().trim();
+  if (normalized === "playfair" || normalized === "playfair-display") {
+    return "playfair";
+  }
+  return "default";
+}
+
 /**
  * Staging / pre-launch: block all crawlers.
  * Set `PUBLIC_ROBOTS_DISALLOW_ALL=true` in `.env.production` before build.
@@ -31,13 +40,24 @@ export const ROBOTS_DISALLOW_ALL: boolean = envFlag("PUBLIC_ROBOTS_DISALLOW_ALL"
 
 /**
  * Header layout:
- * - `one` — logo, Home/Shop/Categories, search, and actions on one row.
- * - `two` — main row (logo, search, actions) + second row for nav and categories.
+ * - `one` — single bar (logo + nav + icon actions); search opens a modal (Sigma-style).
+ * - `two` — main row (logo, inline search, actions) + second row for nav and categories.
  *
  * Set `PUBLIC_HEADER_STYLE=one` or `PUBLIC_HEADER_STYLE=two` (default: two).
  */
 export const HEADER_STYLE: HeaderStyle = parseHeaderStyle(
   envString("PUBLIC_HEADER_STYLE") || envString("VITE_HEADER_STYLE") || "two",
+);
+
+/**
+ * Latin UI typeface:
+ * - `default` — system / Segoe UI stack (current).
+ * - `playfair` — Google Font “Playfair Display” (serif headings + UI).
+ *
+ * Arabic UI keeps Cairo. Set `PUBLIC_FONT_FAMILY=playfair` or `default`.
+ */
+export const FONT_FAMILY: FontFamily = parseFontFamily(
+  envString("PUBLIC_FONT_FAMILY") || envString("VITE_FONT_FAMILY") || "default",
 );
 
 /** Laravel POS web origin for remaining external POS links. Defaults to PUBLIC_API_BASE. */

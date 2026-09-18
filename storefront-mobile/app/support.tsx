@@ -38,9 +38,13 @@ export default function SupportScreen() {
   const [conversation, setConversation] = useState<SupportConversationDto | null>(null);
   const [history, setHistory] = useState<SupportConversationDto[]>([]);
 
-  const enabled = Boolean(
-    (settings as { support_chat?: { enabled?: boolean } } | null)?.support_chat?.enabled,
-  );
+  // Allow chat while settings are still loading; only block when explicitly off.
+  const enabled =
+    settings == null ||
+    Boolean(
+      (settings as { support_chat?: { enabled?: boolean } } | null)?.support_chat
+        ?.enabled,
+    );
   const phone = String(
     (settings as { contact?: { phone?: string | null } } | null)?.contact?.phone || "17797",
   );

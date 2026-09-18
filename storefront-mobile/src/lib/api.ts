@@ -882,13 +882,84 @@ export function submitRequestProduct(
 }
 
 export function fetchSellToUsMeta(locale?: ContentLocale) {
-  return storefrontFetch<Record<string, unknown>>("/sell-to-us/meta", {}, locale);
+  return storefrontFetch<import("./types").SellToUsMeta>(
+    "/sell-to-us/meta",
+    {},
+    locale,
+  );
+}
+
+export function verifySellToUsInvoice(token: string, invoiceNo: string) {
+  return storefrontFetch<import("./types").SellToUsVerifyResult>(
+    "/sell-to-us/verify-invoice",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({ invoice_no: invoiceNo }),
+    },
+  );
+}
+
+export async function submitSellToUsRequest(token: string, form: FormData) {
+  return storefrontFetch<import("./types").SellToUsRequestResult>(
+    "/sell-to-us/requests",
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: form,
+    },
+  );
+}
+
+/** Copy a local image URI into a FormData-safe File part (Expo fetch). */
+export async function appendSellToUsPhoto(
+  form: FormData,
+  uri: string,
+  index: number,
+) {
+  const lower = uri.toLowerCase();
+  const ext = lower.includes(".png")
+    ? "png"
+    : lower.includes(".webp")
+      ? "webp"
+      : "jpg";
+  const safeName = `photo-${index}.${ext}`;
+  const source = new File(uri);
+  const upload = new File(Paths.cache, safeName);
+  if (upload.exists) {
+    upload.delete();
+  }
+  await source.copy(upload);
+  form.append("photos[]", upload);
 }
 
 export function fetchCustomBundleMeta(locale?: ContentLocale, platform?: string) {
   const qs = platform ? `?platform=${encodeURIComponent(platform)}` : "";
-  return storefrontFetch<Record<string, unknown>>(
+  return storefrontFetch<import("./types").CustomBundleMeta>(
     `/custom-bundle/meta${qs}`,
+    {},
+    locale,
+  );
+}
+
+export function fetchCustomBundleProducts(
+  params: {
+    platform: string;
+    tab?: string;
+    q?: string;
+    page?: number;
+    per_page?: number;
+  },
+  locale?: ContentLocale,
+) {
+  const qs = new URLSearchParams();
+  qs.set("platform", params.platform);
+  if (params.tab) qs.set("tab", params.tab);
+  if (params.q) qs.set("q", params.q);
+  if (params.page) qs.set("page", String(params.page));
+  if (params.per_page) qs.set("per_page", String(params.per_page));
+  return storefrontFetch<ProductSummary[]>(
+    `/custom-bundle/products?${qs.toString()}`,
     {},
     locale,
   );

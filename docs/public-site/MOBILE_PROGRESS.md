@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-09-17 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Shop/Services/Community nav; Track Order; Community CMS; Request a product; digital + auth-gated repair/console |
+| **Overall** | Shop/Services/Community nav; Track Order; Community CMS; Request a product; Custom Bundle + Sell to us; digital + auth-gated repair/console |
 
 **Status legend:** Done · Partial · Not started
 
@@ -38,8 +38,8 @@
 | Profile avatar upload + welcome/header display | Done |
 | Wave 3 — About/FAQ/legal content; games platform; gift cards; stores/repair | Done (repair: signed-in list via `/account/repairs`; track-console in-app) |
 | AI support chat (`/support`, Current/History) | Done — same Storefront API as Qwik; SecureStore guest token |
-| Custom Bundle screen | Partial — notice screen + nav when `STOREFRONT_CUSTOM_BUNDLE`; full builder still web |
-| Sell to us / trade-in screen | Partial — notice + login hint when `STOREFRONT_SELL_TO_US`; full form still web |
+| Custom Bundle screen | Done — meta, platform tabs, picker, variation modal, add-to-cart when `STOREFRONT_CUSTOM_BUNDLE` |
+| Sell to us / trade-in screen | Done — login gate + `next`, form, invoice verify, device photos when `STOREFRONT_SELL_TO_US` |
 | Track order | Done — guest lookup + signed-in recent orders |
 | Community (tournaments / events / news) | Done — lists + detail; gated by `STOREFRONT_COMMUNITY` |
 | Request a product | Done — form + API; gated by `STOREFRONT_REQUEST_PRODUCT` |
@@ -88,9 +88,9 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Custom Bundle + Sell to us full Expo flows (builder/cart; login gate, verify, photos); login/register `next` redirect. |
 | 2026-09-17 | Nav IA Shop/Services/Community; Track Order; Community CMS screens; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
-| 2026-09-17 | Sell to us: shared API documented; Expo UI still Not started (reuse `/sell-to-us/*`). |
-| 2026-09-17 | Custom Bundle: shared API documented; Expo UI still Not started (reuse `/custom-bundle/*` + cart). |
+| 2026-09-17 | Sell to us / Custom Bundle shared API documented for Expo reuse. |
 | 2026-09-16 | AI support chat: `/support` screen (Current/History), guest SecureStore token, Live chat nav when enabled. |
 | 2026-09-16 | Social login: `expo-auth-session` Google/Facebook → `POST /auth/social/{provider}/token`; Connect/Disconnect on Login & Security; `social_login` settings flags. |
 | 2026-09-16 | Invoice: download POS receipt as PDF via share/save sheet (no WebView browse/print). |

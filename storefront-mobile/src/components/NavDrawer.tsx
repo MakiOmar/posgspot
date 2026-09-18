@@ -17,8 +17,6 @@ import { useRtl } from "../lib/rtl";
 import type { Category } from "../lib/types";
 import { useApp } from "../contexts/AppContext";
 
-type Tab = "menu" | "categories";
-
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -43,14 +41,13 @@ function navigateHref(
 }
 
 /**
- * Side drawer: Menu (Qwik main nav) + Categories tabs, plus language switcher.
+ * Side drawer: main nav (Shop children include console categories) + language.
  */
 export function NavDrawer({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { t, locale, setLocale, accent, settings } = useApp();
+  const { t, locale, setLocale, accent, settings, refreshSettings } = useApp();
   const { isRtl, row, textAlign, writingDirection } = useRtl();
-  const [tab, setTab] = useState<Tab>("menu");
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -59,9 +56,15 @@ export function NavDrawer({ visible, onClose }: Props) {
       buildMainNavLinks(locale, {
         digitalEnabled: settings?.digital?.enabled !== false,
         categories,
-        supportChatEnabled: Boolean(settings?.support_chat?.enabled),
-        customBundleEnabled: Boolean(settings?.custom_bundle?.enabled),
-        sellToUsEnabled: Boolean(settings?.sell_to_us?.enabled),
+        supportChatEnabled: settings
+          ? Boolean(settings.support_chat?.enabled)
+          : true,
+        customBundleEnabled: settings
+          ? Boolean(settings.custom_bundle?.enabled)
+          : true,
+        sellToUsEnabled: settings
+          ? Boolean(settings.sell_to_us?.enabled)
+          : true,
         communityEnabled: Boolean(settings?.community?.enabled),
         requestProductEnabled: Boolean(settings?.request_product?.enabled),
       }),
@@ -80,12 +83,14 @@ export function NavDrawer({ visible, onClose }: Props) {
   useEffect(() => {
     if (visible) {
       void loadCategories();
+      if (!settings) {
+        void refreshSettings().catch(() => undefined);
+      }
     }
-  }, [visible, loadCategories]);
+  }, [visible, loadCategories, settings, refreshSettings]);
 
   const go = (href: string, external?: boolean) => {
     onClose();
-    // Slight delay so modal closes before navigation.
     setTimeout(() => navigateHref(router, href, external), 50);
   };
 
@@ -175,67 +180,11 @@ export function NavDrawer({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <View style={[styles.tabs, { flexDirection: row }]}>
-            {(
-              [
-                ["menu", t("nav.menuTab")],
-                ["categories", t("nav.categoriesTab")],
-              ] as const
-            ).map(([id, label]) => {
-              const active = tab === id;
-              return (
-                <Pressable
-                  key={id}
-                  style={[
-                    styles.tab,
-                    active && {
-                      borderBottomColor: accent,
-                      borderBottomWidth: 2,
-                    },
-                  ]}
-                  onPress={() => setTab(id)}
-                >
-                  <Text
-                    style={[
-                      styles.tabText,
-                      active && { color: accent, fontWeight: "800" },
-                      { textAlign: "center" },
-                    ]}
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
           <ScrollView
             style={styles.body}
             contentContainerStyle={{ paddingBottom: 24 }}
           >
-            {tab === "menu"
-              ? navItems.map(renderMenuItem)
-              : categories.map((cat) => (
-                  <Pressable
-                    key={cat.id}
-                    style={[styles.item, { flexDirection: row }]}
-                    onPress={() => go(`/category/${cat.slug}`)}
-                  >
-                    <Text
-                      style={[
-                        styles.itemText,
-                        { textAlign, writingDirection, flex: 1 },
-                      ]}
-                    >
-                      {cat.name}
-                    </Text>
-                  </Pressable>
-                ))}
-            {tab === "categories" && categories.length === 0 ? (
-              <Text style={[styles.empty, { textAlign }]}>
-                {t("nav.emptyCategories")}
-              </Text>
-            ) : null}
+            {navItems.map(renderMenuItem)}
           </ScrollView>
 
           <View style={styles.langBlock}>
@@ -257,10 +206,10 @@ export function NavDrawer({ visible, onClose }: Props) {
                     <Text
                       style={[
                         styles.langBtnText,
-                        active && styles.langBtnActive,
+                        active && styles.langBtnTextActive,
                       ]}
                     >
-                      {code === "en" ? "English" : "العربية"}
+                      {code.toUpperCase()}
                     </Text>
                   </Pressable>
                 );
@@ -277,66 +226,52 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, flexDirection: "row" },
   scrim: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)" },
   panel: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
     width: "86%",
     maxWidth: 360,
     backgroundColor: "#F7F7F5",
-    paddingHorizontal: 16,
+    height: "100%",
   },
-  panelLtr: {
-    left: 0,
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
-  },
-  panelRtl: {
-    right: 0,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
-  },
+  panelLtr: { marginRight: "auto" },
+  panelRtl: { marginLeft: "auto" },
   panelHead: {
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#ddd",
   },
-  panelTitle: { fontSize: 20, fontWeight: "800", color: "#111" },
-  tabs: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "#ddd" },
-  tab: { flex: 1, paddingVertical: 12 },
-  tabText: { color: "#666", fontWeight: "600" },
-  body: { flex: 1, marginTop: 8 },
+  panelTitle: { fontSize: 18, fontWeight: "800", color: "#111" },
+  body: { flex: 1, paddingHorizontal: 8, paddingTop: 8 },
   item: {
     alignItems: "center",
-    justifyContent: "space-between",
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e8e8e8",
-    gap: 8,
-  },
-  itemText: { fontSize: 16, fontWeight: "600", color: "#222" },
-  childItem: {
-    paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: "#e8e8e8",
   },
-  childText: { fontSize: 15, color: "#555" },
-  childDisabled: { color: "#aaa" },
-  empty: { color: "#888", padding: 16 },
+  itemText: { fontSize: 16, fontWeight: "700", color: "#222" },
+  childItem: {
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: "#fff",
+  },
+  childText: { fontSize: 15, color: "#333" },
+  childDisabled: { color: "#999" },
   langBlock: {
+    padding: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "#ddd",
-    paddingTop: 14,
   },
-  langLabel: { fontWeight: "700", marginBottom: 10, color: "#333" },
+  langLabel: { fontWeight: "700", marginBottom: 8, color: "#444" },
   langRow: { gap: 8 },
   langBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
     backgroundColor: "#e8e8e8",
-    alignItems: "center",
   },
-  langBtnText: { fontWeight: "700", color: "#333" },
-  langBtnActive: { color: "#111" },
+  langBtnText: { fontWeight: "800", color: "#333" },
+  langBtnTextActive: { color: "#111" },
 });

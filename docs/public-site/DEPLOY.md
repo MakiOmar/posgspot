@@ -81,7 +81,8 @@ Edit `.env.production` (Vite loads this for production builds):
 PUBLIC_API_BASE=https://pos.example.com
 
 # Optional
-PUBLIC_HEADER_STYLE=two
+PUBLIC_HEADER_STYLE=one
+# PUBLIC_FONT_FAMILY=playfair
 # PUBLIC_ROBOTS_DISALLOW_ALL=true   # staging only — blocks all crawlers
 # PUBLIC_CSP_REPORT_ONLY=true       # test CSP without enforcing
 ```

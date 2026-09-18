@@ -15,6 +15,7 @@ import { API_BASE, fetchCategories, fetchLocations, fetchSettings, setActiveCont
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { WishlistProvider } from "~/lib/wishlist-context";
+import { FONT_FAMILY } from "~/lib/config";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
 import { localeFromPathname, localePath, stripLocalePrefix } from "~/lib/i18n/paths";
@@ -109,22 +110,40 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
   const def = localeDefinition(lang);
   const faviconUrl = settings.favicon_url?.trim() || "";
+  const links: NonNullable<DocumentHead["links"]> = [];
+
+  if (FONT_FAMILY === "playfair") {
+    links.push(
+      {
+        key: "font-playfair-preconnect-gstatic",
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossOrigin: "anonymous",
+      },
+      {
+        key: "font-playfair",
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap",
+      },
+    );
+  }
+
+  if (faviconUrl) {
+    links.push({
+      key: "favicon",
+      rel: "icon",
+      href: faviconUrl,
+    });
+  }
 
   return {
     html: {
       lang,
       dir: def.dir,
+      class: FONT_FAMILY === "playfair" ? "font-playfair" : undefined,
     },
     styles: [themeHeadStyleFromSettings(settings)],
-    links: faviconUrl
-      ? [
-          {
-            key: "favicon",
-            rel: "icon",
-            href: faviconUrl,
-          },
-        ]
-      : [],
+    links,
   };
 };
 
@@ -164,7 +183,11 @@ export default component$(() => {
             {isBarePage ? (
               <Slot />
             ) : (
-              <div class="site-shell" dir={activeDir} lang={activeLocale}>
+              <div
+                class={`site-shell${FONT_FAMILY === "playfair" ? " font-playfair" : ""}`}
+                dir={activeDir}
+                lang={activeLocale}
+              >
                 <SiteShellHeader />
                 <main class="site-main">
                   <Slot />

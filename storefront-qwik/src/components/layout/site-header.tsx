@@ -82,6 +82,19 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
         <div class="header-main">
           <div class="container header-main-inner">
+            {isStyleOne ? (
+              <button
+                type="button"
+                class="header-nav-menu header-nav-menu--icon"
+                aria-expanded={mobileNavOpen}
+                aria-controls="mobile-nav-panel"
+                aria-label={tStatic(locale, "nav.menu")}
+                onClick$={toggleMobileNav$}
+              >
+                <MenuIcon size={22} />
+              </button>
+            ) : null}
+
             <Link
               href={localePath(locale, "/")}
               class="brand"
@@ -101,41 +114,21 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
             </Link>
 
             {isStyleOne ? (
-              <nav class="header-nav" aria-label={tStatic(locale, "header.mainNav")}>
-                <button
-                  type="button"
-                  class="header-nav-categories"
-                  aria-expanded={categoriesOpen}
-                  aria-controls="categories-panel"
-                  onClick$={toggleCategories$}
-                >
-                  <MenuIcon size={18} />
-                  <span>{tStatic(locale, "nav.categories")}</span>
-                </button>
-                <button
-                  type="button"
-                  class="header-nav-menu"
-                  aria-expanded={mobileNavOpen}
-                  aria-controls="mobile-nav-panel"
-                  onClick$={toggleMobileNav$}
-                >
-                  <MenuIcon size={18} />
-                  <span>{tStatic(locale, "nav.menu")}</span>
-                </button>
+              <nav class="header-nav header-nav--inline" aria-label={tStatic(locale, "header.mainNav")}>
                 <div class="header-nav-links">
                   <HeaderNavItems links={navLinks} linkClass="header-nav-link" />
                 </div>
               </nav>
             ) : null}
 
-            <HeaderSearch settings={settings} />
+            <HeaderSearch settings={settings} variant={isStyleOne ? "modal" : "inline"} />
 
             <div class="header-actions">
               <LanguageSwitcher settings={settings} />
 
               <HeaderWishlist />
 
-              {phone ? (
+              {!isStyleOne && phone ? (
                 <a class="header-phone" href={`tel:${phoneHref}`} dir="ltr">
                   <PhoneIcon size={18} />
                   <span class="header-phone-text">{phone}</span>
@@ -159,9 +152,11 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 ) : (
                   <UserIcon size={22} />
                 )}
-                <span class="action-text">
-                  {signedIn ? accountDisplayName(auth) : tStatic(locale, "header.signIn")}
-                </span>
+                {!isStyleOne ? (
+                  <span class="action-text">
+                    {signedIn ? accountDisplayName(auth) : tStatic(locale, "header.signIn")}
+                  </span>
+                ) : null}
               </Link>
 
               <MiniCart settings={settings} />
@@ -200,11 +195,13 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
         ) : null}
       </header>
 
-      <CategoriesDrawer
-        categories={categories}
-        open={categoriesOpen}
-        onClose$={closeCategories$}
-      />
+      {!isStyleOne ? (
+        <CategoriesDrawer
+          categories={categories}
+          open={categoriesOpen}
+          onClose$={closeCategories$}
+        />
+      ) : null}
 
       <MobileNavDrawer
         links={navLinks}

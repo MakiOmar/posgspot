@@ -100,8 +100,8 @@
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
-| `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE` |
-| `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo API-ready |
+| `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE`; Expo full parity |
+| `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo full parity |
 | `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders`; Expo `/track-order` |
 | `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; gated by `STOREFRONT_COMMUNITY`; Expo lists/details |
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-17 | Expo: Custom Bundle builder + Sell to us full form (verify, photos); login/register `next`. |
 | 2026-09-17 | Expo: Shop/Services/Community nav parity; Track Order; Community lists/details; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
 | 2026-09-17 | Nav IA: Shop mega + Services + Community; Track Order API/page; Community Qwik pages; Request a product Qwik page; `TrackOrderTest`. |
 | 2026-09-17 | Sell to us trade-in: `STOREFRONT_SELL_TO_US` + API verify/create + Qwik `/sell-to-us` + POS sell-requests + notify email. |

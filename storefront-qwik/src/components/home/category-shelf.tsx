@@ -67,9 +67,7 @@ export const CategoryShelf = component$<CategoryShelfProps>(({ shelf, products, 
         ) : null}
         <span class="home-category-shelf__banner-btn">
           {buttonText}
-          <span class="home-category-shelf__banner-btn-arrow" aria-hidden="true">
-            →
-          </span>
+          <span class="home-category-shelf__banner-btn-arrow" aria-hidden="true" />
         </span>
       </span>
     </>

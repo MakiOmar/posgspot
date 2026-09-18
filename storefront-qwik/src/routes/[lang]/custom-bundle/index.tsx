@@ -5,6 +5,7 @@ import {
   useNavigate,
   type DocumentHead,
 } from "@builder.io/qwik-city";
+import { CartPlusIcon, MinusIcon } from "~/components/icons";
 import { JsonLd } from "~/components/seo/json-ld";
 import {
   ApiError,
@@ -285,6 +286,24 @@ export default component$(() => {
     selection.value = selection.value.filter((row) => row.key !== key);
   });
 
+  /** Remove one unit of a catalog product from the bundle (any matching variation). */
+  const removeOneOfProduct$ = $((productId: number, variationId: number | null) => {
+    const preferredKey = variationId ? `v:${variationId}` : null;
+    const match =
+      (preferredKey
+        ? selection.value.find((row) => row.key === preferredKey)
+        : undefined) ||
+      selection.value.find((row) => row.productId === productId);
+    if (!match) return;
+    if (match.quantity <= 1) {
+      selection.value = selection.value.filter((row) => row.key !== match.key);
+      return;
+    }
+    selection.value = selection.value.map((row) =>
+      row.key === match.key ? { ...row, quantity: row.quantity - 1 } : row,
+    );
+  });
+
   const changeQty$ = $((key: string, delta: number) => {
     const next: BundleSelectionLine[] = [];
     let total = 0;
@@ -498,6 +517,12 @@ export default component$(() => {
                   {products.value.map((product) => {
                     const key = `v:${product.variation_id ?? product.id}`;
                     const busy = pendingKey.value === key;
+                    const inBundle = selection.value.some(
+                      (row) =>
+                        row.productId === product.id ||
+                        (product.variation_id != null &&
+                          row.key === `v:${product.variation_id}`),
+                    );
                     return (
                       <li key={product.id} class="custom-bundle-product">
                         <div class="custom-bundle-product__media">
@@ -518,13 +543,35 @@ export default component$(() => {
                         </div>
                         <button
                           type="button"
-                          class="btn btn-primary"
-                          disabled={!product.in_stock || !product.variation_id || busy}
-                          onClick$={() => tryAddProduct$(product)}
+                          class={`custom-bundle-cart-btn${inBundle ? " is-remove" : ""}`}
+                          disabled={
+                            busy ||
+                            (!inBundle &&
+                              (!product.in_stock || !product.variation_id))
+                          }
+                          aria-label={
+                            inBundle
+                              ? tStatic(locale, "customBundle.removeOne")
+                              : tStatic(locale, "customBundle.add")
+                          }
+                          onClick$={() => {
+                            if (inBundle) {
+                              removeOneOfProduct$(
+                                product.id,
+                                product.variation_id ?? null,
+                              );
+                              return;
+                            }
+                            tryAddProduct$(product);
+                          }}
                         >
-                          {busy
-                            ? tStatic(locale, "common.loading")
-                            : tStatic(locale, "customBundle.add")}
+                          {busy ? (
+                            <span class="sr-only">{tStatic(locale, "common.loading")}</span>
+                          ) : inBundle ? (
+                            <MinusIcon size={22} />
+                          ) : (
+                            <CartPlusIcon size={22} />
+                          )}
                         </button>
                       </li>
                     );

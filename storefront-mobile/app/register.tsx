@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Text } from "react-native";
-import { useRouter, type Href } from "expo-router";
+import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useApp } from "../src/contexts/AppContext";
 import {
   AuthScreenShell,
@@ -15,6 +15,11 @@ import { useRtl } from "../src/lib/rtl";
 export default function RegisterScreen() {
   const { t, signUp, accent } = useApp();
   const router = useRouter();
+  const params = useLocalSearchParams<{ next?: string }>();
+  const nextPath =
+    typeof params.next === "string" && params.next.startsWith("/")
+      ? params.next
+      : "/(tabs)/account";
   const { textAlign, writingDirection } = useRtl();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,6 +32,11 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const loginHref = {
+    pathname: "/login" as const,
+    params: nextPath !== "/(tabs)/account" ? { next: nextPath } : undefined,
+  };
+
   return (
     <AuthScreenShell
       title={t("common.register")}
@@ -35,7 +45,7 @@ export default function RegisterScreen() {
           {t("auth.haveAccount")}{" "}
           <Text
             style={[styles.linkAccent, { color: accent }]}
-            onPress={() => router.push("/login")}
+            onPress={() => router.push(loginHref as Href)}
           >
             {t("auth.goToLogin")}
           </Text>
@@ -111,7 +121,7 @@ export default function RegisterScreen() {
             .then(() =>
               router.replace({
                 pathname: "/verify-email",
-                params: { email: email.trim() },
+                params: { email: email.trim(), next: nextPath },
               } as unknown as Href),
             )
             .catch((e) =>
@@ -122,7 +132,7 @@ export default function RegisterScreen() {
       />
       <SocialLoginButtons
         intent="login"
-        onSuccess={() => router.replace("/(tabs)/account")}
+        onSuccess={() => router.replace(nextPath as never)}
       />
     </AuthScreenShell>
   );

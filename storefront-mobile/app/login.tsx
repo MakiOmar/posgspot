@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useApp } from "../src/contexts/AppContext";
 import {
   AuthScreenShell,
@@ -18,6 +18,11 @@ type LoginMethod = "email" | "phone" | "passkey";
 export default function LoginScreen() {
   const { t, signIn, accent, passkeyCanUnlock, unlockWithPasskey } = useApp();
   const router = useRouter();
+  const params = useLocalSearchParams<{ next?: string }>();
+  const nextPath =
+    typeof params.next === "string" && params.next.startsWith("/")
+      ? params.next
+      : "/(tabs)/account";
   const { textAlign, writingDirection } = useRtl();
   const [method, setMethod] = useState<LoginMethod>("email");
   const [email, setEmail] = useState("");
@@ -47,6 +52,15 @@ export default function LoginScreen() {
     methodTabs.push({ id: "passkey", label: t("account.passkeyTab") });
   }
 
+  const goAfterLogin = () => {
+    router.replace(nextPath as never);
+  };
+
+  const registerHref = {
+    pathname: "/register" as const,
+    params: nextPath !== "/(tabs)/account" ? { next: nextPath } : undefined,
+  };
+
   return (
     <AuthScreenShell
       title={t("auth.signIn")}
@@ -56,14 +70,14 @@ export default function LoginScreen() {
             {t("auth.noAccount")}{" "}
             <Text
               style={[styles.linkAccent, { color: accent }]}
-              onPress={() => router.push("/register")}
+              onPress={() => router.push(registerHref as never)}
             >
               {t("auth.registerNow")}
             </Text>
           </Text>
           <PrimaryButton
             label={t("auth.createAccount")}
-            onPress={() => router.push("/register")}
+            onPress={() => router.push(registerHref as never)}
             style={{ alignSelf: "stretch" }}
           />
         </View>
@@ -91,7 +105,7 @@ export default function LoginScreen() {
               void unlockWithPasskey()
                 .then((ok) => {
                   if (ok) {
-                    router.replace("/(tabs)/account");
+                    goAfterLogin();
                     return;
                   }
                   setError(t("account.passkeyFailed"));
@@ -159,7 +173,7 @@ export default function LoginScreen() {
               setError(null);
               void signIn(loginId, password)
                 .then(() => {
-                  router.replace("/(tabs)/account");
+                  goAfterLogin();
                 })
                 .catch((e) =>
                   setError(e instanceof Error ? e.message : t("common.error")),
@@ -169,7 +183,7 @@ export default function LoginScreen() {
           />
           <SocialLoginButtons
             intent="login"
-            onSuccess={() => router.replace("/(tabs)/account")}
+            onSuccess={() => goAfterLogin()}
           />
         </>
       )}

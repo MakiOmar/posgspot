@@ -46,7 +46,7 @@ import type {
   StoreSettings,
 } from "../lib/types";
 
-const SETTINGS_TIMEOUT_MS = 12000;
+const SETTINGS_TIMEOUT_MS = 30000;
 
 function sameContact(a: AuthContact | undefined, b: AuthContact): boolean {
   if (!a) return false;
@@ -179,12 +179,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
           }
         }
-        const { data } = await withTimeout(
-          fetchSettings(locale),
-          SETTINGS_TIMEOUT_MS,
-        );
-        if (!cancelled) {
-          setSettings(data);
+        // Don't abandon a slow settings response — mobile → POS can exceed the
+        // race window; apply flags when the request eventually finishes.
+        const settingsPromise = fetchSettings(locale);
+        try {
+          const { data } = await withTimeout(settingsPromise, SETTINGS_TIMEOUT_MS);
+          if (!cancelled) {
+            setSettings(data);
+          }
+        } catch {
+          void settingsPromise
+            .then(({ data }) => {
+              if (!cancelled) {
+                setSettings(data);
+              }
+            })
+            .catch(() => undefined);
         }
       } catch {
         // offline / API down / timeout — still show the app shell

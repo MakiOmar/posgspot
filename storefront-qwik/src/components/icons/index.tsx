@@ -81,6 +81,17 @@ export const CartIcon = component$<IconProps>((props) => (
   </OutlineSvg>
 ));
 
+/** Cart with a plus badge — used for “add to bundle” actions. */
+export const CartPlusIcon = component$<IconProps>((props) => (
+  <OutlineSvg {...props}>
+    <circle cx="8" cy="21" r="1" />
+    <circle cx="19" cy="21" r="1" />
+    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 2-1.58l1.65-7.42H5.12" />
+    <line x1="16" y1="5" x2="16" y2="11" />
+    <line x1="13" y1="8" x2="19" y2="8" />
+  </OutlineSvg>
+));
+
 export const UserIcon = component$<IconProps>((props) => (
   <OutlineSvg {...props}>
     <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />

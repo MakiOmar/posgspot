@@ -16,6 +16,8 @@ import { withPendingFeedback } from "~/lib/with-pending";
 
 interface HeaderSearchProps {
   settings: StoreSettings;
+  /** `modal` = icon opens a dialog (header style one); default inline field. */
+  variant?: "inline" | "modal";
 }
 
 function searchPlaceholderKey(type: CatalogSearchType): string {
@@ -48,13 +50,14 @@ function hitHref(hit: SearchHit, locale: string): string {
   return localePath(locale, `/products/${hit.slug || hit.id}`);
 }
 
-export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
+export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant = "inline" }) => {
   const loc = useLocation();
   const nav = useNavigate();
   const pending = usePendingState();
   const { locale } = useI18n();
   const headerMenu = useHeaderDropdown();
   const searching = useSignal(false);
+  const modalOpen = useSignal(false);
   const digitalEnabled = settings.digital?.enabled !== false;
   const searchType = useSignal<CatalogSearchType>(
     parseCatalogSearchType(loc.url.searchParams.get("type")),
@@ -151,10 +154,15 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
       ? `header-search-option-${results.value[activeIndex.value].kind || "item"}-${results.value[activeIndex.value].id}`
       : undefined;
   const placeholder = tStatic(locale, searchPlaceholderKey(searchType.value));
+  const isModal = variant === "modal";
 
-  return (
-    <div class="header-search-wrap">
-      {/* Catalog type + query; suggestions overlay the nav instead of mixing with it. */}
+  const closeModal$ = $(() => {
+    modalOpen.value = false;
+    closeHeaderDropdown(headerMenu, "search");
+  });
+
+  const formAndSuggestions = (
+    <>
       <form
         class="header-search"
         role="search"
@@ -164,6 +172,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
             const item = results.value[activeIndex.value];
             if (item) {
               await goToHit$(activeIndex.value);
+              if (isModal) modalOpen.value = false;
               return;
             }
           }
@@ -171,6 +180,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           const q = new FormData(form).get("q");
           const term = typeof q === "string" ? q.trim() : "";
           await submitSearch$(term);
+          if (isModal) modalOpen.value = false;
         }}
       >
         {digitalEnabled ? (
@@ -185,7 +195,9 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               activeIndex.value = -1;
             }}
             onFocus$={() => {
-              closeHeaderDropdown(headerMenu, "search");
+              if (!isModal) {
+                closeHeaderDropdown(headerMenu, "search");
+              }
             }}
           >
             <option value="products">{tStatic(locale, "header.searchTypeProducts")}</option>
@@ -193,10 +205,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
             <option value="gift_cards">{tStatic(locale, "header.searchTypeGiftCards")}</option>
           </select>
         ) : null}
-        {/*
-          Combobox pattern: aria-expanded / aria-controls / aria-autocomplete require
-          role="combobox" (plain search/textbox does not support them).
-        */}
         <input
           type="search"
           name="q"
@@ -209,6 +217,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
           aria-haspopup="listbox"
           aria-activedescendant={activeOptionId}
           autoComplete="off"
+          autoFocus={isModal}
           value={query.value}
           onInput$={(_, el) => {
             query.value = el.value;
@@ -226,6 +235,9 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               event.preventDefault();
               closeHeaderDropdown(headerMenu, "search");
               activeIndex.value = -1;
+              if (isModal) {
+                modalOpen.value = false;
+              }
               return;
             }
             if (headerMenu.openId !== "search" || results.value.length === 0) {
@@ -247,7 +259,9 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               event.preventDefault();
               const item = results.value[activeIndex.value];
               if (item) {
-                void goToHit$(activeIndex.value);
+                void goToHit$(activeIndex.value).then(() => {
+                  if (isModal) modalOpen.value = false;
+                });
               }
             }
           }}
@@ -257,7 +271,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
         </button>
       </form>
 
-      {/* Keep listbox in the DOM so aria-controls stays valid when collapsed. */}
       <div class="header-search-suggestions" hidden={!showPanel}>
         {loading.value ? (
           <p class="header-search-suggestions__status" role="status">
@@ -284,7 +297,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
                   class={`header-search-suggestion${index === activeIndex.value ? " is-active" : ""}`}
                   role="option"
                   aria-selected={index === activeIndex.value}
-                  // Prevent input blur so the panel stays open through the click.
                   onMouseDown$={(event) => event.preventDefault()}
                   onMouseEnter$={() => {
                     activeIndex.value = index;
@@ -293,6 +305,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
                     event.preventDefault();
                     event.stopPropagation();
                     await goToHit$(index);
+                    if (isModal) modalOpen.value = false;
                   }}
                 >
                   {hit.image_url ? (
@@ -332,12 +345,52 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings }) => {
               event.preventDefault();
               event.stopPropagation();
               await submitSearch$(query.value.trim());
+              if (isModal) modalOpen.value = false;
             }}
           >
             {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
           </button>
         ) : null}
       </div>
-    </div>
+    </>
   );
+
+  if (isModal) {
+    return (
+      <div class="header-search-wrap header-search-wrap--modal">
+        <button
+          type="button"
+          class="header-search-trigger"
+          aria-label={tStatic(locale, "header.search")}
+          aria-expanded={modalOpen.value}
+          onClick$={() => {
+            modalOpen.value = true;
+          }}
+        >
+          <SearchIcon size={22} />
+        </button>
+        {modalOpen.value ? (
+          <div class="header-search-modal" role="dialog" aria-modal="true" aria-label={tStatic(locale, "header.search")}>
+            <button
+              type="button"
+              class="header-search-modal__backdrop"
+              aria-label={tStatic(locale, "a11y.close")}
+              onClick$={closeModal$}
+            />
+            <div class="header-search-modal__panel">
+              <div class="header-search-modal__head">
+                <span class="header-search-modal__title">{tStatic(locale, "header.search")}</span>
+                <button type="button" class="header-search-modal__close" onClick$={closeModal$}>
+                  {tStatic(locale, "a11y.close")}
+                </button>
+              </div>
+              {formAndSuggestions}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return <div class="header-search-wrap">{formAndSuggestions}</div>;
 });

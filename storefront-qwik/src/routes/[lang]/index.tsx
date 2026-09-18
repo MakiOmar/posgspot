@@ -198,6 +198,15 @@ export default component$(() => {
   const { locale } = useI18n();
   const origin = loc.url.origin;
 
+  const orderedSections = [...sections.value];
+  const brandIdx = orderedSections.findIndex((s) => s.type === "brand_slider");
+  const trustIdx = orderedSections.findIndex((s) => s.type === "trust_badges");
+  if (brandIdx >= 0 && trustIdx >= 0 && brandIdx > trustIdx) {
+    const [brandSection] = orderedSections.splice(brandIdx, 1);
+    const insertAt = orderedSections.findIndex((s) => s.type === "trust_badges");
+    orderedSections.splice(insertAt, 0, brandSection);
+  }
+
   return (
     <>
       <JsonLd
@@ -214,8 +223,11 @@ export default component$(() => {
         }}
       />
 
-      {sections.value.map((section) => {
-        const width = section.layout_width === "full" ? "full" : "boxed";
+      {orderedSections.map((section) => {
+        const width =
+          section.type === "hero_slider" || section.layout_width === "full"
+            ? "full"
+            : "boxed";
         const shellClass = `home-section-shell home-section-shell--${width}`;
 
         let content: JSXOutput | null = null;

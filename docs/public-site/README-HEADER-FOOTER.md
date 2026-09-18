@@ -79,13 +79,18 @@ The Qwik storefront supports two header layouts, selected at **build time** via 
 | Env | Values | Default |
 |-----|--------|---------|
 | `PUBLIC_HEADER_STYLE` | `one` \| `two` (aliases: `1`) | `two` |
+| `PUBLIC_FONT_FAMILY` | `default` \| `playfair` | `default` |
+
+- **`one`** — single sticky bar: hamburger (mobile) + logo + centered nav (desktop) + search **icon** (opens modal) + language / wishlist / account / cart.
+- **`two`** — logo / inline search / actions on the first row; categories + nav on a second row.
+- **`playfair`** — loads Google Font Playfair Display for Latin UI (weights 400–700); Arabic still uses Cairo.
 
 Set in `storefront-qwik/.env.ssr` (dev) or `.env.production` (build). See `storefront-qwik/.env.example`.
 
 | Style | Layout |
 |-------|--------|
-| **`two`** (default) | **Row 1:** logo, search, phone, account, cart. **Row 2:** Home, Shop, Categories (opens side drawer). |
-| **`one`** | Single row: logo, Home, Shop, Categories button, search, phone, account, cart. Categories open in the same side drawer. |
+| **`two`** (default) | **Row 1:** logo, inline search, language, wishlist, account, cart. **Row 2:** Categories + main nav. |
+| **`one`** | Single bar (Sigma-style): hamburger (mobile) + logo + centered nav (desktop) + **search icon → modal** + language / wishlist / account / cart. |
 
 Phone lives in the main row (no separate top contact bar). The announcement strip remains optional and admin-controlled.
 
