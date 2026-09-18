@@ -793,6 +793,7 @@
     "save": "حفظ",
     "prev": "السابق",
     "next": "التالي",
+    "backToTop": "العودة للأعلى",
     "pageOf": "صفحة {current} من {last}",
     "lastUpdated": "آخر تحديث: {date}"
   },

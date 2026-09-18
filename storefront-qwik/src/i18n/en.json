@@ -793,6 +793,7 @@
     "save": "Save",
     "prev": "Prev",
     "next": "Next",
+    "backToTop": "Back to top",
     "pageOf": "Page {current} of {last}",
     "lastUpdated": "Last updated: {date}"
   },

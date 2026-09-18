@@ -221,6 +221,12 @@ export const ChevronRightIcon = component$<IconProps>((props) => (
   </OutlineSvg>
 ));
 
+export const ChevronUpIcon = component$<IconProps>((props) => (
+  <OutlineSvg {...props}>
+    <polyline points="18 15 12 9 6 15" />
+  </OutlineSvg>
+));
+
 export const TrashIcon = component$<IconProps>((props) => (
   <OutlineSvg {...props}>
     <polyline points="3 6 5 6 21 6" />

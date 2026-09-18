@@ -1,4 +1,5 @@
 import { component$ } from "@builder.io/qwik";
+import { HomeCarousel } from "~/components/home/home-carousel";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { Brand } from "~/lib/types";
 
@@ -7,7 +8,7 @@ interface BrandSliderProps {
   limit?: number;
 }
 
-/** Shop-by-brand logo strip (display only — no brand PLP links yet). */
+/** Shop-by-brand logo carousel (display only — no brand PLP links yet). */
 export const BrandSlider = component$<BrandSliderProps>(({ brands, limit = 16 }) => {
   const { locale } = useI18n();
   const items = brands.slice(0, limit);
@@ -23,7 +24,10 @@ export const BrandSlider = component$<BrandSliderProps>(({ brands, limit = 16 })
           {tStatic(locale, "home.shopByBrand")}
         </h2>
       </div>
-      <div class="home-brands__rail">
+      <HomeCarousel
+        label={tStatic(locale, "home.shopByBrand")}
+        trackClass="home-brands__rail"
+      >
         {items.map((brand) => (
           <div key={brand.id} class="home-brands__card" title={brand.name}>
             {brand.image_url && !brand.image_url.includes("default.png") ? (
@@ -41,7 +45,7 @@ export const BrandSlider = component$<BrandSliderProps>(({ brands, limit = 16 })
             <span class="home-brands__name">{brand.name}</span>
           </div>
         ))}
-      </div>
+      </HomeCarousel>
     </section>
   );
 });

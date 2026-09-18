@@ -60,6 +60,12 @@ export const FONT_FAMILY: FontFamily = parseFontFamily(
   envString("PUBLIC_FONT_FAMILY") || envString("VITE_FONT_FAMILY") || "default",
 );
 
+/**
+ * Ambient site-wide particles (dim, slow).
+ * Set `PUBLIC_SITE_PARTICLES=true` to enable, `false` to disable (default: off).
+ */
+export const SITE_PARTICLES: boolean = envFlag("PUBLIC_SITE_PARTICLES");
+
 /** Laravel POS web origin for remaining external POS links. Defaults to PUBLIC_API_BASE. */
 export const POS_WEB_BASE: string = (
   envString("PUBLIC_POS_WEB_BASE") ||

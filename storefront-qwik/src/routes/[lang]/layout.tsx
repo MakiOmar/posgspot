@@ -1,9 +1,11 @@
 import { component$, Slot } from "@builder.io/qwik";
-import { routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { routeLoader$, useLocation, type DocumentHead, type DocumentLink } from "@builder.io/qwik-city";
 import { SiteFooter } from "~/components/layout/site-footer";
 import { SiteHeader } from "~/components/layout/site-header";
 import { MobileBottomNav } from "~/components/layout/mobile-bottom-nav";
+import { BackToTopButton } from "~/components/layout/back-to-top-button";
 import { CookieConsentBanner } from "~/components/layout/cookie-consent-banner";
+import { SiteParticles } from "~/components/layout/site-particles";
 import { SupportChatWidget } from "~/components/support/support-chat-widget";
 import { GlobalPendingIndicator } from "~/components/ui/global-pending-indicator";
 import {
@@ -15,7 +17,7 @@ import { API_BASE, fetchCategories, fetchLocations, fetchSettings, setActiveCont
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { WishlistProvider } from "~/lib/wishlist-context";
-import { FONT_FAMILY } from "~/lib/config";
+import { FONT_FAMILY, SITE_PARTICLES } from "~/lib/config";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
 import { localeFromPathname, localePath, stripLocalePrefix } from "~/lib/i18n/paths";
@@ -110,7 +112,7 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
   const def = localeDefinition(lang);
   const faviconUrl = settings.favicon_url?.trim() || "";
-  const links: NonNullable<DocumentHead["links"]> = [];
+  const links: DocumentLink[] = [];
 
   if (FONT_FAMILY === "playfair") {
     links.push(
@@ -118,7 +120,7 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
         key: "font-playfair-preconnect-gstatic",
         rel: "preconnect",
         href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
+        crossorigin: "anonymous",
       },
       {
         key: "font-playfair",
@@ -188,6 +190,7 @@ export default component$(() => {
                 dir={activeDir}
                 lang={activeLocale}
               >
+                {SITE_PARTICLES ? <SiteParticles /> : null}
                 <SiteShellHeader />
                 <main class="site-main">
                   <Slot />
@@ -195,6 +198,7 @@ export default component$(() => {
                 <SiteShellFooter />
                 <MobileBottomNav />
                 <CookieConsentBanner />
+                <BackToTopButton />
                 <SupportChatWidget />
               </div>
             )}
