@@ -11,7 +11,9 @@
   /* --gs-accent / --gs-accent-hover: set via layout head + client theme sync (storefront theme.ts) */
   --gs-danger: #ff5c7a;
   --gs-radius: 10px;
-  --gs-header-h: 80px;
+  --gs-header-h: calc(80px - 0.3rem);
+  --gs-header-pad-y: 1.125rem;
+  --gs-header-offset: calc(var(--gs-header-h) + (2 * var(--gs-header-pad-y)));
   --gs-max: 1480px;
   --gs-font-latin: "Segoe UI", system-ui, -apple-system, sans-serif;
   --gs-font-arabic: "Cairo", var(--gs-font-latin);
@@ -120,6 +122,7 @@ img {
 }
 
 .site-shell {
+  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -131,6 +134,11 @@ img {
   max-width: var(--gs-max);
   margin: 0 auto;
   padding: 1.5rem 1rem 3rem;
+}
+
+/* Homepage hero underlaps the header — drop top padding so the image reaches the top. */
+.site-shell:has(.home-hero-slider) .site-main {
+  padding-top: 0;
 }
 
 /* Homepage section width: boxed stays in site-main; full breaks out to viewport. */
@@ -235,11 +243,71 @@ img {
   overflow: visible;
 }
 
-/* Main bar ÃÂ¢Ãâ¬Ãâ logo, search, actions. Stack above the subnav so overlays are not clipped. */
+/* Transparent overlay header when the homepage hero is present. */
+.site-shell:has(.home-hero-slider) .site-header {
+  background: transparent;
+  border-bottom-color: transparent;
+  backdrop-filter: none;
+}
+
+/* Black → transparent scrim so nav/logo stay readable over the hero. */
+.site-shell:has(.home-hero-slider) .site-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: calc(100% + 3rem);
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.88) 0%,
+    rgba(0, 0, 0, 0.55) 40%,
+    rgba(0, 0, 0, 0.18) 72%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.site-shell:has(.home-hero-slider) .site-header > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Solid black bar once the page is scrolled past the hero top. */
+.site-shell:has(.home-hero-slider) .site-header.is-scrolled {
+  background: #000;
+  border-bottom-color: var(--gs-border);
+  backdrop-filter: blur(8px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.site-shell:has(.home-hero-slider) .site-header.is-scrolled::before {
+  opacity: 0;
+}
+
+.site-header:has(.announcement) {
+  --gs-header-offset: calc(
+    var(--gs-header-h) + (2 * var(--gs-header-pad-y)) + 2.25rem
+  );
+}
+
+.site-header--one {
+  --gs-header-h: calc(4rem - 0.3rem);
+}
+
+/* Keep hero offset in sync — header is a sibling of main, not an ancestor. */
+.site-shell:has(.site-header--one) {
+  --gs-header-h: calc(4rem - 0.3rem);
+}
+
+/* Main bar — logo, search, actions. Stack above the subnav so overlays are not clipped. */
 .header-main {
   position: relative;
   z-index: 4;
-  padding: 1.125rem 0;
+  padding: var(--gs-header-pad-y) 0;
   overflow: visible;
 }
 
@@ -3126,6 +3194,10 @@ html[dir="rtl"] .header-search-type {
     padding: 0.875rem 0;
   }
 
+  .site-shell:has(.home-hero-slider) {
+    --gs-header-pad-y: 0.875rem;
+  }
+
   .header-main-inner {
     flex-wrap: wrap;
     gap: 0.75rem 1rem;
@@ -5709,6 +5781,8 @@ body.is-globally-pending {
 .home-section-shell--full:has(.home-hero-slider) {
   padding-inline: 0;
   margin-bottom: 0;
+  /* Pull hero up under the sticky header so image fills the top edge. */
+  margin-top: calc(-1 * var(--gs-header-offset));
 }
 
 .home-hero-slider__slide {
@@ -5735,7 +5809,9 @@ body.is-globally-pending {
   position: relative;
   z-index: 2;
   max-width: 32rem;
-  padding: clamp(1.5rem, 4vw, 3rem);
+  /* Clear the absolute/overlay header so copy never sits under nav/logo. */
+  padding: calc(var(--gs-header-offset) + 1.5rem) clamp(1.5rem, 4vw, 3rem)
+    clamp(1.5rem, 4vw, 3rem);
   color: #fff;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
 }
@@ -7294,7 +7370,7 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   align-items: center;
   gap: 1rem;
   flex-wrap: nowrap;
-  min-height: 4rem;
+  min-height: calc(4rem - 0.3rem);
 }
 
 .site-header--one .brand {

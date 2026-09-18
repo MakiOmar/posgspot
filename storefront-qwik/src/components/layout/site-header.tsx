@@ -1,4 +1,4 @@
-import { $, component$ } from "@builder.io/qwik";
+import { $, component$, useOnWindow, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import {
   MenuIcon,
@@ -36,6 +36,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
   const auth = useAuth();
   const signedIn = isAuthenticated(auth);
   const isStyleOne = HEADER_STYLE === "one";
+  const scrolled = useSignal(false);
   const navLinks = buildMainNavLinks(locale, {
     digitalEnabled: settings.digital?.enabled !== false,
     categories,
@@ -50,6 +51,13 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
   const phone = settings.contact?.phone || "";
   const phoneHref = phone.replace(/[^\d+]/g, "");
+
+  useOnWindow(
+    "scroll",
+    $(() => {
+      scrolled.value = window.scrollY > 8;
+    }),
+  );
 
   const closeCategories$ = $(() => {
     closeHeaderDropdown(headerMenu, "categories");
@@ -69,7 +77,9 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
   return (
     <>
-      <header class={`site-header site-header--${HEADER_STYLE}`}>
+      <header
+        class={`site-header site-header--${HEADER_STYLE}${scrolled.value ? " is-scrolled" : ""}`}
+      >
         {settings.announcement.enabled && settings.announcement.message ? (
           <div class="announcement">
             {settings.announcement.link ? (
