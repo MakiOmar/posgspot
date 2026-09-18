@@ -81,16 +81,34 @@ export const CartIcon = component$<IconProps>((props) => (
   </OutlineSvg>
 ));
 
-/** Cart with a plus badge — used for “add to bundle” actions. */
-export const CartPlusIcon = component$<IconProps>((props) => (
-  <OutlineSvg {...props}>
-    <circle cx="8" cy="21" r="1" />
-    <circle cx="19" cy="21" r="1" />
-    <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 2-1.58l1.65-7.42H5.12" />
-    <line x1="16" y1="5" x2="16" y2="11" />
-    <line x1="13" y1="8" x2="19" y2="8" />
-  </OutlineSvg>
-));
+/** Cart + plus for “add to bundle”. Plus stays clear of the cart strokes. */
+export const CartPlusIcon = component$<IconProps>((props) => {
+  const { size = 20, title, class: className } = props;
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.85"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      class={className}
+      aria-hidden={title ? undefined : "true"}
+      role={title ? "img" : undefined}
+    >
+      {title ? <title>{title}</title> : null}
+      {/* Compact cart on the left */}
+      <circle cx="6.6" cy="19.35" r="1.05" />
+      <circle cx="11.9" cy="19.35" r="1.05" />
+      <path d="M2.5 4.25h1.85l1.85 8.5h6.25l1.4-5.2H5.75" />
+      {/* Plus on the right with a clear gap from the cart */}
+      <path d="M19 4.75v7.75M15.85 8.6h6.3" />
+    </svg>
+  );
+});
 
 export const UserIcon = component$<IconProps>((props) => (
   <OutlineSvg {...props}>

@@ -141,6 +141,67 @@ img {
   padding-top: 0;
 }
 
+/* Homepage section stack: even vertical rhythm + scroll reveals.
+   Use block layout (not flex) so the hero 100vh slider is never flex-shrunk. */
+.home-sections {
+  --home-section-gap: clamp(1.75rem, 3.8vw, 2.75rem);
+  display: block;
+  padding-block: 0 var(--home-section-gap);
+}
+
+.home-sections > .home-section-shell + .home-section-shell {
+  margin-top: var(--home-section-gap);
+}
+
+/* Keep the hero underlap (do not zero this out — it must pull under the header). */
+.home-sections > .home-section-shell:has(.home-hero-slider) {
+  margin-top: calc(-1 * var(--gs-header-offset));
+}
+
+[data-home-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 2.25rem, 0);
+  transition:
+    opacity 1.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+[data-home-reveal="from-start"] {
+  transform: translate3d(-2.85rem, 0, 0);
+}
+
+[data-home-reveal="from-end"] {
+  transform: translate3d(2.85rem, 0, 0);
+}
+
+[data-home-reveal="from-bottom"] {
+  transform: translate3d(0, 2.75rem, 0);
+}
+
+/* Flip horizontal slide direction in RTL. */
+[dir="rtl"] [data-home-reveal="from-start"] {
+  transform: translate3d(2.85rem, 0, 0);
+}
+
+[dir="rtl"] [data-home-reveal="from-end"] {
+  transform: translate3d(-2.85rem, 0, 0);
+}
+
+[data-home-reveal].is-inview {
+  opacity: 1;
+  transform: none;
+  will-change: auto;
+}
+
+.home-promo-tiles__tile[data-home-reveal="from-bottom"]:nth-child(4) {
+  transition-delay: 0.12s;
+}
+
+.home-promo-tiles__tile[data-home-reveal="from-bottom"]:nth-child(3) {
+  transition-delay: 0.06s;
+}
+
 /* Homepage section width: boxed stays in site-main; full breaks out to viewport. */
 .home-section-shell--boxed {
   width: 100%;
@@ -4448,9 +4509,10 @@ body.is-globally-pending {
   grid-template-columns: 64px minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.75rem 0.85rem;
   border: 1px solid var(--gs-border, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
+  overflow: visible;
 }
 .custom-bundle-product__media img,
 .custom-bundle-product__placeholder {
@@ -4473,11 +4535,17 @@ body.is-globally-pending {
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
+  padding: 0;
   border-radius: 999px;
-  border: 1px solid var(--gs-border, rgba(255, 255, 255, 0.12));
+  border: 1px solid transparent;
   background: var(--gs-accent, #00d4aa);
   color: #111;
   cursor: pointer;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.custom-bundle-cart-btn svg {
+  display: block;
   flex-shrink: 0;
 }
 .custom-bundle-cart-btn:disabled {
@@ -4495,7 +4563,9 @@ body.is-globally-pending {
 }
 .custom-bundle-tray {
   position: sticky;
-  top: 1rem;
+  /* Stay below the sticky site header while scrolling. */
+  top: calc(var(--gs-header-offset) + 0.75rem);
+  z-index: 2;
   padding: 1rem;
   border: 1px solid var(--gs-border, rgba(255, 255, 255, 0.08));
   border-radius: 14px;
@@ -5768,11 +5838,16 @@ body.is-globally-pending {
 
 .home-hero-slider {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   margin: 0;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   height: 100vh;
-  max-height: 100vh;
+  height: 100dvh;
+  max-height: none;
   border-radius: 0;
   overflow: hidden;
   background: #0a0a0c;
@@ -5808,28 +5883,55 @@ body.is-globally-pending {
 .home-hero-slider__content {
   position: relative;
   z-index: 2;
-  max-width: 32rem;
-  /* Clear the absolute/overlay header so copy never sits under nav/logo. */
-  padding: calc(var(--gs-header-offset) + 1.5rem) clamp(1.5rem, 4vw, 3rem)
-    clamp(1.5rem, 4vw, 3rem);
+  max-width: min(40rem, 100%);
+  /* Clear the overlay header; flex parent vertically centers this block. */
+  padding: calc(var(--gs-header-offset) + 0.75rem) clamp(1.5rem, 4vw, 3.25rem)
+    clamp(3.25rem, 6vw, 4.5rem);
   color: #fff;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+  box-sizing: border-box;
 }
 
 .home-hero-slider__kicker {
-  margin: 0 0 0.5rem;
-  font-size: 0.8rem;
+  margin: 0 0 0.65rem;
+  font-size: clamp(0.95rem, 1.8vw, 1.2rem);
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--gs-accent);
 }
 
 .home-hero-slider__title {
-  margin: 0 0 1.25rem;
-  font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+  margin: 0 0 1.5rem;
+  font-size: clamp(2.15rem, 5.8vw, 3.85rem);
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.home-hero-slider__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.home-hero-slider__btn {
+  font-size: 1rem;
+  padding: 0.85rem 1.45rem;
+}
+
+.home-hero-slider__btn--bundle {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border: 2px solid #fff;
+  backdrop-filter: blur(4px);
+}
+
+.home-hero-slider__btn--bundle:hover {
+  background: #fff;
+  color: #0d0f14;
+  border-color: #fff;
 }
 
 .home-hero-slider__dots {
@@ -5858,7 +5960,7 @@ body.is-globally-pending {
 }
 
 .home-promo-tiles {
-  margin: 0 0 2.5rem;
+  margin: 0;
 }
 
 .home-promo-tiles__eyebrow {
@@ -5874,6 +5976,7 @@ body.is-globally-pending {
   display: grid;
   grid-template-columns: 1fr;
   gap: 0.75rem;
+  overflow: hidden;
 }
 
 @media (min-width: 720px) {
@@ -5944,7 +6047,7 @@ body.is-globally-pending {
 }
 
 .home-video {
-  margin: 0 0 2.5rem;
+  margin: 0;
   width: 100%;
 }
 
@@ -5987,7 +6090,7 @@ body.is-globally-pending {
 }
 
 .home-trust-badges {
-  margin: 0 0 2.5rem;
+  margin: 0;
   width: 100%;
   padding: 1.25rem 0;
   background: var(--gs-surface);
@@ -6415,7 +6518,7 @@ body.is-globally-pending {
 }
 
 .promo-banners {
-  margin: 0 0 2rem;
+  margin: 0;
 }
 
 .promo-banners__list {
@@ -6456,8 +6559,8 @@ body.is-globally-pending {
 
 /* Compositional homepage promo banner (section builder). */
 .promo-banner-block {
-  margin: 0 0 2.25rem;
-  padding: 0.75rem 0 1.25rem;
+  margin: 0;
+  padding: 0;
   overflow: visible;
 }
 
@@ -6624,7 +6727,13 @@ body.is-globally-pending {
 }
 
 .home-section {
-  margin-bottom: 2.5rem;
+  margin-bottom: 0;
+}
+
+.home-category-shelves {
+  display: flex;
+  flex-direction: column;
+  gap: var(--home-section-gap, 2.25rem);
 }
 
 .home-section__head {
@@ -7361,6 +7470,12 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   .support-chat__launcher {
     animation: none;
     transition: none;
+  }
+
+  [data-home-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 

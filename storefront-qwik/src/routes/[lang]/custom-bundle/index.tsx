@@ -570,7 +570,7 @@ export default component$(() => {
                           ) : inBundle ? (
                             <MinusIcon size={22} />
                           ) : (
-                            <CartPlusIcon size={22} />
+                            <CartPlusIcon size={20} />
                           )}
                         </button>
                       </li>

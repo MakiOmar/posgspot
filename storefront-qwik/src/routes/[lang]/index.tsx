@@ -7,6 +7,7 @@ import { BrandSlider } from "~/components/home/brand-slider";
 import { CategoryShelf } from "~/components/home/category-shelf";
 import { FeaturedSlider } from "~/components/home/featured-slider";
 import { HeroSlider } from "~/components/home/hero-slider";
+import { HomeSections } from "~/components/home/home-sections";
 import { HomeVideo } from "~/components/home/home-video";
 import { PromoBannerSection } from "~/components/home/promo-banner-section";
 import { PromoTiles } from "~/components/home/promo-tiles";
@@ -223,135 +224,145 @@ export default component$(() => {
         }}
       />
 
-      {orderedSections.map((section) => {
-        const width =
-          section.type === "hero_slider" || section.layout_width === "full"
-            ? "full"
-            : "boxed";
-        const shellClass = `home-section-shell home-section-shell--${width}`;
+      <HomeSections>
+        {orderedSections.map((section) => {
+          const width =
+            section.type === "hero_slider" || section.layout_width === "full"
+              ? "full"
+              : "boxed";
+          const shellClass = `home-section-shell home-section-shell--${width}`;
+          const isHero = section.type === "hero_slider";
+          const isPromoTiles = section.type === "promo_tiles";
+          // Hero stays static; promo tiles use their own directional reveals.
+          const skipReveal = isHero || isPromoTiles;
 
-        let content: JSXOutput | null = null;
-        switch (section.type) {
-          case "hero_slider": {
-            const slides = (section.settings.slides as HomepageHeroSlide[] | undefined) ?? [];
-            content = <HeroSlider slides={slides} />;
-            break;
-          }
-          case "promo_tiles": {
-            const tiles = (section.settings.tiles as HomepagePromoTile[] | undefined) ?? [];
-            content = <PromoTiles tiles={tiles} />;
-            break;
-          }
-          case "video":
-            content = (
-              <HomeVideo
-                source={String(section.settings.source ?? "self")}
-                src={String(section.settings.url ?? "")}
-                embedUrl={
-                  section.settings.embed_url == null ? null : String(section.settings.embed_url)
-                }
-                poster={String(section.settings.poster ?? "")}
-                title={String(section.settings.title ?? "")}
-              />
-            );
-            break;
-          case "trust_badges": {
-            const items = (section.settings.items as HomepageTrustBadge[] | undefined) ?? [];
-            content = <TrustBadges items={items} />;
-            break;
-          }
-          case "promo_banners":
-            content = (
-              <PromoBanners banners={settings.value.banners ?? []} placement="home" />
-            );
-            break;
-          case "promo_banner": {
-            const banner = section.settings as unknown as HomepagePromoBanner;
-            if (!banner.logo_url && !banner.image_url && !banner.top_title && !banner.main_title) {
-              content = null;
-            } else {
-              content = <PromoBannerSection banner={banner} />;
+          let content: JSXOutput | null = null;
+          switch (section.type) {
+            case "hero_slider": {
+              const slides = (section.settings.slides as HomepageHeroSlide[] | undefined) ?? [];
+              content = <HeroSlider slides={slides} />;
+              break;
             }
-            break;
+            case "promo_tiles": {
+              const tiles = (section.settings.tiles as HomepagePromoTile[] | undefined) ?? [];
+              content = <PromoTiles tiles={tiles} />;
+              break;
+            }
+            case "video":
+              content = (
+                <HomeVideo
+                  source={String(section.settings.source ?? "self")}
+                  src={String(section.settings.url ?? "")}
+                  embedUrl={
+                    section.settings.embed_url == null ? null : String(section.settings.embed_url)
+                  }
+                  poster={String(section.settings.poster ?? "")}
+                  title={String(section.settings.title ?? "")}
+                />
+              );
+              break;
+            case "trust_badges": {
+              const items = (section.settings.items as HomepageTrustBadge[] | undefined) ?? [];
+              content = <TrustBadges items={items} />;
+              break;
+            }
+            case "promo_banners":
+              content = (
+                <PromoBanners banners={settings.value.banners ?? []} placement="home" />
+              );
+              break;
+            case "promo_banner": {
+              const banner = section.settings as unknown as HomepagePromoBanner;
+              if (!banner.logo_url && !banner.image_url && !banner.top_title && !banner.main_title) {
+                content = null;
+              } else {
+                content = <PromoBannerSection banner={banner} />;
+              }
+              break;
+            }
+            case "featured_products":
+              content = (
+                <FeaturedSlider products={catalog.value.featured} settings={settings.value} />
+              );
+              break;
+            case "top_categories":
+              content = (
+                <TopCategories
+                  categories={categoriesLoad.value.items}
+                  limit={sectionSettingNumber(section.settings, "limit", 8)}
+                />
+              );
+              break;
+            case "category_shelves":
+              content = (
+                <div class="home-category-shelves">
+                  {catalog.value.shelves.map(({ shelf, products }) => (
+                    <CategoryShelf
+                      key={shelf.id}
+                      shelf={shelf}
+                      products={products}
+                      settings={settings.value}
+                    />
+                  ))}
+                </div>
+              );
+              break;
+            case "category_shelf": {
+              const shelf = section.settings.shelf as HomepageCategoryShelf | undefined;
+              content = shelf ? (
+                <CategoryShelf
+                  shelf={shelf}
+                  products={catalog.value.categoryShelfProducts[section.id] ?? []}
+                  settings={settings.value}
+                />
+              ) : null;
+              break;
+            }
+            case "brand_slider":
+              content = (
+                <BrandSlider
+                  brands={catalog.value.brands}
+                  limit={sectionSettingNumber(section.settings, "limit", 24)}
+                />
+              );
+              break;
+            case "bestsellers":
+              content = (
+                <BestSelling
+                  products={catalog.value.bestsellers}
+                  settings={settings.value}
+                  style={String(section.settings.style ?? "grid")}
+                />
+              );
+              break;
+            case "recently_viewed":
+              content = (
+                <RecentlyViewed
+                  settings={settings.value}
+                  headingId="home-recently-viewed-heading"
+                  limit={sectionSettingNumber(section.settings, "limit", 8)}
+                />
+              );
+              break;
+            default:
+              content = null;
           }
-          case "featured_products":
-            content = (
-              <FeaturedSlider products={catalog.value.featured} settings={settings.value} />
-            );
-            break;
-          case "top_categories":
-            content = (
-              <TopCategories
-                categories={categoriesLoad.value.items}
-                limit={sectionSettingNumber(section.settings, "limit", 8)}
-              />
-            );
-            break;
-          case "category_shelves":
-            content = (
-              <div>
-                {catalog.value.shelves.map(({ shelf, products }) => (
-                  <CategoryShelf
-                    key={shelf.id}
-                    shelf={shelf}
-                    products={products}
-                    settings={settings.value}
-                  />
-                ))}
-              </div>
-            );
-            break;
-          case "category_shelf": {
-            const shelf = section.settings.shelf as HomepageCategoryShelf | undefined;
-            content = shelf ? (
-              <CategoryShelf
-                shelf={shelf}
-                products={catalog.value.categoryShelfProducts[section.id] ?? []}
-                settings={settings.value}
-              />
-            ) : null;
-            break;
+
+          if (!content) {
+            return null;
           }
-          case "brand_slider":
-            content = (
-              <BrandSlider
-                brands={catalog.value.brands}
-                limit={sectionSettingNumber(section.settings, "limit", 24)}
-              />
-            );
-            break;
-          case "bestsellers":
-            content = (
-              <BestSelling
-                products={catalog.value.bestsellers}
-                settings={settings.value}
-                style={String(section.settings.style ?? "grid")}
-              />
-            );
-            break;
-          case "recently_viewed":
-            content = (
-              <RecentlyViewed
-                settings={settings.value}
-                headingId="home-recently-viewed-heading"
-                limit={sectionSettingNumber(section.settings, "limit", 8)}
-              />
-            );
-            break;
-          default:
-            content = null;
-        }
 
-        if (!content) {
-          return null;
-        }
-
-        return (
-          <div key={section.id} class={shellClass}>
-            {content}
-          </div>
-        );
-      })}
+          return (
+            <div
+              key={section.id}
+              class={shellClass}
+              {...(skipReveal ? {} : { "data-home-reveal": "" })}
+            >
+              {content}
+            </div>
+          );
+        })}
+      </HomeSections>
     </>
   );
 });

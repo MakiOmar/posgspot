@@ -8,6 +8,16 @@ interface PromoTilesProps {
   tiles: HomepagePromoTile[];
 }
 
+function promoRevealDir(index: number): "from-start" | "from-end" | "from-bottom" {
+  if (index === 0) {
+    return "from-start";
+  }
+  if (index === 1) {
+    return "from-end";
+  }
+  return "from-bottom";
+}
+
 /**
  * Promo tile grid after the hero (tiles from GET /homepage section settings).
  * Layout: tall main tile + wide top-right + two smaller tiles (CSS grid).
@@ -21,7 +31,7 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
 
   return (
     <section class="home-promo-tiles" aria-labelledby="home-promo-heading">
-      <div class="home-section__head">
+      <div class="home-section__head" data-home-reveal>
         <div>
           <p class="home-promo-tiles__eyebrow">{tStatic(locale, "home.promoEyebrow")}</p>
           <h2 id="home-promo-heading" class="home-section__title">
@@ -41,6 +51,7 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
             ]
               .filter(Boolean)
               .join(" ")}
+            data-home-reveal={promoRevealDir(i)}
           >
             <img
               class="home-promo-tiles__img"
