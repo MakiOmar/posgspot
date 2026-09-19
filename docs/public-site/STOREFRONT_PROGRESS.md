@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-17 |
+| **Last updated** | 2026-09-19 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry/Geidea works |
-| Header / footer spec | 🟡 | Core wired; 4-col footer; mobile Menu side drawer + fixed bottom bar (Home/Cart/Wishlist/Profile) |
+| Header / footer spec | 🟡 | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs in Quick Links; floating contact FAB (Call / Chat / Message) |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry + Geidea) | ✅ | Pluggable gateway layer; Fawry hosted checkout; Geidea HPP session + webhook HMAC; one active provider |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -93,7 +93,7 @@
 | `/[lang]/account/*` | ✅ | Dashboard, profile, Login & Security (password + social Connect/Disconnect + delete-account request), Payments & Payouts menu (methods / list by status / credits); orders + reward-points routes kept but hidden from account menus; unverified customers must confirm email before checkout |
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
-| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating AI support widget when enabled |
+| `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); platform-strict stock; add primary/secondary → cart with digital meta; failed PDP shows retry (no silent redirect to list) |
@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Nav IA: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs → Quick Links; floating contact FAB; hero drops Bundle CTA. |
 | 2026-09-17 | Expo: Custom Bundle builder + Sell to us full form (verify, photos); login/register `next`. |
 | 2026-09-17 | Expo: Shop/Services/Community nav parity; Track Order; Community lists/details; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
 | 2026-09-17 | Nav IA: Shop mega + Services + Community; Track Order API/page; Community Qwik pages; Request a product Qwik page; `TrackOrderTest`. |

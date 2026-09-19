@@ -23,7 +23,7 @@ export interface ResolvedNavItem {
   /** Flat link when set; omit for dropdown-only parents. */
   href?: string;
   external?: boolean;
-  /** Simple dropdown (Contact, Community, Services without mega). */
+  /** Simple dropdown (Services, Community). */
   children?: ResolvedNavChild[];
   /** Multi-column mega panel (Shop). When set, preferred over flat children. */
   mega?: {
@@ -31,29 +31,22 @@ export interface ResolvedNavItem {
   };
 }
 
-const HOTLINE = "17797";
-
 /**
- * Build header nav: Home, Shop mega, Services, Community (flag), Stores, Contact, FAQ, About.
+ * Build header nav: Home, Shop mega, Services, Our Stores, Build Your Bundle,
+ * Community (no destinations yet), Sell to Us.
  */
 export function buildMainNavLinks(
   lang: StoreLocaleCode,
   options?: {
     digitalEnabled?: boolean;
     categories?: Category[];
-    supportChatEnabled?: boolean;
     customBundleEnabled?: boolean;
     sellToUsEnabled?: boolean;
-    communityEnabled?: boolean;
-    requestProductEnabled?: boolean;
   },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
-  const supportChatEnabled = Boolean(options?.supportChatEnabled);
   const customBundleEnabled = Boolean(options?.customBundleEnabled);
   const sellToUsEnabled = Boolean(options?.sellToUsEnabled);
-  const communityEnabled = Boolean(options?.communityEnabled);
-  const requestProductEnabled = Boolean(options?.requestProductEnabled);
 
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
@@ -67,7 +60,6 @@ export function buildMainNavLinks(
     links: [
       { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
       ...consoleChildren,
-      { label: tStatic(lang, "nav.brands"), href: localePath(lang, "/brands") },
     ],
   };
 
@@ -91,35 +83,9 @@ export function buildMainNavLinks(
       }
     : null;
 
-  const moreLinks: ResolvedNavChild[] = [];
-  if (customBundleEnabled) {
-    moreLinks.push({
-      label: tStatic(lang, "nav.customBundle"),
-      href: localePath(lang, "/custom-bundle"),
-    });
-  }
-  if (sellToUsEnabled) {
-    moreLinks.push({
-      label: tStatic(lang, "nav.sellToUs"),
-      href: localePath(lang, "/sell-to-us"),
-    });
-  }
-  if (requestProductEnabled) {
-    moreLinks.push({
-      label: tStatic(lang, "nav.requestProduct"),
-      href: localePath(lang, "/request-a-product"),
-    });
-  }
-
   const shopColumns: ResolvedNavMegaColumn[] = [shopColumn];
   if (digitalColumn) {
     shopColumns.push(digitalColumn);
-  }
-  if (moreLinks.length > 0) {
-    shopColumns.push({
-      title: tStatic(lang, "nav.shopColumnMore"),
-      links: moreLinks,
-    });
   }
 
   // Flat children for mobile drawer (same destinations as mega).
@@ -155,51 +121,32 @@ export function buildMainNavLinks(
     },
   ];
 
-  if (communityEnabled) {
+  if (customBundleEnabled) {
     items.push({
-      label: tStatic(lang, "nav.community"),
-      children: [
-        {
-          label: tStatic(lang, "nav.tournaments"),
-          href: localePath(lang, "/tournaments"),
-        },
-        {
-          label: tStatic(lang, "nav.events"),
-          href: localePath(lang, "/events"),
-        },
-        {
-          label: tStatic(lang, "nav.gamingNews"),
-          href: localePath(lang, "/gaming-news"),
-        },
-      ],
+      label: tStatic(lang, "nav.customBundle"),
+      href: localePath(lang, "/custom-bundle"),
     });
   }
 
-  items.push(
-    { label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") },
-    {
-      label: tStatic(lang, "nav.contact"),
-      children: [
-        { label: tStatic(lang, "nav.callUs"), href: `tel:${HOTLINE}` },
-        supportChatEnabled
-          ? {
-              label: tStatic(lang, "nav.liveChat"),
-              action: "open-support-chat" as const,
-            }
-          : {
-              label: tStatic(lang, "nav.liveChat"),
-              disabled: true,
-              hint: tStatic(lang, "nav.comingSoon"),
-            },
-        {
-          label: tStatic(lang, "nav.leaveMessage"),
-          href: localePath(lang, "/contact"),
-        },
-      ],
-    },
-    { label: tStatic(lang, "nav.faq"), href: localePath(lang, "/faq") },
-    { label: tStatic(lang, "nav.about"), href: localePath(lang, "/about") },
-  );
+  items.push({ label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") });
+
+  // Community stays in the bar as a dropdown, but has no destinations yet.
+  items.push({
+    label: tStatic(lang, "nav.community"),
+    children: [
+      {
+        label: tStatic(lang, "nav.comingSoon"),
+        disabled: true,
+      },
+    ],
+  });
+
+  if (sellToUsEnabled) {
+    items.push({
+      label: tStatic(lang, "nav.sellToUs"),
+      href: localePath(lang, "/sell-to-us"),
+    });
+  }
 
   return items;
 }

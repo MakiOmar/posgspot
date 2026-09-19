@@ -2,7 +2,6 @@ import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { useSiteShell } from "~/lib/site-shell-context";
 import type { HomepageHeroSlide } from "~/lib/types";
 
 interface HeroSliderProps {
@@ -14,9 +13,7 @@ interface HeroSliderProps {
  */
 export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
   const { locale } = useI18n();
-  const shell = useSiteShell();
   const index = useSignal(0);
-  const showCustomBundle = shell.settings.custom_bundle?.enabled === true;
 
   // Auto-advance slides on the client only.
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -63,14 +60,6 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
           <Link href={localePath(locale, slide.href)} class="btn btn-primary home-hero-slider__btn">
             {tStatic(locale, "home.shopNow")}
           </Link>
-          {showCustomBundle ? (
-            <Link
-              href={localePath(locale, "/custom-bundle")}
-              class="btn home-hero-slider__btn home-hero-slider__btn--bundle"
-            >
-              {tStatic(locale, "home.buildYourBundle")}
-            </Link>
-          ) : null}
         </div>
       </div>
       <div class="home-hero-slider__dots" role="tablist">

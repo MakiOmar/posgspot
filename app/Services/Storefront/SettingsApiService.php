@@ -281,10 +281,12 @@ class SettingsApiService
      */
     private function footerPayload(array $settings, string $locale): array
     {
-        $footer = $this->storefrontSettings->ensureSellToUsFooterLink(
-            $this->storefrontSettings->ensureCustomBundleFooterLink(
-                $this->storefrontSettings->ensureDeleteAccountFooterLink(
-                    $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
+        $footer = $this->storefrontSettings->ensureFaqsQuickLink(
+            $this->storefrontSettings->ensureSellToUsFooterLink(
+                $this->storefrontSettings->ensureCustomBundleFooterLink(
+                    $this->storefrontSettings->ensureDeleteAccountFooterLink(
+                        $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
+                    )
                 )
             )
         );

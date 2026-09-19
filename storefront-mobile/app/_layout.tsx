@@ -6,6 +6,7 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { BrandSplash } from "../src/components/BrandSplash";
+import { ContactFab } from "../src/components/ContactFab";
 import { MaintenanceGate } from "../src/components/MaintenanceGate";
 import { PaymentResumeGate } from "../src/components/PaymentResumeGate";
 import { ToastHost } from "../src/components/ToastHost";
@@ -91,15 +92,15 @@ export default function RootLayout() {
                 />
                 <Stack.Screen name="wishlist" options={{ title: "Wishlist" }} />
                 <Stack.Screen name="account" options={{ headerShown: false }} />
-                <Stack.Screen name="stores" options={{ title: "Stores" }} />
+                <Stack.Screen name="stores" options={{ title: "Our Stores" }} />
                 <Stack.Screen name="contact" options={{ title: "Contact" }} />
                 <Stack.Screen name="support" options={{ title: "Support" }} />
                 <Stack.Screen name="repair-status" options={{ title: "Repair" }} />
                 <Stack.Screen name="track-console" options={{ title: "Track console" }} />
-                <Stack.Screen name="track-order" options={{ title: "Track order" }} />
+                <Stack.Screen name="track-order" options={{ title: "Track my order" }} />
                 <Stack.Screen
                   name="repair-truck-request"
-                  options={{ title: "Repair truck" }}
+                  options={{ title: "Book a Service Truck" }}
                 />
                 <Stack.Screen
                   name="request-a-product"
@@ -111,10 +112,10 @@ export default function RootLayout() {
                 <Stack.Screen name="events/[slug]" options={{ title: "Event" }} />
                 <Stack.Screen name="gaming-news/index" options={{ title: "Gaming news" }} />
                 <Stack.Screen name="gaming-news/[slug]" options={{ title: "News" }} />
-                <Stack.Screen name="custom-bundle" options={{ title: "Custom bundle" }} />
+                <Stack.Screen name="custom-bundle" options={{ title: "Build Your Bundle" }} />
                 <Stack.Screen name="sell-to-us" options={{ title: "Sell to us" }} />
                 <Stack.Screen name="about" options={{ title: "About" }} />
-                <Stack.Screen name="faq" options={{ title: "FAQ" }} />
+                <Stack.Screen name="faq" options={{ title: "FAQs" }} />
                 <Stack.Screen name="legal/[slug]" options={{ title: "Legal" }} />
                 <Stack.Screen
                   name="maintenance"
@@ -123,6 +124,7 @@ export default function RootLayout() {
                 <Stack.Screen name="+not-found" options={{ title: "Not found" }} />
               </Stack>
                 </MaintenanceGate>
+                <ContactFab />
                 <ToastHost />
               </SplashGate>
             </WishlistProvider>

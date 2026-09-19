@@ -25,12 +25,11 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
         id: "col_customer",
         title: "Customer",
         links: [
-          { id: "lnk_help", label: "Help Center", url: "/faq" },
           { id: "lnk_account", label: "My Account", url: "/account" },
           { id: "lnk_orders", label: "Track My Order", url: "/account/orders" },
           { id: "lnk_returns", label: "Return Policy", url: "/return-policy" },
           { id: "lnk_delete_account", label: "Delete Account", url: "/delete-account" },
-          { id: "lnk_custom_bundle", label: "Custom Bundle", url: "/custom-bundle" },
+          { id: "lnk_custom_bundle", label: "Build Your Bundle", url: "/custom-bundle" },
           { id: "lnk_sell_to_us", label: "Sell to Us", url: "/sell-to-us" },
         ],
       },
@@ -38,16 +37,16 @@ export const FALLBACK_STORE_SETTINGS: StoreSettings = {
         id: "col_about",
         title: "About Us",
         links: [
-          { id: "lnk_company", label: "Company Info", url: "/contact" },
-          { id: "lnk_stores", label: "Store Location", url: "/stores" },
+          { id: "lnk_company", label: "Company Info", url: "/about" },
+          { id: "lnk_stores", label: "Our Stores", url: "/stores" },
         ],
       },
       {
         id: "col_quick",
         title: "Quick Links",
         links: [
+          { id: "lnk_faq", label: "FAQs", url: "/faq" },
           { id: "lnk_search", label: "Search", url: "/search" },
-          { id: "lnk_contact", label: "Contact Us", url: "/contact" },
           { id: "lnk_terms", label: "Terms of Service", url: "/terms-and-conditions" },
         ],
       },

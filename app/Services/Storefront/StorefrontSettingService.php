@@ -1622,12 +1622,11 @@ class StorefrontSettingService
                     'id' => 'col_customer',
                     'title' => ['en' => 'Customer', 'ar' => 'العملاء'],
                     'links' => [
-                        ['id' => 'lnk_help', 'label' => ['en' => 'Help Center', 'ar' => 'مركز المساعدة'], 'url' => '/faq'],
                         ['id' => 'lnk_account', 'label' => ['en' => 'My Account', 'ar' => 'حسابي'], 'url' => '/account'],
                         ['id' => 'lnk_orders', 'label' => ['en' => 'Track My Order', 'ar' => 'تتبع طلبي'], 'url' => '/account/orders'],
                         ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
                         ['id' => 'lnk_delete_account', 'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'], 'url' => '/delete-account'],
-                        ['id' => 'lnk_custom_bundle', 'label' => ['en' => 'Custom Bundle', 'ar' => 'باقة مخصصة'], 'url' => '/custom-bundle'],
+                        ['id' => 'lnk_custom_bundle', 'label' => ['en' => 'Build Your Bundle', 'ar' => 'اصنع باقتك'], 'url' => '/custom-bundle'],
                         ['id' => 'lnk_sell_to_us', 'label' => ['en' => 'Sell to Us', 'ar' => 'بع لنا'], 'url' => '/sell-to-us'],
                         ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
                         ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/account/wishlist'],
@@ -1638,8 +1637,8 @@ class StorefrontSettingService
                     'id' => 'col_about',
                     'title' => ['en' => 'About Us', 'ar' => 'من نحن'],
                     'links' => [
-                        ['id' => 'lnk_company', 'label' => ['en' => 'Company Info', 'ar' => 'عن الشركة'], 'url' => '/contact'],
-                        ['id' => 'lnk_stores', 'label' => ['en' => 'Store Location', 'ar' => 'فروعنا'], 'url' => '/stores'],
+                        ['id' => 'lnk_company', 'label' => ['en' => 'Company Info', 'ar' => 'عن الشركة'], 'url' => '/about'],
+                        ['id' => 'lnk_stores', 'label' => ['en' => 'Our Stores', 'ar' => 'فروعنا'], 'url' => '/stores'],
                         ['id' => 'lnk_reviews', 'label' => ['en' => 'Reviews', 'ar' => 'التقييمات'], 'url' => '/products'],
                     ],
                 ],
@@ -1647,9 +1646,8 @@ class StorefrontSettingService
                     'id' => 'col_quick',
                     'title' => ['en' => 'Quick Links', 'ar' => 'روابط سريعة'],
                     'links' => [
+                        ['id' => 'lnk_faq', 'label' => ['en' => 'FAQs', 'ar' => 'الأسئلة الشائعة'], 'url' => '/faq'],
                         ['id' => 'lnk_search', 'label' => ['en' => 'Search', 'ar' => 'بحث'], 'url' => '/search'],
-                        ['id' => 'lnk_about', 'label' => ['en' => 'About Us', 'ar' => 'من نحن'], 'url' => '/contact'],
-                        ['id' => 'lnk_contact', 'label' => ['en' => 'Contact Us', 'ar' => 'اتصل بنا'], 'url' => '/contact'],
                         ['id' => 'lnk_terms', 'label' => ['en' => 'Terms of Service', 'ar' => 'الشروط والأحكام'], 'url' => '/terms-and-conditions'],
                         ['id' => 'lnk_privacy', 'label' => ['en' => 'Privacy Policy', 'ar' => 'سياسة الخصوصية'], 'url' => '/privacy-policy'],
                     ],
@@ -1733,7 +1731,7 @@ class StorefrontSettingService
             $footer,
             'lnk_custom_bundle',
             '/custom-bundle',
-            ['en' => 'Custom Bundle', 'ar' => 'باقة مخصصة']
+            ['en' => 'Build Your Bundle', 'ar' => 'اصنع باقتك']
         );
     }
 
@@ -1755,6 +1753,61 @@ class StorefrontSettingService
             '/sell-to-us',
             ['en' => 'Sell to Us', 'ar' => 'بع لنا']
         );
+    }
+
+    /**
+     * Ensure Quick Links column exposes FAQs (moved out of main nav).
+     *
+     * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function ensureFaqsQuickLink(array $footer): array
+    {
+        $linkId = 'lnk_faq';
+        $url = '/faq';
+        $newLink = [
+            'id' => $linkId,
+            'label' => ['en' => 'FAQs', 'ar' => 'الأسئلة الشائعة'],
+            'url' => $url,
+        ];
+
+        $targetIndex = null;
+        foreach ($footer['columns'] as $i => $col) {
+            if (is_array($col) && ($col['id'] ?? '') === 'col_quick') {
+                $targetIndex = $i;
+                break;
+            }
+        }
+        if ($targetIndex === null) {
+            $targetIndex = max(0, count($footer['columns']) - 1);
+        }
+
+        if (! isset($footer['columns'][$targetIndex]) || ! is_array($footer['columns'][$targetIndex])) {
+            return $footer;
+        }
+
+        foreach ($footer['columns'][$targetIndex]['links'] ?? [] as $link) {
+            if (! is_array($link)) {
+                continue;
+            }
+            $existingId = (string) ($link['id'] ?? '');
+            $existingUrl = trim((string) ($link['url'] ?? ''));
+            if ($existingId === $linkId || $existingUrl === $url) {
+                return $footer;
+            }
+        }
+
+        $links = array_values($footer['columns'][$targetIndex]['links'] ?? []);
+        if (! is_array($links)) {
+            $links = [];
+        }
+        if (count($links) >= 12) {
+            array_pop($links);
+        }
+        array_unshift($links, $newLink);
+        $footer['columns'][$targetIndex]['links'] = $links;
+
+        return $footer;
     }
 
     /**

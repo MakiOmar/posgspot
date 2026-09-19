@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-17 |
+| **Last updated** | 2026-09-19 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Shop/Services/Community nav; Track Order; Community CMS; Request a product; Custom Bundle + Sell to us; digital + auth-gated repair/console |
+| **Overall** | Nav parity (Our Stores / Bundle / Community soon / Sell to Us); contact FAB; Track Order; Custom Bundle + Sell to us; digital + auth-gated repair/console |
 
 **Status legend:** Done · Partial · Not started
 
@@ -46,7 +46,8 @@
 | Repair truck request | Done — coming-soon placeholder |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
-| Header nav drawer (menu + categories + language) | Done | Shop / Services / Community IA (parity with Qwik) |
+| Header nav drawer (menu + categories + language) | Done | Parity with Qwik: Shop / Services / Bundle / Our Stores / Community (soon) / Sell to Us |
+| Floating contact FAB (Call / Chat / Message) | Done | Chat opens `/support` when enabled |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
 | Star ratings on cards + PDP | Done |
@@ -88,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Nav parity + floating contact FAB (Call / Chat / Message); label renames; Community coming soon. |
 | 2026-09-17 | Custom Bundle + Sell to us full Expo flows (builder/cart; login gate, verify, photos); login/register `next` redirect. |
 | 2026-09-17 | Nav IA Shop/Services/Community; Track Order; Community CMS screens; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
 | 2026-09-17 | Sell to us / Custom Bundle shared API documented for Expo reuse. |
