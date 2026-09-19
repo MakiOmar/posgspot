@@ -622,7 +622,6 @@
                     Build the <strong>Physical</strong> column of the Shop mega menu (web + mobile app).
                     Drag to reorder. Drag <strong>right</strong> to nest under the previous group; drag <strong>left</strong> to un-nest (or drop onto a group). Max 5 levels.
                     Leave empty to use the automatic category list.
-                    The “Shop all” link is always prepended on the storefront and is not listed here.
                     Digital games / gift cards stay in the Digital column (not editable here).
                 </div>
                 <div class="row" id="storefront_shop_menu_builder">

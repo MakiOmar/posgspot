@@ -112,10 +112,7 @@ export function buildMainNavLinks(
 
   const shopColumn: ResolvedNavMegaColumn = {
     title: tStatic(lang, "nav.shopColumnPhysical"),
-    links: [
-      { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
-      ...physicalChildren,
-    ],
+    links: [...physicalChildren],
   };
 
   const digitalColumn: ResolvedNavMegaColumn | null = digitalEnabled

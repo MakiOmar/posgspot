@@ -2,7 +2,7 @@ import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { formatCommunityWhen } from "~/components/community/community-dates";
 import { CommunityFeaturedTiles } from "~/components/community/community-featured-tiles";
-import { CommunityNewsSidebar } from "~/components/community/community-news-sidebar";
+import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -48,78 +48,74 @@ export const CommunityNewsListPage = component$<Props>((props) => {
     <div class="community-news-layout">
       <PageTitleBar
         title={tStatic(locale, "community.newsTitle")}
-        lead={tStatic(locale, "community.newsLead")}
         crumbs={[{ label: tStatic(locale, "community.newsTitle") }]}
       />
 
-      <div class="community-news-layout__body content-page">
-        <div class="community-news-layout__main">
-          {props.unavailable ? (
-            <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
-          ) : null}
+      <CommunityWithSidebar
+        upcomingTournaments={props.upcomingTournaments}
+        upcomingEvents={props.upcomingEvents}
+        initialQuery={props.query}
+      >
+        <p class="community-page-intro">{tStatic(locale, "community.newsLead")}</p>
+        {props.unavailable ? (
+          <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
+        ) : null}
 
-          {!props.unavailable && filtered.length === 0 ? (
-            <p class="footer-muted">
-              {q ? tStatic(locale, "community.searchEmpty") : tStatic(locale, "community.empty")}
-            </p>
-          ) : null}
+        {!props.unavailable && filtered.length === 0 ? (
+          <p class="footer-muted">
+            {q ? tStatic(locale, "community.searchEmpty") : tStatic(locale, "community.empty")}
+          </p>
+        ) : null}
 
-          {mosaic.length > 0 ? <CommunityFeaturedTiles posts={mosaic} /> : null}
+        {mosaic.length > 0 ? <CommunityFeaturedTiles posts={mosaic} /> : null}
 
-          {latestList.length > 0 ? (
-            <section class="community-news-latest" aria-labelledby="community-latest-heading">
-              <h2 id="community-latest-heading" class="community-section-title">
-                {q ? tStatic(locale, "community.searchResults") : tStatic(locale, "community.latest")}
-              </h2>
-              <ul class="community-post-grid">
-                {latestList.map((post) => (
-                  <li key={post.id} class="community-post-card">
-                    {post.cover_url ? (
-                      <Link
-                        href={localePath(locale, `/gaming-news/${post.slug}`)}
-                        class="community-post-card__cover"
-                      >
-                        <img
-                          src={post.cover_url}
-                          alt=""
-                          width={640}
-                          height={360}
-                          loading="lazy"
-                        />
-                      </Link>
+        {latestList.length > 0 ? (
+          <section class="community-news-latest" aria-labelledby="community-latest-heading">
+            <h2 id="community-latest-heading" class="community-section-title">
+              {q ? tStatic(locale, "community.searchResults") : tStatic(locale, "community.latest")}
+            </h2>
+            <ul class="community-post-grid">
+              {latestList.map((post) => (
+                <li key={post.id} class="community-post-card">
+                  {post.cover_url ? (
+                    <Link
+                      href={localePath(locale, `/gaming-news/${post.slug}`)}
+                      class="community-post-card__cover"
+                    >
+                      <img
+                        src={post.cover_url}
+                        alt=""
+                        width={640}
+                        height={360}
+                        loading="lazy"
+                      />
+                    </Link>
+                  ) : null}
+                  <div class="community-post-card__body">
+                    {post.published_at ? (
+                      <p class="community-post-card__meta">
+                        {formatCommunityWhen(post.published_at, locale)}
+                      </p>
                     ) : null}
-                    <div class="community-post-card__body">
-                      {post.published_at ? (
-                        <p class="community-post-card__meta">
-                          {formatCommunityWhen(post.published_at, locale)}
-                        </p>
-                      ) : null}
-                      <h3>
-                        <Link href={localePath(locale, `/gaming-news/${post.slug}`)}>
-                          {post.title}
-                        </Link>
-                      </h3>
-                      {post.excerpt ? <p class="footer-muted">{post.excerpt}</p> : null}
-                      <Link
-                        class="link-accent"
-                        href={localePath(locale, `/gaming-news/${post.slug}`)}
-                      >
-                        {tStatic(locale, "community.readMore")}
+                    <h3>
+                      <Link href={localePath(locale, `/gaming-news/${post.slug}`)}>
+                        {post.title}
                       </Link>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-        </div>
-
-        <CommunityNewsSidebar
-          upcomingTournaments={props.upcomingTournaments}
-          upcomingEvents={props.upcomingEvents}
-          initialQuery={props.query}
-        />
-      </div>
+                    </h3>
+                    {post.excerpt ? <p class="footer-muted">{post.excerpt}</p> : null}
+                    <Link
+                      class="link-accent"
+                      href={localePath(locale, `/gaming-news/${post.slug}`)}
+                    >
+                      {tStatic(locale, "community.readMore")}
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+      </CommunityWithSidebar>
     </div>
   );
 });

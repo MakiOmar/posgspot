@@ -65,10 +65,7 @@ export function buildMainNavLinks(
             : `/products?category_id=${category.id}`,
         }));
 
-  const shopChildren: MainNavChild[] = [
-    { label: t(locale, "nav.shopAll"), href: "/products" },
-    ...physicalChildren,
-  ];
+  const shopChildren: MainNavChild[] = [...physicalChildren];
 
   if (digitalEnabled) {
     shopChildren.push(

@@ -103,7 +103,7 @@
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE`; Expo full parity |
 | `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo full parity |
 | `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders`; Expo `/track-order` |
-| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; SSR lists; news Featured+Latest; registration (internal form / external URL); gallery + related; og:image |
+| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; SSR lists; news Featured+Latest; shared sidebar (newsletter/search/upcoming) on all list+detail; registration; gallery + related; og:image |
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -253,6 +253,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community CMS: shared news sidebar (newsletter/search/upcoming) on events/tournaments/gaming-news list + detail pages. |
+| 2026-09-19 | Shop Physical mega: remove hardcoded Shop all / All consoles prepend (menu is builder-only). |
 | 2026-09-19 | Shop menu Physical: drag-right nests under previous group; drag-left un-nests (POS builder). |
 | 2026-09-19 | Shop menu Physical: allow nested groups (max depth 5) in POS builder, API resolve, Qwik mega/drawer, Expo NavDrawer. |
 | 2026-09-19 | Shop menu Physical builder (POS tab + drag-drop groups/links); public `shop_menu.physical`; Qwik mega/drawer + Expo NavDrawer nested parity. |

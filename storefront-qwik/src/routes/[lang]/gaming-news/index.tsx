@@ -2,6 +2,7 @@ import { component$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { CommunityNewsListPage } from "~/components/community/community-news-list-page";
 import { ApiError, fetchCommunityPosts } from "~/lib/api";
+import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -18,17 +19,13 @@ export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolve
   }
 
   const q = url.searchParams.get("q") || "";
+  const sidebar = await loadCommunitySidebarLists(locale);
 
   try {
-    const [news, tournaments, events] = await Promise.all([
-      fetchCommunityPosts({ type: "news", ...(q ? { q } : {}) }, locale),
-      fetchCommunityPosts({ type: "tournament", scope: "upcoming" }, locale),
-      fetchCommunityPosts({ type: "event", scope: "upcoming" }, locale),
-    ]);
+    const news = await fetchCommunityPosts({ type: "news", ...(q ? { q } : {}) }, locale);
     return {
       posts: news.data as CommunityPostSummary[],
-      upcomingTournaments: tournaments.data as CommunityPostSummary[],
-      upcomingEvents: events.data as CommunityPostSummary[],
+      ...sidebar,
       unavailable: false,
       query: q,
     };
@@ -36,8 +33,7 @@ export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolve
     if (e instanceof ApiError && e.status === 404) {
       return {
         posts: [] as CommunityPostSummary[],
-        upcomingTournaments: [] as CommunityPostSummary[],
-        upcomingEvents: [] as CommunityPostSummary[],
+        ...sidebar,
         unavailable: true,
         query: q,
       };

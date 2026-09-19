@@ -4,6 +4,7 @@ import {
   formatCommunityRange,
   formatCommunityWhen,
 } from "~/components/community/community-dates";
+import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ApiError, fetchCommunityPosts } from "~/lib/api";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -17,9 +18,11 @@ type Props = {
   titleKey: string;
   leadKey: string;
   initialPosts?: CommunityPostSummary[];
+  upcomingTournaments?: CommunityPostSummary[];
+  upcomingEvents?: CommunityPostSummary[];
 };
 
-/** Shared community list with optional upcoming/previous scope. */
+/** Shared community list with optional upcoming/previous scope + sidebar. */
 export const CommunityPostListPage = component$<Props>((props) => {
   const { locale } = useI18n();
   const scope = useSignal<"upcoming" | "previous">("upcoming");
@@ -69,99 +72,105 @@ export const CommunityPostListPage = component$<Props>((props) => {
     <div class="community-list-layout">
       <PageTitleBar
         title={tStatic(locale, props.titleKey)}
-        lead={tStatic(locale, props.leadKey)}
         crumbs={[{ label: tStatic(locale, props.titleKey) }]}
+      />
+
+      <CommunityWithSidebar
+        upcomingTournaments={props.upcomingTournaments}
+        upcomingEvents={props.upcomingEvents}
       >
-        {props.scoped ? (
-          <div class="community-scope-tabs page-title-bar__tabs" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              class={scope.value === "upcoming" ? "is-active" : undefined}
-              aria-selected={scope.value === "upcoming"}
-              onClick$={() => {
-                scope.value = "upcoming";
-              }}
-            >
-              {tStatic(locale, "community.upcoming")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              class={scope.value === "previous" ? "is-active" : undefined}
-              aria-selected={scope.value === "previous"}
-              onClick$={() => {
-                scope.value = "previous";
-              }}
-            >
-              {tStatic(locale, "community.previous")}
-            </button>
-          </div>
-        ) : null}
-      </PageTitleBar>
+        <article class="community-page">
+          <p class="community-page-intro">{tStatic(locale, props.leadKey)}</p>
 
-      <article class="content-page community-page">
-        {loading.value ? <p class="footer-muted">…</p> : null}
+          {props.scoped ? (
+            <div class="community-scope-tabs" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                class={scope.value === "upcoming" ? "is-active" : undefined}
+                aria-selected={scope.value === "upcoming"}
+                onClick$={() => {
+                  scope.value = "upcoming";
+                }}
+              >
+                {tStatic(locale, "community.upcoming")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class={scope.value === "previous" ? "is-active" : undefined}
+                aria-selected={scope.value === "previous"}
+                onClick$={() => {
+                  scope.value = "previous";
+                }}
+              >
+                {tStatic(locale, "community.previous")}
+              </button>
+            </div>
+          ) : null}
 
-        {!loading.value && unavailable.value ? (
-          <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
-        ) : null}
+          {loading.value ? <p class="footer-muted">…</p> : null}
 
-        {!loading.value && !unavailable.value && posts.value.length === 0 ? (
-          <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
-        ) : null}
+          {!loading.value && unavailable.value ? (
+            <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
+          ) : null}
 
-        {!loading.value && posts.value.length > 0 ? (
-          <ul class="community-post-grid">
-            {posts.value.map((post) => (
-              <li key={post.id} class="community-post-card community-post-card--rich">
-                {post.cover_url ? (
-                  <Link
-                    href={localePath(locale, `${props.detailBase}/${post.slug}`)}
-                    class="community-post-card__cover"
-                  >
-                    <img src={post.cover_url} alt="" width={640} height={360} loading="lazy" />
-                  </Link>
-                ) : null}
-                <div class="community-post-card__body">
-                  {post.game_title ? (
-                    <p class="community-post-card__game">{post.game_title}</p>
-                  ) : null}
-                  {formatCommunityRange(post.starts_at, post.ends_at, locale) ? (
-                    <p class="community-post-card__meta">
-                      {formatCommunityRange(post.starts_at, post.ends_at, locale)}
-                    </p>
-                  ) : post.published_at ? (
-                    <p class="community-post-card__meta">
-                      {formatCommunityWhen(post.published_at, locale)}
-                    </p>
-                  ) : null}
-                  {post.location?.name ? (
-                    <p class="community-post-card__meta">{post.location.name}</p>
-                  ) : null}
-                  <h2>
-                    <Link href={localePath(locale, `${props.detailBase}/${post.slug}`)}>
-                      {post.title}
+          {!loading.value && !unavailable.value && posts.value.length === 0 ? (
+            <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
+          ) : null}
+
+          {!loading.value && posts.value.length > 0 ? (
+            <ul class="community-post-grid">
+              {posts.value.map((post) => (
+                <li key={post.id} class="community-post-card community-post-card--rich">
+                  {post.cover_url ? (
+                    <Link
+                      href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                      class="community-post-card__cover"
+                    >
+                      <img src={post.cover_url} alt="" width={640} height={360} loading="lazy" />
                     </Link>
-                  </h2>
-                  {post.prize_pool ? (
-                    <p class="community-post-card__meta">
-                      {tStatic(locale, "community.prizePool")}: {post.prize_pool}
-                    </p>
                   ) : null}
-                  {post.excerpt ? <p class="footer-muted">{post.excerpt}</p> : null}
-                  <Link
-                    class="link-accent"
-                    href={localePath(locale, `${props.detailBase}/${post.slug}`)}
-                  >
-                    {tStatic(locale, "community.readMore")}
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </article>
+                  <div class="community-post-card__body">
+                    {post.game_title ? (
+                      <p class="community-post-card__game">{post.game_title}</p>
+                    ) : null}
+                    {formatCommunityRange(post.starts_at, post.ends_at, locale) ? (
+                      <p class="community-post-card__meta">
+                        {formatCommunityRange(post.starts_at, post.ends_at, locale)}
+                      </p>
+                    ) : post.published_at ? (
+                      <p class="community-post-card__meta">
+                        {formatCommunityWhen(post.published_at, locale)}
+                      </p>
+                    ) : null}
+                    {post.location?.name ? (
+                      <p class="community-post-card__meta">{post.location.name}</p>
+                    ) : null}
+                    <h2>
+                      <Link href={localePath(locale, `${props.detailBase}/${post.slug}`)}>
+                        {post.title}
+                      </Link>
+                    </h2>
+                    {post.prize_pool ? (
+                      <p class="community-post-card__meta">
+                        {tStatic(locale, "community.prizePool")}: {post.prize_pool}
+                      </p>
+                    ) : null}
+                    {post.excerpt ? <p class="footer-muted">{post.excerpt}</p> : null}
+                    <Link
+                      class="link-accent"
+                      href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                    >
+                      {tStatic(locale, "community.readMore")}
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+      </CommunityWithSidebar>
     </div>
   );
 });

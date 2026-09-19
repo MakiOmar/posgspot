@@ -8,9 +8,11 @@ import {
 } from "~/components/community/community-detail-sections";
 import { formatCommunityRange } from "~/components/community/community-dates";
 import { CommunityRegistrationForm } from "~/components/community/community-registration-form";
+import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { ApiError, fetchCommunityPost, fetchPhoneCountries } from "~/lib/api";
+import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -26,6 +28,8 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
   if (!settings.community?.enabled) {
     throw redirect(302, localePath(locale, "/"));
   }
+
+  const sidebar = await loadCommunitySidebarLists(locale);
 
   let phoneCountries: PhoneCountry[] = [];
   try {
@@ -44,10 +48,16 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
       post: data as CommunityPostDetail,
       notFound: false as const,
       phoneCountries,
+      ...sidebar,
     };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return { post: null, notFound: true as const, phoneCountries };
+      return {
+        post: null,
+        notFound: true as const,
+        phoneCountries,
+        ...sidebar,
+      };
     }
     throw e;
   }
@@ -60,12 +70,19 @@ export default component$(() => {
 
   if (page.value.notFound || !post) {
     return (
-      <article class="content-page community-page">
-        <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
-        <Link class="btn btn-secondary" href={localePath(locale, "/events")}>
-          {tStatic(locale, "community.back")}
-        </Link>
-      </article>
+      <div class="community-detail-layout">
+        <CommunityWithSidebar
+          upcomingTournaments={page.value.upcomingTournaments}
+          upcomingEvents={page.value.upcomingEvents}
+        >
+          <article class="community-page">
+            <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
+            <Link class="btn btn-secondary" href={localePath(locale, "/events")}>
+              {tStatic(locale, "community.back")}
+            </Link>
+          </article>
+        </CommunityWithSidebar>
+      </div>
     );
   }
 
@@ -77,60 +94,64 @@ export default component$(() => {
     <div class="community-detail-layout">
       <PageTitleBar
         title={post.title}
-        lead={post.excerpt || undefined}
         crumbs={[
           { label: tStatic(locale, "community.eventsTitle"), href: "/events" },
           { label: post.title },
         ]}
+      />
+      <CommunityWithSidebar
+        upcomingTournaments={page.value.upcomingTournaments}
+        upcomingEvents={page.value.upcomingEvents}
       >
-        {range ? <p class="page-title-bar__meta">{range}</p> : null}
-      </PageTitleBar>
-      <article class="content-page community-page community-detail">
-      {post.cover_url ? (
-        <div class="community-detail__cover">
-          <img src={post.cover_url} alt="" width={1200} height={675} />
-        </div>
-      ) : null}
-
-      <CommunityPostFacts post={post} />
-      <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
-
-      <CommunityHtmlSection titleKey="community.highlights" html={post.highlights} />
-      <CommunityHtmlSection titleKey="community.recap" html={post.recap} />
-      <CommunityMediaGallery media={post.media} />
-
-      {regOpen && mode === "external" && post.registration_url ? (
-        <section class="community-register">
-          {post.registration_details ? (
-            <p class="footer-muted">{post.registration_details}</p>
+        <article class="community-page community-detail">
+          {post.cover_url ? (
+            <div class="community-detail__cover">
+              <img src={post.cover_url} alt="" width={1200} height={675} />
+            </div>
           ) : null}
-          <a
-            class="btn btn-primary"
-            href={post.registration_url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {tStatic(locale, "community.registerNow")}
-          </a>
-        </section>
-      ) : null}
 
-      {regOpen && mode === "internal" ? (
-        <CommunityRegistrationForm
-          slug={post.slug}
-          registrationDetails={post.registration_details}
-          phoneCountries={page.value.phoneCountries}
-        />
-      ) : null}
+          {range ? <p class="community-post-card__meta">{range}</p> : null}
+          {post.excerpt ? <p class="community-page-intro">{post.excerpt}</p> : null}
+          <CommunityPostFacts post={post} />
+          <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
 
-      <CommunityRelatedPosts posts={post.related_posts} detailBase="/events" />
+          <CommunityHtmlSection titleKey="community.highlights" html={post.highlights} />
+          <CommunityHtmlSection titleKey="community.recap" html={post.recap} />
+          <CommunityMediaGallery media={post.media} />
 
-      <p>
-        <Link class="link-accent" href={localePath(locale, "/events")}>
-          ← {tStatic(locale, "community.back")}
-        </Link>
-      </p>
-    </article>
+          {regOpen && mode === "external" && post.registration_url ? (
+            <section class="community-register">
+              {post.registration_details ? (
+                <p class="footer-muted">{post.registration_details}</p>
+              ) : null}
+              <a
+                class="btn btn-primary"
+                href={post.registration_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {tStatic(locale, "community.registerNow")}
+              </a>
+            </section>
+          ) : null}
+
+          {regOpen && mode === "internal" ? (
+            <CommunityRegistrationForm
+              slug={post.slug}
+              registrationDetails={post.registration_details}
+              phoneCountries={page.value.phoneCountries}
+            />
+          ) : null}
+
+          <CommunityRelatedPosts posts={post.related_posts} detailBase="/events" />
+
+          <p>
+            <Link class="link-accent" href={localePath(locale, "/events")}>
+              ← {tStatic(locale, "community.back")}
+            </Link>
+          </p>
+        </article>
+      </CommunityWithSidebar>
     </div>
   );
 });

@@ -2,6 +2,7 @@ import { component$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { CommunityPostListPage } from "~/components/community/community-post-list-page";
 import { ApiError, fetchCommunityPosts } from "~/lib/api";
+import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -17,15 +18,17 @@ export const useTournamentsPage = routeLoader$(async ({ params, redirect, resolv
     throw redirect(302, localePath(locale, "/"));
   }
 
+  const sidebar = await loadCommunitySidebarLists(locale);
+
   try {
     const { data } = await fetchCommunityPosts(
       { type: "tournament", scope: "upcoming" },
       locale,
     );
-    return { posts: data as CommunityPostSummary[] };
+    return { posts: data as CommunityPostSummary[], ...sidebar };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return { posts: [] as CommunityPostSummary[] };
+      return { posts: [] as CommunityPostSummary[], ...sidebar };
     }
     throw e;
   }
@@ -41,6 +44,8 @@ export default component$(() => {
       titleKey="community.tournamentsTitle"
       leadKey="community.tournamentsLead"
       initialPosts={page.value.posts}
+      upcomingTournaments={page.value.upcomingTournaments}
+      upcomingEvents={page.value.upcomingEvents}
     />
   );
 });

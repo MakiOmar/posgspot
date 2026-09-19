@@ -5,9 +5,11 @@ import {
   CommunityRelatedPosts,
 } from "~/components/community/community-detail-sections";
 import { formatCommunityWhen } from "~/components/community/community-dates";
+import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { ApiError, fetchCommunityPost } from "~/lib/api";
+import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -23,15 +25,21 @@ export const useNewsPost = routeLoader$(async ({ params, redirect, resolveValue 
     throw redirect(302, localePath(locale, "/"));
   }
 
+  const sidebar = await loadCommunitySidebarLists(locale);
+
   try {
     const { data } = await fetchCommunityPost(params.slug || "", locale);
     if (data.type !== "news") {
       throw redirect(302, localePath(locale, "/gaming-news"));
     }
-    return { post: data as CommunityPostDetail, notFound: false as const };
+    return { post: data as CommunityPostDetail, notFound: false as const, ...sidebar };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return { post: null, notFound: true as const };
+      return {
+        post: null,
+        notFound: true as const,
+        ...sidebar,
+      };
     }
     throw e;
   }
@@ -44,12 +52,19 @@ export default component$(() => {
 
   if (page.value.notFound || !post) {
     return (
-      <article class="content-page community-page">
-        <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
-        <Link class="btn btn-secondary" href={localePath(locale, "/gaming-news")}>
-          {tStatic(locale, "community.back")}
-        </Link>
-      </article>
+      <div class="community-detail-layout">
+        <CommunityWithSidebar
+          upcomingTournaments={page.value.upcomingTournaments}
+          upcomingEvents={page.value.upcomingEvents}
+        >
+          <article class="community-page">
+            <p class="footer-muted">{tStatic(locale, "community.empty")}</p>
+            <Link class="btn btn-secondary" href={localePath(locale, "/gaming-news")}>
+              {tStatic(locale, "community.back")}
+            </Link>
+          </article>
+        </CommunityWithSidebar>
+      </div>
     );
   }
 
@@ -57,33 +72,38 @@ export default component$(() => {
     <div class="community-detail-layout">
       <PageTitleBar
         title={post.title}
-        lead={post.excerpt || undefined}
         crumbs={[
           { label: tStatic(locale, "community.newsTitle"), href: "/gaming-news" },
           { label: post.title },
         ]}
       />
-      <article class="content-page community-page community-detail">
-      {post.cover_url ? (
-        <div class="community-detail__cover">
-          <img src={post.cover_url} alt="" width={1200} height={675} />
-        </div>
-      ) : null}
+      <CommunityWithSidebar
+        upcomingTournaments={page.value.upcomingTournaments}
+        upcomingEvents={page.value.upcomingEvents}
+      >
+        <article class="community-page community-detail">
+          {post.cover_url ? (
+            <div class="community-detail__cover">
+              <img src={post.cover_url} alt="" width={1200} height={675} />
+            </div>
+          ) : null}
 
-      {post.published_at ? (
-        <p class="community-post-card__meta">{formatCommunityWhen(post.published_at, locale)}</p>
-      ) : null}
-      <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
+          {post.excerpt ? <p class="community-page-intro">{post.excerpt}</p> : null}
+          {post.published_at ? (
+            <p class="community-post-card__meta">{formatCommunityWhen(post.published_at, locale)}</p>
+          ) : null}
+          <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
 
-      <CommunityMediaGallery media={post.media} />
-      <CommunityRelatedPosts posts={post.related_posts} detailBase="/gaming-news" />
+          <CommunityMediaGallery media={post.media} />
+          <CommunityRelatedPosts posts={post.related_posts} detailBase="/gaming-news" />
 
-      <p>
-        <Link class="link-accent" href={localePath(locale, "/gaming-news")}>
-          ← {tStatic(locale, "community.back")}
-        </Link>
-      </p>
-    </article>
+          <p>
+            <Link class="link-accent" href={localePath(locale, "/gaming-news")}>
+              ← {tStatic(locale, "community.back")}
+            </Link>
+          </p>
+        </article>
+      </CommunityWithSidebar>
     </div>
   );
 });

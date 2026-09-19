@@ -746,12 +746,14 @@ button.header-nav-dropdown__trigger {
   line-height: 1.5;
 }
 
+.community-with-sidebar__body,
 .community-news-layout__body {
   display: grid;
   gap: 1.75rem;
   padding-top: 0.25rem;
 }
 @media (min-width: 960px) {
+  .community-with-sidebar__body,
   .community-news-layout__body {
     grid-template-columns: minmax(0, 1fr) 18.5rem;
     align-items: start;
