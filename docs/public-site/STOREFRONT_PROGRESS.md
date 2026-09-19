@@ -69,7 +69,7 @@
 | Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
 | AI support chat | ✅ | `STOREFRONT_SUPPORT_CHAT` + OpenAI; conversations/messages; guest token + Sanctum; tools (orders/repairs/devices/catalog); CRM escalate when env assignee set; `SupportChatTest` |
 | Sell to us / trade-in | ✅ | `STOREFRONT_SELL_TO_US`; `/sell-to-us/meta|verify-invoice|requests`; POS `/storefront/sell-requests`; notify email in settings; `SellToUsTest` |
-| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; list/detail + `POST …/applications`; featured, media, registration modes, location; POS form + applications inbox/export; `CommunityPostTest` |
+| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; list/detail + apply; featured/media/registration; POS inbox; demo via `storefront:community-demo seed\|wipe`; `CommunityPostTest` |
 | Request a product | ✅ | `STOREFRONT_REQUEST_PRODUCT`; `/request-product/meta|requests`; POS `/storefront/product-requests`; notify email in settings; `RequestProductTest` |
 
 ---
@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community demo seed/wipe: `php artisan storefront:community-demo seed|wipe` (slug prefix `demo-`, remote library covers). |
 | 2026-09-19 | Community CMS expansion: featured news, gallery/media, location + structured tournament/event fields, dual registration (`off`/`internal`/`external`) + apply API, POS applications inbox; Qwik SSR lists + Register Now; Expo parity. |
 | 2026-09-19 | Nav IA: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs → Quick Links; floating contact FAB; hero drops Bundle CTA. |
 | 2026-09-17 | Expo: Custom Bundle builder + Sell to us full form (verify, photos); login/register `next`. |
