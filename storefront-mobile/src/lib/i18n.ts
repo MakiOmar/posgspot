@@ -318,7 +318,7 @@ const en: Record<string, string> = {
   "account.payPaid": "Paid",
   "account.payPending": "Pending",
   "account.payFailed": "Failed",
-  "account.payNow": "Pay now",
+  "account.payNow": "Pay Now",
   "account.couponAdd": "Add",
   "account.couponUnused": "Not used",
   "account.couponUsed": "Used",

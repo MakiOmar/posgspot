@@ -50,6 +50,7 @@ export function NavDrawer({ visible, onClose }: Props) {
   const { isRtl, row, textAlign, writingDirection } = useRtl();
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const navItems = useMemo(() => {
     const configuredPhysical = settings?.shop_menu?.physical ?? [];
@@ -97,27 +98,50 @@ export function NavDrawer({ visible, onClose }: Props) {
     setTimeout(() => navigateHref(router, href, external), 50);
   };
 
-  const renderChild = (child: MainNavChild, depth = 0) => {
+  const toggleGroup = (key: string) => {
+    setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const renderChild = (child: MainNavChild, depth = 0, path = "") => {
     const nestedChildren = child.children && child.children.length > 0;
+    const groupKey = `${path}/${child.label}@${depth}`;
     if (nestedChildren) {
+      const isGroupOpen = openGroups[groupKey] === true;
       return (
-        <View key={`group-${child.label}-${depth}`}>
-          <Text
+        <View key={groupKey}>
+          <Pressable
             style={[
-              styles.groupTitle,
-              { textAlign, writingDirection, paddingHorizontal: 24 + depth * 12 },
+              styles.groupToggle,
+              { flexDirection: row, paddingHorizontal: 24 + depth * 12 },
             ]}
+            onPress={() => toggleGroup(groupKey)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: isGroupOpen }}
           >
-            {child.label}
-          </Text>
-          {child.children!.map((sub) => renderChild(sub, depth + 1))}
+            <Text
+              style={[
+                styles.groupTitle,
+                { textAlign, writingDirection, color: accent || "#f97316" },
+              ]}
+            >
+              {child.label}
+            </Text>
+            <FontAwesome
+              name={isGroupOpen ? "chevron-up" : "chevron-down"}
+              size={16}
+              color={accent || "#f97316"}
+            />
+          </Pressable>
+          {isGroupOpen
+            ? child.children!.map((sub) => renderChild(sub, depth + 1, groupKey))
+            : null}
         </View>
       );
     }
 
     return (
       <Pressable
-        key={child.href || child.label}
+        key={`${groupKey}-${child.href || child.label}`}
         style={[
           styles.childItem,
           { flexDirection: row, paddingHorizontal: 24 + depth * 12 },
@@ -290,15 +314,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 36,
     backgroundColor: "#fafafa",
   },
+  groupToggle: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    backgroundColor: "transparent",
+  },
   groupTitle: {
     fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.4,
     textTransform: "uppercase",
-    color: "#888",
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 4,
+    color: "#f97316",
+    paddingHorizontal: 0,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   childText: { fontSize: 15, color: "#333" },
   childDisabled: { color: "#999" },

@@ -1,5 +1,7 @@
-import { component$, Slot } from "@builder.io/qwik";
+import { component$ } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
+import { HomeIcon } from "~/components/icons";
+import { PageTitleBarParticles } from "~/components/layout/page-title-bar-particles";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 
@@ -10,15 +12,12 @@ export type PageTitleCrumb = {
 
 type Props = {
   title: string;
-  lead?: string;
   crumbs?: PageTitleCrumb[];
-  /** Optional eyebrow above the title */
-  eyebrow?: string;
 };
 
 /**
- * Fancy full-bleed page title bar for storefront content pages.
- * Skip on homepage, checkout, account hub, and pages with custom heroes (e.g. about).
+ * Fancy full-bleed page title bar: breadcrumbs + title + energy particles.
+ * Lead, tabs, and other page chrome belong in the content section below.
  */
 export const PageTitleBar = component$<Props>((props) => {
   const { locale } = useI18n();
@@ -26,10 +25,14 @@ export const PageTitleBar = component$<Props>((props) => {
 
   return (
     <header class="page-title-bar">
+      <PageTitleBarParticles />
       <div class="page-title-bar__inner">
         {crumbs.length > 0 ? (
           <nav class="page-title-bar__crumbs" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-            <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
+            <Link href={localePath(locale, "/")} class="page-title-bar__home">
+              <HomeIcon size={14} />
+              <span>{tStatic(locale, "nav.home")}</span>
+            </Link>
             {crumbs.map((crumb) => (
               <span key={crumb.label} class="page-title-bar__crumb">
                 <span aria-hidden="true">›</span>
@@ -42,10 +45,7 @@ export const PageTitleBar = component$<Props>((props) => {
             ))}
           </nav>
         ) : null}
-        {props.eyebrow ? <p class="page-title-bar__eyebrow">{props.eyebrow}</p> : null}
         <h1 class="page-title-bar__title">{props.title}</h1>
-        {props.lead ? <p class="page-title-bar__lead">{props.lead}</p> : null}
-        <Slot />
       </div>
     </header>
   );

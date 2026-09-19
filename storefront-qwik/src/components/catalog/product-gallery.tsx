@@ -1,13 +1,17 @@
 import { component$, useSignal, useTask$ } from "@builder.io/qwik";
+import { ImageLightbox, type LightboxImage } from "~/components/ui/image-lightbox";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 
 interface ProductGalleryProps {
   images: string[];
   alt: string;
 }
 
-/** PDP image gallery: main image + thumbnail strip when multiple images exist. */
+/** PDP image gallery: main image + thumbnail strip; main opens lightbox. */
 export const ProductGallery = component$<ProductGalleryProps>(({ images, alt }) => {
+  const { locale } = useI18n();
   const activeIndex = useSignal(0);
+  const lightboxIndex = useSignal<number | null>(null);
 
   // Reset selection when the image set changes (e.g. variation switch).
   useTask$(({ track }) => {
@@ -16,19 +20,29 @@ export const ProductGallery = component$<ProductGalleryProps>(({ images, alt }) 
   });
 
   const active = images[activeIndex.value] || images[0] || null;
+  const lightboxImages: LightboxImage[] = images.map((src) => ({ src, alt }));
 
   return (
     <div class="pdp-gallery">
       <div class="pdp-gallery__main">
         {active ? (
-          <img
-            src={active}
-            alt={alt}
-            width={600}
-            height={600}
-            loading="eager"
-            fetchPriority="high"
-          />
+          <button
+            type="button"
+            class="pdp-gallery__main-btn"
+            aria-label={tStatic(locale, "a11y.lightboxOpen")}
+            onClick$={() => {
+              lightboxIndex.value = activeIndex.value;
+            }}
+          >
+            <img
+              src={active}
+              alt={alt}
+              width={600}
+              height={600}
+              loading="eager"
+              fetchPriority="high"
+            />
+          </button>
         ) : (
           <div class="pdp-gallery__placeholder" aria-hidden="true" />
         )}
@@ -52,6 +66,10 @@ export const ProductGallery = component$<ProductGalleryProps>(({ images, alt }) 
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {lightboxImages.length > 0 ? (
+        <ImageLightbox images={lightboxImages} index={lightboxIndex} />
       ) : null}
     </div>
   );

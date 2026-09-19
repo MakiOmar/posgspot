@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import {
+  CommunityCoverImage,
   CommunityMediaGallery,
   CommunityRelatedPosts,
 } from "~/components/community/community-detail-sections";
@@ -8,14 +9,12 @@ import { formatCommunityWhen } from "~/components/community/community-dates";
 import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
-import { ApiError, fetchCommunityPost } from "~/lib/api";
-import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
+import { loadCommunityDetailPage } from "~/lib/community-detail-load";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import type { CommunityPostDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useNewsPost = routeLoader$(async ({ params, redirect, resolveValue }) => {
@@ -25,24 +24,12 @@ export const useNewsPost = routeLoader$(async ({ params, redirect, resolveValue 
     throw redirect(302, localePath(locale, "/"));
   }
 
-  const sidebar = await loadCommunitySidebarLists(locale);
-
-  try {
-    const { data } = await fetchCommunityPost(params.slug || "", locale);
-    if (data.type !== "news") {
-      throw redirect(302, localePath(locale, "/gaming-news"));
-    }
-    return { post: data as CommunityPostDetail, notFound: false as const, ...sidebar };
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      return {
-        post: null,
-        notFound: true as const,
-        ...sidebar,
-      };
-    }
-    throw e;
+  const loaded = await loadCommunityDetailPage(locale, params.slug || "", "news");
+  if (loaded.wrongType) {
+    throw redirect(302, localePath(locale, "/gaming-news"));
   }
+  const { wrongType: _w, ...page } = loaded;
+  return page;
 });
 
 export default component$(() => {
@@ -82,11 +69,7 @@ export default component$(() => {
         upcomingEvents={page.value.upcomingEvents}
       >
         <article class="community-page community-detail">
-          {post.cover_url ? (
-            <div class="community-detail__cover">
-              <img src={post.cover_url} alt="" width={1200} height={675} />
-            </div>
-          ) : null}
+          {post.cover_url ? <CommunityCoverImage src={post.cover_url} alt={post.title} /> : null}
 
           {post.excerpt ? <p class="community-page-intro">{post.excerpt}</p> : null}
           {post.published_at ? (

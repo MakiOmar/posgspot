@@ -1,6 +1,7 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import {
+  CommunityCoverImage,
   CommunityHtmlSection,
   CommunityMediaGallery,
   CommunityPostFacts,
@@ -11,15 +12,14 @@ import { CommunityRegistrationForm } from "~/components/community/community-regi
 import { CommunityWithSidebar } from "~/components/community/community-with-sidebar";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
-import { ApiError, fetchCommunityPost, fetchPhoneCountries } from "~/lib/api";
-import { loadCommunitySidebarLists } from "~/lib/community-sidebar-data";
+import { fetchPhoneCountries } from "~/lib/api";
+import { loadCommunityDetailPage } from "~/lib/community-detail-load";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { PhoneCountry } from "~/lib/phone-validation";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
-import type { CommunityPostDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
 export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue }) => {
@@ -29,8 +29,6 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
     throw redirect(302, localePath(locale, "/"));
   }
 
-  const sidebar = await loadCommunitySidebarLists(locale);
-
   let phoneCountries: PhoneCountry[] = [];
   try {
     const { data } = await fetchPhoneCountries();
@@ -39,28 +37,12 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
     phoneCountries = [];
   }
 
-  try {
-    const { data } = await fetchCommunityPost(params.slug || "", locale);
-    if (data.type !== "event") {
-      throw redirect(302, localePath(locale, "/events"));
-    }
-    return {
-      post: data as CommunityPostDetail,
-      notFound: false as const,
-      phoneCountries,
-      ...sidebar,
-    };
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      return {
-        post: null,
-        notFound: true as const,
-        phoneCountries,
-        ...sidebar,
-      };
-    }
-    throw e;
+  const loaded = await loadCommunityDetailPage(locale, params.slug || "", "event");
+  if (loaded.wrongType) {
+    throw redirect(302, localePath(locale, "/events"));
   }
+  const { wrongType: _w, ...page } = loaded;
+  return { ...page, phoneCountries };
 });
 
 export default component$(() => {
@@ -104,11 +86,7 @@ export default component$(() => {
         upcomingEvents={page.value.upcomingEvents}
       >
         <article class="community-page community-detail">
-          {post.cover_url ? (
-            <div class="community-detail__cover">
-              <img src={post.cover_url} alt="" width={1200} height={675} />
-            </div>
-          ) : null}
+          {post.cover_url ? <CommunityCoverImage src={post.cover_url} alt={post.title} /> : null}
 
           {range ? <p class="community-post-card__meta">{range}</p> : null}
           {post.excerpt ? <p class="community-page-intro">{post.excerpt}</p> : null}

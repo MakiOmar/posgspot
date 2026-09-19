@@ -1,6 +1,7 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
+import { ImageLightbox, type LightboxImage } from "~/components/ui/image-lightbox";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { CommunityPostDetail, CommunityPostSummary } from "~/lib/types";
@@ -12,28 +13,79 @@ type MediaProps = {
 export const CommunityMediaGallery = component$<MediaProps>((props) => {
   const { locale } = useI18n();
   const media = props.media ?? [];
+  const lightboxIndex = useSignal<number | null>(null);
+
   if (media.length === 0) return null;
+
+  const imageItems: LightboxImage[] = [];
+  const imageIndexByMedia: Array<number | null> = media.map((item) => {
+    if (item.kind === "video") return null;
+    const idx = imageItems.length;
+    imageItems.push({ src: item.url, alt: item.caption || "" });
+    return idx;
+  });
 
   return (
     <section class="community-gallery" aria-labelledby="community-gallery-heading">
       <h2 id="community-gallery-heading">{tStatic(locale, "community.gallery")}</h2>
       <ul class="community-gallery__grid">
-        {media.map((item, index) => (
-          <li key={`${item.url}-${index}`}>
-            {item.kind === "video" ? (
-              <a href={item.url} target="_blank" rel="noopener noreferrer" class="community-gallery__video">
-                {item.caption || tStatic(locale, "community.gallery")}
-              </a>
-            ) : (
-              <a href={item.url} target="_blank" rel="noopener noreferrer">
-                <img src={item.url} alt={item.caption || ""} width={640} height={360} loading="lazy" />
-              </a>
-            )}
-            {item.caption ? <p class="footer-muted">{item.caption}</p> : null}
-          </li>
-        ))}
+        {media.map((item, index) => {
+          const lbIndex = imageIndexByMedia[index];
+          return (
+            <li key={`${item.url}-${index}`}>
+              {item.kind === "video" ? (
+                <a href={item.url} target="_blank" rel="noopener noreferrer" class="community-gallery__video">
+                  {item.caption || tStatic(locale, "community.gallery")}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  class="community-gallery__thumb"
+                  aria-label={tStatic(locale, "a11y.lightboxOpen")}
+                  onClick$={() => {
+                    if (lbIndex != null) lightboxIndex.value = lbIndex;
+                  }}
+                >
+                  <img src={item.url} alt={item.caption || ""} width={640} height={360} loading="lazy" />
+                </button>
+              )}
+              {item.caption ? <p class="footer-muted">{item.caption}</p> : null}
+            </li>
+          );
+        })}
       </ul>
+      {imageItems.length > 0 ? (
+        <ImageLightbox images={imageItems} index={lightboxIndex} />
+      ) : null}
     </section>
+  );
+});
+
+type CoverProps = {
+  src: string;
+  alt?: string;
+};
+
+/** Hero cover that opens in the shared lightbox. */
+export const CommunityCoverImage = component$<CoverProps>((props) => {
+  const { locale } = useI18n();
+  const lightboxIndex = useSignal<number | null>(null);
+  const images: LightboxImage[] = [{ src: props.src, alt: props.alt || "" }];
+
+  return (
+    <div class="community-detail__cover">
+      <button
+        type="button"
+        class="community-detail__cover-btn"
+        aria-label={tStatic(locale, "a11y.lightboxOpen")}
+        onClick$={() => {
+          lightboxIndex.value = 0;
+        }}
+      >
+        <img src={props.src} alt={props.alt || ""} width={1200} height={675} />
+      </button>
+      <ImageLightbox images={images} index={lightboxIndex} />
+    </div>
   );
 });
 

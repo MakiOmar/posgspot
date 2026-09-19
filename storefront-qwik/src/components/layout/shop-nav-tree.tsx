@@ -1,6 +1,7 @@
-import { component$, type QRL } from "@builder.io/qwik";
+import { component$, type QRL, useSignal } from "@builder.io/qwik";
 import { Link } from "@builder.io/qwik-city";
 import type { ResolvedNavChild } from "~/lib/header-nav";
+import { tStatic, useI18n } from "~/lib/i18n/context";
 
 function childKey(child: ResolvedNavChild): string {
   return child.href || child.action || child.label;
@@ -12,7 +13,7 @@ interface ShopMegaTreeProps {
   depth?: number;
 }
 
-/** Recursive Shop Physical mega column nodes (groups may nest). */
+/** Recursive Shop Physical mega column nodes (groups folded by default). */
 export const ShopMegaTree = component$<ShopMegaTreeProps>(({ links, go$, depth = 0 }) => {
   return (
     <>
@@ -20,16 +21,12 @@ export const ShopMegaTree = component$<ShopMegaTreeProps>(({ links, go$, depth =
         const nested = Boolean(child.children?.length);
         if (nested) {
           return (
-            <li
+            <ShopMegaGroup
               key={childKey(child)}
-              class={`header-nav-mega__group header-nav-mega__group--d${depth}`}
-              role="none"
-            >
-              <span class="header-nav-mega__group-title">{child.label}</span>
-              <ul class="header-nav-mega__sublist">
-                <ShopMegaTree links={child.children!} go$={go$} depth={depth + 1} />
-              </ul>
-            </li>
+              child={child}
+              go$={go$}
+              depth={depth}
+            />
           );
         }
         return (
@@ -60,13 +57,55 @@ export const ShopMegaTree = component$<ShopMegaTreeProps>(({ links, go$, depth =
   );
 });
 
+const ShopMegaGroup = component$<{
+  child: ResolvedNavChild;
+  go$: QRL<(href: string) => Promise<void>>;
+  depth: number;
+}>(({ child, go$, depth }) => {
+  const { locale } = useI18n();
+  const open = useSignal(false);
+  const panelId = `shop-mega-${depth}-${childKey(child).replace(/\s+/g, "-")}`;
+
+  return (
+    <li
+      class={`header-nav-mega__group header-nav-mega__group--d${depth}${open.value ? " is-open" : ""}`}
+      role="none"
+    >
+      <button
+        type="button"
+        class="header-nav-mega__group-toggle"
+        aria-expanded={open.value ? "true" : "false"}
+        aria-controls={panelId}
+        onClick$={() => {
+          open.value = !open.value;
+        }}
+      >
+        <span class="header-nav-mega__group-title">{child.label}</span>
+        <span class="header-nav-mega__group-chevron" aria-hidden="true">
+          {open.value ? "▾" : "▸"}
+        </span>
+        <span class="sr-only">
+          {open.value
+            ? tStatic(locale, "a11y.collapseMenu")
+            : tStatic(locale, "a11y.expandMenu")}
+        </span>
+      </button>
+      {open.value ? (
+        <ul id={panelId} class="header-nav-mega__sublist">
+          <ShopMegaTree links={child.children!} go$={go$} depth={depth + 1} />
+        </ul>
+      ) : null}
+    </li>
+  );
+});
+
 interface ShopDrawerTreeProps {
   links: ResolvedNavChild[];
   onClose$: QRL<() => void>;
   depth?: number;
 }
 
-/** Recursive Shop Physical nodes for the mobile nav drawer. */
+/** Recursive Shop Physical nodes for the mobile nav drawer (groups folded by default). */
 export const ShopDrawerTree = component$<ShopDrawerTreeProps>(
   ({ links, onClose$, depth = 0 }) => {
     return (
@@ -75,15 +114,12 @@ export const ShopDrawerTree = component$<ShopDrawerTreeProps>(
           const nested = Boolean(child.children?.length);
           if (nested) {
             return (
-              <li
+              <ShopDrawerGroup
                 key={childKey(child)}
-                class={`side-drawer-mega-group side-drawer-mega-group--d${depth}`}
-              >
-                <span class="side-drawer-mega-group-title">{child.label}</span>
-                <ul class="side-drawer-sublist side-drawer-sublist--nested">
-                  <ShopDrawerTree links={child.children!} onClose$={onClose$} depth={depth + 1} />
-                </ul>
-              </li>
+                child={child}
+                onClose$={onClose$}
+                depth={depth}
+              />
             );
           }
           return (
@@ -114,3 +150,44 @@ export const ShopDrawerTree = component$<ShopDrawerTreeProps>(
     );
   },
 );
+
+const ShopDrawerGroup = component$<{
+  child: ResolvedNavChild;
+  onClose$: QRL<() => void>;
+  depth: number;
+}>(({ child, onClose$, depth }) => {
+  const { locale } = useI18n();
+  const open = useSignal(false);
+  const panelId = `shop-drawer-${depth}-${childKey(child).replace(/\s+/g, "-")}`;
+
+  return (
+    <li
+      class={`side-drawer-mega-group side-drawer-mega-group--d${depth}${open.value ? " is-open" : ""}`}
+    >
+      <button
+        type="button"
+        class="side-drawer-mega-group-toggle"
+        aria-expanded={open.value ? "true" : "false"}
+        aria-controls={panelId}
+        onClick$={() => {
+          open.value = !open.value;
+        }}
+      >
+        <span class="side-drawer-mega-group-title">{child.label}</span>
+        <span class="side-drawer-mega-group-chevron" aria-hidden="true">
+          {open.value ? "▾" : "▸"}
+        </span>
+        <span class="sr-only">
+          {open.value
+            ? tStatic(locale, "a11y.collapseMenu")
+            : tStatic(locale, "a11y.expandMenu")}
+        </span>
+      </button>
+      {open.value ? (
+        <ul id={panelId} class="side-drawer-sublist side-drawer-sublist--nested">
+          <ShopDrawerTree links={child.children!} onClose$={onClose$} depth={depth + 1} />
+        </ul>
+      ) : null}
+    </li>
+  );
+});

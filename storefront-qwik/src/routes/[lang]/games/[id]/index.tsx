@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { ImageLightbox } from "~/components/ui/image-lightbox";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { ApiError, fetchDigitalGame, checkDigitalGameStock } from "~/lib/api";
@@ -61,6 +62,7 @@ export default component$(() => {
   const pending = useSignal<GameOffer | null>(null);
   const livePrimaryOut = useSignal(false);
   const liveSecondaryOut = useSignal(false);
+  const lightboxIndex = useSignal<number | null>(null);
 
   // Confirm Accounts stock after paint so an OOS offer cannot stay clickable.
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -243,7 +245,19 @@ export default component$(() => {
       <div class="pdp-layout" style={{ marginTop: "1rem" }}>
         <div class="pdp-gallery">
           {image ? (
-            <img src={image} alt={title} width={640} height={640} />
+            <>
+              <button
+                type="button"
+                class="pdp-gallery__main-btn"
+                aria-label={tStatic(lang, "a11y.lightboxOpen")}
+                onClick$={() => {
+                  lightboxIndex.value = 0;
+                }}
+              >
+                <img src={image} alt={title} width={640} height={640} />
+              </button>
+              <ImageLightbox images={[{ src: image, alt: title }]} index={lightboxIndex} />
+            </>
           ) : (
             <div class="product-card__placeholder" aria-hidden="true" />
           )}

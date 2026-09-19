@@ -253,6 +253,9 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community detail q-data: degrade API/network failures to notFound (avoid 500); parallel post+sidebar fetch. |
+| 2026-09-19 | Shop menu groups fold by default with expand toggle (Qwik mega/drawer + Expo NavDrawer). |
+| 2026-09-19 | Image lightbox for community covers/galleries + PDP gallery; energy particles on page title bars. |
 | 2026-09-19 | Community CMS: shared news sidebar (newsletter/search/upcoming) on events/tournaments/gaming-news list + detail pages. |
 | 2026-09-19 | Shop Physical mega: remove hardcoded Shop all / All consoles prepend (menu is builder-only). |
 | 2026-09-19 | Shop menu Physical: drag-right nests under previous group; drag-left un-nests (POS builder). |
