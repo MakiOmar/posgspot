@@ -19,21 +19,20 @@ export type MainNavItem = {
 };
 
 function physicalFromShopMenu(physical: ShopMenuPhysicalItem[]): MainNavChild[] {
-  return physical.map((item) => {
-    if (item.type === "group") {
-      return {
-        label: item.label,
-        children: (item.children || []).map((child) => ({
-          label: child.label,
-          href: child.href,
-        })),
-      };
-    }
+  return physical.map((item) => mapShopMenuItem(item));
+}
+
+function mapShopMenuItem(item: ShopMenuPhysicalItem): MainNavChild {
+  if (item.type === "group") {
     return {
       label: item.label,
-      href: item.href,
+      children: (item.children || []).map((child) => mapShopMenuItem(child)),
     };
-  });
+  }
+  return {
+    label: item.label,
+    href: item.href,
+  };
 }
 
 /**

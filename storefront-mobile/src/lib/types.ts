@@ -227,7 +227,7 @@ export interface Category {
 /** Locale-resolved Shop mega Physical column item (from GET /settings shop_menu). */
 export type ShopMenuPhysicalItem =
   | { type: "link"; label: string; href: string }
-  | { type: "group"; label: string; children: Array<{ label: string; href: string }> };
+  | { type: "group"; label: string; children: ShopMenuPhysicalItem[] };
 
 export interface Brand {
   id: number;

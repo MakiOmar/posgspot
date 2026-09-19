@@ -89,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Shop Physical menu supports nested groups (same `shop_menu.physical` tree as web, max depth 5). |
 | 2026-09-19 | Shop Physical menu from `GET /settings` `shop_menu.physical` (nested groups + order) in NavDrawer; category-list fallback when empty. |
 | 2026-09-19 | Community CMS parity: nav links when enabled; news Featured+Latest; HTML body; registration form / external link; gallery + related. |
 | 2026-09-19 | Nav parity + floating contact FAB (Call / Chat / Message); label renames; Community coming soon. |

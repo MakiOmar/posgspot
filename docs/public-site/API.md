@@ -56,7 +56,7 @@ Public `GET /settings` also exposes:
 - `about.team[]` — `{ name, role, image_url, social }` for the About page team rail (**Storefront Settings → About team**: photo upload or URL, EN/AR role, social URLs)
 - `favicon_url` — absolute URL for the browser tab icon (**Storefront Settings → Appearance → Favicon**); null when unset (Qwik falls back to `/favicon.svg`)
 - `logo_url` — header logo URL: **Storefront Settings → Appearance → Storefront logo** when set (upload under `uploads/storefront_logo/` or external URL); otherwise the POS business logo
-- `shop_menu.physical[]` — locale-resolved Shop mega **Physical** column from **Storefront Settings → Shop menu**. Each item is `{ type: "link", label, href }` or `{ type: "group", label, children: [{ label, href }] }`. Empty array → clients fall back to automatic category filtering. Digital column stays hardcoded.
+- `shop_menu.physical[]` — locale-resolved Shop mega **Physical** column from **Storefront Settings → Shop menu**. Each item is `{ type: "link", label, href }` or `{ type: "group", label, children: ShopMenuItem[] }` (groups may nest up to **5** levels). Empty array → clients fall back to automatic category filtering. Digital column stays hardcoded.
 - `footer` — `{ contact_title, columns[] }` editable footer menus (**Storefront Settings → Footer**). Public payload is locale-resolved: `contact_title` string + up to 3 `columns[]` of `{ id, title, links: [{ id, label, url }] }`. Column 1 on the Qwik site is business locations from `GET /locations` (not this object). Public response always includes Customer → **Delete Account** (`/delete-account`) when missing from saved settings, **Custom Bundle** (`/custom-bundle`) when `STOREFRONT_CUSTOM_BUNDLE` is enabled, and **Sell to Us** (`/sell-to-us`) when `STOREFRONT_SELL_TO_US` is enabled.
 - `banners[]` — enabled promotional banners `{ id, placement (home|category), category_slug, title, link, image_url }` (Storefront Settings → Banners); titles localized via `X-Content-Locale`
 - `newsletter.enabled` — true when a provider is enabled and credentials are configured (no secrets exposed)
@@ -346,7 +346,7 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 - Theme accent color (`theme.accent_color`, 6-digit hex) — drives the Qwik `--gs-accent` CSS variable
 - **Favicon** (`favicon.image` / `favicon.url`) — upload under `uploads/storefront_favicon/` or external URL; public `GET /settings` exposes `favicon_url` only
 - **Storefront logo** (`logo.image` / `logo.url`) — upload under `uploads/storefront_logo/` or external URL; when set, public `GET /settings` `logo_url` uses it instead of the POS business logo
-- **Shop menu Physical** (`shop_menu.physical`) — ordered nestable tree of category links + optional group headers (max depth 2); public `GET /settings` returns locale-resolved `{ type, label, href?, children? }[]` (empty → client fallback)
+- **Shop menu Physical** (`shop_menu.physical`) — ordered nestable tree of category links + group headers (groups may nest, max depth 5); public `GET /settings` returns locale-resolved `{ type, label, href?, children? }[]` (empty → client fallback)
 - Public `GET /settings` exposes `contact.email_encoded` (base64) instead of a raw email; the Qwik storefront decodes it client-side only (anti-harvesting)
 - Public `GET /locations` lists active branches **excluding** selling locations (`?selling_only=1` for checkout); uses `email_encoded` per location (no raw `email` field)
 

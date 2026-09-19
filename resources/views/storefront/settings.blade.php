@@ -620,7 +620,8 @@
                 @endphp
                 <div class="alert alert-info">
                     Build the <strong>Physical</strong> column of the Shop mega menu (web + mobile app).
-                    Drag to reorder. Nest category links under group headers. Leave empty to use the automatic category list.
+                    Drag to reorder. Nest category links <em>or groups</em> under group headers (up to 5 levels).
+                    Leave empty to use the automatic category list.
                     The “Shop all” link is always prepended on the storefront and is not listed here.
                     Digital games / gift cards stay in the Digital column (not editable here).
                 </div>
@@ -639,7 +640,7 @@
                             <i class="fa fa-folder-o"></i> Add group
                         </button>
                         <p class="help-block" style="margin-top:12px;">
-                            Drag a category onto a group to nest it. Drag within the list to reorder.
+                            Drag categories or groups onto a group to nest (up to 5 levels). Drag within the list to reorder.
                         </p>
                     </div>
                     <div class="col-md-8">
@@ -1441,13 +1442,15 @@
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script src="{{ asset('js/storefront-homepage-builder.js') }}?v=19"></script>
-<script src="{{ asset('js/storefront-shop-menu-builder.js') }}?v=1"></script>
+<script src="{{ asset('js/storefront-shop-menu-builder.js') }}?v=2"></script>
 <style>
 .sf-shop-menu-tree > .sf-shop-menu-item { margin-bottom: 10px; }
 .sf-shop-menu-handle { cursor: grab; user-select: none; }
 .sf-shop-menu-children { padding-inline-start: 12px; border-inline-start: 2px dashed #ddd; }
 .sf-shop-menu-children .sf-shop-menu-item { margin-bottom: 8px; }
+.sf-shop-menu-children .sf-shop-menu-item--group { border-color: #337ab7; }
 .sf-shop-menu-item--group > .panel-body { background: #fafafa; }
+.sf-shop-menu-children .sf-shop-menu-item--group > .panel-body { background: #f5f8fb; }
 </style>
 <script type="text/javascript">
     $(document).ready(function () {

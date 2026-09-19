@@ -561,6 +561,18 @@ button.header-nav-dropdown__trigger {
   color: var(--gs-accent, #00d4aa);
 }
 
+.header-nav-mega__group--d1 .header-nav-mega__group-title,
+.header-nav-mega__group--d2 .header-nav-mega__group-title,
+.header-nav-mega__group--d3 .header-nav-mega__group-title,
+.header-nav-mega__group--d4 .header-nav-mega__group-title {
+  padding-inline-start: calc(0.75rem + 0.55rem * var(--sf-mega-depth, 1));
+}
+
+.header-nav-mega__group--d1 { --sf-mega-depth: 1; }
+.header-nav-mega__group--d2 { --sf-mega-depth: 2; }
+.header-nav-mega__group--d3 { --sf-mega-depth: 3; }
+.header-nav-mega__group--d4 { --sf-mega-depth: 4; }
+
 .header-nav-mega__sublist {
   list-style: none;
   margin: 0;
@@ -570,6 +582,19 @@ button.header-nav-dropdown__trigger {
 .header-nav-mega__sublist .header-nav-dropdown__option {
   padding-inline-start: 1.15rem;
   font-size: 0.9rem;
+}
+
+.header-nav-mega__group--d1 > .header-nav-mega__sublist .header-nav-dropdown__option {
+  padding-inline-start: 1.55rem;
+}
+.header-nav-mega__group--d2 > .header-nav-mega__sublist .header-nav-dropdown__option {
+  padding-inline-start: 1.95rem;
+}
+.header-nav-mega__group--d3 > .header-nav-mega__sublist .header-nav-dropdown__option {
+  padding-inline-start: 2.35rem;
+}
+.header-nav-mega__group--d4 > .header-nav-mega__sublist .header-nav-dropdown__option {
+  padding-inline-start: 2.75rem;
 }
 
 .header-nav-mega__list .header-nav-dropdown__option {
@@ -597,6 +622,31 @@ button.header-nav-dropdown__trigger {
 .side-drawer-sublist--nested .side-drawer-link {
   padding-inline-start: 2.25rem;
   font-size: 0.875rem;
+}
+
+.side-drawer-mega-group--d1 > .side-drawer-mega-group-title {
+  padding-inline-start: 2rem;
+}
+.side-drawer-mega-group--d2 > .side-drawer-mega-group-title {
+  padding-inline-start: 2.35rem;
+}
+.side-drawer-mega-group--d3 > .side-drawer-mega-group-title {
+  padding-inline-start: 2.7rem;
+}
+.side-drawer-mega-group--d4 > .side-drawer-mega-group-title {
+  padding-inline-start: 3.05rem;
+}
+.side-drawer-mega-group--d1 .side-drawer-sublist--nested .side-drawer-link {
+  padding-inline-start: 2.6rem;
+}
+.side-drawer-mega-group--d2 .side-drawer-sublist--nested .side-drawer-link {
+  padding-inline-start: 2.95rem;
+}
+.side-drawer-mega-group--d3 .side-drawer-sublist--nested .side-drawer-link {
+  padding-inline-start: 3.3rem;
+}
+.side-drawer-mega-group--d4 .side-drawer-sublist--nested .side-drawer-link {
+  padding-inline-start: 3.65rem;
 }
 
 .coming-soon-badge {

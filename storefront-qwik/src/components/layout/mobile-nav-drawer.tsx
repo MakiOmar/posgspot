@@ -4,6 +4,7 @@ import { CloseIcon } from "~/components/icons";
 import type { ResolvedNavItem } from "~/lib/header-nav";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { openSupportChatEvent } from "~/lib/support-chat";
+import { ShopDrawerTree } from "~/components/layout/shop-nav-tree";
 
 interface MobileNavDrawerProps {
   links: ResolvedNavItem[];
@@ -61,70 +62,7 @@ export const MobileNavDrawer = component$<MobileNavDrawerProps>(
                             <span class="side-drawer-mega-title">{col.title}</span>
                           ) : null}
                           <ul class="side-drawer-sublist">
-                            {col.links.map((child) => {
-                              const nested = child.children && child.children.length > 0;
-                              if (nested) {
-                                return (
-                                  <li key={child.href || child.label} class="side-drawer-mega-group">
-                                    <span class="side-drawer-mega-group-title">{child.label}</span>
-                                    <ul class="side-drawer-sublist side-drawer-sublist--nested">
-                                      {child.children!.map((sub) => (
-                                        <li key={sub.href || sub.label}>
-                                          {sub.disabled || !sub.href ? (
-                                            <span class="side-drawer-link side-drawer-link--disabled">
-                                              {sub.label}
-                                            </span>
-                                          ) : (
-                                            <Link
-                                              href={sub.href}
-                                              class="side-drawer-link"
-                                              prefetch={false}
-                                              onClick$={onClose$}
-                                            >
-                                              {sub.label}
-                                            </Link>
-                                          )}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </li>
-                                );
-                              }
-                              return (
-                              <li key={child.href || child.action || child.label}>
-                                {child.action === "open-support-chat" ? (
-                                  <button
-                                    type="button"
-                                    class="side-drawer-link"
-                                    onClick$={() => {
-                                      openSupportChatEvent();
-                                      onClose$();
-                                    }}
-                                  >
-                                    {child.label}
-                                  </button>
-                                ) : child.disabled || !child.href ? (
-                                  <span class="side-drawer-link side-drawer-link--disabled">
-                                    {child.label}
-                                    {child.hint ? ` (${child.hint})` : ""}
-                                  </span>
-                                ) : child.href.startsWith("tel:") ? (
-                                  <a href={child.href} class="side-drawer-link" onClick$={onClose$}>
-                                    {child.label}
-                                  </a>
-                                ) : (
-                                  <Link
-                                    href={child.href}
-                                    class="side-drawer-link"
-                                    prefetch={false}
-                                    onClick$={onClose$}
-                                  >
-                                    {child.label}
-                                  </Link>
-                                )}
-                              </li>
-                              );
-                            })}
+                            <ShopDrawerTree links={col.links} onClose$={onClose$} />
                           </ul>
                         </div>
                       ))}

@@ -289,57 +289,24 @@ class SettingsApiService
         }
 
         $ids = $this->collectShopMenuCategoryIds($physical);
-        if ($ids === []) {
-            return ['physical' => []];
-        }
-
-        $categories = Category::query()
-            ->where('business_id', $businessId)
-            ->where('category_type', 'product')
-            ->whereIn('id', $ids)
-            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
-            ->get()
-            ->keyBy('id');
+        $categories = $ids === []
+            ? collect()
+            : Category::query()
+                ->where('business_id', $businessId)
+                ->where('category_type', 'product')
+                ->whereIn('id', $ids)
+                ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+                ->get()
+                ->keyBy('id');
 
         $resolved = [];
         foreach ($physical as $row) {
             if (! is_array($row)) {
                 continue;
             }
-            $type = (string) ($row['type'] ?? 'link');
-            if ($type === 'group') {
-                $groupLabel = trim($this->presenter->localizedSetting(
-                    $row['label'] ?? '',
-                    $locale,
-                    ''
-                ));
-                if ($groupLabel === '') {
-                    $groupLabel = trim((string) (is_array($row['label'] ?? null) ? ($row['label']['en'] ?? '') : ''));
-                }
-                if ($groupLabel === '') {
-                    continue;
-                }
-                $children = [];
-                foreach ($row['children'] ?? [] as $child) {
-                    if (! is_array($child)) {
-                        continue;
-                    }
-                    $link = $this->resolveShopMenuLink($child, $categories, $locale);
-                    if ($link !== null) {
-                        $children[] = $link;
-                    }
-                }
-                $resolved[] = [
-                    'type' => 'group',
-                    'label' => $groupLabel,
-                    'children' => $children,
-                ];
-                continue;
-            }
-
-            $link = $this->resolveShopMenuLink($row, $categories, $locale);
-            if ($link !== null) {
-                $resolved[] = $link;
+            $node = $this->resolveShopMenuNode($row, $categories, $locale);
+            if ($node !== null) {
+                $resolved[] = $node;
             }
         }
 
@@ -353,24 +320,63 @@ class SettingsApiService
     private function collectShopMenuCategoryIds(array $physical): array
     {
         $ids = [];
-        foreach ($physical as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            if (($row['type'] ?? '') === 'group') {
-                foreach ($row['children'] ?? [] as $child) {
-                    if (is_array($child) && (int) ($child['category_id'] ?? 0) > 0) {
-                        $ids[] = (int) $child['category_id'];
-                    }
+        $walk = function (array $rows) use (&$ids, &$walk): void {
+            foreach ($rows as $row) {
+                if (! is_array($row)) {
+                    continue;
                 }
-                continue;
+                if (($row['type'] ?? '') === 'group') {
+                    $walk(is_array($row['children'] ?? null) ? $row['children'] : []);
+                    continue;
+                }
+                if ((int) ($row['category_id'] ?? 0) > 0) {
+                    $ids[] = (int) $row['category_id'];
+                }
             }
-            if ((int) ($row['category_id'] ?? 0) > 0) {
-                $ids[] = (int) $row['category_id'];
-            }
-        }
+        };
+        $walk($physical);
 
         return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  \Illuminate\Support\Collection<int, Category>  $categories
+     * @return array<string, mixed>|null
+     */
+    private function resolveShopMenuNode(array $row, $categories, string $locale): ?array
+    {
+        if ((string) ($row['type'] ?? 'link') === 'group') {
+            $groupLabel = trim($this->presenter->localizedSetting(
+                $row['label'] ?? '',
+                $locale,
+                ''
+            ));
+            if ($groupLabel === '') {
+                $groupLabel = trim((string) (is_array($row['label'] ?? null) ? ($row['label']['en'] ?? '') : ''));
+            }
+            if ($groupLabel === '') {
+                return null;
+            }
+            $children = [];
+            foreach ($row['children'] ?? [] as $child) {
+                if (! is_array($child)) {
+                    continue;
+                }
+                $resolved = $this->resolveShopMenuNode($child, $categories, $locale);
+                if ($resolved !== null) {
+                    $children[] = $resolved;
+                }
+            }
+
+            return [
+                'type' => 'group',
+                'label' => $groupLabel,
+                'children' => $children,
+            ];
+        }
+
+        return $this->resolveShopMenuLink($row, $categories, $locale);
     }
 
     /**

@@ -2111,6 +2111,11 @@ class StorefrontSettingService
     }
 
     /**
+     * Max nesting depth for Shop menu Physical tree (1 = root items).
+     */
+    public const SHOP_MENU_MAX_DEPTH = 5;
+
+    /**
      * Normalize Shop mega Physical column builder tree.
      *
      * @param  mixed  $shopMenu
@@ -2143,7 +2148,7 @@ class StorefrontSettingService
             if (! is_array($row)) {
                 continue;
             }
-            $normalized = $this->normalizeShopMenuNode($row, $seenIds, false);
+            $normalized = $this->normalizeShopMenuNode($row, $seenIds, 1);
             if ($normalized !== null) {
                 $out[] = $normalized;
             }
@@ -2157,8 +2162,12 @@ class StorefrontSettingService
      * @param  array<string, true>  $seenIds
      * @return array<string, mixed>|null
      */
-    private function normalizeShopMenuNode(array $row, array &$seenIds, bool $asChild): ?array
+    private function normalizeShopMenuNode(array $row, array &$seenIds, int $depth): ?array
     {
+        if ($depth > self::SHOP_MENU_MAX_DEPTH) {
+            return null;
+        }
+
         $type = strtolower(trim((string) ($row['type'] ?? 'link')));
         $id = trim((string) ($row['id'] ?? ''));
         if ($id === '' || isset($seenIds[$id])) {
@@ -2172,20 +2181,27 @@ class StorefrontSettingService
         ];
 
         if ($type === 'group') {
-            if ($asChild) {
-                // Groups cannot nest under groups (max depth 2).
-                return null;
-            }
             if ($label['en'] === '' && $label['ar'] === '') {
                 return null;
             }
             $children = [];
+            // Deeper than max: only allow link leaves under the deepest group.
+            $childDepth = $depth + 1;
             foreach (array_slice(array_values($row['children'] ?? []), 0, 30) as $child) {
                 if (! is_array($child)) {
                     continue;
                 }
-                $normalizedChild = $this->normalizeShopMenuNode($child, $seenIds, true);
-                if ($normalizedChild !== null && ($normalizedChild['type'] ?? '') === 'link') {
+                if ($childDepth > self::SHOP_MENU_MAX_DEPTH) {
+                    // Force link-only at the leaf depth.
+                    $childType = strtolower(trim((string) ($child['type'] ?? 'link')));
+                    if ($childType !== 'link') {
+                        continue;
+                    }
+                    $normalizedChild = $this->normalizeShopMenuNode($child, $seenIds, self::SHOP_MENU_MAX_DEPTH);
+                } else {
+                    $normalizedChild = $this->normalizeShopMenuNode($child, $seenIds, $childDepth);
+                }
+                if ($normalizedChild !== null) {
                     $children[] = $normalizedChild;
                 }
             }

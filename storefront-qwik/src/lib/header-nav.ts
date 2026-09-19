@@ -50,28 +50,27 @@ export function physicalNavFromShopMenu(
   lang: StoreLocaleCode,
   physical: ShopMenuPhysicalItem[],
 ): ResolvedNavChild[] {
-  return physical.map((item) => {
-    if (item.type === "group") {
-      return {
-        label: item.label,
-        children: (item.children || []).map((child) => ({
-          label: child.label,
-          href: withLocaleHref(lang, child.href),
-        })),
-      };
-    }
+  return physical.map((item) => mapShopMenuItem(lang, item));
+}
+
+function mapShopMenuItem(lang: StoreLocaleCode, item: ShopMenuPhysicalItem): ResolvedNavChild {
+  if (item.type === "group") {
     return {
       label: item.label,
-      href: withLocaleHref(lang, item.href),
+      children: (item.children || []).map((child) => mapShopMenuItem(lang, child)),
     };
-  });
+  }
+  return {
+    label: item.label,
+    href: withLocaleHref(lang, item.href),
+  };
 }
 
 function flattenNavChildren(links: ResolvedNavChild[]): ResolvedNavChild[] {
   const out: ResolvedNavChild[] = [];
   for (const link of links) {
     if (link.children && link.children.length > 0) {
-      out.push(...link.children);
+      out.push(...flattenNavChildren(link.children));
       continue;
     }
     out.push(link);

@@ -6,6 +6,7 @@ import {
 } from "~/lib/header-dropdown-context";
 import type { ResolvedNavChild, ResolvedNavItem } from "~/lib/header-nav";
 import { openSupportChatEvent } from "~/lib/support-chat";
+import { ShopMegaTree } from "~/components/layout/shop-nav-tree";
 
 interface HeaderNavItemsProps {
   links: ResolvedNavItem[];
@@ -91,76 +92,7 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                         <p class="header-nav-mega__title">{col.title}</p>
                       ) : null}
                       <ul class="header-nav-mega__list">
-                        {col.links.map((child) => {
-                          const nested = child.children && child.children.length > 0;
-                          if (nested) {
-                            return (
-                              <li key={childKey(child)} class="header-nav-mega__group" role="none">
-                                <span class="header-nav-mega__group-title">{child.label}</span>
-                                <ul class="header-nav-mega__sublist">
-                                  {child.children!.map((sub) => (
-                                    <li key={childKey(sub)} role="none">
-                                      {sub.disabled || !sub.href ? (
-                                        <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
-                                          {sub.label}
-                                        </span>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          class="header-nav-dropdown__option"
-                                          role="menuitem"
-                                          onClick$={() => go$(sub.href!)}
-                                        >
-                                          {sub.label}
-                                        </button>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </li>
-                            );
-                          }
-                          return (
-                          <li key={childKey(child)} role="none">
-                            {child.action === "open-support-chat" ? (
-                              <button
-                                type="button"
-                                class="header-nav-dropdown__option"
-                                role="menuitem"
-                                onClick$={() => {
-                                  openKey.value = null;
-                                  closeHeaderDropdown(headerMenu, "nav");
-                                  openSupportChatEvent();
-                                }}
-                              >
-                                {child.label}
-                              </button>
-                            ) : child.disabled || !child.href ? (
-                              <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
-                                {child.label}
-                                {child.hint ? ` (${child.hint})` : ""}
-                              </span>
-                            ) : child.href.startsWith("tel:") ? (
-                              <a
-                                href={child.href}
-                                class="header-nav-dropdown__option"
-                                role="menuitem"
-                              >
-                                {child.label}
-                              </a>
-                            ) : (
-                              <button
-                                type="button"
-                                class="header-nav-dropdown__option"
-                                role="menuitem"
-                                onClick$={() => go$(child.href!)}
-                              >
-                                {child.label}
-                              </button>
-                            )}
-                          </li>
-                          );
-                        })}
+                        <ShopMegaTree links={col.links} go$={go$} />
                       </ul>
                     </div>
                   ))}

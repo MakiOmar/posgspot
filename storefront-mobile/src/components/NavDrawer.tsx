@@ -97,20 +97,20 @@ export function NavDrawer({ visible, onClose }: Props) {
     setTimeout(() => navigateHref(router, href, external), 50);
   };
 
-  const renderChild = (child: MainNavChild, nested = false) => {
+  const renderChild = (child: MainNavChild, depth = 0) => {
     const nestedChildren = child.children && child.children.length > 0;
     if (nestedChildren) {
       return (
-        <View key={`group-${child.label}`}>
+        <View key={`group-${child.label}-${depth}`}>
           <Text
             style={[
               styles.groupTitle,
-              { textAlign, writingDirection },
+              { textAlign, writingDirection, paddingHorizontal: 24 + depth * 12 },
             ]}
           >
             {child.label}
           </Text>
-          {child.children!.map((sub) => renderChild(sub, true))}
+          {child.children!.map((sub) => renderChild(sub, depth + 1))}
         </View>
       );
     }
@@ -119,8 +119,8 @@ export function NavDrawer({ visible, onClose }: Props) {
       <Pressable
         key={child.href || child.label}
         style={[
-          nested ? styles.nestedChildItem : styles.childItem,
-          { flexDirection: row },
+          styles.childItem,
+          { flexDirection: row, paddingHorizontal: 24 + depth * 12 },
         ]}
         disabled={child.disabled || !child.href}
         onPress={() => {
@@ -173,7 +173,7 @@ export function NavDrawer({ visible, onClose }: Props) {
           ) : null}
         </Pressable>
         {hasChildren && isOpen
-          ? item.children!.map((child) => renderChild(child, false))
+          ? item.children!.map((child) => renderChild(child, 0))
           : null}
       </View>
     );
