@@ -151,6 +151,11 @@ img {
   padding-top: 0;
 }
 
+/* Page title bar sits flush under the header (full-bleed). */
+.site-main:has(.page-title-bar) {
+  padding-top: 0;
+}
+
 /* Homepage section stack: even vertical rhythm + scroll reveals.
    Use block layout (not flex) so the hero 100vh slider is never flex-shrunk. */
 .home-sections {
@@ -569,8 +574,17 @@ button.header-nav-dropdown__trigger {
 /* ---- Fancy page title bar (content pages; skip homepage) ---- */
 .page-title-bar {
   position: relative;
-  margin: 0 0 1.75rem;
+  /* Break out of .site-main max-width/padding to full viewport */
+  width: 100vw;
+  max-width: 100vw;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  margin-top: 0;
+  margin-bottom: 1.75rem;
   padding: 2rem 0 2.25rem;
+  box-sizing: border-box;
   border-bottom: 1px solid color-mix(in srgb, var(--gs-accent, #00d4aa) 28%, transparent);
   background:
     radial-gradient(ellipse 80% 120% at 10% -20%, color-mix(in srgb, var(--gs-accent, #f97316) 22%, transparent), transparent 55%),
@@ -612,18 +626,15 @@ button.header-nav-dropdown__trigger {
 .page-title-bar__crumbs a:hover {
   color: var(--gs-accent, #f97316);
 }
+.page-title-bar__home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
 .page-title-bar__crumb {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-}
-.page-title-bar__eyebrow {
-  margin: 0 0 0.35rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--gs-accent, #f97316);
 }
 .page-title-bar__title {
   margin: 0;
@@ -632,16 +643,13 @@ button.header-nav-dropdown__trigger {
   line-height: 1.15;
   color: var(--gs-text, #fff);
 }
-.page-title-bar__lead,
-.page-title-bar__meta {
-  margin: 0.65rem 0 0;
+.page-title-bar + .content-page .content-lead,
+.community-page-intro {
+  margin: 0 0 1.25rem;
   max-width: 40rem;
   color: color-mix(in srgb, var(--gs-text, #fff) 78%, transparent);
   font-size: 1.05rem;
   line-height: 1.5;
-}
-.page-title-bar__tabs {
-  margin-top: 1.15rem;
 }
 
 .community-news-layout__body {
@@ -1705,13 +1713,17 @@ html[dir="rtl"] .header-search-type {
   gap: 0.2rem;
   min-width: 0;
   padding: 0.35rem 0.25rem;
+  border: 0;
   border-radius: var(--gs-radius);
+  background: transparent;
   color: var(--gs-muted);
   text-decoration: none;
+  font: inherit;
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
+  cursor: pointer;
 }
 
 .mobile-bottom-nav__item:hover {
@@ -1733,12 +1745,14 @@ html[dir="rtl"] .header-search-type {
 }
 
 .mobile-bottom-nav__badge {
-  top: -0.2rem;
-  inset-inline-end: -0.45rem;
-  min-width: 1rem;
-  height: 1rem;
-  padding: 0 0.25rem;
-  font-size: 0.625rem;
+  top: -0.35rem;
+  inset-inline-end: -0.55rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .mobile-bottom-nav__label {
@@ -1789,14 +1803,15 @@ html[dir="rtl"] .header-search-type {
   background: var(--gs-accent);
   color: #041510;
   border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  min-width: 1.15rem;
-  height: 1.15rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 1.35rem;
+  height: 1.35rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.3rem;
+  padding: 0 0.35rem;
 }
 
 .action-wishlist-icon {
@@ -3564,6 +3579,36 @@ html[dir="rtl"] .header-search-type {
 
   .mobile-bottom-nav {
     display: flex;
+  }
+
+  /* Cart / wishlist live in the bottom bar — drop header duplicates. */
+  .header-actions .action-wishlist,
+  .header-actions .mini-cart {
+    display: none;
+  }
+
+  /* Search moves to the bottom bar; keep modal host mounted for style-one. */
+  .header-search-wrap--modal {
+    position: fixed;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    pointer-events: none;
+  }
+
+  .header-search-wrap--modal .header-search-trigger {
+    display: none;
+  }
+
+  .header-search-wrap--modal .header-search-modal {
+    pointer-events: auto;
+  }
+
+  .header-search-wrap:not(.header-search-wrap--modal) {
+    display: none;
   }
 }
 
@@ -8149,9 +8194,53 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   box-shadow: none;
 }
 
+/* Mobile search modal: type → query → submit stacked full-width. */
+@media (max-width: 1023px) {
+  .header-search-wrap--modal .header-search {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .header-search-wrap--modal .header-search-type {
+    max-width: none;
+    width: 100%;
+    border-inline-end-width: 1px;
+    border-radius: var(--gs-radius);
+    padding: 0.7rem 1.75rem 0.7rem 0.85rem;
+    font-size: 0.9375rem;
+  }
+
+  html[dir="rtl"] .header-search-wrap--modal .header-search-type {
+    padding: 0.7rem 0.85rem 0.7rem 1.75rem;
+  }
+
+  .header-search-wrap--modal .header-search input,
+  .header-search-wrap--modal .header-search:has(.header-search-type) input {
+    width: 100%;
+    border-inline-end-width: 1px;
+    border-radius: var(--gs-radius);
+    padding: 0.75rem 0.85rem;
+    font-size: 1rem;
+  }
+
+  .header-search-wrap--modal .header-search button {
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: var(--gs-radius);
+    padding: 0.7rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+}
+
 @media (max-width: 1023px) {
   .site-header--one .header-nav-menu--icon {
     display: inline-flex;
+    grid-column: 1;
+    grid-row: 1;
   }
 
   .site-header--one .header-nav--inline {
@@ -8159,10 +8248,31 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   }
 
   .site-header--one .header-main-inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
     gap: 0.65rem;
   }
 
+  /* Center logo between menu and trailing actions. */
   .site-header--one .brand {
-    margin-inline-end: auto;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    margin-inline: 0;
+  }
+
+  .site-header--one .header-actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .site-header--one .header-search-wrap--modal {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .site-header--one .brand img {
+    height: 40px;
   }
 }

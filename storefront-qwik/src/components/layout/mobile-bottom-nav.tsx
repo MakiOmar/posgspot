@@ -1,10 +1,11 @@
-import { component$ } from "@builder.io/qwik";
-import { Link, useLocation } from "@builder.io/qwik-city";
-import { CartIcon, HeartIcon, HomeIcon, UserIcon } from "~/components/icons";
+import { $, component$ } from "@builder.io/qwik";
+import { Link, useLocation, useNavigate } from "@builder.io/qwik-city";
+import { CartIcon, HeartIcon, HomeIcon, SearchIcon, UserIcon } from "~/components/icons";
 import { isAuthenticated } from "~/lib/auth-actions";
 import { useAuth } from "~/lib/auth-context";
 import { totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import { HEADER_STYLE } from "~/lib/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath, stripLocalePrefix } from "~/lib/i18n/paths";
 import { wishlistCount } from "~/lib/wishlist-actions";
@@ -23,6 +24,7 @@ function isActivePath(barePath: string, target: string): boolean {
 export const MobileBottomNav = component$(() => {
   const { locale } = useI18n();
   const loc = useLocation();
+  const nav = useNavigate();
   const auth = useAuth();
   const cart = useCart();
   const wishlist = useWishlist();
@@ -30,14 +32,24 @@ export const MobileBottomNav = component$(() => {
   const bare = stripLocalePrefix(loc.url.pathname);
   const cartCount = totalCartItems(cart);
   const wishCount = wishlistCount(wishlist);
+  const isStyleOne = HEADER_STYLE === "one";
 
   const homeActive = isActivePath(bare, "/");
+  const searchActive = isActivePath(bare, "/search");
   const cartActive = isActivePath(bare, "/cart") || isActivePath(bare, "/checkout");
   const wishlistActive = isActivePath(bare, "/wishlist");
   const profileActive =
     isActivePath(bare, "/account") ||
     isActivePath(bare, "/login") ||
     isActivePath(bare, "/register");
+
+  const openSearch$ = $(() => {
+    if (isStyleOne && typeof document !== "undefined") {
+      document.dispatchEvent(new CustomEvent("storefront:open-search"));
+      return;
+    }
+    void nav(localePath(locale, "/search"));
+  });
 
   return (
     <nav class="mobile-bottom-nav" aria-label={tStatic(locale, "header.mobileBar")}>
@@ -51,6 +63,18 @@ export const MobileBottomNav = component$(() => {
         </span>
         <span class="mobile-bottom-nav__label">{tStatic(locale, "nav.home")}</span>
       </Link>
+
+      <button
+        type="button"
+        class={`mobile-bottom-nav__item${searchActive ? " mobile-bottom-nav__item--active" : ""}`}
+        aria-label={tStatic(locale, "header.search")}
+        onClick$={openSearch$}
+      >
+        <span class="mobile-bottom-nav__icon">
+          <SearchIcon size={22} />
+        </span>
+        <span class="mobile-bottom-nav__label">{tStatic(locale, "header.search")}</span>
+      </button>
 
       <Link
         href={localePath(locale, "/cart")}

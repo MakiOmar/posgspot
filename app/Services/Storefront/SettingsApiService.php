@@ -36,7 +36,9 @@ class SettingsApiService
 
         return [
             'business_name' => $business->name ?? '',
-            'logo_url' => business_logo_url($business) ?: null,
+            'logo_url' => $this->storefrontSettings->logoPublicUrl(
+                is_array($settings['logo'] ?? null) ? $settings['logo'] : null
+            ) ?: (business_logo_url($business) ?: null),
             'currency' => [
                 'code' => $business->currency_code ?? 'EGP',
                 'symbol' => $business->currency_symbol ?? 'L.E.',

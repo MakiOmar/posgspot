@@ -126,6 +126,16 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
     }),
   );
 
+  // Mobile bottom nav (and other hosts) can open the style-one search modal.
+  useOnDocument(
+    "storefront:open-search",
+    $(() => {
+      if (variant === "modal") {
+        modalOpen.value = true;
+      }
+    }),
+  );
+
   const submitSearch$ = $(async (term: string) => {
     const href = searchHref(locale, term, searchType.value);
     closeHeaderDropdown(headerMenu, "search");

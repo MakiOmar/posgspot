@@ -304,6 +304,9 @@ class StorefrontSettingController extends Controller
             'favicon_url' => 'nullable|string|max:500',
             'favicon_existing_image' => 'nullable|string|max:191',
             'favicon_clear' => 'nullable|boolean',
+            'logo_url' => 'nullable|string|max:500',
+            'logo_existing_image' => 'nullable|string|max:191',
+            'logo_clear' => 'nullable|boolean',
             'sale_badge_mode' => 'nullable|in:percent,text',
             'sale_badge_text_en' => 'nullable|string|max:30',
             'sale_badge_text_ar' => 'nullable|string|max:30',
@@ -464,6 +467,7 @@ class StorefrontSettingController extends Controller
                 'accent_color' => $validated['theme_accent_color'] ?? '#00d4aa',
             ],
             'favicon' => $this->buildFaviconPayload($request, $validated),
+            'logo' => $this->buildLogoPayload($request, $validated),
             'sale_badge' => [
                 'mode' => $validated['sale_badge_mode'] ?? 'percent',
                 'text' => [
@@ -650,6 +654,43 @@ class StorefrontSettingController extends Controller
                 }
             } catch (\Throwable $e) {
                 \Log::warning('storefront.favicon.upload_failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        if (is_string($uploaded) && $uploaded !== '') {
+            return ['image' => basename($uploaded), 'url' => ''];
+        }
+
+        if ($existing !== '') {
+            return ['image' => $existing, 'url' => ''];
+        }
+
+        return ['image' => null, 'url' => $url];
+    }
+
+    /**
+     * Build header logo settings from Appearance tab (upload and/or external URL).
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{image: string|null, url: string}
+     */
+    private function buildLogoPayload(Request $request, array $validated): array
+    {
+        $this->commonUtil->ensurePublicUploadPermissions('storefront_logo', null, true);
+
+        if ($request->boolean('logo_clear')) {
+            return ['image' => null, 'url' => ''];
+        }
+
+        $existing = basename(trim((string) ($validated['logo_existing_image'] ?? '')));
+        $url = trim((string) ($validated['logo_url'] ?? ''));
+        $uploaded = null;
+
+        if ($request->hasFile('logo_image')) {
+            try {
+                $uploaded = $this->commonUtil->uploadFile($request, 'logo_image', 'storefront_logo', 'image');
+            } catch (\Throwable $e) {
+                \Log::warning('storefront.logo.upload_failed', ['error' => $e->getMessage()]);
             }
         }
 

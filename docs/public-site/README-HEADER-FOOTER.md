@@ -141,7 +141,7 @@ On `/checkout` and `/checkout/*`:
 | **Asset** | Games Spot logo (SVG preferred; PNG fallback) |
 | **Alt text** | "Games Spot" / "جيمز سبوت" (i18n) |
 | **Link** | `/` (homepage) |
-| **Source** | Static asset in Qwik; optional override from business settings API (`logo_url`) |
+| **Source** | Public `GET /settings` → `logo_url`: storefront Appearance logo when set, else POS business logo |
 | **Size** | Max height ~40px desktop, ~32px mobile — preserve aspect ratio |
 
 ### Announcement bar

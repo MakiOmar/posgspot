@@ -448,6 +448,51 @@
                 </div>
 
                 <hr>
+                <h4>Storefront logo</h4>
+                @php
+                    $sfLogo = $settings['logo'] ?? ['image' => null, 'url' => ''];
+                    $sfLogoImage = is_array($sfLogo) ? trim((string) ($sfLogo['image'] ?? '')) : '';
+                    $sfLogoUrl = is_array($sfLogo) ? trim((string) ($sfLogo['url'] ?? '')) : '';
+                    $sfLogoPreview = $sfLogoImage !== ''
+                        ? asset('uploads/storefront_logo/'.$sfLogoImage)
+                        : ($sfLogoUrl !== '' ? $sfLogoUrl : null);
+                @endphp
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Preview</label>
+                            <div style="width:120px;height:48px;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fafafa;padding:4px;">
+                                @if ($sfLogoPreview)
+                                    <img src="{{ $sfLogoPreview }}" alt="" style="max-width:112px;max-height:40px;object-fit:contain;">
+                                @else
+                                    <span class="text-muted" style="font-size:11px;">POS business logo</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            {!! Form::label('logo_image', 'Upload logo') !!}
+                            {!! Form::file('logo_image', ['class' => 'form-control', 'accept' => 'image/png,image/jpeg,image/webp,image/svg+xml']) !!}
+                            <input type="hidden" name="logo_existing_image" value="{{ $sfLogoImage }}">
+                            <p class="help-block">PNG, SVG, WebP, or JPEG. Transparent PNG recommended for the dark header.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('logo_url', 'Or external URL') !!}
+                            {!! Form::text('logo_url', $sfLogoUrl, ['class' => 'form-control', 'maxlength' => 500, 'placeholder' => 'https://…/logo.png']) !!}
+                            <p class="help-block">Used only when no uploaded file is set. Leave empty to use the POS business logo.</p>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('logo_clear', 1, false) !!} Clear storefront logo (use POS business logo)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <h4>Favicon</h4>
                 @php
                     $favicon = $settings['favicon'] ?? ['image' => null, 'url' => ''];

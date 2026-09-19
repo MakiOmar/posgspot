@@ -116,6 +116,11 @@ class StorefrontSettingService
                 'image' => null,
                 'url' => '',
             ],
+            // Header logo override: uploaded file and/or external URL (falls back to POS business logo).
+            'logo' => [
+                'image' => null,
+                'url' => '',
+            ],
             'sale_badge' => [
                 'mode' => 'percent',
                 'text' => [
@@ -511,9 +516,11 @@ class StorefrontSettingService
         }
 
         return $this->homepageSections()->ensureSections(
-            $this->withNormalizedFavicon(
-                $this->withNormalizedFooter(
-                    $this->normalizeLocalized($merged)
+            $this->withNormalizedLogo(
+                $this->withNormalizedFavicon(
+                    $this->withNormalizedFooter(
+                        $this->normalizeLocalized($merged)
+                    )
                 )
             )
         );
@@ -528,6 +535,19 @@ class StorefrontSettingService
     private function withNormalizedFavicon(array $settings): array
     {
         $settings['favicon'] = $this->normalizeFavicon($settings['favicon'] ?? null);
+
+        return $settings;
+    }
+
+    /**
+     * Replace recursively-merged logo with a clean normalized structure.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withNormalizedLogo(array $settings): array
+    {
+        $settings['logo'] = $this->normalizeLogo($settings['logo'] ?? null);
 
         return $settings;
     }
@@ -1116,6 +1136,15 @@ class StorefrontSettingService
             );
         }
 
+        if (array_key_exists('logo', $settings)) {
+            $merged['logo'] = $this->normalizeLogo($settings['logo']);
+        } else {
+            $existingLogo = $this->getRaw($businessId)['logo'] ?? null;
+            $merged['logo'] = $this->normalizeLogo(
+                is_array($existingLogo) ? $existingLogo : $this->defaults()['logo']
+            );
+        }
+
         if (array_key_exists('footer', $settings)) {
             $merged['footer'] = $this->normalizeFooter($settings['footer']);
         } else {
@@ -1528,7 +1557,7 @@ class StorefrontSettingService
         $objectKeys = [
             'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
             'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
-            'contact', 'catalog', 'theme', 'footer', 'favicon',
+            'contact', 'catalog', 'theme', 'footer', 'favicon', 'logo',
         ];
         $defaults = $this->defaults();
         foreach ($objectKeys as $key) {
@@ -2011,6 +2040,38 @@ class StorefrontSettingService
         $row = $this->normalizeFavicon($favicon);
         if (! empty($row['image'])) {
             return asset('uploads/storefront_favicon/'.$row['image']);
+        }
+        $url = trim((string) ($row['url'] ?? ''));
+        if ($url === '') {
+            return null;
+        }
+        if (str_starts_with($url, '//')) {
+            return 'https:'.$url;
+        }
+
+        return $url;
+    }
+
+    /**
+     * Normalize header logo row: uploaded filename under storefront_logo/ and/or external URL.
+     *
+     * @param  mixed  $logo
+     * @return array{image: string|null, url: string}
+     */
+    public function normalizeLogo($logo): array
+    {
+        // Same shape as favicon (upload wins over URL).
+        return $this->normalizeFavicon($logo);
+    }
+
+    /**
+     * Absolute public URL for the storefront header logo override, or null to fall back to POS business logo.
+     */
+    public function logoPublicUrl(?array $logo): ?string
+    {
+        $row = $this->normalizeLogo($logo);
+        if (! empty($row['image'])) {
+            return asset('uploads/storefront_logo/'.$row['image']);
         }
         $url = trim((string) ($row['url'] ?? ''));
         if ($url === '') {

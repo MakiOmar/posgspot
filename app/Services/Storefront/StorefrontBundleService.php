@@ -45,6 +45,7 @@ class StorefrontBundleService
         'storefront_payment_icons',
         'storefront_banners',
         'storefront_favicon',
+        'storefront_logo',
         'img',
     ];
 
@@ -55,6 +56,7 @@ class StorefrontBundleService
         'storefront_payment_icons' => true,
         'storefront_banners' => true,
         'storefront_favicon' => true,
+        'storefront_logo' => true,
         'img' => true,
     ];
 
