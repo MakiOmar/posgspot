@@ -91,7 +91,36 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                         <p class="header-nav-mega__title">{col.title}</p>
                       ) : null}
                       <ul class="header-nav-mega__list">
-                        {col.links.map((child) => (
+                        {col.links.map((child) => {
+                          const nested = child.children && child.children.length > 0;
+                          if (nested) {
+                            return (
+                              <li key={childKey(child)} class="header-nav-mega__group" role="none">
+                                <span class="header-nav-mega__group-title">{child.label}</span>
+                                <ul class="header-nav-mega__sublist">
+                                  {child.children!.map((sub) => (
+                                    <li key={childKey(sub)} role="none">
+                                      {sub.disabled || !sub.href ? (
+                                        <span class="header-nav-dropdown__option header-nav-dropdown__option--disabled">
+                                          {sub.label}
+                                        </span>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          class="header-nav-dropdown__option"
+                                          role="menuitem"
+                                          onClick$={() => go$(sub.href!)}
+                                        >
+                                          {sub.label}
+                                        </button>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </li>
+                            );
+                          }
+                          return (
                           <li key={childKey(child)} role="none">
                             {child.action === "open-support-chat" ? (
                               <button
@@ -130,7 +159,8 @@ export const HeaderNavItems = component$<HeaderNavItemsProps>(({ links, linkClas
                               </button>
                             )}
                           </li>
-                        ))}
+                          );
+                        })}
                       </ul>
                     </div>
                   ))}

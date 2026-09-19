@@ -2,7 +2,7 @@ import { consoleNavCategories } from "~/lib/console-categories";
 import { localePath } from "~/lib/i18n/paths";
 import { tStatic } from "~/lib/i18n/context";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
-import type { Category } from "~/lib/types";
+import type { Category, ShopMenuPhysicalItem } from "~/lib/types";
 
 export interface ResolvedNavChild {
   label: string;
@@ -11,6 +11,8 @@ export interface ResolvedNavChild {
   hint?: string;
   /** Client action (e.g. open floating support chat). */
   action?: "open-support-chat";
+  /** Nested links under a group header (Shop Physical). */
+  children?: ResolvedNavChild[];
 }
 
 export interface ResolvedNavMegaColumn {
@@ -31,6 +33,52 @@ export interface ResolvedNavItem {
   };
 }
 
+function withLocaleHref(lang: StoreLocaleCode, href: string): string {
+  if (!href || href.startsWith("tel:") || /^https?:\/\//i.test(href)) {
+    return href;
+  }
+  const path = href.startsWith("/") ? href : `/${href}`;
+  const qIndex = path.indexOf("?");
+  if (qIndex === -1) {
+    return localePath(lang, path);
+  }
+  return `${localePath(lang, path.slice(0, qIndex))}${path.slice(qIndex)}`;
+}
+
+/** Map resolved shop_menu.physical into nav children (locale-prefixed hrefs). */
+export function physicalNavFromShopMenu(
+  lang: StoreLocaleCode,
+  physical: ShopMenuPhysicalItem[],
+): ResolvedNavChild[] {
+  return physical.map((item) => {
+    if (item.type === "group") {
+      return {
+        label: item.label,
+        children: (item.children || []).map((child) => ({
+          label: child.label,
+          href: withLocaleHref(lang, child.href),
+        })),
+      };
+    }
+    return {
+      label: item.label,
+      href: withLocaleHref(lang, item.href),
+    };
+  });
+}
+
+function flattenNavChildren(links: ResolvedNavChild[]): ResolvedNavChild[] {
+  const out: ResolvedNavChild[] = [];
+  for (const link of links) {
+    if (link.children && link.children.length > 0) {
+      out.push(...link.children);
+      continue;
+    }
+    out.push(link);
+  }
+  return out;
+}
+
 /**
  * Build header nav: Home, Shop mega, Services, Our Stores, Build Your Bundle,
  * Community (when enabled), Sell to Us.
@@ -40,6 +88,8 @@ export function buildMainNavLinks(
   options?: {
     digitalEnabled?: boolean;
     categories?: Category[];
+    /** Locale-resolved Physical column from GET /settings shop_menu. */
+    shopMenuPhysical?: ShopMenuPhysicalItem[];
     customBundleEnabled?: boolean;
     sellToUsEnabled?: boolean;
     communityEnabled?: boolean;
@@ -50,18 +100,22 @@ export function buildMainNavLinks(
   const sellToUsEnabled = Boolean(options?.sellToUsEnabled);
   const communityEnabled = Boolean(options?.communityEnabled);
 
-  const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
-    label: category.name,
-    href: category.slug
-      ? localePath(lang, `/category/${category.slug}`)
-      : localePath(lang, `/products?category_id=${category.id}`),
-  }));
+  const configuredPhysical = options?.shopMenuPhysical ?? [];
+  const physicalChildren: ResolvedNavChild[] =
+    configuredPhysical.length > 0
+      ? physicalNavFromShopMenu(lang, configuredPhysical)
+      : consoleNavCategories(options?.categories ?? []).map((category) => ({
+          label: category.name,
+          href: category.slug
+            ? localePath(lang, `/category/${category.slug}`)
+            : localePath(lang, `/products?category_id=${category.id}`),
+        }));
 
   const shopColumn: ResolvedNavMegaColumn = {
     title: tStatic(lang, "nav.shopColumnPhysical"),
     links: [
       { label: tStatic(lang, "nav.shopAll"), href: localePath(lang, "/products") },
-      ...consoleChildren,
+      ...physicalChildren,
     ],
   };
 
@@ -90,8 +144,10 @@ export function buildMainNavLinks(
     shopColumns.push(digitalColumn);
   }
 
-  // Flat children for mobile drawer (same destinations as mega).
-  const shopFlatChildren: ResolvedNavChild[] = shopColumns.flatMap((col) => col.links);
+  // Flat children for mobile drawer fallbacks (groups expanded to their links).
+  const shopFlatChildren: ResolvedNavChild[] = shopColumns.flatMap((col) =>
+    flattenNavChildren(col.links),
+  );
 
   const items: ResolvedNavItem[] = [
     { label: tStatic(lang, "nav.home"), href: localePath(lang, "/") },

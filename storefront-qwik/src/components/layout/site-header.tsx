@@ -40,6 +40,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
   const navLinks = buildMainNavLinks(locale, {
     digitalEnabled: settings.digital?.enabled !== false,
     categories,
+    shopMenuPhysical: settings.shop_menu?.physical,
     customBundleEnabled: settings.custom_bundle?.enabled === true,
     sellToUsEnabled: settings.sell_to_us?.enabled === true,
     communityEnabled: settings.community?.enabled === true,

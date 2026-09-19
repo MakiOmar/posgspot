@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\BusinessLocation;
+use App\Category;
 use App\Services\Storefront\Newsletter\NewsletterProviderManager;
 use App\Support\StorefrontLocale;
 use App\Utils\BusinessUtil;
@@ -89,6 +90,7 @@ class SettingsApiService
                 'team' => $this->aboutTeamPayload($settings, $locale),
             ],
             'footer' => $this->footerPayload($settings, $locale),
+            'shop_menu' => $this->shopMenuPayload($businessId, $settings, $locale),
             'banners' => $this->bannersPayload($settings, $locale),
             'newsletter' => [
                 'enabled' => app(NewsletterProviderManager::class)->isEnabled($businessId),
@@ -270,6 +272,145 @@ class SettingsApiService
         return [
             'enabled' => $enabled,
             'site_key' => $enabled ? $siteKey : null,
+        ];
+    }
+
+    /**
+     * Locale-resolved Shop mega Physical column (empty when unset — clients use category fallback).
+     *
+     * @return array{physical: list<array<string, mixed>>}
+     */
+    private function shopMenuPayload(int $businessId, array $settings, string $locale): array
+    {
+        $menu = $this->storefrontSettings->normalizeShopMenu($settings['shop_menu'] ?? null);
+        $physical = $menu['physical'] ?? [];
+        if ($physical === []) {
+            return ['physical' => []];
+        }
+
+        $ids = $this->collectShopMenuCategoryIds($physical);
+        if ($ids === []) {
+            return ['physical' => []];
+        }
+
+        $categories = Category::query()
+            ->where('business_id', $businessId)
+            ->where('category_type', 'product')
+            ->whereIn('id', $ids)
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->get()
+            ->keyBy('id');
+
+        $resolved = [];
+        foreach ($physical as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $type = (string) ($row['type'] ?? 'link');
+            if ($type === 'group') {
+                $groupLabel = trim($this->presenter->localizedSetting(
+                    $row['label'] ?? '',
+                    $locale,
+                    ''
+                ));
+                if ($groupLabel === '') {
+                    $groupLabel = trim((string) (is_array($row['label'] ?? null) ? ($row['label']['en'] ?? '') : ''));
+                }
+                if ($groupLabel === '') {
+                    continue;
+                }
+                $children = [];
+                foreach ($row['children'] ?? [] as $child) {
+                    if (! is_array($child)) {
+                        continue;
+                    }
+                    $link = $this->resolveShopMenuLink($child, $categories, $locale);
+                    if ($link !== null) {
+                        $children[] = $link;
+                    }
+                }
+                $resolved[] = [
+                    'type' => 'group',
+                    'label' => $groupLabel,
+                    'children' => $children,
+                ];
+                continue;
+            }
+
+            $link = $this->resolveShopMenuLink($row, $categories, $locale);
+            if ($link !== null) {
+                $resolved[] = $link;
+            }
+        }
+
+        return ['physical' => $resolved];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $physical
+     * @return list<int>
+     */
+    private function collectShopMenuCategoryIds(array $physical): array
+    {
+        $ids = [];
+        foreach ($physical as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (($row['type'] ?? '') === 'group') {
+                foreach ($row['children'] ?? [] as $child) {
+                    if (is_array($child) && (int) ($child['category_id'] ?? 0) > 0) {
+                        $ids[] = (int) $child['category_id'];
+                    }
+                }
+                continue;
+            }
+            if ((int) ($row['category_id'] ?? 0) > 0) {
+                $ids[] = (int) $row['category_id'];
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  \Illuminate\Support\Collection<int, Category>  $categories
+     * @return array{type: string, label: string, href: string}|null
+     */
+    private function resolveShopMenuLink(array $row, $categories, string $locale): ?array
+    {
+        $categoryId = (int) ($row['category_id'] ?? 0);
+        if ($categoryId <= 0 || ! $categories->has($categoryId)) {
+            return null;
+        }
+
+        /** @var Category $category */
+        $category = $categories->get($categoryId);
+        $fields = $this->presenter->categoryFields($category, $locale);
+        if ($fields === []) {
+            // Configured menu: fall back to default-locale fields so the item still appears.
+            $fields = $this->presenter->categoryFields($category, StorefrontLocale::DEFAULT);
+        }
+        if ($fields === []) {
+            return null;
+        }
+
+        $override = trim($this->presenter->localizedSetting($row['label'] ?? '', $locale, ''));
+        $label = $override !== '' ? $override : (string) ($fields['name'] ?? '');
+        if ($label === '') {
+            return null;
+        }
+
+        $slug = trim((string) ($fields['slug'] ?? ''));
+        $href = $slug !== ''
+            ? '/category/'.$slug
+            : '/products?category_id='.$categoryId;
+
+        return [
+            'type' => 'link',
+            'label' => $label,
+            'href' => $href,
         ];
     }
 

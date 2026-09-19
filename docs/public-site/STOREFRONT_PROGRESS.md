@@ -147,7 +147,8 @@
 |------|--------|-------|
 | Logo, announcement bar | ✅ | `site-header.tsx`; `logo_url` prefers storefront Appearance logo over POS business logo |
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns; mobile opens from bottom nav |
-| Mobile bottom nav | ✅ | Home / Search / Cart / Wishlist / Account; header hides cart+wishlist+search (&lt;1024px); centered logo (header style one) |
+| Mobile bottom nav | ✅ | Home / Search / Cart / Wishlist / Account; header hides cart+wishlist+search+account (&lt;1024px); centered logo (header style one) |
+| Shop Physical menu (settings-driven) | ✅ | `shop_menu.physical` → mega + drawer nested groups; empty → `consoleNavCategories` |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
 | Main nav (Shop mega, Services, Community, stores, contact, FAQ, about) | ✅ | Shop mega: catalog + sell/request; Services: repair/console/order/truck; Community children when `STOREFRONT_COMMUNITY` |
@@ -175,6 +176,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
 | Storefront logo (upload / URL) | ✅ | Settings → Appearance; overrides POS business logo in public `logo_url` |
+| Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop; public `shop_menu.physical`; Qwik + Expo consume with category fallback |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
@@ -251,6 +253,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Shop menu Physical builder (POS tab + drag-drop groups/links); public `shop_menu.physical`; Qwik mega/drawer + Expo NavDrawer nested parity. |
 | 2026-09-19 | Mobile chrome: larger cart/wishlist badges; hide header cart/wishlist/search under 1024px (bottom nav + search); centered header logo; storefront logo setting overrides POS business logo. |
 | 2026-09-19 | Community UI polish: page title bar, promo-tile featured mosaic, news sidebar (newsletter/search/upcoming), POS media library for covers/gallery; more featured demo news. |
 | 2026-09-19 | Community demo seed/wipe: `php artisan storefront:community-demo seed|wipe` (slug prefix `demo-`, remote library covers). |

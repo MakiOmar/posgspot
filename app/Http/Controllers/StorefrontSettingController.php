@@ -307,6 +307,7 @@ class StorefrontSettingController extends Controller
             'logo_url' => 'nullable|string|max:500',
             'logo_existing_image' => 'nullable|string|max:191',
             'logo_clear' => 'nullable|boolean',
+            'shop_menu_physical' => 'nullable|string|max:50000',
             'sale_badge_mode' => 'nullable|in:percent,text',
             'sale_badge_text_en' => 'nullable|string|max:30',
             'sale_badge_text_ar' => 'nullable|string|max:30',
@@ -468,6 +469,7 @@ class StorefrontSettingController extends Controller
             ],
             'favicon' => $this->buildFaviconPayload($request, $validated),
             'logo' => $this->buildLogoPayload($request, $validated),
+            'shop_menu' => $this->buildShopMenuPayload($validated),
             'sale_badge' => [
                 'mode' => $validated['sale_badge_mode'] ?? 'percent',
                 'text' => [
@@ -703,6 +705,30 @@ class StorefrontSettingController extends Controller
         }
 
         return ['image' => null, 'url' => $url];
+    }
+
+    /**
+     * Build Shop menu Physical column from hidden JSON posted by the builder UI.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{physical: list<array<string, mixed>>}
+     */
+    private function buildShopMenuPayload(array $validated): array
+    {
+        $raw = trim((string) ($validated['shop_menu_physical'] ?? ''));
+        if ($raw === '') {
+            return ['physical' => []];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (! is_array($decoded)) {
+            return ['physical' => []];
+        }
+
+        // Accept either a bare physical array or { physical: [...] }.
+        $physical = array_is_list($decoded) ? $decoded : ($decoded['physical'] ?? []);
+
+        return $this->settings->normalizeShopMenu(['physical' => $physical]);
     }
 
     /**

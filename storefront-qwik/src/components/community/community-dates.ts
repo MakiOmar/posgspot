@@ -1,7 +1,11 @@
 import { tStatic } from "~/lib/i18n/context";
+import type { StoreLocaleCode } from "~/lib/i18n/config";
 
 /** Format an ISO date for community cards / detail. */
-export function formatCommunityWhen(value: string | null | undefined, locale: string): string {
+export function formatCommunityWhen(
+  value: string | null | undefined,
+  locale: StoreLocaleCode,
+): string {
   if (!value) return "";
   const d = new Date(value);
   return Number.isNaN(d.getTime())
@@ -17,7 +21,7 @@ export function formatCommunityWhen(value: string | null | undefined, locale: st
 export function formatCommunityRange(
   startsAt: string | null | undefined,
   endsAt: string | null | undefined,
-  locale: string,
+  locale: StoreLocaleCode,
 ): string {
   const start = formatCommunityWhen(startsAt, locale);
   const end = formatCommunityWhen(endsAt, locale);

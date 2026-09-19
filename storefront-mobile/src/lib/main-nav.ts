@@ -1,5 +1,5 @@
 import { consoleNavCategories } from "./console-categories";
-import type { Category, ContentLocale } from "./types";
+import type { Category, ContentLocale, ShopMenuPhysicalItem } from "./types";
 import { t } from "./i18n";
 
 export type MainNavChild = {
@@ -7,6 +7,8 @@ export type MainNavChild = {
   href?: string;
   disabled?: boolean;
   hint?: string;
+  /** Nested links under a group header (Shop Physical). */
+  children?: MainNavChild[];
 };
 
 export type MainNavItem = {
@@ -16,6 +18,24 @@ export type MainNavItem = {
   children?: MainNavChild[];
 };
 
+function physicalFromShopMenu(physical: ShopMenuPhysicalItem[]): MainNavChild[] {
+  return physical.map((item) => {
+    if (item.type === "group") {
+      return {
+        label: item.label,
+        children: (item.children || []).map((child) => ({
+          label: child.label,
+          href: child.href,
+        })),
+      };
+    }
+    return {
+      label: item.label,
+      href: item.href,
+    };
+  });
+}
+
 /**
  * Same main nav IA as Qwik `buildMainNavLinks` (paths without locale prefix for Expo Router).
  */
@@ -24,6 +44,7 @@ export function buildMainNavLinks(
   options?: {
     digitalEnabled?: boolean;
     categories?: Category[];
+    shopMenuPhysical?: ShopMenuPhysicalItem[];
     customBundleEnabled?: boolean;
     sellToUsEnabled?: boolean;
     communityEnabled?: boolean;
@@ -34,16 +55,20 @@ export function buildMainNavLinks(
   const sellToUsEnabled = Boolean(options?.sellToUsEnabled);
   const communityEnabled = Boolean(options?.communityEnabled);
 
-  const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
-    label: category.name,
-    href: category.slug
-      ? `/category/${category.slug}`
-      : `/products?category_id=${category.id}`,
-  }));
+  const configuredPhysical = options?.shopMenuPhysical ?? [];
+  const physicalChildren: MainNavChild[] =
+    configuredPhysical.length > 0
+      ? physicalFromShopMenu(configuredPhysical)
+      : consoleNavCategories(options?.categories ?? []).map((category) => ({
+          label: category.name,
+          href: category.slug
+            ? `/category/${category.slug}`
+            : `/products?category_id=${category.id}`,
+        }));
 
   const shopChildren: MainNavChild[] = [
     { label: t(locale, "nav.shopAll"), href: "/products" },
-    ...consoleChildren,
+    ...physicalChildren,
   ];
 
   if (digitalEnabled) {
@@ -97,12 +122,6 @@ export function buildMainNavLinks(
       href: "/sell-to-us",
     });
   }
-
-  items.push(
-    { label: t(locale, "legal.terms"), href: "/legal/terms" },
-    { label: t(locale, "legal.privacy"), href: "/legal/privacy" },
-    { label: t(locale, "legal.return"), href: "/legal/return" },
-  );
 
   return items;
 }

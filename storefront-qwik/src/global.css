@@ -547,12 +547,56 @@ button.header-nav-dropdown__trigger {
   list-style: none;
 }
 
+.header-nav-mega__group {
+  margin: 0.35rem 0 0.55rem;
+}
+
+.header-nav-mega__group-title {
+  display: block;
+  padding: 0.35rem 0.75rem 0.15rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gs-accent, #00d4aa);
+}
+
+.header-nav-mega__sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0.25rem;
+}
+
+.header-nav-mega__sublist .header-nav-dropdown__option {
+  padding-inline-start: 1.15rem;
+  font-size: 0.9rem;
+}
+
 .header-nav-mega__list .header-nav-dropdown__option {
   white-space: normal;
 }
 
 .side-drawer-mega-col {
   margin-top: 0.5rem;
+}
+
+.side-drawer-mega-group {
+  margin-top: 0.35rem;
+}
+
+.side-drawer-mega-group-title {
+  display: block;
+  padding: 0.45rem 1.25rem 0.15rem 1.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gs-accent, #00d4aa);
+}
+
+.side-drawer-sublist--nested .side-drawer-link {
+  padding-inline-start: 2.25rem;
+  font-size: 0.875rem;
 }
 
 .coming-soon-badge {
@@ -1047,12 +1091,6 @@ button.header-nav-dropdown__trigger {
 .brand img {
   height: 36px;
   width: auto;
-}
-
-@media (min-width: 768px) {
-  .brand img {
-    height: 85px;
-  }
 }
 
 .header-search-wrap {

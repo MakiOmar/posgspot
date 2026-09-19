@@ -121,6 +121,10 @@ class StorefrontSettingService
                 'image' => null,
                 'url' => '',
             ],
+            // Shop mega Physical column (ordered links + optional group headers).
+            'shop_menu' => [
+                'physical' => [],
+            ],
             'sale_badge' => [
                 'mode' => 'percent',
                 'text' => [
@@ -516,10 +520,12 @@ class StorefrontSettingService
         }
 
         return $this->homepageSections()->ensureSections(
-            $this->withNormalizedLogo(
-                $this->withNormalizedFavicon(
-                    $this->withNormalizedFooter(
-                        $this->normalizeLocalized($merged)
+            $this->withNormalizedShopMenu(
+                $this->withNormalizedLogo(
+                    $this->withNormalizedFavicon(
+                        $this->withNormalizedFooter(
+                            $this->normalizeLocalized($merged)
+                        )
                     )
                 )
             )
@@ -548,6 +554,17 @@ class StorefrontSettingService
     private function withNormalizedLogo(array $settings): array
     {
         $settings['logo'] = $this->normalizeLogo($settings['logo'] ?? null);
+
+        return $settings;
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withNormalizedShopMenu(array $settings): array
+    {
+        $settings['shop_menu'] = $this->normalizeShopMenu($settings['shop_menu'] ?? null);
 
         return $settings;
     }
@@ -1145,6 +1162,15 @@ class StorefrontSettingService
             );
         }
 
+        if (array_key_exists('shop_menu', $settings)) {
+            $merged['shop_menu'] = $this->normalizeShopMenu($settings['shop_menu']);
+        } else {
+            $existingShopMenu = $this->getRaw($businessId)['shop_menu'] ?? null;
+            $merged['shop_menu'] = $this->normalizeShopMenu(
+                is_array($existingShopMenu) ? $existingShopMenu : $this->defaults()['shop_menu']
+            );
+        }
+
         if (array_key_exists('footer', $settings)) {
             $merged['footer'] = $this->normalizeFooter($settings['footer']);
         } else {
@@ -1557,7 +1583,7 @@ class StorefrontSettingService
         $objectKeys = [
             'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
             'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
-            'contact', 'catalog', 'theme', 'footer', 'favicon', 'logo',
+            'contact', 'catalog', 'theme', 'footer', 'favicon', 'logo', 'shop_menu',
         ];
         $defaults = $this->defaults();
         foreach ($objectKeys as $key) {
@@ -2082,6 +2108,107 @@ class StorefrontSettingService
         }
 
         return $url;
+    }
+
+    /**
+     * Normalize Shop mega Physical column builder tree.
+     *
+     * @param  mixed  $shopMenu
+     * @return array{physical: list<array<string, mixed>>}
+     */
+    public function normalizeShopMenu($shopMenu): array
+    {
+        if (! is_array($shopMenu)) {
+            return ['physical' => []];
+        }
+
+        return [
+            'physical' => $this->normalizeShopMenuPhysical($shopMenu['physical'] ?? []),
+        ];
+    }
+
+    /**
+     * @param  mixed  $items
+     * @return list<array<string, mixed>>
+     */
+    public function normalizeShopMenuPhysical($items): array
+    {
+        if (! is_array($items)) {
+            return [];
+        }
+
+        $out = [];
+        $seenIds = [];
+        foreach (array_slice(array_values($items), 0, 40) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $normalized = $this->normalizeShopMenuNode($row, $seenIds, false);
+            if ($normalized !== null) {
+                $out[] = $normalized;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, true>  $seenIds
+     * @return array<string, mixed>|null
+     */
+    private function normalizeShopMenuNode(array $row, array &$seenIds, bool $asChild): ?array
+    {
+        $type = strtolower(trim((string) ($row['type'] ?? 'link')));
+        $id = trim((string) ($row['id'] ?? ''));
+        if ($id === '' || isset($seenIds[$id])) {
+            $id = 'sm_'.bin2hex(random_bytes(4));
+        }
+        $seenIds[$id] = true;
+
+        $label = [
+            'en' => mb_substr(trim((string) (is_array($row['label'] ?? null) ? ($row['label']['en'] ?? '') : ($row['label_en'] ?? ''))), 0, 80),
+            'ar' => mb_substr(trim((string) (is_array($row['label'] ?? null) ? ($row['label']['ar'] ?? '') : ($row['label_ar'] ?? ''))), 0, 80),
+        ];
+
+        if ($type === 'group') {
+            if ($asChild) {
+                // Groups cannot nest under groups (max depth 2).
+                return null;
+            }
+            if ($label['en'] === '' && $label['ar'] === '') {
+                return null;
+            }
+            $children = [];
+            foreach (array_slice(array_values($row['children'] ?? []), 0, 30) as $child) {
+                if (! is_array($child)) {
+                    continue;
+                }
+                $normalizedChild = $this->normalizeShopMenuNode($child, $seenIds, true);
+                if ($normalizedChild !== null && ($normalizedChild['type'] ?? '') === 'link') {
+                    $children[] = $normalizedChild;
+                }
+            }
+
+            return [
+                'id' => $id,
+                'type' => 'group',
+                'label' => $label,
+                'children' => $children,
+            ];
+        }
+
+        $categoryId = (int) ($row['category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'type' => 'link',
+            'category_id' => $categoryId,
+            'label' => $label,
+        ];
     }
 
     /**

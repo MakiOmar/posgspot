@@ -85,6 +85,13 @@ export interface StoreSettings {
       links: Array<{ id: string; label: string; url: string }>;
     }>;
   };
+  /**
+   * Shop mega Physical column from Storefront Settings → Shop menu.
+   * Empty array means clients fall back to automatic category filtering.
+   */
+  shop_menu?: {
+    physical: ShopMenuPhysicalItem[];
+  };
   /** Homepage / category promotional banners. */
   banners: PromoBanner[];
   newsletter: {
@@ -253,6 +260,11 @@ export interface Category {
   image_url?: string | null;
   sub_categories?: Category[];
 }
+
+/** Locale-resolved Shop mega Physical column item (from GET /settings shop_menu). */
+export type ShopMenuPhysicalItem =
+  | { type: "link"; label: string; href: string }
+  | { type: "group"; label: string; children: Array<{ label: string; href: string }> };
 
 export interface Brand {
   id: number;

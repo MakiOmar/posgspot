@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchCategories } from "../lib/api";
-import { buildMainNavLinks, type MainNavItem } from "../lib/main-nav";
+import { buildMainNavLinks, type MainNavChild, type MainNavItem } from "../lib/main-nav";
 import { useRtl } from "../lib/rtl";
 import type { Category } from "../lib/types";
 import { useApp } from "../contexts/AppContext";
@@ -51,30 +51,37 @@ export function NavDrawer({ visible, onClose }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const navItems = useMemo(
-    () =>
-      buildMainNavLinks(locale, {
-        digitalEnabled: settings?.digital?.enabled !== false,
-        categories,
-        customBundleEnabled: settings
-          ? Boolean(settings.custom_bundle?.enabled)
-          : true,
-        sellToUsEnabled: settings
-          ? Boolean(settings.sell_to_us?.enabled)
-          : true,
-        communityEnabled: settings?.community?.enabled === true,
-      }),
-    [locale, settings, categories],
-  );
+  const navItems = useMemo(() => {
+    const configuredPhysical = settings?.shop_menu?.physical ?? [];
+    const useConfiguredMenu = configuredPhysical.length > 0;
+    return buildMainNavLinks(locale, {
+      digitalEnabled: settings?.digital?.enabled !== false,
+      categories: useConfiguredMenu ? [] : categories,
+      shopMenuPhysical: useConfiguredMenu ? configuredPhysical : undefined,
+      customBundleEnabled: settings
+        ? Boolean(settings.custom_bundle?.enabled)
+        : true,
+      sellToUsEnabled: settings
+        ? Boolean(settings.sell_to_us?.enabled)
+        : true,
+      communityEnabled: settings?.community?.enabled === true,
+    });
+  }, [locale, settings, categories]);
+
+  const useConfiguredMenu = (settings?.shop_menu?.physical?.length ?? 0) > 0;
 
   const loadCategories = useCallback(async () => {
+    if (useConfiguredMenu) {
+      setCategories([]);
+      return;
+    }
     try {
       const { data } = await fetchCategories(locale);
       setCategories(data || []);
     } catch {
       setCategories([]);
     }
-  }, [locale]);
+  }, [locale, useConfiguredMenu]);
 
   useEffect(() => {
     if (visible) {
@@ -88,6 +95,51 @@ export function NavDrawer({ visible, onClose }: Props) {
   const go = (href: string, external?: boolean) => {
     onClose();
     setTimeout(() => navigateHref(router, href, external), 50);
+  };
+
+  const renderChild = (child: MainNavChild, nested = false) => {
+    const nestedChildren = child.children && child.children.length > 0;
+    if (nestedChildren) {
+      return (
+        <View key={`group-${child.label}`}>
+          <Text
+            style={[
+              styles.groupTitle,
+              { textAlign, writingDirection },
+            ]}
+          >
+            {child.label}
+          </Text>
+          {child.children!.map((sub) => renderChild(sub, true))}
+        </View>
+      );
+    }
+
+    return (
+      <Pressable
+        key={child.href || child.label}
+        style={[
+          nested ? styles.nestedChildItem : styles.childItem,
+          { flexDirection: row },
+        ]}
+        disabled={child.disabled || !child.href}
+        onPress={() => {
+          if (child.disabled || !child.href) return;
+          go(child.href);
+        }}
+      >
+        <Text
+          style={[
+            styles.childText,
+            { textAlign, writingDirection },
+            child.disabled ? styles.childDisabled : null,
+          ]}
+        >
+          {child.label}
+          {child.hint ? ` (${child.hint})` : ""}
+        </Text>
+      </Pressable>
+    );
   };
 
   const renderMenuItem = (item: MainNavItem, index: number) => {
@@ -121,28 +173,7 @@ export function NavDrawer({ visible, onClose }: Props) {
           ) : null}
         </Pressable>
         {hasChildren && isOpen
-          ? item.children!.map((child) => (
-              <Pressable
-                key={child.href || child.label}
-                style={[styles.childItem, { flexDirection: row }]}
-                disabled={child.disabled || !child.href}
-                onPress={() => {
-                  if (child.disabled || !child.href) return;
-                  go(child.href);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.childText,
-                    { textAlign, writingDirection },
-                    child.disabled ? styles.childDisabled : null,
-                  ]}
-                >
-                  {child.label}
-                  {child.hint ? ` (${child.hint})` : ""}
-                </Text>
-              </Pressable>
-            ))
+          ? item.children!.map((child) => renderChild(child, false))
           : null}
       </View>
     );
@@ -252,6 +283,22 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     backgroundColor: "#fff",
+  },
+  nestedChildItem: {
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 36,
+    backgroundColor: "#fafafa",
+  },
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+    color: "#888",
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
   childText: { fontSize: 15, color: "#333" },
   childDisabled: { color: "#999" },

@@ -70,6 +70,12 @@ export interface StoreSettings {
   sell_to_us?: { enabled?: boolean };
   community?: { enabled?: boolean };
   request_product?: { enabled?: boolean };
+  /**
+   * Shop mega Physical column (locale-resolved). Empty → app falls back to category filter.
+   */
+  shop_menu?: {
+    physical?: ShopMenuPhysicalItem[];
+  };
   /** Env-driven OAuth flags (never secrets). */
   social_login?: {
     google_enabled?: boolean;
@@ -217,6 +223,11 @@ export interface Category {
   slug: string;
   image_url?: string | null;
 }
+
+/** Locale-resolved Shop mega Physical column item (from GET /settings shop_menu). */
+export type ShopMenuPhysicalItem =
+  | { type: "link"; label: string; href: string }
+  | { type: "group"; label: string; children: Array<{ label: string; href: string }> };
 
 export interface Brand {
   id: number;

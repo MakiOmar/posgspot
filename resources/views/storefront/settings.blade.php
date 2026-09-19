@@ -77,6 +77,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_shop_menu" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-th-list"></i> Shop menu
+                </a>
+            </li>
+            <li>
                 <a href="#tab_homepage" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-home"></i> Homepage
                 </a>
@@ -594,6 +599,56 @@
                     {!! Form::label('announcement_link', 'Link (optional)') !!}
                     {!! Form::text('announcement_link', $settings['announcement']['link'] ?? '', ['class' => 'form-control']) !!}
                 </div>
+            </div>
+
+            {{-- Shop mega Physical column: ordered categories + optional group headers --}}
+            <div class="tab-pane" id="tab_shop_menu">
+                @php
+                    $shopMenuPhysical = app(\App\Services\Storefront\StorefrontSettingService::class)
+                        ->normalizeShopMenu($settings['shop_menu'] ?? null)['physical'] ?? [];
+                    $shopMenuCategories = collect($homepage_categories ?? [])->filter(function ($c) {
+                        $hay = strtolower(trim(($c['slug'] ?? '').' '.($c['name'] ?? '')));
+                        if (preg_match('/(digital[\s_-]*games?|gift[\s_-]*cards?|giftcards?)/i', $hay)) {
+                            return false;
+                        }
+                        $name = trim((string) ($c['name'] ?? ''));
+                        if (str_contains($name, 'ألعاب رقمية') || str_contains($name, 'بطاقات الهدايا')) {
+                            return false;
+                        }
+                        return true;
+                    })->values()->all();
+                @endphp
+                <div class="alert alert-info">
+                    Build the <strong>Physical</strong> column of the Shop mega menu (web + mobile app).
+                    Drag to reorder. Nest category links under group headers. Leave empty to use the automatic category list.
+                    The “Shop all” link is always prepended on the storefront and is not listed here.
+                    Digital games / gift cards stay in the Digital column (not editable here).
+                </div>
+                <div class="row" id="storefront_shop_menu_builder">
+                    <script type="application/json" id="sf-shop-menu-categories-json">{!! json_encode($shopMenuCategories, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
+                    <script type="application/json" id="sf-shop-menu-physical-json">{!! json_encode($shopMenuPhysical, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) !!}</script>
+                    <div class="col-md-4">
+                        <h4>Add category</h4>
+                        <select id="sf_shop_menu_cat_select" class="form-control" style="margin-bottom:8px;">
+                            <option value="">— Select category —</option>
+                        </select>
+                        <button type="button" class="btn btn-default btn-sm" id="sf_shop_menu_add_link">
+                            <i class="fa fa-plus"></i> Add category link
+                        </button>
+                        <button type="button" class="btn btn-default btn-sm" id="sf_shop_menu_add_group">
+                            <i class="fa fa-folder-o"></i> Add group
+                        </button>
+                        <p class="help-block" style="margin-top:12px;">
+                            Drag a category onto a group to nest it. Drag within the list to reorder.
+                        </p>
+                    </div>
+                    <div class="col-md-8">
+                        <h4>Physical menu tree</h4>
+                        <ul id="sf_shop_menu_tree" class="sf-shop-menu-tree list-unstyled"></ul>
+                        <p class="text-muted sf-shop-menu-empty" style="display:none;">No items — storefront will use the automatic Physical list.</p>
+                    </div>
+                </div>
+                <input type="hidden" name="shop_menu_physical" id="shop_menu_physical" value="{{ e(json_encode($shopMenuPhysical, JSON_UNESCAPED_UNICODE)) }}">
             </div>
 
             {{-- Homepage section builder (Vue island). JSON bootstraps via script tags — not data-* attributes —
@@ -1386,6 +1441,14 @@
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script src="{{ asset('js/storefront-homepage-builder.js') }}?v=19"></script>
+<script src="{{ asset('js/storefront-shop-menu-builder.js') }}?v=1"></script>
+<style>
+.sf-shop-menu-tree > .sf-shop-menu-item { margin-bottom: 10px; }
+.sf-shop-menu-handle { cursor: grab; user-select: none; }
+.sf-shop-menu-children { padding-inline-start: 12px; border-inline-start: 2px dashed #ddd; }
+.sf-shop-menu-children .sf-shop-menu-item { margin-bottom: 8px; }
+.sf-shop-menu-item--group > .panel-body { background: #fafafa; }
+</style>
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();

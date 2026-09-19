@@ -46,7 +46,7 @@
 | Repair truck request | Done — coming-soon placeholder |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
-| Header nav drawer (menu + categories + language) | Done | Parity with Qwik: Shop / Services / Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us |
+| Header nav drawer (menu + categories + language) | Done | Parity with Qwik: Shop / Services / Bundle / Our Stores / Community / Sell to Us; Shop Physical from `settings.shop_menu.physical` (groups + order) with category fallback |
 | Floating contact FAB (Call / Chat / Message) | Done | Chat opens `/support` when enabled |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
@@ -89,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Shop Physical menu from `GET /settings` `shop_menu.physical` (nested groups + order) in NavDrawer; category-list fallback when empty. |
 | 2026-09-19 | Community CMS parity: nav links when enabled; news Featured+Latest; HTML body; registration form / external link; gallery + related. |
 | 2026-09-19 | Nav parity + floating contact FAB (Call / Chat / Message); label renames; Community coming soon. |
 | 2026-09-17 | Custom Bundle + Sell to us full Expo flows (builder/cart; login gate, verify, photos); login/register `next` redirect. |
