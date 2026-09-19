@@ -170,8 +170,9 @@ export async function storefrontFetch<T>(
   return { data: json.data, meta: json.meta || {} };
 }
 
-export function fetchSettings(locale?: string) {
-  return storefrontFetch<StoreSettings>("/settings", {}, locale);
+export function fetchSettings(locale?: string, options: { shell?: boolean } = {}) {
+  const qs = options.shell ? "?shell=1" : "";
+  return storefrontFetch<StoreSettings>(`/settings${qs}`, {}, locale);
 }
 
 export function fetchHomepage(locale?: string) {
@@ -500,12 +501,21 @@ export function checkout(payload: Record<string, unknown>, token?: string) {
   });
 }
 
-export function fetchPaymentSession(provider: string, storefrontOrderId: string, locale: string) {
+export function fetchPaymentSession(
+  provider: string,
+  storefrontOrderId: string,
+  locale: string,
+  orderAccessToken: string,
+) {
   return storefrontFetch<PaymentSession | { already_paid: boolean; order: CheckoutOrder }>(
     `/payments/${provider}/session`,
     {
       method: "POST",
-      body: JSON.stringify({ storefront_order_id: storefrontOrderId, locale }),
+      body: JSON.stringify({
+        storefront_order_id: storefrontOrderId,
+        order_access_token: orderAccessToken,
+        locale,
+      }),
     },
   );
 }
@@ -538,7 +548,11 @@ export function registerCustomer(payload: {
   });
 }
 
-export function loginCustomer(payload: { login: string; password: string }) {
+export function loginCustomer(payload: {
+  login: string;
+  password: string;
+  turnstile_token?: string;
+}) {
   const headers: Record<string, string> = {};
   if (typeof localStorage !== "undefined") {
     const guest = localStorage.getItem("gs-support-guest-v1");

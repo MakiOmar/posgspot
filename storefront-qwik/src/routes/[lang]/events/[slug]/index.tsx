@@ -30,16 +30,18 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
   }
 
   let phoneCountries: PhoneCountry[] = [];
-  try {
-    const { data } = await fetchPhoneCountries();
-    phoneCountries = data;
-  } catch {
-    phoneCountries = [];
-  }
-
   const loaded = await loadCommunityDetailPage(locale, params.slug || "", "event");
   if (loaded.wrongType) {
     throw redirect(302, localePath(locale, "/events"));
+  }
+  // Phone countries only needed for internal registration forms.
+  if (loaded.post?.registration_mode === "internal") {
+    try {
+      const { data } = await fetchPhoneCountries();
+      phoneCountries = data;
+    } catch {
+      phoneCountries = [];
+    }
   }
   const { wrongType: _w, ...page } = loaded;
   return { ...page, phoneCountries };

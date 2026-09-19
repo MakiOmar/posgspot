@@ -32,7 +32,9 @@ class CommunityPostService
         string $locale,
         ?string $type = null,
         ?string $scope = null,
-        ?string $q = null
+        ?string $q = null,
+        int $limit = 48,
+        int $page = 1
     ): array {
         $locale = $this->normalizeLocale($locale);
         $query = $this->publishedQuery($businessId, $locale);
@@ -66,11 +68,15 @@ class CommunityPostService
             $query->orderByDesc('is_featured')->orderByDesc('published_at')->orderByDesc('id');
         }
 
+        $limit = max(1, min(100, $limit));
+        $page = max(1, $page);
+
         $rows = $query
             ->with([
                 'translations' => fn ($q2) => $q2->where('locale', $locale),
                 'location',
             ])
+            ->forPage($page, $limit)
             ->get();
 
         return $rows->map(fn (StorefrontCommunityPost $row) => $this->present($row, $locale, false))->values()->all();

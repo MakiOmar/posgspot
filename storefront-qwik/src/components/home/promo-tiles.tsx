@@ -52,6 +52,7 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
               .filter(Boolean)
               .join(" ")}
             data-home-reveal={promoRevealDir(i)}
+            prefetch={false}
           >
             <img
               class="home-promo-tiles__img"

@@ -39,6 +39,7 @@ export const CommunityFeaturedTiles = component$<Props>((props) => {
             ]
               .filter(Boolean)
               .join(" ")}
+            prefetch={false}
           >
             {post.cover_url ? (
               <img

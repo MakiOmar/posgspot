@@ -158,6 +158,15 @@ class FawryPaymentTest extends TestCase
             .$securityKey;
         $payload['messageSignature'] = hash('sha256', $signatureString);
 
+        // Remote status confirm before markPaid (parity with Geidea).
+        \Illuminate\Support\Facades\Http::fake([
+            '*ECommerceWeb/Fawry/payments/status/v2*' => \Illuminate\Support\Facades\Http::response([
+                'orderStatus' => 'PAID',
+                'merchantRefNumber' => $orderKey,
+                'orderAmount' => (float) $amount,
+            ], 200),
+        ]);
+
         $response = $this->postJson('/api/storefront/v1/payments/fawry/webhook', $payload);
 
         $response->assertOk()

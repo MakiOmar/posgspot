@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  FlatList,
   Linking,
   Pressable,
   ScrollView,
@@ -379,17 +380,22 @@ export function CategoryShelfBlock({
       ) : null}
 
       {products.length > 0 ? (
-        <ScrollView
+        <FlatList
           horizontal
+          data={products}
+          keyExtractor={(item) => String(item.id)}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={homeRailStyles.rail}
-        >
-          {products.map((item) => (
-            <View key={String(item.id)} style={homeRailStyles.railCard}>
+          initialNumToRender={4}
+          maxToRenderPerBatch={4}
+          windowSize={5}
+          removeClippedSubviews
+          renderItem={({ item }) => (
+            <View style={homeRailStyles.railCard}>
               <ProductCard product={item} wide />
             </View>
-          ))}
-        </ScrollView>
+          )}
+        />
       ) : (
         <Text style={styles.emptyShelf}>{t("common.noProducts")}</Text>
       )}

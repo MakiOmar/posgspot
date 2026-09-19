@@ -292,7 +292,7 @@ class StorefrontCheckoutTest extends TestCase
         );
     }
 
-    public function test_digital_checkout_uses_catalog_price_not_pos_sku_price(): void
+    public function test_digital_checkout_uses_catalog_price_not_client_or_pos_sku_price(): void
     {
         Mail::fake();
 
@@ -321,6 +321,11 @@ class StorefrontCheckoutTest extends TestCase
         ]);
         Cache::flush();
 
+        $this->mock(\App\Services\Storefront\DigitalCatalogService::class, function ($mock) {
+            $mock->shouldReceive('resolveOfferPrice')
+                ->andReturn(275.0);
+        });
+
         $originalDefault = $variation->default_sell_price;
         $originalInc = $variation->sell_price_inc_tax;
         $variation->default_sell_price = 0;
@@ -339,7 +344,8 @@ class StorefrontCheckoutTest extends TestCase
                     'platform' => '5',
                     'line_key' => 'ps5_secondary_stock|game:99',
                     'title' => 'Catalog Game Title',
-                    'price' => 275,
+                    // Client underpay attempt — server must ignore this.
+                    'price' => 1,
                 ],
             ]];
             $quoted = $quotes->quote($this->businessId, 275, $digitalItems, [], null, $location->id, 'en', false);

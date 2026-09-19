@@ -81,6 +81,7 @@ export const CommunityNewsListPage = component$<Props>((props) => {
                     <Link
                       href={localePath(locale, `/gaming-news/${post.slug}`)}
                       class="community-post-card__cover"
+                      prefetch={false}
                     >
                       <img
                         src={post.cover_url}
@@ -98,7 +99,10 @@ export const CommunityNewsListPage = component$<Props>((props) => {
                       </p>
                     ) : null}
                     <h3>
-                      <Link href={localePath(locale, `/gaming-news/${post.slug}`)}>
+                      <Link
+                        href={localePath(locale, `/gaming-news/${post.slug}`)}
+                        prefetch={false}
+                      >
                         {post.title}
                       </Link>
                     </h3>
@@ -106,6 +110,7 @@ export const CommunityNewsListPage = component$<Props>((props) => {
                     <Link
                       class="link-accent"
                       href={localePath(locale, `/gaming-news/${post.slug}`)}
+                      prefetch={false}
                     >
                       {tStatic(locale, "community.readMore")}
                     </Link>

@@ -30,7 +30,7 @@ export const BestSelling = component$<BestSellingProps>(({ products, settings, s
         <h2 id="home-bestsellers-heading" class="home-section__title">
           {tStatic(locale, "home.bestSelling")}
         </h2>
-        <Link href={localePath(locale, "/products")} class="home-all-products-link">
+        <Link href={localePath(locale, "/products")} class="home-all-products-link" prefetch={false}>
           {tStatic(locale, "home.viewMore")}
         </Link>
       </div>

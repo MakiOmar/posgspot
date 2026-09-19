@@ -7,6 +7,7 @@ use App\Services\Storefront\Payment\PaymentGatewayManager;
 use App\Services\Storefront\Payment\PaymentResult;
 use App\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Confirms hosted-checkout return payloads after the customer is redirected back.
@@ -51,6 +52,13 @@ class PaymentReturnController extends StorefrontController
             return $this->jsonError('Order not found.', 404);
         }
 
+        $accessToken = $this->resolveAccessToken($payload);
+        try {
+            $this->checkoutService->assertOrderAccess($transaction, $accessToken);
+        } catch (ValidationException $e) {
+            return $this->jsonError('Invalid order access token.', 403, $e->errors());
+        }
+
         $config = $driver->configForTransaction($transaction, $config);
 
         if (! $driver->verifyReturnPayload($payload, $config)) {
@@ -66,10 +74,11 @@ class PaymentReturnController extends StorefrontController
             }
         }
 
+        // Public return must not expose invoice print URLs — use account / track-order.
         return $this->jsonSuccess([
             'payment_status' => $result->status,
             'message' => $result->message,
-            'order' => $this->checkoutService->formatOrderResponse($transaction->fresh()),
+            'order' => $this->checkoutService->formatOrderResponse($transaction->fresh(), false),
             'provider_ref_number' => $result->providerRefNumber,
             'reference_number' => $result->referenceNumber,
             'fawry_ref_number' => $result->fawryRefNumber,
@@ -83,6 +92,7 @@ class PaymentReturnController extends StorefrontController
         $businessId = $this->businessId($request);
         $data = $request->validate([
             'storefront_order_id' => 'required|string|max:191',
+            'order_access_token' => 'required|string|max:128',
             'locale' => 'nullable|in:en,ar',
         ]);
 
@@ -99,26 +109,47 @@ class PaymentReturnController extends StorefrontController
             return $this->jsonError('Order not found.', 404);
         }
 
+        try {
+            $this->checkoutService->assertOrderAccess($transaction, $data['order_access_token']);
+        } catch (ValidationException $e) {
+            return $this->jsonError('Invalid order access token.', 403, $e->errors());
+        }
+
         if (strtolower(trim((string) $transaction->payment_status)) === 'paid') {
             return $this->jsonSuccess([
                 'already_paid' => true,
-                'order' => $this->checkoutService->formatOrderResponse($transaction),
+                'order' => $this->checkoutService->formatOrderResponse($transaction, false),
             ]);
         }
 
         $driver = $this->gateways->driver($provider);
         $locale = $data['locale'] ?? 'en';
-        $returnUrl = $this->buildReturnUrl($locale, $data['storefront_order_id']);
+        $returnUrl = $this->buildReturnUrl($locale, $data['storefront_order_id'], $data['order_access_token']);
         $session = $driver->buildChargeSession($transaction, $config, $returnUrl, $locale);
 
         return $this->jsonSuccess($session);
     }
 
-    private function buildReturnUrl(string $locale, string $storefrontOrderId): string
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveAccessToken(array $payload): ?string
+    {
+        foreach (['order_access_token', 'access'] as $key) {
+            if (! empty($payload[$key]) && is_string($payload[$key])) {
+                return $payload[$key];
+            }
+        }
+
+        return null;
+    }
+
+    private function buildReturnUrl(string $locale, string $storefrontOrderId, string $orderAccessToken): string
     {
         $base = rtrim((string) config('storefront.url'), '/');
         $lang = $locale === 'ar' ? 'ar' : 'en';
 
-        return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
+        return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId)
+            .'&access='.urlencode($orderAccessToken);
     }
 }

@@ -82,7 +82,7 @@ export const CategoryShelf = component$<CategoryShelfProps>(({ shelf, products, 
             {viewMoreLabel}
           </a>
         ) : (
-          <Link href={viewMoreHref} class="home-all-products-link">
+          <Link href={viewMoreHref} class="home-all-products-link" prefetch={false}>
             {viewMoreLabel}
           </Link>
         )}
@@ -93,7 +93,7 @@ export const CategoryShelf = component$<CategoryShelfProps>(({ shelf, products, 
             {bannerInner}
           </a>
         ) : (
-          <Link href={bannerHref} class="home-category-shelf__banner">
+          <Link href={bannerHref} class="home-category-shelf__banner" prefetch={false}>
             {bannerInner}
           </Link>
         )}

@@ -1,10 +1,32 @@
 import type { StoreLocaleCode } from "./config";
 import en from "../../i18n/en.json";
-import ar from "../../i18n/ar.json";
 
 type MessageTree = Record<string, unknown>;
 
-const BUNDLES: Record<StoreLocaleCode, MessageTree> = { en, ar };
+/** EN is always available for SSR fallback; AR loads on demand. */
+const BUNDLES: Partial<Record<StoreLocaleCode, MessageTree>> = { en };
+let arLoad: Promise<MessageTree> | null = null;
+
+/**
+ * Ensure locale message tree is loaded (call from layout loaders / visible tasks).
+ * Keeps AR JSON out of the default EN client graph until needed.
+ */
+export async function ensureLocaleMessages(locale: StoreLocaleCode): Promise<void> {
+  if (locale !== "ar") {
+    return;
+  }
+  if (BUNDLES.ar) {
+    return;
+  }
+  if (!arLoad) {
+    arLoad = import("../../i18n/ar.json").then((m) => {
+      const tree = (m as { default: MessageTree }).default;
+      BUNDLES.ar = tree;
+      return tree;
+    });
+  }
+  await arLoad;
+}
 
 function resolvePath(tree: MessageTree, key: string): string | undefined {
   const parts = key.split(".");
@@ -23,8 +45,8 @@ export function translate(
   key: string,
   params?: Record<string, string | number>,
 ): string {
-  const bundle = BUNDLES[locale] ?? BUNDLES.en;
-  let text = resolvePath(bundle, key) ?? resolvePath(BUNDLES.en, key) ?? key;
+  const bundle = BUNDLES[locale] ?? BUNDLES.en!;
+  let text = resolvePath(bundle, key) ?? resolvePath(BUNDLES.en!, key) ?? key;
 
   if (params) {
     for (const [name, value] of Object.entries(params)) {
@@ -36,5 +58,5 @@ export function translate(
 }
 
 export function messagesFor(locale: StoreLocaleCode): MessageTree {
-  return BUNDLES[locale] ?? BUNDLES.en;
+  return BUNDLES[locale] ?? BUNDLES.en!;
 }

@@ -25,10 +25,6 @@ import {
   saveAuthSession,
 } from "../lib/auth-storage";
 import {
-  loadPendingPayment,
-  pendingAuthSession,
-} from "../lib/pending-payment";
-import {
   authenticateBiometric,
   deviceHasBiometrics,
   isBiometricUnlockEnabled,
@@ -143,12 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const storedSecure = await loadAuthSession();
-        const pending = await loadPendingPayment();
-        const stored = storedSecure ?? pendingAuthSession(pending);
-        // Re-seed SecureStore after remount if we only had the pending snapshot.
-        if (!storedSecure && stored) {
-          await saveAuthSession(stored).catch(() => undefined);
-        }
+        const stored = storedSecure;
         const bioOn = await isBiometricUnlockEnabled();
         const hardware = await deviceHasBiometrics();
         if (!cancelled) {
@@ -156,10 +147,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setPasskeyHardware(hardware);
           setPasskeyCanUnlock(!!stored && bioOn);
         }
-        // Mid-checkout remount: restore the Sanctum session even when passkey
-        // lock is on, so payment resume does not look like a forced logout.
-        const resumePayment = !!pending;
-        if (stored && (!bioOn || resumePayment) && !cancelled) {
+        // Never skip biometric unlock for pending payment — session stays in SecureStore only.
+        if (stored && !bioOn && !cancelled) {
           setSession(stored);
           try {
             const { data } = await fetchProfile(stored.token);
@@ -178,7 +167,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
             }
           }
+        } else if (stored && bioOn && !cancelled) {
+          setPasskeyCanUnlock(true);
         }
+
         // Don't abandon a slow settings response — mobile → POS can exceed the
         // race window; apply flags when the request eventually finishes.
         const settingsPromise = fetchSettings(locale);

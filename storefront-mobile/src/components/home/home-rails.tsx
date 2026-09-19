@@ -1,4 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { absoluteMediaUrl } from "../../lib/storefront-href";
 import type { Brand, Category, ProductSummary } from "../../lib/types";
@@ -17,17 +24,22 @@ export function ProductRail({
   return (
     <View style={styles.sectionBlock}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <ScrollView
+      <FlatList
         horizontal
+        data={products}
+        keyExtractor={(item) => String(item.id)}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.rail}
-      >
-        {products.map((item) => (
-          <View key={String(item.id)} style={styles.railCard}>
+        initialNumToRender={4}
+        maxToRenderPerBatch={4}
+        windowSize={5}
+        removeClippedSubviews
+        renderItem={({ item }) => (
+          <View style={styles.railCard}>
             <ProductCard product={item} wide />
           </View>
-        ))}
-      </ScrollView>
+        )}
+      />
     </View>
   );
 }

@@ -20,8 +20,11 @@ class SettingsApiService
     ) {
     }
 
-    public function getPublicSettings(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
-    {
+    public function getPublicSettings(
+        int $businessId,
+        string $locale = StorefrontLocale::DEFAULT,
+        bool $shell = false
+    ): array {
         $business = $this->businessUtil->getDetails($businessId);
         $settings = $this->storefrontSettings->get($businessId);
 
@@ -86,8 +89,9 @@ class SettingsApiService
                 'allow_stacking' => (bool) ($settings['promo_codes']['allow_stacking'] ?? false),
             ],
             'payment_icons' => $this->paymentIconsPayload($settings),
+            // Shell loaders omit About team photos (page-local full GET /settings loads them).
             'about' => [
-                'team' => $this->aboutTeamPayload($settings, $locale),
+                'team' => $shell ? [] : $this->aboutTeamPayload($settings, $locale),
             ],
             'footer' => $this->footerPayload($settings, $locale),
             'shop_menu' => $this->shopMenuPayload($businessId, $settings, $locale),

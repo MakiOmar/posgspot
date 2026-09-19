@@ -58,7 +58,7 @@ class SellToUsController extends StorefrontController
             'transaction_id' => 'nullable|integer|min:1',
             'details' => 'nullable',
             'photos' => 'nullable|array|max:'.$this->sellToUs->maxPhotos(),
-            'photos.*' => 'file|image|max:'.$this->sellToUs->maxPhotoKb(),
+            'photos.*' => 'file|image|mimes:jpeg,jpg,png,webp|max:'.$this->sellToUs->maxPhotoKb(),
         ]);
 
         // Multipart often sends purchased_from_us as "1"/"0"/"true".

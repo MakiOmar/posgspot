@@ -127,6 +127,7 @@ export const CommunityPostListPage = component$<Props>((props) => {
                     <Link
                       href={localePath(locale, `${props.detailBase}/${post.slug}`)}
                       class="community-post-card__cover"
+                      prefetch={false}
                     >
                       <img src={post.cover_url} alt="" width={640} height={360} loading="lazy" />
                     </Link>
@@ -148,7 +149,10 @@ export const CommunityPostListPage = component$<Props>((props) => {
                       <p class="community-post-card__meta">{post.location.name}</p>
                     ) : null}
                     <h2>
-                      <Link href={localePath(locale, `${props.detailBase}/${post.slug}`)}>
+                      <Link
+                        href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                        prefetch={false}
+                      >
                         {post.title}
                       </Link>
                     </h2>
@@ -161,6 +165,7 @@ export const CommunityPostListPage = component$<Props>((props) => {
                     <Link
                       class="link-accent"
                       href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                      prefetch={false}
                     >
                       {tStatic(locale, "community.readMore")}
                     </Link>

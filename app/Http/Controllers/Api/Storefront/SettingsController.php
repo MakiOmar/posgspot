@@ -15,7 +15,10 @@ class SettingsController extends StorefrontController
     public function show(Request $request)
     {
         $locale = StorefrontLocale::fromRequest($request);
+        $shell = $request->boolean('shell');
 
-        return $this->jsonSuccess($this->settings->getPublicSettings($this->businessId($request), $locale));
+        return $this->jsonSuccessPublicCache(
+            $this->settings->getPublicSettings($this->businessId($request), $locale, $shell)
+        );
     }
 }

@@ -401,6 +401,7 @@ export default function CheckoutScreen() {
           params: {
             orderId: String(order.data.id),
             storefrontOrderId: order.data.storefront_order_id,
+            orderAccessToken: order.data.order_access_token ?? "",
           },
         });
         await clear();

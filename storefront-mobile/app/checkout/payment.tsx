@@ -18,6 +18,7 @@ import {
 } from "../../src/lib/geidea";
 import {
   clearPendingPayment,
+  loadPendingPayment,
   savePendingPayment,
 } from "../../src/lib/pending-payment";
 import { useApp } from "../../src/contexts/AppContext";
@@ -34,10 +35,11 @@ import type {
 } from "../../src/lib/types";
 
 export default function PaymentScreen() {
-  const { storefrontOrderId, orderId, resume } = useLocalSearchParams<{
+  const { storefrontOrderId, orderId, resume, orderAccessToken: accessParam } = useLocalSearchParams<{
     storefrontOrderId: string;
     orderId: string;
     resume?: string;
+    orderAccessToken?: string;
   }>();
   const { t, locale, token, contact, settings } = useApp();
   const router = useRouter();
@@ -47,6 +49,9 @@ export default function PaymentScreen() {
   const [busy, setBusy] = useState(false);
   const [hostedHtml, setHostedHtml] = useState<string | null>(null);
   const [awaitingContinue, setAwaitingContinue] = useState(false);
+  const [orderAccessToken, setOrderAccessToken] = useState<string>(
+    typeof accessParam === "string" ? accessParam : "",
+  );
   const resumeHandled = useRef(false);
 
   const finishPaid = useCallback(async () => {
@@ -67,12 +72,20 @@ export default function PaymentScreen() {
   const confirmReturn = useCallback(
     async (payload: Record<string, unknown>) => {
       try {
-        await confirmPaymentReturn(provider, payload, token);
+        await confirmPaymentReturn(
+          provider,
+          {
+            ...payload,
+            order_access_token: orderAccessToken,
+            access: orderAccessToken,
+          },
+          token,
+        );
       } catch {
         // Webhook may already have confirmed.
       }
     },
-    [provider, token],
+    [orderAccessToken, provider, token],
   );
 
   const markPending = useCallback(async () => {
@@ -83,15 +96,17 @@ export default function PaymentScreen() {
       storefrontOrderId,
       orderId: String(orderId),
       provider,
-      ...(token && contact
-        ? { authToken: token, authContact: contact }
-        : {}),
+      ...(orderAccessToken ? { orderAccessToken } : {}),
     });
-  }, [contact, orderId, provider, storefrontOrderId, token]);
+  }, [orderAccessToken, orderId, provider, storefrontOrderId]);
 
   const launch = useCallback(async () => {
     if (!storefrontOrderId) {
       setError("Missing order");
+      return;
+    }
+    if (!orderAccessToken) {
+      setError(t("payment.loadFailed"));
       return;
     }
     setBusy(true);
@@ -105,6 +120,7 @@ export default function PaymentScreen() {
         storefrontOrderId,
         locale,
         token,
+        orderAccessToken,
       );
       if ("already_paid" in data && data.already_paid) {
         await finishPaid();
@@ -183,6 +199,7 @@ export default function PaymentScreen() {
     finishPaid,
     locale,
     markPending,
+    orderAccessToken,
     provider,
     storefrontOrderId,
     t,
@@ -195,6 +212,19 @@ export default function PaymentScreen() {
       setError("Missing order");
       return;
     }
+    let access = orderAccessToken;
+    if (!access) {
+      const pending = await loadPendingPayment();
+      access = pending?.orderAccessToken ?? "";
+      if (access) {
+        setOrderAccessToken(access);
+      }
+    }
+    if (!access) {
+      setError(t("payment.loadFailed"));
+      setAwaitingContinue(true);
+      return;
+    }
     setBusy(true);
     setError(null);
     setStatus(t("payment.checking"));
@@ -205,6 +235,7 @@ export default function PaymentScreen() {
         storefrontOrderId,
         locale,
         token,
+        access,
       );
       if ("already_paid" in data && data.already_paid) {
         await finishPaid();
@@ -221,6 +252,7 @@ export default function PaymentScreen() {
         storefrontOrderId,
         locale,
         token,
+        access,
       );
       if ("already_paid" in again.data && again.data.already_paid) {
         await finishPaid();
@@ -239,6 +271,7 @@ export default function PaymentScreen() {
     finishPaid,
     locale,
     markPending,
+    orderAccessToken,
     provider,
     storefrontOrderId,
     t,
@@ -284,13 +317,25 @@ export default function PaymentScreen() {
     return (
       <Screen padded={false} avoidKeyboard={false}>
         <WebView
-          originWhitelist={["*"]}
+          originWhitelist={["https://*.geidea.net", "https://www.merchant.geidea.net", "https://merchant.geidea.net"]}
           source={{ html: hostedHtml, baseUrl: "https://www.merchant.geidea.net" }}
           javaScriptEnabled
+          setSupportMultipleWindows={false}
+          onShouldStartLoadWithRequest={(req) => {
+            const url = req.url || "";
+            if (url === "about:blank" || url.startsWith("data:")) {
+              return true;
+            }
+            try {
+              const host = new URL(url).hostname.toLowerCase();
+              return host === "geidea.net" || host.endsWith(".geidea.net");
+            } catch {
+              return false;
+            }
+          }}
           onMessage={(event) => {
             void onHostedMessage(event.nativeEvent.data);
           }}
-          setSupportMultipleWindows={false}
           startInLoadingState
           renderLoading={() => (
             <View style={styles.overlay}>

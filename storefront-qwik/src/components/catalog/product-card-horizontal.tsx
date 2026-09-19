@@ -17,7 +17,7 @@ export const ProductCardHorizontal = component$<ProductCardHorizontalProps>(({ p
 
   return (
     <article class="product-card-h">
-      <Link href={pdpUrl} class="product-card-h__media">
+      <Link href={pdpUrl} class="product-card-h__media" prefetch={false}>
         {product.image_url ? (
           <img
             class="product-card-h__image"
@@ -32,7 +32,7 @@ export const ProductCardHorizontal = component$<ProductCardHorizontalProps>(({ p
         )}
       </Link>
       <div class="product-card-h__body">
-        <Link href={pdpUrl} class="product-card-h__title-link">
+        <Link href={pdpUrl} class="product-card-h__title-link" prefetch={false}>
           <h3 class="product-card-h__name">{product.name}</h3>
         </Link>
         <div class="product-card-h__rating">

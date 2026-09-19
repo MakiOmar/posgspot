@@ -16,7 +16,9 @@ class CategoryController extends StorefrontController
     {
         $locale = StorefrontLocale::fromRequest($request);
 
-        return $this->jsonSuccess($this->catalog->getCategories($this->businessId($request), $locale));
+        return $this->jsonSuccessPublicCache(
+            $this->catalog->getCategories($this->businessId($request), $locale)
+        );
     }
 
     public function homepageShelves(Request $request)

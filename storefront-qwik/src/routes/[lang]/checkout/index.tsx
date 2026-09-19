@@ -22,7 +22,7 @@ import { EGYPT_GEO_STATES } from "~/lib/geo-eg-states";
 import { useAuth } from "~/lib/auth-context";
 import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponCodesKey, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, sameCouponCodes, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
-import { storePaymentSession } from "~/lib/payment-session";
+import { storePaymentSession, storeOrderAccessToken } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -601,8 +601,17 @@ export default component$(() => {
 
         if (resolvedPayment !== "cod" && data.payment) {
           storePaymentSession(data.payment);
+          if (data.order_access_token) {
+            storeOrderAccessToken(data.storefront_order_id, data.order_access_token);
+          }
+          const accessQs = data.order_access_token
+            ? `&access=${encodeURIComponent(data.order_access_token)}`
+            : "";
           await nav(
-            localePath(locale, `/checkout/payment/?order=${encodeURIComponent(data.storefront_order_id)}`),
+            localePath(
+              locale,
+              `/checkout/payment/?order=${encodeURIComponent(data.storefront_order_id)}${accessQs}`,
+            ),
           );
           return;
         }

@@ -26,6 +26,7 @@ class CheckoutService
         private RewardPointsService $rewardPointsService,
         private CouponService $couponService,
         private PaymentGatewayManager $paymentGateways,
+        private DigitalCatalogService $digitalCatalog,
     ) {
     }
 
@@ -47,7 +48,11 @@ class CheckoutService
             ->first();
 
         if ($existing) {
-            return $this->appendPaymentSession($businessId, $existing, $payload);
+            $this->assertOrderAccess($existing, isset($payload['order_access_token']) ? (string) $payload['order_access_token'] : null);
+            $response = $this->appendPaymentSession($businessId, $existing, $payload);
+            $response['order_access_token'] = (string) $payload['order_access_token'];
+
+            return $response;
         }
 
         $locationIds = $this->storefrontSettings->getSellingLocationIds($businessId);
@@ -84,7 +89,7 @@ class CheckoutService
         $checkoutItems = is_array($validated['items'] ?? null) && $validated['items'] !== []
             ? $validated['items']
             : ($payload['items'] ?? []);
-        $validated = $this->forceDigitalPricesOnValidated($validated, $checkoutItems);
+        $validated = $this->forceDigitalPricesOnValidated($businessId, $validated, $checkoutItems);
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod', $settings);
 
@@ -276,8 +281,13 @@ class CheckoutService
             DB::commit();
 
             $transaction = $transaction->fresh(['sell_lines', 'contact']);
+            $accessToken = $this->issueOrderAccessToken($transaction);
+            $response = $this->appendPaymentSession($businessId, $transaction, array_merge($payload, [
+                'order_access_token' => $accessToken,
+            ]));
+            $response['order_access_token'] = $accessToken;
 
-            return $this->appendPaymentSession($businessId, $transaction, $payload);
+            return $response;
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
@@ -332,15 +342,17 @@ class CheckoutService
         ]));
     }
 
-    public function formatOrderResponse(Transaction $transaction): array
+    public function formatOrderResponse(Transaction $transaction, bool $includeInvoice = false): array
     {
-        $paymentStatus = (string) ($transaction->payment_status ?? '');
         $invoiceUrl = null;
-        if (strtolower(trim($paymentStatus)) === 'paid') {
-            try {
-                $invoiceUrl = $this->invoicePrintUrl((int) $transaction->business_id, $transaction);
-            } catch (\Throwable $e) {
-                $invoiceUrl = null;
+        if ($includeInvoice) {
+            $paymentStatus = (string) ($transaction->payment_status ?? '');
+            if (strtolower(trim($paymentStatus)) === 'paid') {
+                try {
+                    $invoiceUrl = $this->invoicePrintUrl((int) $transaction->business_id, $transaction);
+                } catch (\Throwable $e) {
+                    $invoiceUrl = null;
+                }
             }
         }
 
@@ -356,6 +368,52 @@ class CheckoutService
             'shipping_status' => $transaction->shipping_status,
             'invoice_print_url' => $invoiceUrl,
         ];
+    }
+
+    /**
+     * Issue a one-time-readable order access token (plaintext returned once; hash stored).
+     */
+    public function issueOrderAccessToken(Transaction $transaction): string
+    {
+        $plain = bin2hex(random_bytes(32));
+        $meta = $this->paymentMetaArray($transaction);
+        $meta['order_access_token_hash'] = hash('sha256', $plain);
+        $transaction->storefront_payment_meta = $meta;
+        $transaction->save();
+
+        return $plain;
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function assertOrderAccess(Transaction $transaction, ?string $plainToken): void
+    {
+        $meta = $this->paymentMetaArray($transaction);
+        $hash = $meta['order_access_token_hash'] ?? null;
+        if (! is_string($hash) || $hash === '') {
+            throw ValidationException::withMessages([
+                'order_access_token' => ['Order access token is required.'],
+            ]);
+        }
+        if (! is_string($plainToken) || $plainToken === '' || ! hash_equals($hash, hash('sha256', $plainToken))) {
+            throw ValidationException::withMessages([
+                'order_access_token' => ['Invalid order access token.'],
+            ]);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function paymentMetaArray(Transaction $transaction): array
+    {
+        $meta = $transaction->storefront_payment_meta ?? [];
+        if (is_string($meta)) {
+            $meta = json_decode($meta, true);
+        }
+
+        return is_array($meta) ? $meta : [];
     }
 
     /**
@@ -426,7 +484,7 @@ class CheckoutService
             ->paginate($perPage, ['*'], 'page', $page);
 
         $items = $paginator->getCollection()
-            ->map(fn ($t) => $this->formatOrderResponse($t))
+            ->map(fn ($t) => $this->formatOrderResponse($t, true))
             ->values()
             ->all();
 
@@ -679,7 +737,7 @@ class CheckoutService
 
     private function appendPaymentSession(int $businessId, Transaction $transaction, array $payload): array
     {
-        $response = $this->formatOrderResponse($transaction);
+        $response = $this->formatOrderResponse($transaction, false);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod', $this->storefrontSettings->get($businessId));
 
         $drivers = array_keys(config('storefront-payments.drivers') ?? []);
@@ -694,18 +752,23 @@ class CheckoutService
         $config = $this->paymentGateways->gatewayConfig($businessId);
         $driver = $this->paymentGateways->driver($paymentMethod);
         $locale = in_array($payload['locale'] ?? 'en', ['en', 'ar'], true) ? $payload['locale'] : 'en';
-        $returnUrl = $this->buildPaymentReturnUrl($locale, (string) $transaction->storefront_order_id);
+        $access = isset($payload['order_access_token']) ? (string) $payload['order_access_token'] : '';
+        $returnUrl = $this->buildPaymentReturnUrl($locale, (string) $transaction->storefront_order_id, $access);
         $response['payment'] = $driver->buildChargeSession($transaction, $config, $returnUrl, $locale);
 
         return $response;
     }
 
-    private function buildPaymentReturnUrl(string $locale, string $storefrontOrderId): string
+    private function buildPaymentReturnUrl(string $locale, string $storefrontOrderId, string $orderAccessToken = ''): string
     {
         $base = rtrim((string) config('storefront.url'), '/');
         $lang = $locale === 'ar' ? 'ar' : 'en';
+        $url = $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
+        if ($orderAccessToken !== '') {
+            $url .= '&access='.urlencode($orderAccessToken);
+        }
 
-        return $base.'/'.$lang.'/checkout/payment/return/?order='.urlencode($storefrontOrderId);
+        return $url;
     }
 
     /**
@@ -716,7 +779,7 @@ class CheckoutService
      * @param  list<array<string, mixed>>  $items
      * @return array<string, mixed>
      */
-    private function forceDigitalPricesOnValidated(array $validated, array $items): array
+    private function forceDigitalPricesOnValidated(int $businessId, array $validated, array $items): array
     {
         $hasDigital = false;
         $subtotal = 0.0;
@@ -728,11 +791,18 @@ class CheckoutService
 
             if ($digital && ! empty($digital['kind'])) {
                 $hasDigital = true;
+                // Prefer prices already set by CartValidationService (catalog), then live catalog lookup.
                 $price = null;
-                foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null, $product['unit_price_inc_tax'] ?? null] as $candidate) {
+                foreach ([$product['unit_price_inc_tax'] ?? null, $product['unit_price'] ?? null] as $candidate) {
                     if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
                         $price = (float) $candidate;
                         break;
+                    }
+                }
+                if ($price === null) {
+                    $catalogPrice = $this->digitalCatalog->resolveOfferPrice($businessId, $digital);
+                    if ($catalogPrice !== null && $catalogPrice > 0) {
+                        $price = $catalogPrice;
                     }
                 }
                 if ($price === null) {
@@ -816,15 +886,8 @@ class CheckoutService
                 continue;
             }
             $hasDigital = true;
+            // Only trust server-validated product payload prices (never client digital.price).
             $price = (float) ($product['unit_price_inc_tax'] ?? $product['unit_price'] ?? 0);
-            if ($price <= 0) {
-                foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
-                    if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
-                        $price = (float) $candidate;
-                        break;
-                    }
-                }
-            }
             if ($price <= 0) {
                 continue;
             }

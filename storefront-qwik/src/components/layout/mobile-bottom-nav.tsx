@@ -59,6 +59,7 @@ export const MobileBottomNav = component$(() => {
         href={localePath(locale, "/")}
         class={`mobile-bottom-nav__item${homeActive ? " mobile-bottom-nav__item--active" : ""}`}
         aria-current={homeActive ? "page" : undefined}
+        prefetch={false}
       >
         <span class="mobile-bottom-nav__icon">
           <HomeIcon size={22} />
@@ -83,6 +84,7 @@ export const MobileBottomNav = component$(() => {
         href={localePath(locale, "/cart")}
         class={`mobile-bottom-nav__item${cartActive ? " mobile-bottom-nav__item--active" : ""}`}
         aria-current={cartActive ? "page" : undefined}
+        prefetch={false}
       >
         <span class="mobile-bottom-nav__icon">
           <CartIcon size={22} />
@@ -97,6 +99,7 @@ export const MobileBottomNav = component$(() => {
         href={localePath(locale, "/wishlist")}
         class={`mobile-bottom-nav__item${wishlistActive ? " mobile-bottom-nav__item--active" : ""}`}
         aria-current={wishlistActive ? "page" : undefined}
+        prefetch={false}
       >
         <span class="mobile-bottom-nav__icon">
           <HeartIcon size={22} />
@@ -111,6 +114,7 @@ export const MobileBottomNav = component$(() => {
         href={localePath(locale, signedIn ? "/account" : "/login")}
         class={`mobile-bottom-nav__item${profileActive ? " mobile-bottom-nav__item--active" : ""}`}
         aria-current={profileActive ? "page" : undefined}
+        prefetch={false}
       >
         <span class="mobile-bottom-nav__icon">
           {signedIn && auth.contact?.avatar_url ? (

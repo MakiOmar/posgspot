@@ -29,6 +29,9 @@ export function PaymentResumeGate() {
           storefrontOrderId: pending.storefrontOrderId,
           orderId: pending.orderId,
           resume: "1",
+          ...(pending.orderAccessToken
+            ? { orderAccessToken: pending.orderAccessToken }
+            : {}),
         },
       });
     })();

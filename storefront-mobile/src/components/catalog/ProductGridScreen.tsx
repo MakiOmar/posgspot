@@ -90,6 +90,10 @@ export function ProductGridScreen({
           renderItem={({ item }) => <ProductCard product={item} />}
           onEndReached={list.loadMore}
           onEndReachedThreshold={0.4}
+          initialNumToRender={6}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          removeClippedSubviews
           ListEmptyComponent={
             list.loading ? null : (
               <Text style={styles.empty}>{t("common.empty")}</Text>

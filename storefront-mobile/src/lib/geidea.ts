@@ -87,8 +87,27 @@ export function mapGeideaNativeLanguage(locale: string | undefined): GeideaNativ
  * Hosted HPP HTML. Script must load without async/defer (vendor requirement).
  * Posts { type: completed|canceled|failed } to React Native via postMessage.
  */
+const GEIDEA_SDK_HOST_RE =
+  /^https:\/\/([a-z0-9-]+\.)*(geidea\.net|merchant\.geidea\.net)(:\d+)?(\/|$)/i;
+
+export function isAllowedGeideaSdkUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "https:") {
+      return false;
+    }
+    return GEIDEA_SDK_HOST_RE.test(parsed.href);
+  } catch {
+    return false;
+  }
+}
+
 export function buildGeideaHostedHtml(session: GeideaPaymentSession): string {
-  const sdkUrl = JSON.stringify(session.sdk_url || "");
+  const rawSdk = String(session.sdk_url || "");
+  if (!isAllowedGeideaSdkUrl(rawSdk)) {
+    throw new Error("Geidea SDK URL is not allowlisted.");
+  }
+  const sdkUrl = JSON.stringify(rawSdk);
   const sessionId = JSON.stringify(session.session_id || "");
   const containerId = JSON.stringify(session.container_id || "geidea-dropin-container");
   const dropin = session.ui_mode === "dropin";

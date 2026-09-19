@@ -29,18 +29,28 @@ class CommunityPostController extends StorefrontController
             'type' => ['nullable', 'string', Rule::in(StorefrontCommunityPost::TYPES)],
             'scope' => ['nullable', 'string', Rule::in(['upcoming', 'previous'])],
             'q' => ['nullable', 'string', 'max:191'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $locale = $this->community->localeFromRequest($request);
+        $limit = (int) ($validated['limit'] ?? 48);
+        $page = (int) ($validated['page'] ?? 1);
         $items = $this->community->list(
             $this->businessId($request),
             $locale,
             $validated['type'] ?? null,
             $validated['scope'] ?? null,
-            $validated['q'] ?? null
+            $validated['q'] ?? null,
+            $limit,
+            $page
         );
 
-        return $this->jsonSuccess($items);
+        return $this->jsonSuccess($items, [
+            'page' => $page,
+            'limit' => max(1, min(100, $limit)),
+            'count' => count($items),
+        ]);
     }
 
     public function show(Request $request, string $slug)

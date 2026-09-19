@@ -136,7 +136,8 @@
         {
           "faceIDPermission": "Allow Games Spot to use Face ID to unlock your account."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

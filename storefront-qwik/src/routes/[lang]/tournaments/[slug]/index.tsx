@@ -30,16 +30,18 @@ export const useTournamentPost = routeLoader$(async ({ params, redirect, resolve
   }
 
   let phoneCountries: PhoneCountry[] = [];
-  try {
-    const { data } = await fetchPhoneCountries();
-    phoneCountries = data;
-  } catch {
-    phoneCountries = [];
-  }
-
   const loaded = await loadCommunityDetailPage(locale, params.slug || "", "tournament");
   if (loaded.wrongType) {
     throw redirect(302, localePath(locale, "/tournaments"));
+  }
+  // Phone countries only needed for internal registration forms.
+  if (loaded.post?.registration_mode === "internal") {
+    try {
+      const { data } = await fetchPhoneCountries();
+      phoneCountries = data;
+    } catch {
+      phoneCountries = [];
+    }
   }
   const { wrongType: _w, ...page } = loaded;
   return { ...page, phoneCountries };

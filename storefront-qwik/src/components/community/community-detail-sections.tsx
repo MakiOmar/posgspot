@@ -82,7 +82,14 @@ export const CommunityCoverImage = component$<CoverProps>((props) => {
           lightboxIndex.value = 0;
         }}
       >
-        <img src={props.src} alt={props.alt || ""} width={1200} height={675} />
+        <img
+          src={props.src}
+          alt={props.alt || ""}
+          width={1200}
+          height={675}
+          loading="eager"
+          fetchPriority="high"
+        />
       </button>
       <ImageLightbox images={images} index={lightboxIndex} />
     </div>
@@ -112,13 +119,17 @@ export const CommunityRelatedPosts = component$<RelatedProps>((props) => {
               <Link
                 href={localePath(locale, `${props.detailBase}/${post.slug}`)}
                 class="community-post-card__cover"
+                prefetch={false}
               >
                 <img src={post.cover_url} alt="" width={640} height={360} loading="lazy" />
               </Link>
             ) : null}
             <div class="community-post-card__body">
               <h3>
-                <Link href={localePath(locale, `${props.detailBase}/${post.slug}`)}>
+                <Link
+                  href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                  prefetch={false}
+                >
                   {post.title}
                 </Link>
               </h3>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,7 +18,6 @@ import {
   PrimaryButton,
   Screen,
 } from "../../../src/components/ui";
-import { openInvoice } from "../../../src/lib/invoice";
 import { toast } from "../../../src/lib/toast";
 
 function isPaidOrder(paymentStatus: string | undefined): boolean {
@@ -46,14 +44,14 @@ export default function OrderDetailScreen() {
   const [invoiceUrl, setInvoiceUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reordering, setReordering] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const onlineEnabled =
     !!settings?.online_payments?.enabled && !!settings?.online_payments?.provider;
 
-  // Reduce screenshot risk while digital secrets are on screen (Android FLAG_SECURE).
+  // Reduce screenshot risk while digital secrets are on screen (iOS + Android).
   useEffect(() => {
-    if (Platform.OS !== "android") return;
     let active = true;
     void import("expo-screen-capture")
       .then((mod) => {
@@ -164,11 +162,40 @@ export default function OrderDetailScreen() {
         ) : null}
         {invoiceUrl ? (
           <PrimaryButton
-            label={t("account.invoice")}
+            label={
+              downloadingInvoice
+                ? t("common.loading")
+                : t("account.downloadInvoice")
+            }
+            disabled={downloadingInvoice}
             onPress={() => {
-              if (!openInvoice(router, invoiceUrl)) {
-                toast.error(t("account.invoiceUnavailable"));
-              }
+              void (async () => {
+                setDownloadingInvoice(true);
+                try {
+                  const { downloadInvoicePdf } = await import(
+                    "../../../src/lib/invoice"
+                  );
+                  const result = await downloadInvoicePdf(
+                    invoiceUrl,
+                    order.invoice_no ||
+                      order.storefront_order_id ||
+                      `order-${order.id}`,
+                  );
+                  if (result === "invalid") {
+                    toast.error(t("account.invoiceUnavailable"));
+                    return;
+                  }
+                  if (result === "unavailable") {
+                    toast.error(t("account.invoiceShareUnavailable"));
+                    return;
+                  }
+                  toast.success(t("account.invoiceDownloaded"));
+                } catch {
+                  toast.error(t("common.error"));
+                } finally {
+                  setDownloadingInvoice(false);
+                }
+              })();
             }}
           />
         ) : null}

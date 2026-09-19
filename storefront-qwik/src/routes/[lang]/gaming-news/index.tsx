@@ -19,18 +19,16 @@ export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolve
   }
 
   const q = url.searchParams.get("q") || "";
-  const sidebar = await loadCommunitySidebarLists(locale);
 
-  try {
-    const news = await fetchCommunityPosts({ type: "news", ...(q ? { q } : {}) }, locale);
-    return {
-      posts: news.data as CommunityPostSummary[],
-      ...sidebar,
-      unavailable: false,
-      query: q,
-    };
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
+  const [sidebar, newsResult] = await Promise.all([
+    loadCommunitySidebarLists(locale),
+    fetchCommunityPosts({ type: "news", ...(q ? { q } : {}) }, locale)
+      .then((res) => ({ ok: true as const, data: res.data as CommunityPostSummary[] }))
+      .catch((err: unknown) => ({ ok: false as const, err })),
+  ]);
+
+  if (!newsResult.ok) {
+    if (newsResult.err instanceof ApiError && newsResult.err.status === 404) {
       return {
         posts: [] as CommunityPostSummary[],
         ...sidebar,
@@ -38,8 +36,15 @@ export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolve
         query: q,
       };
     }
-    throw e;
+    throw newsResult.err;
   }
+
+  return {
+    posts: newsResult.data,
+    ...sidebar,
+    unavailable: false,
+    query: q,
+  };
 });
 
 export default component$(() => {

@@ -1,6 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,16 +8,15 @@ import {
   Text,
   View,
 } from "react-native";
-import { fetchAvailability } from "../../lib/api";
 import { productPath } from "../../lib/product-path";
 import { absoluteMediaUrl } from "../../lib/storefront-href";
 import { toast } from "../../lib/toast";
-import type { ProductAvailability, ProductSummary } from "../../lib/types";
+import type { ProductSummary } from "../../lib/types";
 import { useApp } from "../../contexts/AppContext";
+import { useAvailabilityModal } from "../../contexts/AvailabilityModalContext";
 import { useCart } from "../../contexts/CartContext";
 import { useWishlist } from "../../contexts/WishlistContext";
 import { RemoteImage } from "../RemoteImage";
-import { AvailabilityModal } from "./AvailabilityModal";
 import { StarRating } from "./StarRating";
 
 function productDisplayPrice(product: ProductSummary): number {
@@ -28,28 +27,23 @@ function productDisplayPrice(product: ProductSummary): number {
   return Number(product.price ?? product.price_inc_tax ?? 0);
 }
 
-/**
- * Catalog card parity with Qwik ProductCard: wishlist, cart / options / availability.
- */
-export function ProductCard({
-  product,
-  wide = false,
-}: {
+type ProductCardProps = {
   product: ProductSummary;
   wide?: boolean;
-}) {
-  const { accent, t, settings, locale } = useApp();
+};
+
+/**
+ * Catalog card parity with Qwik ProductCard: wishlist, cart / options / availability.
+ * Availability sheet is owned by AvailabilityModalProvider (one Modal for all cards).
+ */
+function ProductCardInner({ product, wide = false }: ProductCardProps) {
+  const { accent, t, settings } = useApp();
+  const { openAvailability } = useAvailabilityModal();
   const { addItem } = useCart();
   const { isInWishlist, toggle } = useWishlist();
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [wishBusy, setWishBusy] = useState(false);
-  const [availOpen, setAvailOpen] = useState(false);
-  const [availLoading, setAvailLoading] = useState(false);
-  const [availError, setAvailError] = useState<string | null>(null);
-  const [availability, setAvailability] = useState<ProductAvailability | null>(
-    null,
-  );
 
   const price = productDisplayPrice(product);
   const ratingAvg = Number(
@@ -118,28 +112,11 @@ export function ProductCard({
     }
   };
 
-  const onCheckAvailability = async () => {
+  const onCheckAvailability = () => {
     if (product.variation_id == null) {
       return;
     }
-    setAvailOpen(true);
-    setAvailLoading(true);
-    setAvailError(null);
-    setAvailability(null);
-    try {
-      const { data } = await fetchAvailability(
-        product.id,
-        product.variation_id,
-        locale,
-      );
-      setAvailability(data);
-    } catch (e) {
-      setAvailError(
-        e instanceof Error ? e.message : t("availability.loadError"),
-      );
-    } finally {
-      setAvailLoading(false);
-    }
+    openAvailability(product.id, product.variation_id);
   };
 
   return (
@@ -203,7 +180,7 @@ export function ProductCard({
           {showCardAvailability ? (
             <Pressable
               style={styles.secondaryBtn}
-              onPress={() => void onCheckAvailability()}
+              onPress={onCheckAvailability}
             >
               <Text style={styles.secondaryText}>
                 {t("catalog.checkAvailability")}
@@ -239,17 +216,11 @@ export function ProductCard({
           )}
         </View>
       ) : null}
-
-      <AvailabilityModal
-        open={availOpen}
-        loading={availLoading}
-        error={availError}
-        availability={availability}
-        onClose={() => setAvailOpen(false)}
-      />
     </View>
   );
 }
+
+export const ProductCard = memo(ProductCardInner);
 
 const styles = StyleSheet.create({
   card: {

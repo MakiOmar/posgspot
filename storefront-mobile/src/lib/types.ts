@@ -275,6 +275,7 @@ export interface CartApiItem {
 export interface CheckoutOrder {
   id: number;
   storefront_order_id: string;
+  order_access_token?: string;
   payment_status?: string;
   payment?: PaymentSession;
   [key: string]: unknown;

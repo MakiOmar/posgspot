@@ -5,6 +5,7 @@ import { startFawryCheckout } from "~/lib/fawry-pay";
 import { startGeideaCheckout, stopGeideaExpiryWatcher } from "~/lib/geidea-checkout";
 import {
   clearPaymentSession,
+  readOrderAccessToken,
   readPaymentSession,
   sessionMatchesOrder,
   storePaymentSession,
@@ -24,6 +25,7 @@ export default component$(() => {
   const launching = useSignal(false);
 
   const orderId = loc.url.searchParams.get("order") || "";
+  const accessFromUrl = loc.url.searchParams.get("access") || "";
   const provider = settings.value.online_payments.provider || "";
 
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -42,7 +44,17 @@ export default component$(() => {
       return;
     }
 
-    const returnPath = localePath(locale, `/checkout/payment/return/?order=${encodeURIComponent(orderId)}`);
+    const accessToken = accessFromUrl || readOrderAccessToken(orderId) || "";
+    if (!accessToken) {
+      error.value = tStatic(locale, "payment.loadFailed");
+      loading.value = false;
+      return;
+    }
+
+    const returnPath = localePath(
+      locale,
+      `/checkout/payment/return/?order=${encodeURIComponent(orderId)}&access=${encodeURIComponent(accessToken)}`,
+    );
 
     const launch = async (session: PaymentSession) => {
       loading.value = false;
@@ -63,7 +75,7 @@ export default component$(() => {
             clearPaymentSession();
             void (async () => {
               try {
-                const { data } = await fetchPaymentSession(provider, orderId, locale);
+                const { data } = await fetchPaymentSession(provider, orderId, locale, accessToken);
                 if ("already_paid" in data && data.already_paid) {
                   await nav(`${returnPath}&paid=1`);
                   return;
@@ -91,7 +103,7 @@ export default component$(() => {
     let session: PaymentSession | null = readPaymentSession();
     if (!sessionMatchesOrder(session, orderId) || session?.provider !== provider) {
       try {
-        const { data } = await fetchPaymentSession(provider, orderId, locale);
+        const { data } = await fetchPaymentSession(provider, orderId, locale, accessToken);
         if ("already_paid" in data && data.already_paid) {
           clearPaymentSession();
           await nav(`${returnPath}&paid=1`);

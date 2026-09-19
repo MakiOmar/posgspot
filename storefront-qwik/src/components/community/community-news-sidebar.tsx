@@ -164,7 +164,10 @@ const UpcomingList = component$<{
         <ul class="community-sidebar__list">
           {props.posts.slice(0, 5).map((post) => (
             <li key={post.id}>
-              <Link href={localePath(locale, `${props.detailBase}/${post.slug}`)}>
+              <Link
+                href={localePath(locale, `${props.detailBase}/${post.slug}`)}
+                prefetch={false}
+              >
                 {post.title}
               </Link>
               {post.starts_at ? (

@@ -536,6 +536,8 @@ export interface CartInspection {
 export interface CheckoutOrder {
   id: number;
   storefront_order_id: string;
+  /** Opaque claim required for payment session/return; not an invoice secret. */
+  order_access_token?: string;
   invoice_no: string;
   status: string;
   payment_status: string;

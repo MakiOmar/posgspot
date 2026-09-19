@@ -1,8 +1,6 @@
-import { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import { WebView } from "react-native-webview";
-import * as Print from "expo-print";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useApp } from "../../src/contexts/AppContext";
 import {
   ErrorBlock,
@@ -10,29 +8,64 @@ import {
   PrimaryButton,
   Screen,
 } from "../../src/components/ui";
-import { htmlForPrint, invoiceViewUrl } from "../../src/lib/invoice";
+import { downloadInvoicePdf, invoiceViewUrl } from "../../src/lib/invoice";
 import { toast } from "../../src/lib/toast";
 
-const HIDE_POS_PRINT_CHROME = `
-  (function () {
-    var style = document.createElement("style");
-    style.textContent = ".no-print,#print_invoice{display:none!important}";
-    document.head.appendChild(style);
-    true;
-  })();
-`;
-
 /**
- * In-app POS invoice: WebView preview + native print sheet.
+ * Invoice download screen — generates a PDF and opens the system share/save sheet.
+ * Kept as a route for deep links / older navigation; order screens call download directly.
  */
 export default function InvoiceScreen() {
   const { t } = useApp();
-  const params = useLocalSearchParams<{ url?: string | string[] }>();
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    url?: string | string[];
+    name?: string | string[];
+  }>();
   const raw = Array.isArray(params.url) ? params.url[0] : params.url;
+  const name = Array.isArray(params.name) ? params.name[0] : params.name;
   const viewUrl = useMemo(() => (raw ? invoiceViewUrl(raw) : null), [raw]);
-  const [loading, setLoading] = useState(true);
-  const [printing, setPrinting] = useState(false);
-  const [pageError, setPageError] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const started = useRef(false);
+
+  const runDownload = async () => {
+    if (!raw) {
+      setError(t("account.invoiceUnavailable"));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await downloadInvoicePdf(raw, name);
+      if (result === "invalid") {
+        setError(t("account.invoiceUnavailable"));
+        return;
+      }
+      if (result === "unavailable") {
+        toast.error(t("account.invoiceShareUnavailable"));
+        return;
+      }
+      toast.success(t("account.invoiceDownloaded"));
+      if (router.canGoBack()) {
+        router.back();
+      }
+    } catch {
+      setError(t("common.error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!viewUrl || started.current) {
+      return;
+    }
+    started.current = true;
+    void runDownload();
+    // Auto-start once when a valid invoice URL is present.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewUrl]);
 
   if (!viewUrl) {
     return (
@@ -43,79 +76,25 @@ export default function InvoiceScreen() {
   }
 
   return (
-    <Screen padded={false} avoidKeyboard={false}>
-      <View style={styles.webWrap}>
-        {pageError ? (
-          <ErrorBlock
-            message={t("account.invoiceUnavailable")}
-            onRetry={() => {
-              setPageError(false);
-              setLoading(true);
-            }}
+    <Screen>
+      {error ? (
+        <ErrorBlock message={error} onRetry={() => void runDownload()} />
+      ) : busy ? (
+        <LoadingBlock />
+      ) : (
+        <View style={styles.box}>
+          <Text style={styles.hint}>{t("account.invoiceDownloadHint")}</Text>
+          <PrimaryButton
+            label={t("account.downloadInvoice")}
+            onPress={() => void runDownload()}
           />
-        ) : (
-          <WebView
-            source={{ uri: viewUrl }}
-            onLoadEnd={() => setLoading(false)}
-            onError={() => {
-              setLoading(false);
-              setPageError(true);
-            }}
-            injectedJavaScript={HIDE_POS_PRINT_CHROME}
-            setSupportMultipleWindows={false}
-            startInLoadingState
-            renderLoading={() => (
-              <View style={styles.overlay}>
-                <LoadingBlock />
-              </View>
-            )}
-          />
-        )}
-        {loading && !pageError ? (
-          <View style={styles.overlay}>
-            <LoadingBlock />
-          </View>
-        ) : null}
-      </View>
-      <View style={styles.bar}>
-        <PrimaryButton
-          label={printing ? t("common.loading") : t("account.printInvoice")}
-          disabled={printing || pageError || loading}
-          onPress={() => {
-            void (async () => {
-              setPrinting(true);
-              try {
-                const response = await fetch(viewUrl);
-                if (!response.ok) {
-                  throw new Error("invoice fetch failed");
-                }
-                const html = htmlForPrint(await response.text(), viewUrl);
-                await Print.printAsync({ html });
-              } catch {
-                toast.error(t("common.error"));
-              } finally {
-                setPrinting(false);
-              }
-            })();
-          }}
-        />
-      </View>
+        </View>
+      )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  webWrap: { flex: 1, backgroundColor: "#fff" },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "#F7F7F5",
-    justifyContent: "center",
-  },
-  bar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#F7F7F5",
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#ddd",
-  },
+  box: { gap: 16, paddingTop: 8 },
+  hint: { fontSize: 15, color: "#444", lineHeight: 22 },
 });

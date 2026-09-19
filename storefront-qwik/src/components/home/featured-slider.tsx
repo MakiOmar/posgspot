@@ -25,7 +25,7 @@ export const FeaturedSlider = component$<FeaturedSliderProps>(({ products, setti
         <h2 id="home-featured-heading" class="home-section__title">
           {tStatic(locale, "home.featured")}
         </h2>
-        <Link href={localePath(locale, "/products")} class="home-all-products-link">
+        <Link href={localePath(locale, "/products")} class="home-all-products-link" prefetch={false}>
           {tStatic(locale, "footer.allProducts")}
         </Link>
       </div>

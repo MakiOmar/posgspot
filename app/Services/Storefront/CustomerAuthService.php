@@ -90,6 +90,10 @@ class CustomerAuthService
             throw ValidationException::withMessages(['login' => ['Invalid credentials.']]);
         }
 
+        if (($contact->contact_status ?? 'active') !== 'active') {
+            throw ValidationException::withMessages(['login' => ['This account is inactive.']]);
+        }
+
         $contact->tokens()->delete();
         $token = $contact->createToken('storefront')->plainTextToken;
 
@@ -113,7 +117,7 @@ class CustomerAuthService
             throw ValidationException::withMessages(['email' => ['Email is required for verification.']]);
         }
 
-        $code = (string) random_int(100000, 999999);
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $contact->email_verify_code_hash = Hash::make($code);
         $contact->email_verify_expires_at = now()->addMinutes(self::VERIFY_CODE_TTL_MINUTES);
         if ($force) {
@@ -206,10 +210,30 @@ class CustomerAuthService
 
     /**
      * Upload or replace the contact profile photo. Field name must be `avatar`.
+     * Accepts jpg|jpeg|png|webp only; filename is server-generated (no client original name).
      */
     public function updateAvatar(Contact $contact, \Illuminate\Http\UploadedFile $file): Contact
     {
-        $fileName = Media::uploadFile($file);
+        $mime = strtolower((string) $file->getMimeType());
+        $ext = match ($mime) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/jpeg' => 'jpg',
+            default => null,
+        };
+        if ($ext === null) {
+            throw ValidationException::withMessages([
+                'avatar' => ['Avatar must be JPG, PNG, or WebP.'],
+            ]);
+        }
+
+        $fileName = null;
+        if ($file->getSize() <= config('constants.document_size_limit')) {
+            $generated = time().'_'.bin2hex(random_bytes(8)).'.'.$ext;
+            if ($file->storeAs('/media', $generated)) {
+                $fileName = $generated;
+            }
+        }
         if (empty($fileName)) {
             throw ValidationException::withMessages([
                 'avatar' => ['Could not store avatar. Check file size and type.'],

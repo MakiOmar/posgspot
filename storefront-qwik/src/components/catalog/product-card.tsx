@@ -54,7 +54,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
   return (
     <article class="product-card">
       <div class="product-card__media-wrap">
-        <Link href={pdpUrl} class="product-card__media">
+        <Link href={pdpUrl} class="product-card__media" prefetch={false}>
           {badge ? <span class="product-card__sale-badge">{badge}</span> : null}
           {product.image_url ? (
             <img
@@ -73,7 +73,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
       </div>
 
       <div class="product-card__body">
-        <Link href={pdpUrl} class="product-card__title-link">
+        <Link href={pdpUrl} class="product-card__title-link" prefetch={false}>
           <h2 class="product-card__name">{product.name}</h2>
         </Link>
 
@@ -120,7 +120,11 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
                 class="product-card__action"
               />
             ) : hasOptions ? (
-              <Link href={pdpUrl} class="btn btn-secondary btn-block product-card__action">
+              <Link
+                href={pdpUrl}
+                class="btn btn-secondary btn-block product-card__action"
+                prefetch={false}
+              >
                 {tStatic(locale, "catalog.viewOptions")}
               </Link>
             ) : (

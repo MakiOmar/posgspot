@@ -1,12 +1,20 @@
 import { ApiError, fetchCommunityPosts } from "~/lib/api";
-import type { CommunityPostSummary } from "~/lib/types";
+import type { CommunityPostSummary, CommunityPostType } from "~/lib/types";
 
 export type CommunitySidebarLists = {
   upcomingTournaments: CommunityPostSummary[];
   upcomingEvents: CommunityPostSummary[];
 };
 
-/** Upcoming tournament/event lists for the shared community sidebar. */
+export type CommunityScopedListPage = CommunitySidebarLists & {
+  posts: CommunityPostSummary[];
+};
+
+/**
+ * Upcoming tournament/event lists for the shared community sidebar.
+ * Fetches both scopes in parallel once — list pages should reuse the matching
+ * array as `posts` instead of issuing a duplicate upcoming fetch.
+ */
 export async function loadCommunitySidebarLists(locale: string): Promise<CommunitySidebarLists> {
   try {
     const [tournaments, events] = await Promise.all([
@@ -23,4 +31,18 @@ export async function loadCommunitySidebarLists(locale: string): Promise<Communi
     }
     return { upcomingTournaments: [], upcomingEvents: [] };
   }
+}
+
+/**
+ * Events/tournaments index: one sidebar fetch supplies both widgets and the
+ * main upcoming list (no second identical upcoming API call).
+ */
+export async function loadCommunityScopedListPage(
+  locale: string,
+  listType: Extract<CommunityPostType, "event" | "tournament">,
+): Promise<CommunityScopedListPage> {
+  const sidebar = await loadCommunitySidebarLists(locale);
+  const posts =
+    listType === "event" ? sidebar.upcomingEvents : sidebar.upcomingTournaments;
+  return { ...sidebar, posts };
 }

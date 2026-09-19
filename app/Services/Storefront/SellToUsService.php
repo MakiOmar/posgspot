@@ -195,16 +195,17 @@ class SellToUsService
         }
 
         $maxBytes = $this->maxPhotoKb() * 1024;
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
         foreach ($photos as $i => $photo) {
             if (! $photo instanceof UploadedFile || ! $photo->isValid()) {
                 throw ValidationException::withMessages([
                     'photos.'.$i => ['Invalid photo upload.'],
                 ]);
             }
-            $mime = (string) $photo->getMimeType();
-            if (! str_starts_with($mime, 'image/')) {
+            $mime = strtolower((string) $photo->getMimeType());
+            if (! in_array($mime, $allowedMimes, true)) {
                 throw ValidationException::withMessages([
-                    'photos.'.$i => ['Photos must be image files.'],
+                    'photos.'.$i => ['Photos must be JPG, PNG, or WebP.'],
                 ]);
             }
             if ((int) $photo->getSize() > $maxBytes) {
@@ -243,9 +244,8 @@ class SellToUsService
 
             $dir = 'storefront_sell/'.$businessId;
             foreach (array_values($photos) as $index => $photo) {
-                $ext = strtolower((string) $photo->getClientOriginalExtension()) ?: 'jpg';
-                $ext = preg_replace('/[^a-z0-9]/', '', $ext) ?: 'jpg';
-                $fileName = Str::uuid()->toString().'.'.$ext;
+                // Server-generated name only — never trust client original filename/extension.
+                $fileName = Str::uuid()->toString().'.'.$this->extensionFromMime((string) $photo->getMimeType());
                 $stored = $photo->storeAs($dir, $fileName);
                 if (! is_string($stored) || $stored === '') {
                     throw ValidationException::withMessages([
@@ -318,6 +318,16 @@ class SellToUsService
         }
 
         return $value;
+    }
+
+    /** Map a verified image MIME to a safe storage extension. */
+    private function extensionFromMime(string $mime): string
+    {
+        return match (strtolower($mime)) {
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            default => 'jpg',
+        };
     }
 
     /**

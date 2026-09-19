@@ -357,12 +357,14 @@ export function fetchPaymentSession(
   storefrontOrderId: string,
   locale?: ContentLocale,
   token?: string | null,
+  orderAccessToken?: string | null,
 ) {
   return storefrontFetch<PaymentSession | { already_paid: boolean }>(`/payments/${provider}/session`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify({
       storefront_order_id: storefrontOrderId,
+      order_access_token: orderAccessToken ?? "",
       locale: locale ?? activeContentLocale,
     }),
   });

@@ -231,25 +231,20 @@ class CartValidationService
     }
 
     /**
-     * Prefer client catalog price, then Accounts API lookup (send-to-POS source of truth),
-     * then explicit line overrides, then POS variation price (often 0 for placeholder SKUs).
+     * Server-authoritative digital price from Accounts catalog only.
+     * Client digital.price / unit_price / price are ignored (prevents underpaying).
      *
      * @param  array<string, mixed>  $item
      */
     private function resolveDigitalUnitPrice(int $businessId, array $item, float $fallback): float
     {
         $digital = is_array($item['digital'] ?? null) ? $item['digital'] : [];
-        foreach ([$digital['price'] ?? null, $item['unit_price'] ?? null, $item['price'] ?? null] as $candidate) {
-            if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
-                return (float) $candidate;
-            }
-        }
-
         $catalogPrice = $this->digitalCatalog->resolveOfferPrice($businessId, $digital);
         if ($catalogPrice !== null && $catalogPrice > 0) {
             return $catalogPrice;
         }
 
+        // POS variation price is usually 0 for digital placeholder SKUs — only a last resort.
         return $fallback > 0 ? $fallback : 0.0;
     }
 

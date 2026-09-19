@@ -76,15 +76,22 @@ class AuthController extends StorefrontController
         $data = $request->validate([
             'login' => 'required|string',
             'password' => 'required|string',
+            'turnstile_token' => 'nullable|string',
         ]);
 
-        $result = $this->authService->login($this->businessId($request), $data['login'], $data['password']);
+        $businessId = $this->businessId($request);
+        $turnstileError = $this->turnstile->validate($businessId, $data['turnstile_token'] ?? null, $request->ip());
+        if ($turnstileError !== null) {
+            return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
+        }
+
+        $result = $this->authService->login($businessId, $data['login'], $data['password']);
 
         $guestToken = $request->header('X-Support-Guest-Token');
         if (is_string($guestToken) && $guestToken !== '' && ! empty($result['contact']['id'])) {
             try {
                 app(\App\Services\Storefront\SupportChatService::class)->claimGuestConversations(
-                    $this->businessId($request),
+                    $businessId,
                     (int) $result['contact']['id'],
                     $guestToken
                 );

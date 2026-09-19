@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Services\Storefront\RepairStatusLookupService;
+use App\Services\Storefront\TurnstileService;
 use App\Support\StorefrontLocale;
 use Illuminate\Http\Request;
 
@@ -11,8 +12,10 @@ use Illuminate\Http\Request;
  */
 class RepairStatusController extends StorefrontController
 {
-    public function __construct(private RepairStatusLookupService $lookup)
-    {
+    public function __construct(
+        private RepairStatusLookupService $lookup,
+        private TurnstileService $turnstile,
+    ) {
     }
 
     public function store(Request $request)
@@ -32,7 +35,13 @@ class RepairStatusController extends StorefrontController
             'search_type' => 'required|string|in:'.implode(',', $allowed),
             'search_number' => 'required|string|max:100',
             'serial_no' => 'nullable|string|max:100',
+            'turnstile_token' => 'nullable|string',
         ]);
+
+        $turnstileError = $this->turnstile->validate($businessId, $data['turnstile_token'] ?? null, $request->ip());
+        if ($turnstileError !== null) {
+            return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
+        }
 
         $locale = StorefrontLocale::fromRequest($request);
         $repairs = $this->lookup->lookup(

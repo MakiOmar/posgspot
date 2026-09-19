@@ -55,6 +55,7 @@ class CheckoutController extends StorefrontController
             'coupon_code' => 'nullable|string|max:64',
             'coupon_codes' => 'nullable|array|max:10',
             'coupon_codes.*' => 'string|max:64',
+            'order_access_token' => 'nullable|string|max:128',
         ]);
 
         // Re-merge raw digital/unit_price so nested catalog prices are never dropped.

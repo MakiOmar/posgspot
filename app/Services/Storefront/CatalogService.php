@@ -11,6 +11,9 @@ use App\Support\StorefrontLocale;
 use App\Variation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -37,18 +40,27 @@ class CatalogService
             return [];
         }
 
-        $tree = Category::catAndSubCategories($businessId);
-        if (StorefrontLocale::isDefault($locale)) {
-            return $tree;
-        }
+        $cacheKey = 'storefront.categories.'.$businessId.'.'.$locale;
 
-        $translatedIds = CategoryTranslation::query()
-            ->where('locale', $locale)
-            ->whereIn('category_id', $this->categoryIdsFromTree($tree))
-            ->pluck('category_id')
-            ->flip();
+        return Cache::remember($cacheKey, 120, function () use ($businessId, $locale) {
+            $tree = $this->slimCategoryTree(Category::catAndSubCategories($businessId));
+            if (StorefrontLocale::isDefault($locale)) {
+                return $tree;
+            }
 
-        return $this->filterCategoryTree($tree, $translatedIds, $locale);
+            $ids = $this->categoryIdsFromTree($tree);
+            if ($ids === []) {
+                return [];
+            }
+
+            $translations = CategoryTranslation::query()
+                ->where('locale', $locale)
+                ->whereIn('category_id', $ids)
+                ->get()
+                ->keyBy('category_id');
+
+            return $this->filterCategoryTree($tree, $translations);
+        });
     }
 
     /**
@@ -319,10 +331,10 @@ class CatalogService
         };
 
         $query->select('products.*')->groupBy('products.id');
-        $query->with([
-            'storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
-            'brand.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
-        ]);
+        $query->with(array_merge(
+            $this->productSummaryEagerLoads($locationIds, $locale),
+            ['brand.storefrontTranslations' => fn ($q) => $q->where('locale', $locale)]
+        ));
 
         $paginator = $query->paginate($perPage);
         $paginator->getCollection()->transform(
@@ -482,7 +494,7 @@ class CatalogService
 
         return $query->select('products.*')
             ->groupBy('products.id')
-            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->with($this->productSummaryEagerLoads($locationIds, $locale))
             ->limit($limit)
             ->get()
             ->map(fn (Product $p) => $this->formatProductSummary($p, $locationIds, $locale))
@@ -511,7 +523,7 @@ class CatalogService
 
         $products = $query->select('products.*')
             ->groupBy('products.id')
-            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->with($this->productSummaryEagerLoads($locationIds, $locale))
             ->get()
             ->keyBy('id');
 
@@ -649,18 +661,69 @@ class CatalogService
 
     /**
      * Order by units sold on final sells (returned qty excluded). Stable secondary key.
+     * Scores come from a per-business Cache::remember map (1h) to avoid joining sell lines on every list.
      */
     private function applyBestsellersSort(Builder $query, int $businessId): void
     {
-        $query->leftJoin('transaction_sell_lines as tsl_bs', 'tsl_bs.product_id', '=', 'products.id')
-            ->leftJoin('transactions as t_bs', function ($join) use ($businessId) {
-                $join->on('t_bs.id', '=', 'tsl_bs.transaction_id')
-                    ->where('t_bs.business_id', '=', $businessId)
-                    ->where('t_bs.type', '=', 'sell')
-                    ->where('t_bs.status', '=', 'final');
-            })
-            ->orderByRaw('COALESCE(SUM(CASE WHEN t_bs.id IS NULL THEN 0 ELSE (tsl_bs.quantity - IFNULL(tsl_bs.quantity_returned, 0)) END), 0) DESC')
+        $scores = $this->bestsellersScores($businessId);
+        if ($scores === []) {
+            $query->orderBy('products.id', 'asc');
+
+            return;
+        }
+
+        $cases = [];
+        $bindings = [];
+        foreach ($scores as $productId => $score) {
+            $cases[] = 'WHEN ? THEN ?';
+            $bindings[] = (int) $productId;
+            $bindings[] = (float) $score;
+        }
+
+        $query->orderByRaw('CASE products.id '.implode(' ', $cases).' ELSE 0 END DESC', $bindings)
             ->orderBy('products.id', 'asc');
+    }
+
+    /**
+     * @return array<int, float> product_id => units sold
+     */
+    private function bestsellersScores(int $businessId): array
+    {
+        return Cache::remember(
+            'storefront.bestsellers.scores.'.$businessId,
+            3600,
+            function () use ($businessId) {
+                return DB::table('transaction_sell_lines as tsl')
+                    ->join('transactions as t', function ($join) use ($businessId) {
+                        $join->on('t.id', '=', 'tsl.transaction_id')
+                            ->where('t.business_id', '=', $businessId)
+                            ->where('t.type', '=', 'sell')
+                            ->where('t.status', '=', 'final');
+                    })
+                    ->selectRaw('tsl.product_id, SUM(tsl.quantity - IFNULL(tsl.quantity_returned, 0)) as score')
+                    ->groupBy('tsl.product_id')
+                    ->havingRaw('SUM(tsl.quantity - IFNULL(tsl.quantity_returned, 0)) > 0')
+                    ->pluck('score', 'product_id')
+                    ->map(fn ($score) => (float) $score)
+                    ->all();
+            }
+        );
+    }
+
+    /**
+     * Eager loads shared by list/search/summary card serializers.
+     *
+     * @param  int[]  $locationIds
+     * @return array<string, mixed>
+     */
+    private function productSummaryEagerLoads(array $locationIds, string $locale): array
+    {
+        return [
+            'storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+            'variations' => fn ($q) => $q->whereNull('deleted_at'),
+            'variations.variation_location_details' => fn ($q) => $q->whereIn('location_id', $locationIds),
+            'variations.storefrontTranslations' => fn ($q) => $q->where('locale', $locale),
+        ];
     }
 
     private function baseProductQuery(int $businessId, array $locationIds): Builder
@@ -686,10 +749,12 @@ class CatalogService
     {
         $product = $this->presenter->applyProduct($product, $locale);
 
-        $variations = $product->variations()->whereNull('deleted_at')->get();
+        $variations = $product->relationLoaded('variations')
+            ? $product->variations
+            : $product->variations()->whereNull('deleted_at')->get();
         $defaultVariation = $variations->first();
         $hasOptions = $product->type === 'variable';
-        $inStock = $this->isProductInStock($product, $locationIds);
+        $inStock = $this->isProductInStock($product, $locationIds, $variations);
 
         $pricingRows = $variations->map(fn (Variation $v) => $this->storefrontPricing->resolve($v));
         $minPrice = $pricingRows->min('price') ?? 0;
@@ -855,10 +920,36 @@ class CatalogService
         return (bool) preg_match('/\.(jpe?g|png|gif|webp|avif|bmp|svg)(\?|$)/i', $path);
     }
 
-    private function isProductInStock(Product $product, array $locationIds): bool
+    /**
+     * @param  Collection<int, Variation>|null  $variations  Preloaded page variations when available
+     */
+    private function isProductInStock(Product $product, array $locationIds, ?Collection $variations = null): bool
     {
         if (! $product->enable_stock) {
             return true;
+        }
+
+        $variations ??= $product->relationLoaded('variations')
+            ? $product->variations
+            : null;
+
+        if ($variations !== null) {
+            foreach ($variations as $variation) {
+                if (! $variation->relationLoaded('variation_location_details')) {
+                    continue;
+                }
+                $qty = $variation->variation_location_details
+                    ->whereIn('location_id', $locationIds)
+                    ->sum('qty_available');
+                if ($qty > 0) {
+                    return true;
+                }
+            }
+
+            // All VLDs were loaded for selling locations; none had stock.
+            if ($variations->every(fn (Variation $v) => $v->relationLoaded('variation_location_details'))) {
+                return false;
+            }
         }
 
         return Variation::where('product_id', $product->id)
@@ -885,37 +976,65 @@ class CatalogService
     }
 
     /**
+     * Public category payload: id, name, slug, image_url, sub_categories only.
+     *
      * @param  array<int, array<string, mixed>>  $tree
-     * @param  \Illuminate\Support\Collection<int, int>  $translatedIds
      * @return array<int, array<string, mixed>>
      */
-    private function filterCategoryTree(array $tree, $translatedIds, string $locale): array
+    private function slimCategoryTree(array $tree): array
+    {
+        $slimNode = static function (array $row): array {
+            return [
+                'id' => (int) $row['id'],
+                'name' => (string) ($row['name'] ?? ''),
+                'slug' => $row['slug'] ?? null,
+                'image_url' => $row['image_url'] ?? null,
+            ];
+        };
+
+        $out = [];
+        foreach ($tree as $parent) {
+            $node = $slimNode($parent);
+            $node['sub_categories'] = array_map(
+                $slimNode,
+                $parent['sub_categories'] ?? []
+            );
+            $out[] = $node;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $tree
+     * @param  Collection<int, CategoryTranslation>  $translations
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterCategoryTree(array $tree, Collection $translations): array
     {
         $out = [];
         foreach ($tree as $parent) {
-            if (! $translatedIds->has((int) $parent['id'])) {
+            $parentId = (int) $parent['id'];
+            if (! $translations->has($parentId)) {
                 continue;
             }
 
-            $parentTrans = CategoryTranslation::where('category_id', $parent['id'])->where('locale', $locale)->first();
-            if ($parentTrans) {
-                $parent['name'] = $parentTrans->name;
-                if (! empty($parentTrans->slug)) {
-                    $parent['slug'] = $parentTrans->slug;
-                }
+            $parentTrans = $translations->get($parentId);
+            $parent['name'] = $parentTrans->name;
+            if (! empty($parentTrans->slug)) {
+                $parent['slug'] = $parentTrans->slug;
             }
 
             $subs = [];
             foreach ($parent['sub_categories'] ?? [] as $sub) {
-                if (! $translatedIds->has((int) $sub['id'])) {
+                $subId = (int) $sub['id'];
+                if (! $translations->has($subId)) {
                     continue;
                 }
-                $subTrans = CategoryTranslation::where('category_id', $sub['id'])->where('locale', $locale)->first();
-                if ($subTrans) {
-                    $sub['name'] = $subTrans->name;
-                    if (! empty($subTrans->slug)) {
-                        $sub['slug'] = $subTrans->slug;
-                    }
+                $subTrans = $translations->get($subId);
+                $sub['name'] = $subTrans->name;
+                if (! empty($subTrans->slug)) {
+                    $sub['slug'] = $subTrans->slug;
                 }
                 $subs[] = $sub;
             }

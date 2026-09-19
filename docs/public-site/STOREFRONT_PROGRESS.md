@@ -32,9 +32,9 @@
 | Item | Status | Notes |
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
-| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); `show_on_storefront` hides branches from listings + availability; categories/brands expose `image_url`; homepage shelves |
+| Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); `show_on_storefront` hides branches from listings + availability; categories/brands expose `image_url`; homepage shelves; `GET /categories` slim tree cached 120s; `GET /settings?shell=1` omits `about.team`; public Cache-Control/ETag on settings + categories |
 | Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
-| Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers; detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set |
+| Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers (cached scores 1h); detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set; product cards eager-load variations+VLD |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | Active `show_on_storefront` locations; maps URL + coords |
@@ -43,8 +43,8 @@
 | Shipping zones / quote engine | ✅ | Zones + flat/free/pickup; digital-only free rate (`method_type: digital`); legacy flat/threshold migrated; `ShippingQuoteService` |
 | Order tracking fields + shipped email | ✅ | Transaction tracking cols; account order API; `StorefrontOrderShipped` |
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
-| Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*` |
-| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP**; **Google/Facebook Socialite** (web exchange code + mobile token); Connect/Disconnect on Login & Security |
+| Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*`; Fawry + Geidea re-confirm paid via remote status before markPaid |
+| Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP**; **Google/Facebook Socialite** (web exchange code + mobile token); Connect/Disconnect on Login & Security; Turnstile on login when configured; inactive contacts rejected |
 | Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger; Qwik Login & Security has delete-account request |
 | Reward points API | ✅ | Balance + validate redeem |
 | Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
@@ -69,7 +69,7 @@
 | Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
 | AI support chat | ✅ | `STOREFRONT_SUPPORT_CHAT` + OpenAI; conversations/messages; guest token + Sanctum; tools (orders/repairs/devices/catalog); CRM escalate when env assignee set; `SupportChatTest` |
 | Sell to us / trade-in | ✅ | `STOREFRONT_SELL_TO_US`; `/sell-to-us/meta|verify-invoice|requests`; POS `/storefront/sell-requests`; notify email in settings; `SellToUsTest` |
-| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; list/detail + apply; featured/media/registration; POS inbox; demo via `storefront:community-demo seed\|wipe`; `CommunityPostTest` |
+| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; list/detail + apply (list `limit`/`page`, default 48); featured/media/registration; POS inbox; demo via `storefront:community-demo seed\|wipe`; `CommunityPostTest` |
 | Request a product | ✅ | `STOREFRONT_REQUEST_PRODUCT`; `/request-product/meta|requests`; POS `/storefront/product-requests`; notify email in settings; `RequestProductTest` |
 
 ---
@@ -103,7 +103,7 @@
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE`; Expo full parity |
 | `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo full parity |
 | `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders`; Expo `/track-order` |
-| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; SSR lists; news Featured+Latest; shared sidebar (newsletter/search/upcoming) on all list+detail; registration; gallery + related; og:image |
+| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; SSR lists reuse sidebar upcoming (no duplicate fetch); news Featured+Latest; parallel news+sidebar; phone countries only when `registration_mode=internal`; dense Links `prefetch={false}` |
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -207,6 +207,7 @@
 | CSP + security headers (production) | ✅ | `plugin@security.ts`; nonce + strict-dynamic; Turnstile/Fawry/Geidea HPP hosts/Maps; YouTube/Vimeo embeds + HTTPS media; skipped in dev |
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
 | Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
+| CatalogService list/card query cost | ✅ | Wave 2: eager-load variations+VLD (no per-card stock exists); bestsellers scores `Cache::remember` 1h by `business_id`; categories slim payload + AR batch + 120s cache |
 
 ---
 
@@ -253,6 +254,11 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Wave 1 security: server-only digital catalog prices; `order_access_token` on checkout/payment session/return (no public invoice URLs); Turnstile+throttle on device/repair; Expo pending-payment drops auth snapshot + biometric bypass; Geidea/community WebView allowlists. |
+| 2026-09-19 | Wave 3 payload: Qwik gzip; locale AR messages lazy-loaded via `ensureLocaleMessages`; Cache-Control on settings/categories; cover LCP hints. |
+| 2026-09-19 | Wave 3 API/Qwik: upload allowlist + server filenames (sell-to-us/avatar); Turnstile on login + inactive reject; OTP throttle 5/min; Fawry remote fetchStatus before markPaid; settings `?shell=1` omits about.team; Cache-Control/ETag on settings/categories; community list limit; VLD composite index; Qwik gzip + cover fetchPriority. |
+| 2026-09-19 | Perf: dense Qwik Links `prefetch={false}` (cards, community lists, homepage shelves, bottom nav); community list pages reuse sidebar upcoming; detail skips phone-countries unless internal registration; news index parallelizes sidebar+list. |
+| 2026-09-19 | CatalogService Wave 2 perf: eager-load variations+VLD for product cards; cache bestsellers scores 1h; slim/cache categories tree 120s. |
 | 2026-09-19 | Community detail q-data: degrade API/network failures to notFound (avoid 500); parallel post+sidebar fetch. |
 | 2026-09-19 | Shop menu groups fold by default with expand toggle (Qwik mega/drawer + Expo NavDrawer). |
 | 2026-09-19 | Image lightbox for community covers/galleries + PDP gallery; energy particles on page title bars. |

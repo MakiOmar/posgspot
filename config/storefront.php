@@ -25,7 +25,10 @@ return [
     'rate_limit_read_per_minute' => (int) env('STOREFRONT_RATE_LIMIT_READ', 600),
 
     /** POST auth endpoints (register, login, forgot/reset password) per IP. */
-    'auth_rate_limit_per_minute' => (int) env('STOREFRONT_AUTH_RATE_LIMIT', 20),
+    'auth_rate_limit_per_minute' => (int) env('STOREFRONT_AUTH_RATE_LIMIT', 12),
+
+    /** Forgot-password / email-verify resend OTP issue budget per IP+email. */
+    'otp_rate_limit_per_minute' => (int) env('STOREFRONT_OTP_RATE_LIMIT', 5),
 
     /** Customer password-reset token lifetime (minutes). */
     'password_reset_expire_minutes' => (int) env('STOREFRONT_PASSWORD_RESET_EXPIRE_MINUTES', 60),

@@ -25,7 +25,7 @@ export const TopCategories = component$<TopCategoriesProps>(({ categories, limit
         <h2 id="home-top-cats-heading" class="home-section__title">
           {tStatic(locale, "home.topCategories")}
         </h2>
-        <Link href={localePath(locale, "/products")} class="home-all-products-link">
+        <Link href={localePath(locale, "/products")} class="home-all-products-link" prefetch={false}>
           {tStatic(locale, "footer.allProducts")}
         </Link>
       </div>
@@ -38,6 +38,7 @@ export const TopCategories = component$<TopCategoriesProps>(({ categories, limit
             key={category.id}
             href={localePath(locale, `/category/${encodeURIComponent(category.slug!)}`)}
             class="home-top-categories__card"
+            prefetch={false}
           >
             <span class="home-top-categories__media">
               {category.image_url && !category.image_url.includes("default.png") ? (

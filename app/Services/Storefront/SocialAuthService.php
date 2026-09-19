@@ -451,6 +451,10 @@ class SocialAuthService
      */
     private function issueSession(Contact $contact): array
     {
+        if (($contact->contact_status ?? 'active') !== 'active') {
+            throw ValidationException::withMessages(['login' => ['This account is inactive.']]);
+        }
+
         $contact->tokens()->delete();
         $token = $contact->createToken('storefront')->plainTextToken;
 

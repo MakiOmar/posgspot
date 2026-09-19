@@ -26,6 +26,34 @@ abstract class StorefrontController extends Controller
         ], $status);
     }
 
+    /**
+     * Cacheable public GET responses (settings, categories, etc.).
+     * Clients / CDNs may reuse for $maxAge seconds; ETag enables 304.
+     */
+    protected function jsonSuccessPublicCache(
+        mixed $data = null,
+        array $meta = [],
+        int $maxAge = 60,
+        int $status = 200
+    ): JsonResponse {
+        $response = $this->jsonSuccess($data, $meta, $status);
+        $payload = json_encode([$data, $meta], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
+        $etag = '"'.hash('xxh128', $payload).'"';
+
+        $response
+            ->setPublic()
+            ->setMaxAge(max(1, $maxAge))
+            ->setSharedMaxAge(max(1, $maxAge))
+            ->setEtag($etag);
+
+        $request = request();
+        if ($request instanceof Request) {
+            $response->isNotModified($request);
+        }
+
+        return $response;
+    }
+
     protected function jsonError(string $message, int $status = 400, array $errors = []): JsonResponse
     {
         return response()->json([

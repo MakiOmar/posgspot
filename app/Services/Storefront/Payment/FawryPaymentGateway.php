@@ -178,6 +178,15 @@ class FawryPaymentGateway implements PaymentGatewayInterface
         ];
 
         if ($orderStatus === 'PAID') {
+            // Re-confirm with Fawry status API before fulfilment (parity with Geidea).
+            $remoteStatus = $this->confirmRemotePaid($transaction, $businessId);
+            if ($remoteStatus !== 'PAID') {
+                return new PaymentResult(
+                    PaymentResult::STATUS_INVALID,
+                    'Remote order is not paid.'
+                );
+            }
+
             $this->paymentRecorder->markPaid($transaction, $businessId, $meta);
 
             return new PaymentResult(
@@ -337,6 +346,25 @@ class FawryPaymentGateway implements PaymentGatewayInterface
         }
 
         return number_format((float) $amount, 2, '.', '');
+    }
+
+    /**
+     * Confirm orderStatus via Fawry payments status API (callback/return alone is not enough).
+     */
+    private function confirmRemotePaid(Transaction $transaction, int $businessId): string
+    {
+        $gatewayConfig = $this->storefrontSettings->get($businessId)['gateway'] ?? [];
+        $merchantRef = (string) ($transaction->storefront_order_id ?? '');
+        if ($merchantRef === '') {
+            return '';
+        }
+
+        $remote = $this->fetchStatus($merchantRef, $gatewayConfig);
+        if (! is_array($remote)) {
+            return '';
+        }
+
+        return strtoupper((string) ($remote['orderStatus'] ?? ''));
     }
 
     private function sdkUrl(bool $staging): string

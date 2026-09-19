@@ -72,15 +72,35 @@ class RouteServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('storefront-auth', function (Request $request) {
-            $perMinute = (int) config('storefront.auth_rate_limit_per_minute', 20);
+            $perMinute = (int) config('storefront.auth_rate_limit_per_minute', 12);
 
             return Limit::perMinute(max(1, $perMinute))->by($request->ip());
+        });
+
+        // Email OTP issue endpoints (forgot + verify resend) — tighter than general auth.
+        RateLimiter::for('storefront-otp', function (Request $request) {
+            $perMinute = (int) config('storefront.otp_rate_limit_per_minute', 5);
+            $email = strtolower(trim((string) $request->input('email', '')));
+
+            return Limit::perMinute(max(1, $perMinute))->by($request->ip().'|'.$email);
         });
 
         RateLimiter::for('storefront-support-chat', function (Request $request) {
             $perMinute = (int) config('storefront.support_chat.rate_limit_per_minute', 30);
 
             return Limit::perMinute(max(1, $perMinute))->by($request->ip());
+        });
+
+        RateLimiter::for('storefront-pii-lookup', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        RateLimiter::for('storefront-checkout', function (Request $request) {
+            return Limit::perMinute(30)->by($request->ip());
+        });
+
+        RateLimiter::for('storefront-community-apply', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
         });
     }
 }

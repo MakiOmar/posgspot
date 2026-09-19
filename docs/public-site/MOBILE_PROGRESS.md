@@ -21,7 +21,7 @@
 | Expo scaffold (Router, i18n, API client, SecureStore) | Done |
 | Device tokens + FCM push jobs | Done |
 | Universal / App Links + Fawry RN wiring | Done (install `@fawry_pay/rn-fawry-pay-sdk` + prebuild for native pay) |
-| Geidea native + HPP fallback | Done — native `payWithGeidea` BottomSheet (not Push) on Android; pending-payment + auth snapshot resume; Pay now |
+| Geidea native + HPP fallback | Done — native `payWithGeidea` BottomSheet on Android; pending-payment (order ids + access token only); Pay Now CTA |
 | M1 shop core (browse → COD checkout → orders) | Done |
 | Home section UI (hero, promos, shelves, rails) | Done |
 | Home brand rail display-only (no brand PLP links) | Done |
@@ -89,12 +89,18 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | List perf: horizontal FlatList product rails; memo ProductCard + shared AvailabilityModal; PLP FlatList window tuning; Wave 3 hygiene (gitignore play SA, expo-crypto guest UUID, iOS screen-capture, lazy invoice PDF). |
+| 2026-09-19 | Shop Physical menu: removed hardcoded Shop all / All consoles prepend (builder tree only). |
 | 2026-09-19 | Shop Physical menu supports nested groups (same `shop_menu.physical` tree as web, max depth 5). |
 | 2026-09-19 | Shop Physical menu from `GET /settings` `shop_menu.physical` (nested groups + order) in NavDrawer; category-list fallback when empty. |
 | 2026-09-19 | Community CMS parity: nav links when enabled; news Featured+Latest; HTML body; registration form / external link; gallery + related. |
+| 2026-09-19 | Geidea native pay button label overridden to Pay Now / ادفع الآن (gpw_pay_now + account.payNow). |
 | 2026-09-19 | Nav parity + floating contact FAB (Call / Chat / Message); label renames; Community coming soon. |
 | 2026-09-17 | Custom Bundle + Sell to us full Expo flows (builder/cart; login gate, verify, photos); login/register `next` redirect. |
 | 2026-09-17 | Nav IA Shop/Services/Community; Track Order; Community CMS screens; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |
+| 2026-09-19 | Wave 1 security: pending-payment stores order ids + access token only (no Sanctum in AsyncStorage); biometric unlock no longer skipped for pending pay; Geidea SDK URL + WebView origin allowlist; community HTML stripped/CSP. |
+| 2026-09-19 | Perf: home product rails horizontal FlatList; memo ProductCard + shared AvailabilityModal; PLP FlatList window tuning; CSPRNG guest UUID; iOS screen-capture protect; lazy invoice import; gitignore play-service-account.json. |
+| 2026-09-19 | Wave 3 API note: login requires Turnstile when configured (mobile widget TBD); avatar/sell uploads jpg\|png\|webp server-named only. |
 | 2026-09-17 | Sell to us / Custom Bundle shared API documented for Expo reuse. |
 | 2026-09-16 | AI support chat: `/support` screen (Current/History), guest SecureStore token, Live chat nav when enabled. |
 | 2026-09-16 | Social login: `expo-auth-session` Google/Facebook → `POST /auth/social/{provider}/token`; Connect/Disconnect on Login & Security; `social_login` settings flags. |

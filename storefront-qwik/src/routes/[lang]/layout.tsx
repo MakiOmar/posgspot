@@ -20,6 +20,7 @@ import { WishlistProvider } from "~/lib/wishlist-context";
 import { FONT_FAMILY, SITE_PARTICLES } from "~/lib/config";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
+import { ensureLocaleMessages } from "~/lib/i18n/translate";
 import { localeFromPathname, localePath, stripLocalePrefix } from "~/lib/i18n/paths";
 import {
   isMaintenanceExemptPath,
@@ -32,20 +33,22 @@ import { cachedCategories, cachedLocations, cachedSettings } from "~/lib/ssr-she
 import { themeHeadStyleFromSettings } from "~/lib/theme";
 import type { StoreLocation, StoreSettings } from "~/lib/types";
 
-export const useLangParam = routeLoader$(({ params, redirect }): StoreLocaleCode => {
+export const useLangParam = routeLoader$(async ({ params, redirect }): Promise<StoreLocaleCode> => {
   if (!isSupportedLocale(params.lang)) {
     throw redirect(302, "/en/");
   }
   setActiveContentLocale(params.lang);
+  await ensureLocaleMessages(params.lang);
   return params.lang;
 });
 
 export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSettings> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   setActiveContentLocale(locale);
+  await ensureLocaleMessages(locale);
   try {
     return await cachedSettings(locale, async () => {
-      const { data } = await fetchSettings(locale);
+      const { data } = await fetchSettings(locale, { shell: true });
       return data;
     });
   } catch (err) {

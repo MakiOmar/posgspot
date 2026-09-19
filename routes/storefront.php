@@ -74,7 +74,8 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::get('/community/posts', [CommunityPostController::class, 'index']);
     Route::get('/community/posts/{slug}', [CommunityPostController::class, 'show']);
-    Route::post('/community/posts/{slug}/applications', [CommunityPostController::class, 'apply']);
+    Route::post('/community/posts/{slug}/applications', [CommunityPostController::class, 'apply'])
+        ->middleware('throttle:storefront-community-apply');
 
     Route::get('/request-product/meta', [RequestProductController::class, 'meta']);
     Route::post('/request-product/requests', [RequestProductController::class, 'store']);
@@ -95,8 +96,10 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/conversations/{uuid}/escalate', [SupportChatController::class, 'escalate'])
             ->where('uuid', '[0-9a-fA-F-]{36}');
     });
-    Route::post('/repair/status', [RepairStatusController::class, 'store']);
-    Route::post('/device/track', [DeviceTrackController::class, 'store']);
+    Route::post('/repair/status', [RepairStatusController::class, 'store'])
+        ->middleware('throttle:storefront-pii-lookup');
+    Route::post('/device/track', [DeviceTrackController::class, 'store'])
+        ->middleware('throttle:storefront-pii-lookup');
 
     Route::get('/digital/games', [DigitalCatalogController::class, 'games']);
     Route::get('/digital/games/{id}', [DigitalCatalogController::class, 'game'])->whereNumber('id');
@@ -107,7 +110,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/coupons/available', [CouponController::class, 'available']);
     Route::post('/cart/validate', [CartController::class, 'validateCart']);
-    Route::post('/checkout', [CheckoutController::class, 'store']);
+    Route::post('/checkout', [CheckoutController::class, 'store'])
+        ->middleware('throttle:storefront-checkout');
 
     Route::post('/payments/{provider}/webhook', [PaymentWebhookController::class, 'handle']);
     Route::post('/payments/{provider}/return', [PaymentReturnController::class, 'confirm']);
@@ -116,10 +120,12 @@ Route::prefix('storefront/v1')->group(function () {
     Route::prefix('auth')->middleware('throttle:storefront-auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
-        Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+        Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+            ->middleware('throttle:storefront-otp');
         Route::post('/reset-password', [AuthController::class, 'resetPassword']);
         Route::post('/email/verify', [AuthController::class, 'verifyEmail']);
-        Route::post('/email/resend', [AuthController::class, 'resendEmailVerification']);
+        Route::post('/email/resend', [AuthController::class, 'resendEmailVerification'])
+            ->middleware('throttle:storefront-otp');
 
         Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirect'])
             ->where('provider', 'google|facebook');

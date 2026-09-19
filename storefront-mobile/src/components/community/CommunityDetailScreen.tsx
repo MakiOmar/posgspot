@@ -19,15 +19,25 @@ import { PhoneInput } from "../PhoneInput";
 import { LoadingBlock, PrimaryButton, Screen } from "../ui";
 import type { CommunityPostDetail, CommunityPostType } from "../../lib/types";
 
+function stripUnsafeHtml(html: string): string {
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .replace(/\son\w+\s*=\s*(['"]).*?\1/gi, "")
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
+    .replace(/javascript:/gi, "");
+}
+
 function wrapHtml(html: string, isRtl: boolean): string {
+  const safe = stripUnsafeHtml(html || "");
   return `<!DOCTYPE html><html dir="${isRtl ? "rtl" : "ltr"}"><head>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none';" />
 <style>
   body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 16px; line-height: 1.55; color: #222; }
   img, video { max-width: 100%; height: auto; }
   a { color: #0a7; }
-</style></head><body>${html || ""}</body></html>`;
+</style></head><body>${safe}</body></html>`;
 }
 
 function formatWhen(value: string | null | undefined, locale: string): string {
@@ -71,10 +81,16 @@ function HtmlBlock({
 
   return (
     <WebView
-      originWhitelist={["*"]}
+      originWhitelist={["about:blank"]}
       source={{ html: wrapHtml(content, isRtl) }}
       style={{ width: width - 32, height, backgroundColor: "transparent" }}
       scrollEnabled={false}
+      javaScriptEnabled
+      setSupportMultipleWindows={false}
+      onShouldStartLoadWithRequest={(req) => {
+        const url = req.url || "";
+        return url === "about:blank" || url.startsWith("data:text/html");
+      }}
       onMessage={(event) => {
         const next = Number(event.nativeEvent.data);
         if (!Number.isNaN(next) && next > 40) {

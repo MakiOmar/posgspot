@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ApiError, loginCustomer } from "~/lib/api";
 import { SocialLoginButtons } from "~/components/auth/social-login-buttons";
 import { useAuth } from "~/lib/auth-context";
@@ -8,13 +9,18 @@ import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useLangParam } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
 export default component$(() => {
   const auth = useAuth();
+  const settings = useSiteSettings();
   const nav = useNavigate();
   const loc = useLocation();
   const pending = usePendingState();
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
+  const turnstile = settings.value.turnstile;
+  const turnstileEnabled = Boolean(turnstile?.enabled && turnstile.site_key);
   const form = useStore({ login: "", password: "" });
   const submitting = useSignal(false);
 
@@ -34,17 +40,32 @@ export default component$(() => {
   });
 
   const submit$ = $(async () => {
+    if (turnstileEnabled && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
-        const { data } = await loginCustomer({ login: form.login, password: form.password });
+        const { data } = await loginCustomer({
+          login: form.login,
+          password: form.password,
+          ...(turnstileEnabled ? { turnstile_token: turnstileToken.value } : {}),
+        });
         auth.token = data.token;
         auth.contact = data.contact;
         await nav(nextUrl);
       } catch (e) {
+        turnstileResetKey.value += 1;
+        const msg =
+          e instanceof ApiError && e.errors
+            ? Object.values(e.errors)[0]?.[0]
+            : undefined;
         await toastError(
-          e instanceof ApiError && e.status === 422
-            ? tStatic(locale, "auth.invalidCredentials")
-            : tStatic(locale, "auth.loginFailed"),
+          msg ||
+            (e instanceof ApiError && e.status === 422
+              ? tStatic(locale, "auth.invalidCredentials")
+              : tStatic(locale, "auth.loginFailed")),
         );
       }
     });
@@ -87,6 +108,13 @@ export default component$(() => {
               required
             />
           </div>
+          {turnstileEnabled && turnstile.site_key ? (
+            <TurnstileWidget
+              siteKey={turnstile.site_key}
+              token={turnstileToken}
+              resetKey={turnstileResetKey.value}
+            />
+          ) : null}
           <button type="submit" class="btn btn-primary" disabled={submitting.value}>
             {submitting.value ? tStatic(locale, "auth.signingIn") : tStatic(locale, "auth.login")}
           </button>

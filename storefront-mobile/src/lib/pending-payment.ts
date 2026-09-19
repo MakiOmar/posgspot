@@ -1,10 +1,8 @@
 /**
  * Survives MainActivity / JS remounts during hosted or native checkout.
- * Order ids are not secrets; the optional auth snapshot is a short-lived
- * remount recovery copy (cleared when payment ends).
+ * Stores only order ids + order access token — never Sanctum credentials.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { AuthContact, AuthSession } from "./types";
 
 const KEY = "gs-pending-payment-v1";
 const MAX_AGE_MS = 30 * 60 * 1000;
@@ -14,9 +12,8 @@ export type PendingPayment = {
   orderId: string;
   provider: string;
   startedAt: number;
-  /** Short-lived Sanctum resume if SecureStore is briefly unavailable after remount. */
-  authToken?: string;
-  authContact?: AuthContact;
+  /** Required for payment session/return APIs. */
+  orderAccessToken?: string;
 };
 
 export async function savePendingPayment(
@@ -27,9 +24,7 @@ export async function savePendingPayment(
     orderId: pending.orderId,
     provider: pending.provider,
     startedAt: pending.startedAt ?? Date.now(),
-    ...(pending.authToken && pending.authContact
-      ? { authToken: pending.authToken, authContact: pending.authContact }
-      : {}),
+    ...(pending.orderAccessToken ? { orderAccessToken: pending.orderAccessToken } : {}),
   };
   await AsyncStorage.setItem(KEY, JSON.stringify(value));
 }
@@ -40,7 +35,10 @@ export async function loadPendingPayment(): Promise<PendingPayment | null> {
     if (!raw) {
       return null;
     }
-    const parsed = JSON.parse(raw) as PendingPayment;
+    const parsed = JSON.parse(raw) as PendingPayment & {
+      authToken?: string;
+      authContact?: unknown;
+    };
     if (
       !parsed?.storefrontOrderId ||
       !parsed?.orderId ||
@@ -54,7 +52,14 @@ export async function loadPendingPayment(): Promise<PendingPayment | null> {
       await clearPendingPayment();
       return null;
     }
-    return parsed;
+    // Strip legacy auth fields if present in older blobs.
+    return {
+      storefrontOrderId: parsed.storefrontOrderId,
+      orderId: parsed.orderId,
+      provider: parsed.provider,
+      startedAt: parsed.startedAt,
+      ...(parsed.orderAccessToken ? { orderAccessToken: parsed.orderAccessToken } : {}),
+    };
   } catch {
     return null;
   }
@@ -70,14 +75,4 @@ export async function clearPendingPayment(): Promise<void> {
 
 export async function hasPendingPayment(): Promise<boolean> {
   return (await loadPendingPayment()) !== null;
-}
-
-/** Rebuild an AuthSession from the pending snapshot when SecureStore is empty. */
-export function pendingAuthSession(
-  pending: PendingPayment | null,
-): AuthSession | null {
-  if (!pending?.authToken || !pending?.authContact?.id) {
-    return null;
-  }
-  return { token: pending.authToken, contact: pending.authContact };
 }

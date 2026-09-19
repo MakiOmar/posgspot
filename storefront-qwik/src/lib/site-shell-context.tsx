@@ -130,7 +130,7 @@ export const SiteShellProvider = component$<SiteShellProviderProps>(
       void (async () => {
         if (settingsMissing && !shell.hasApiSettings) {
           try {
-            const { data } = await fetchSettings();
+            const { data } = await fetchSettings(undefined, { shell: true });
             applyShellSettings(shell, data);
           } catch {
             // Keep fallback until a later navigation succeeds.

@@ -255,6 +255,10 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.about.team.0.role', 'CEO - Founder')
             ->assertJsonPath('data.about.team.0.image_url', 'https://cdn.example.com/mahmud.jpg')
             ->assertJsonPath('data.about.team.0.social.facebook', 'https://facebook.com/mahmud');
+
+        $this->getJson('/api/storefront/v1/settings?shell=1', ['X-Content-Locale' => 'en'])
+            ->assertOk()
+            ->assertJsonPath('data.about.team', []);
     }
 
     public function test_settings_exposes_promotional_banners(): void

@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Text,
 } from "react-native";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect } from "expo-router";
 import { fetchOrders } from "../../../src/lib/api";
 import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
@@ -16,7 +16,6 @@ import {
   LoadingBlock,
   Screen,
 } from "../../../src/components/ui";
-import { openInvoice } from "../../../src/lib/invoice";
 import { toast } from "../../../src/lib/toast";
 
 const PER_PAGE = 20;
@@ -27,12 +26,12 @@ function isPaid(status: string | undefined): boolean {
 
 export default function OrdersScreen() {
   const { token, t, accent } = useApp();
-  const router = useRouter();
   const [orders, setOrders] = useState<AccountOrder[]>([]);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
@@ -103,14 +102,41 @@ export default function OrdersScreen() {
               isPaid(item.payment_status) && item.invoice_print_url ? (
                 <Pressable
                   style={[styles.invoiceBtn, { borderColor: accent }]}
+                  disabled={downloadingId === item.id}
                   onPress={() => {
-                    if (!openInvoice(router, item.invoice_print_url!)) {
-                      toast.error(t("account.invoiceUnavailable"));
-                    }
+                    void (async () => {
+                      setDownloadingId(item.id);
+                      try {
+                        const { downloadInvoicePdf } = await import(
+                          "../../../src/lib/invoice"
+                        );
+                        const result = await downloadInvoicePdf(
+                          item.invoice_print_url!,
+                          item.invoice_no ||
+                            item.storefront_order_id ||
+                            `order-${item.id}`,
+                        );
+                        if (result === "invalid") {
+                          toast.error(t("account.invoiceUnavailable"));
+                          return;
+                        }
+                        if (result === "unavailable") {
+                          toast.error(t("account.invoiceShareUnavailable"));
+                          return;
+                        }
+                        toast.success(t("account.invoiceDownloaded"));
+                      } catch {
+                        toast.error(t("common.error"));
+                      } finally {
+                        setDownloadingId(null);
+                      }
+                    })();
                   }}
                 >
                   <Text style={{ color: accent, fontWeight: "700" }}>
-                    {t("account.invoice")}
+                    {downloadingId === item.id
+                      ? t("common.loading")
+                      : t("account.downloadInvoice")}
                   </Text>
                 </Pressable>
               ) : null

@@ -11,6 +11,7 @@ import { MaintenanceGate } from "../src/components/MaintenanceGate";
 import { PaymentResumeGate } from "../src/components/PaymentResumeGate";
 import { ToastHost } from "../src/components/ToastHost";
 import { AppProvider, useApp } from "../src/contexts/AppContext";
+import { AvailabilityModalProvider } from "../src/contexts/AvailabilityModalContext";
 import { CartProvider } from "../src/contexts/CartContext";
 import { WishlistProvider } from "../src/contexts/WishlistContext";
 
@@ -52,6 +53,7 @@ export default function RootLayout() {
         <AppProvider>
           <CartProvider>
             <WishlistProvider>
+              <AvailabilityModalProvider>
               <SplashGate>
                 <PaymentResumeGate />
                 <MaintenanceGate>
@@ -127,6 +129,7 @@ export default function RootLayout() {
                 <ContactFab />
                 <ToastHost />
               </SplashGate>
+              </AvailabilityModalProvider>
             </WishlistProvider>
           </CartProvider>
         </AppProvider>
