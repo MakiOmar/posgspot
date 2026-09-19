@@ -278,9 +278,10 @@ class StorefrontCommunityPostController extends Controller
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',
             'published_at' => 'nullable|date',
-            'cover' => 'nullable|image|max:4096',
+            'cover_path' => 'nullable|string|max:500',
             'remove_cover' => 'nullable|boolean',
-            'gallery.*' => 'nullable|file|max:10240',
+            'gallery_library_paths' => 'nullable|array',
+            'gallery_library_paths.*' => 'nullable|string|max:500',
             'remove_media' => 'nullable|array',
             'remove_media.*' => 'integer',
             'title_en' => 'required|string|max:191',
@@ -329,17 +330,13 @@ class StorefrontCommunityPostController extends Controller
 
     private function handleCoverUpload(Request $request, int $businessId, ?string $existing): ?string
     {
-        $dir = 'storefront_community/'.$businessId;
-        $this->commonUtil->ensurePublicUploadPermissions($dir, null, true);
-
         if ($request->boolean('remove_cover')) {
             return null;
         }
 
-        if ($request->hasFile('cover')) {
-            $uploaded = $this->commonUtil->uploadFile($request, 'cover', $dir, 'image');
-
-            return $uploaded ?: $existing;
+        $path = trim((string) $request->input('cover_path', ''));
+        if ($path !== '') {
+            return $this->normalizeLibraryPath($path, $businessId) ?: $existing;
         }
 
         return $existing;
@@ -354,32 +351,49 @@ class StorefrontCommunityPostController extends Controller
                 ->delete();
         }
 
-        if (! $request->hasFile('gallery')) {
+        $paths = array_values(array_filter(array_map(
+            fn ($p) => $this->normalizeLibraryPath((string) $p, $businessId),
+            (array) $request->input('gallery_library_paths', [])
+        )));
+
+        if ($paths === []) {
             return;
         }
 
-        $dir = 'storefront_community/'.$businessId;
-        $this->commonUtil->ensurePublicUploadPermissions($dir, null, true);
         $sort = (int) StorefrontCommunityPostMedia::where('community_post_id', $post->id)->max('sort_order');
-
-        foreach ($request->file('gallery', []) as $file) {
-            if (! $file) {
-                continue;
-            }
-            $mime = (string) $file->getMimeType();
-            $kind = str_starts_with($mime, 'video/')
-                ? StorefrontCommunityPostMedia::KIND_VIDEO
-                : StorefrontCommunityPostMedia::KIND_IMAGE;
-            $name = time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move(public_path('uploads/'.$dir), $name);
+        foreach ($paths as $path) {
             $sort++;
             StorefrontCommunityPostMedia::create([
                 'community_post_id' => $post->id,
-                'kind' => $kind,
-                'path' => $name,
+                'kind' => StorefrontCommunityPostMedia::KIND_IMAGE,
+                'path' => $path,
+                'caption' => null,
                 'sort_order' => $sort,
             ]);
         }
+    }
+
+    private function normalizeLibraryPath(string $path, int $businessId): ?string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        if (str_starts_with($path, 'uploads/')) {
+            $path = substr($path, strlen('uploads/'));
+        }
+
+        if (str_starts_with($path, 'storefront_library/'.$businessId.'/')) {
+            return $path;
+        }
+
+        return null;
     }
 
     /**

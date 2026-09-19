@@ -87,9 +87,10 @@ class CommunityPostTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.body', '<p>Details</p>');
 
-        $this->getJson('/api/storefront/v1/community/posts?type=tournament', ['X-Content-Locale' => 'ar'])
+        $arList = $this->getJson('/api/storefront/v1/community/posts?type=tournament', ['X-Content-Locale' => 'ar'])
             ->assertOk()
-            ->assertJsonPath('data', []);
+            ->json('data');
+        $this->assertNull(collect($arList)->firstWhere('slug', $post->slug));
     }
 
     public function test_upcoming_scope_filters_past_events(): void

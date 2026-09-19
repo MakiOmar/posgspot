@@ -5,6 +5,7 @@ import {
   CommunityRelatedPosts,
 } from "~/components/community/community-detail-sections";
 import { formatCommunityWhen } from "~/components/community/community-dates";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { ApiError, fetchCommunityPost } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -53,28 +54,25 @@ export default component$(() => {
   }
 
   return (
-    <article class="content-page community-page community-detail">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <Link href={localePath(locale, "/gaming-news")}>
-          {tStatic(locale, "community.newsTitle")}
-        </Link>
-        <span aria-hidden="true">›</span>
-        <span>{post.title}</span>
-      </nav>
-
+    <div class="community-detail-layout">
+      <PageTitleBar
+        title={post.title}
+        lead={post.excerpt || undefined}
+        crumbs={[
+          { label: tStatic(locale, "community.newsTitle"), href: "/gaming-news" },
+          { label: post.title },
+        ]}
+      />
+      <article class="content-page community-page community-detail">
       {post.cover_url ? (
         <div class="community-detail__cover">
           <img src={post.cover_url} alt="" width={1200} height={675} />
         </div>
       ) : null}
 
-      <h1 class="content-title">{post.title}</h1>
       {post.published_at ? (
         <p class="community-post-card__meta">{formatCommunityWhen(post.published_at, locale)}</p>
       ) : null}
-      {post.excerpt ? <p class="content-lead">{post.excerpt}</p> : null}
       <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
 
       <CommunityMediaGallery media={post.media} />
@@ -86,6 +84,7 @@ export default component$(() => {
         </Link>
       </p>
     </article>
+    </div>
   );
 });
 

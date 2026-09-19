@@ -124,7 +124,7 @@ class CommunityDemoContent
                 'slug' => self::SLUG_PREFIX.'news-community-recap',
                 'cover' => $img[4],
                 'gallery' => [$img[1]],
-                'is_featured' => false,
+                'is_featured' => true,
                 'published_at' => now()->subDays(10),
                 'en' => [
                     'title' => 'Community Night Recap: Controllers & Coffee',
@@ -142,7 +142,7 @@ class CommunityDemoContent
                 'slug' => self::SLUG_PREFIX.'news-gift-card-guide',
                 'cover' => $img[6],
                 'gallery' => [$img[5], $img[2]],
-                'is_featured' => false,
+                'is_featured' => true,
                 'published_at' => now()->subDays(14),
                 'en' => [
                     'title' => 'Digital Gift Cards: What to Know Before You Buy',
@@ -153,6 +153,42 @@ class CommunityDemoContent
                     'title' => 'بطاقات الهدايا الرقمية: ما يجب معرفته قبل الشراء',
                     'excerpt' => 'المناطق ونصائح الاسترداد وكيف توصل Games Spot الأكواد.',
                     'body' => '<p>طابق دائماً منطقة الحساب مع البطاقة. بعد إتمام الدفع تُسلَّم بيانات الدخول إلى حسابك.</p>',
+                ],
+            ],
+            [
+                'type' => StorefrontCommunityPost::TYPE_NEWS,
+                'slug' => self::SLUG_PREFIX.'news-esports-watch',
+                'cover' => $img[3],
+                'gallery' => [$img[0], $img[4]],
+                'is_featured' => true,
+                'published_at' => now()->subDays(7),
+                'en' => [
+                    'title' => 'How to Watch Local Esports Like a Pro',
+                    'excerpt' => 'Streams, bracket apps, and in-store viewing parties.',
+                    'body' => '<p>Follow our community calendar for watch parties. Bring friends — seats are limited on finals nights.</p>',
+                ],
+                'ar' => [
+                    'title' => 'كيف تشاهد الرياضات الإلكترونية المحلية باحتراف',
+                    'excerpt' => 'البثوث وتطبيقات الجداول وحفلات المشاهدة في المتجر.',
+                    'body' => '<p>تابع تقويم المجتمع لحفلات المشاهدة. أحضر أصدقاءك — المقاعد محدودة في ليالي النهائيات.</p>',
+                ],
+            ],
+            [
+                'type' => StorefrontCommunityPost::TYPE_NEWS,
+                'slug' => self::SLUG_PREFIX.'news-accessory-picks',
+                'cover' => $img[2],
+                'gallery' => [$img[1], $img[6]],
+                'is_featured' => false,
+                'published_at' => now()->subDays(18),
+                'en' => [
+                    'title' => 'Accessory Picks for Long Sessions',
+                    'excerpt' => 'Headsets, stands, and pads our staff actually recommend.',
+                    'body' => '<p>Comfort matters. Ask in-store for current stock on our best-selling pads and headsets.</p>',
+                ],
+                'ar' => [
+                    'title' => 'اختيارات الإكسسوارات للجلسات الطويلة',
+                    'excerpt' => 'سماعات وحاملات ومنصات يوصي بها فريقنا فعلاً.',
+                    'body' => '<p>الراحة مهمة. اسأل داخل المتجر عن المخزون الحالي لأفضل المنصات والسماعات.</p>',
                 ],
             ],
 

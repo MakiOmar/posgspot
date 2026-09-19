@@ -187,7 +187,17 @@
     "results": "Results",
     "highlights": "Highlights",
     "recap": "Recap",
-    "dateRange": "{start} – {end}"
+    "dateRange": "{start} – {end}",
+    "sidebar": "News sidebar",
+    "searchTitle": "Search community",
+    "searchPlaceholder": "News, events, tournaments…",
+    "searchSubmit": "Search",
+    "searchHint": "Searches titles and short descriptions.",
+    "searchResults": "Search results",
+    "searchEmpty": "No posts matched your search.",
+    "upcomingTournaments": "Upcoming tournaments",
+    "upcomingEvents": "Upcoming events",
+    "noUpcoming": "Nothing scheduled yet."
   },
   "requestProduct": {
     "badge": "Sourcing",

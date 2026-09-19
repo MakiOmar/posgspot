@@ -10,19 +10,37 @@ import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { CommunityPostSummary } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolveValue }) => {
+export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolveValue, url }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const settings = await resolveValue(useSiteSettings);
   if (!settings.community?.enabled) {
     throw redirect(302, localePath(locale, "/"));
   }
 
+  const q = url.searchParams.get("q") || "";
+
   try {
-    const { data } = await fetchCommunityPosts({ type: "news" }, locale);
-    return { posts: data as CommunityPostSummary[], unavailable: false };
+    const [news, tournaments, events] = await Promise.all([
+      fetchCommunityPosts({ type: "news", ...(q ? { q } : {}) }, locale),
+      fetchCommunityPosts({ type: "tournament", scope: "upcoming" }, locale),
+      fetchCommunityPosts({ type: "event", scope: "upcoming" }, locale),
+    ]);
+    return {
+      posts: news.data as CommunityPostSummary[],
+      upcomingTournaments: tournaments.data as CommunityPostSummary[],
+      upcomingEvents: events.data as CommunityPostSummary[],
+      unavailable: false,
+      query: q,
+    };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return { posts: [] as CommunityPostSummary[], unavailable: true };
+      return {
+        posts: [] as CommunityPostSummary[],
+        upcomingTournaments: [] as CommunityPostSummary[],
+        upcomingEvents: [] as CommunityPostSummary[],
+        unavailable: true,
+        query: q,
+      };
     }
     throw e;
   }
@@ -31,7 +49,13 @@ export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolve
 export default component$(() => {
   const page = useGamingNewsPage();
   return (
-    <CommunityNewsListPage posts={page.value.posts} unavailable={page.value.unavailable} />
+    <CommunityNewsListPage
+      posts={page.value.posts}
+      upcomingTournaments={page.value.upcomingTournaments}
+      upcomingEvents={page.value.upcomingEvents}
+      unavailable={page.value.unavailable}
+      query={page.value.query}
+    />
   );
 });
 

@@ -4,6 +4,7 @@ import { MapPinIcon, PhoneIcon } from "~/components/icons";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ApiError, fetchLocations, fetchPhoneCountries, submitContactForm } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { validatePhone } from "~/lib/phone-validation";
@@ -101,15 +102,12 @@ export default component$(() => {
   });
 
   return (
+    <div class="contact-layout">
+      <PageTitleBar
+        title={tStatic(locale, "contact.title")}
+        crumbs={[{ label: tStatic(locale, "contact.title") }]}
+      />
     <article class="content-page contact-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <a href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</a>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "contact.title")}</span>
-      </nav>
-
-      <h1 class="content-title">{tStatic(locale, "contact.title")}</h1>
-
       <div class="contact-map-wrap">
         <iframe
           title={tStatic(locale, "contact.mapTitle")}
@@ -253,6 +251,7 @@ export default component$(() => {
         </form>
       </section>
     </article>
+    </div>
   );
 });
 

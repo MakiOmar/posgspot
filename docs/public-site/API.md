@@ -95,7 +95,7 @@ Published posts only. Locale via `X-Content-Locale` (strict — no fallback when
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/community/posts` | Query: optional `type=tournament\|event\|news`, `scope=upcoming\|previous` (tournament/event only). List items omit full `body` / media / related. Includes `is_featured`, structured tournament/event fields, `registration_mode` / `registration_open`, `location`. **404** when `STOREFRONT_COMMUNITY` off. |
+| GET | `/community/posts` | Query: optional `type=tournament\|event\|news`, `scope=upcoming\|previous` (tournament/event only), `q` (title/excerpt/game_title search). List items omit full `body` / media / related. Includes `is_featured`, structured tournament/event fields, `registration_mode` / `registration_open`, `location`. **404** when `STOREFRONT_COMMUNITY` off. |
 | GET | `/community/posts/{slug}` | Detail includes sanitized HTML `body` plus `rules` / `results` / `highlights` / `recap`, `registration_details`, `registration_url` when mode=`external`, `media[]`, `related_posts[]`. **404** when disabled or not found. |
 | POST | `/community/posts/{slug}/applications` | Internal registration: `{ name, mobile, dial_code?, source?: web\|mobile, turnstile_token? }`. Guest or Sanctum. **201** application summary. **422** when registration closed / not internal / duplicate mobile / validation. **404** when disabled or not a published tournament/event. |
 

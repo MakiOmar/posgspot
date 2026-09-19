@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community UI polish: page title bar, promo-tile featured mosaic, news sidebar (newsletter/search/upcoming), POS media library for covers/gallery; more featured demo news. |
 | 2026-09-19 | Community demo seed/wipe: `php artisan storefront:community-demo seed|wipe` (slug prefix `demo-`, remote library covers). |
 | 2026-09-19 | Community CMS expansion: featured news, gallery/media, location + structured tournament/event fields, dual registration (`off`/`internal`/`external`) + apply API, POS applications inbox; Qwik SSR lists + Register Now; Expo parity. |
 | 2026-09-19 | Nav IA: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs → Quick Links; floating contact FAB; hero drops Bundle CTA. |

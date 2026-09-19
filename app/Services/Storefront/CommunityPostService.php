@@ -27,8 +27,13 @@ class CommunityPostService
     /**
      * @return list<array<string, mixed>>
      */
-    public function list(int $businessId, string $locale, ?string $type = null, ?string $scope = null): array
-    {
+    public function list(
+        int $businessId,
+        string $locale,
+        ?string $type = null,
+        ?string $scope = null,
+        ?string $q = null
+    ): array {
         $locale = $this->normalizeLocale($locale);
         $query = $this->publishedQuery($businessId, $locale);
 
@@ -37,6 +42,19 @@ class CommunityPostService
         }
 
         $this->applyEventScope($query, $type, $scope);
+
+        $q = trim((string) $q);
+        if ($q !== '') {
+            $like = '%'.$q.'%';
+            $query->whereHas('translations', function (Builder $tq) use ($locale, $like) {
+                $tq->where('locale', $locale)
+                    ->where(function (Builder $inner) use ($like) {
+                        $inner->where('title', 'like', $like)
+                            ->orWhere('excerpt', 'like', $like)
+                            ->orWhere('game_title', 'like', $like);
+                    });
+            });
+        }
 
         if (in_array($type, [StorefrontCommunityPost::TYPE_TOURNAMENT, StorefrontCommunityPost::TYPE_EVENT], true)) {
             if ($scope === 'previous') {
@@ -50,7 +68,7 @@ class CommunityPostService
 
         $rows = $query
             ->with([
-                'translations' => fn ($q) => $q->where('locale', $locale),
+                'translations' => fn ($q2) => $q2->where('locale', $locale),
                 'location',
             ])
             ->get();

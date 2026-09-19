@@ -136,35 +136,82 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                {!! Form::label('cover', 'Cover / main image') !!}
-                @if($post && $post->coverUrl())
-                    <div class="tw-mb-2">
+            <div class="form-group" id="community_media_field"
+                 data-media-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'listMedia']) }}"
+                 data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}">
+                {!! Form::label('cover_path', 'Cover / main image') !!}
+                <div id="community_cover_preview" class="tw-mb-2">
+                    @if($post && $post->coverUrl())
                         <img src="{{ $post->coverUrl() }}" alt="Cover" style="max-height: 120px; border-radius: 6px;">
-                    </div>
-                    <label class="checkbox-inline">
-                        <input type="checkbox" name="remove_cover" value="1"> Remove current cover
-                    </label>
-                @endif
-                {!! Form::file('cover', ['class' => 'form-control', 'accept' => 'image/*']) !!}
-            </div>
+                    @endif
+                </div>
+                <input type="hidden" name="cover_path" id="community_cover_path" value="{{ old('cover_path', $post->cover_path ?? '') }}">
+                <div class="btn-group" style="margin-bottom:8px;">
+                    <button type="button" class="btn btn-default btn-sm" id="community_cover_library_btn">
+                        <i class="fas fa-images"></i> Choose cover from library
+                    </button>
+                </div>
+                <label class="checkbox-inline" style="display:block;margin-top:6px;">
+                    <input type="checkbox" name="remove_cover" id="community_remove_cover" value="1"> Remove current cover
+                </label>
 
-            <div class="form-group">
-                {!! Form::label('gallery', 'Gallery images / videos') !!}
+                <hr style="margin:14px 0;">
+                {!! Form::label('gallery', 'Gallery images') !!}
                 @if(isset($media) && $media->count())
                     <ul class="list-unstyled tw-mb-2">
                         @foreach($media as $item)
                             <li>
                                 <label class="checkbox-inline">
                                     <input type="checkbox" name="remove_media[]" value="{{ $item->id }}">
-                                    Remove #{{ $item->id }} ({{ $item->kind }})
+                                    Remove #{{ $item->id }}
                                 </label>
-                                — {{ $item->path }}
+                                @if($item->publicUrl((int) ($post->business_id ?? 0)))
+                                    — <img src="{{ $item->publicUrl((int) $post->business_id) }}" alt="" style="height:36px;border-radius:3px;vertical-align:middle;">
+                                @endif
                             </li>
                         @endforeach
                     </ul>
                 @endif
-                <input type="file" name="gallery[]" class="form-control" multiple accept="image/*,video/*">
+                <div id="community_gallery_pending" class="row" style="margin-bottom:8px;"></div>
+                <button type="button" class="btn btn-default btn-sm" id="community_gallery_library_btn">
+                    <i class="fas fa-images"></i> Add gallery images from library
+                </button>
+            </div>
+
+            <style>
+            .community-lib-modal{position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;}
+            .community-lib-modal[hidden]{display:none!important;}
+            .community-lib-dialog{background:#fff;border-radius:6px;max-width:720px;width:100%;max-height:90vh;overflow:auto;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.2);}
+            .community-lib-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+            .community-lib-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+            .community-lib-toolbar .form-control{max-width:220px;}
+            .community-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;min-height:80px;}
+            .community-lib-card{border:1px solid #ddd;border-radius:4px;background:#fafafa;padding:6px;cursor:pointer;text-align:left;}
+            .community-lib-card:hover{border-color:#3c8dbc;}
+            .community-lib-card img{display:block;width:100%;height:72px;object-fit:cover;border-radius:2px;margin-bottom:4px;}
+            .community-lib-name{display:block;font-size:11px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+            .community-lib-pager{display:flex;align-items:center;gap:8px;margin-top:10px;}
+            </style>
+            <div id="community_library_modal" class="community-lib-modal" hidden>
+                <div class="community-lib-dialog" role="dialog" aria-modal="true" aria-label="Media library">
+                    <div class="community-lib-head">
+                        <strong>Media library</strong>
+                        <button type="button" class="btn btn-default btn-xs" id="community_library_close">Close</button>
+                    </div>
+                    <div class="community-lib-toolbar">
+                        <input type="search" class="form-control input-sm" id="community_library_q" placeholder="Search" />
+                        <button type="button" class="btn btn-default btn-sm" id="community_library_search">Search</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="community_library_upload">Upload new</button>
+                        <input type="file" id="community_library_file" accept="image/jpeg,image/png,image/gif,image/webp" hidden />
+                    </div>
+                    <p id="community_library_status" class="text-muted" style="margin:8px 0;"></p>
+                    <div id="community_library_grid" class="community-lib-grid"></div>
+                    <div class="community-lib-pager">
+                        <button type="button" class="btn btn-default btn-xs" id="community_library_prev" disabled>Prev</button>
+                        <span id="community_library_page" class="text-muted"></span>
+                        <button type="button" class="btn btn-default btn-xs" id="community_library_next" disabled>Next</button>
+                    </div>
+                </div>
             </div>
 
             <hr>
@@ -254,6 +301,7 @@
 @endsection
 
 @section('javascript')
+<script src="{{ asset('js/community-media-library.js') }}"></script>
 <script>
 (function () {
     function syncCommunityForm() {

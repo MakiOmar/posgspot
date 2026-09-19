@@ -187,7 +187,17 @@
     "results": "النتائج",
     "highlights": "أبرز اللحظات",
     "recap": "الملخص",
-    "dateRange": "{start} – {end}"
+    "dateRange": "{start} – {end}",
+    "sidebar": "شريط الأخبار",
+    "searchTitle": "بحث في المجتمع",
+    "searchPlaceholder": "أخبار وفعاليات وبطولات…",
+    "searchSubmit": "بحث",
+    "searchHint": "يبحث في العناوين والأوصاف القصيرة.",
+    "searchResults": "نتائج البحث",
+    "searchEmpty": "لا توجد نتائج مطابقة.",
+    "upcomingTournaments": "البطولات القادمة",
+    "upcomingEvents": "الفعاليات القادمة",
+    "noUpcoming": "لا يوجد شيء مجدول بعد."
   },
   "requestProduct": {
     "badge": "توريد",

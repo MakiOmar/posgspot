@@ -849,12 +849,17 @@ export function trackOrderLookup(
 
 /** Community CMS list (tournaments / events / news). */
 export function fetchCommunityPosts(
-  params: { type?: import("./types").CommunityPostType; scope?: "upcoming" | "previous" } = {},
+  params: {
+    type?: import("./types").CommunityPostType;
+    scope?: "upcoming" | "previous";
+    q?: string;
+  } = {},
   locale?: string,
 ) {
   const qs = new URLSearchParams();
   if (params.type) qs.set("type", params.type);
   if (params.scope) qs.set("scope", params.scope);
+  if (params.q) qs.set("q", params.q);
   const suffix = qs.toString() ? `?${qs}` : "";
   return storefrontFetch<import("./types").CommunityPostSummary[]>(
     `/community/posts${suffix}`,

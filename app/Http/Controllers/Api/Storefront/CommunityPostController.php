@@ -28,6 +28,7 @@ class CommunityPostController extends StorefrontController
         $validated = $request->validate([
             'type' => ['nullable', 'string', Rule::in(StorefrontCommunityPost::TYPES)],
             'scope' => ['nullable', 'string', Rule::in(['upcoming', 'previous'])],
+            'q' => ['nullable', 'string', 'max:191'],
         ]);
 
         $locale = $this->community->localeFromRequest($request);
@@ -35,7 +36,8 @@ class CommunityPostController extends StorefrontController
             $this->businessId($request),
             $locale,
             $validated['type'] ?? null,
-            $validated['scope'] ?? null
+            $validated['scope'] ?? null,
+            $validated['q'] ?? null
         );
 
         return $this->jsonSuccess($items);
