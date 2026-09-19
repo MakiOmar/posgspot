@@ -1,11 +1,13 @@
 /**
  * Storefront Settings → Shop menu: recursive nestable Physical column builder (SortableJS).
  * Groups may nest under groups (server enforces max depth 5).
+ * Horizontal drag: right = nest under previous sibling group; left = un-nest (after parent).
  */
 (function ($) {
   "use strict";
 
   var MAX_DEPTH = 5;
+  var INDENT_THRESHOLD_PX = 36;
 
   function parseJsonScript(id, fallback) {
     var el = document.getElementById(id);
@@ -27,6 +29,14 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function eventClientX(e) {
+    if (!e) return 0;
+    if (typeof e.clientX === "number") return e.clientX;
+    if (e.touches && e.touches[0]) return e.touches[0].clientX;
+    if (e.changedTouches && e.changedTouches[0]) return e.changedTouches[0].clientX;
+    return 0;
   }
 
   function initShopMenuBuilder() {
@@ -57,8 +67,35 @@
     var $empty = $root.find(".sf-shop-menu-empty");
     var $hidden = $("#shop_menu_physical");
 
+    var indentDrag = {
+      active: false,
+      startX: 0,
+      item: null,
+      ghost: null,
+    };
+
     function itemDepth($li) {
       return $li.parents("li.sf-shop-menu-item--group").length + 1;
+    }
+
+    /** Depth span of a subtree (1 for a link; group + deepest descendant). */
+    function subtreeDepth($li) {
+      if (!$li.hasClass("sf-shop-menu-item--group")) {
+        return 1;
+      }
+      var maxChild = 0;
+      $li
+        .children(".panel-body")
+        .children(".sf-shop-menu-children")
+        .children("li.sf-shop-menu-item")
+        .each(function () {
+          maxChild = Math.max(maxChild, subtreeDepth($(this)));
+        });
+      return 1 + maxChild;
+    }
+
+    function groupChildrenUl($group) {
+      return $group.children(".panel-body").children(".sf-shop-menu-children");
     }
 
     function syncHidden() {
@@ -71,9 +108,11 @@
       var type = $li.data("type");
       if (type === "group") {
         var children = [];
-        $li.children(".panel-body").children(".sf-shop-menu-children").children("li.sf-shop-menu-item").each(function () {
-          children.push(serializeItem($(this)));
-        });
+        groupChildrenUl($li)
+          .children("li.sf-shop-menu-item")
+          .each(function () {
+            children.push(serializeItem($(this)));
+          });
         return {
           id: String($li.data("id") || uid()),
           type: "group",
@@ -165,6 +204,121 @@
       );
     }
 
+    function canPlaceUnderGroup($drag, $group) {
+      var placeDepth = itemDepth($group) + 1;
+      if (placeDepth > MAX_DEPTH) {
+        return false;
+      }
+      if ($drag.hasClass("sf-shop-menu-item--group")) {
+        return placeDepth + subtreeDepth($drag) - 1 <= MAX_DEPTH;
+      }
+      return true;
+    }
+
+    /**
+     * Nest under the previous sibling when it is a group (WordPress-style indent).
+     * Returns true when the DOM changed.
+     */
+    function tryIndent($li) {
+      var $prev = $li.prev("li.sf-shop-menu-item");
+      if (!$prev.length || !$prev.hasClass("sf-shop-menu-item--group")) {
+        return false;
+      }
+      if (!canPlaceUnderGroup($li, $prev)) {
+        return false;
+      }
+      groupChildrenUl($prev).append($li);
+      return true;
+    }
+
+    /**
+     * Move out of the parent group to sit after it (WordPress-style outdent).
+     */
+    function tryOutdent($li) {
+      var $parentUl = $li.parent();
+      if (!$parentUl.hasClass("sf-shop-menu-children")) {
+        return false;
+      }
+      var $parentGroup = $parentUl.closest("li.sf-shop-menu-item--group");
+      if (!$parentGroup.length) {
+        return false;
+      }
+      $parentGroup.after($li);
+      return true;
+    }
+
+    function applyHorizontalNesting($li, dx) {
+      var steps = Math.floor(Math.abs(dx) / INDENT_THRESHOLD_PX);
+      if (steps < 1) {
+        return false;
+      }
+      var changed = false;
+      var i;
+      if (dx >= INDENT_THRESHOLD_PX) {
+        for (i = 0; i < steps; i++) {
+          if (!tryIndent($li)) {
+            break;
+          }
+          changed = true;
+        }
+      } else if (dx <= -INDENT_THRESHOLD_PX) {
+        for (i = 0; i < steps; i++) {
+          if (!tryOutdent($li)) {
+            break;
+          }
+          changed = true;
+        }
+      }
+      return changed;
+    }
+
+    function setIndentHint(dx) {
+      var el = indentDrag.ghost || indentDrag.item;
+      if (!el) return;
+      var hint = 0;
+      if (dx >= INDENT_THRESHOLD_PX) {
+        hint = Math.min(72, Math.floor(dx / INDENT_THRESHOLD_PX) * 18);
+      } else if (dx <= -INDENT_THRESHOLD_PX) {
+        hint = -Math.min(72, Math.floor(Math.abs(dx) / INDENT_THRESHOLD_PX) * 18);
+      }
+      el.style.transform = hint ? "translateX(" + hint + "px)" : "";
+      el.classList.toggle("sf-shop-menu-item--indent-hint", hint > 0);
+      el.classList.toggle("sf-shop-menu-item--outdent-hint", hint < 0);
+    }
+
+    function clearIndentHint() {
+      var el = indentDrag.ghost || indentDrag.item;
+      if (el) {
+        el.style.transform = "";
+        el.classList.remove("sf-shop-menu-item--indent-hint", "sf-shop-menu-item--outdent-hint");
+      }
+    }
+
+    function onIndentPointerMove(e) {
+      if (!indentDrag.active) return;
+      setIndentHint(eventClientX(e) - indentDrag.startX);
+    }
+
+    function stopIndentTracking() {
+      indentDrag.active = false;
+      document.removeEventListener("pointermove", onIndentPointerMove, true);
+      document.removeEventListener("mousemove", onIndentPointerMove, true);
+      document.removeEventListener("touchmove", onIndentPointerMove, true);
+      clearIndentHint();
+      indentDrag.item = null;
+      indentDrag.ghost = null;
+    }
+
+    function startIndentTracking(evt) {
+      indentDrag.active = true;
+      indentDrag.startX = eventClientX(evt.originalEvent);
+      indentDrag.item = evt.item;
+      indentDrag.ghost = evt.clone || document.querySelector(".sortable-ghost") || evt.item;
+      document.addEventListener("pointermove", onIndentPointerMove, true);
+      document.addEventListener("mousemove", onIndentPointerMove, true);
+      document.addEventListener("touchmove", onIndentPointerMove, true);
+    }
+
     function render() {
       var html = "";
       tree.forEach(function (node) {
@@ -184,7 +338,7 @@
         }
       });
 
-      function makeSortable(el, isRoot) {
+      function makeSortable(el) {
         var sortable = Sortable.create(el, {
           group: {
             name: "shop-menu",
@@ -193,18 +347,29 @@
               var $drag = $(dragEl);
               var $to = $(to.el);
               var parentGroup = $to.closest("li.sf-shop-menu-item--group");
-              var nextDepth = parentGroup.length ? itemDepth(parentGroup) + 1 : 1;
-              if ($drag.hasClass("sf-shop-menu-item--group") && nextDepth > MAX_DEPTH) {
-                return false;
+              if (!parentGroup.length) {
+                return true;
               }
-              // Links always allowed; groups only if depth allows.
-              return true;
+              return canPlaceUnderGroup($drag, parentGroup);
             },
           },
           handle: ".sf-shop-menu-handle",
           animation: 150,
           fallbackOnBody: true,
           swapThreshold: 0.65,
+          onStart: function (evt) {
+            startIndentTracking(evt);
+          },
+          onEnd: function (evt) {
+            var endX = eventClientX(evt.originalEvent);
+            var dx = endX - indentDrag.startX;
+            var $li = $(evt.item);
+            stopIndentTracking();
+            if (applyHorizontalNesting($li, dx)) {
+              bindSortables();
+            }
+            syncHidden();
+          },
           onAdd: function () {
             bindSortables();
             syncHidden();
@@ -215,9 +380,9 @@
         $(el).data("sortable", sortable);
       }
 
-      makeSortable($tree[0], true);
+      makeSortable($tree[0]);
       $tree.find(".sf-shop-menu-children").each(function () {
-        makeSortable(this, false);
+        makeSortable(this);
       });
     }
 

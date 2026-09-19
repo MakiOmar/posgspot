@@ -176,7 +176,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
 | Storefront logo (upload / URL) | ✅ | Settings → Appearance; overrides POS business logo in public `logo_url` |
-| Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop (groups under groups, max depth 5); public `shop_menu.physical`; Qwik + Expo |
+| Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop + drag-right/left indent/outdent (max depth 5); public `shop_menu.physical`; Qwik + Expo |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
@@ -253,6 +253,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Shop menu Physical: drag-right nests under previous group; drag-left un-nests (POS builder). |
 | 2026-09-19 | Shop menu Physical: allow nested groups (max depth 5) in POS builder, API resolve, Qwik mega/drawer, Expo NavDrawer. |
 | 2026-09-19 | Shop menu Physical builder (POS tab + drag-drop groups/links); public `shop_menu.physical`; Qwik mega/drawer + Expo NavDrawer nested parity. |
 | 2026-09-19 | Mobile chrome: larger cart/wishlist badges; hide header cart/wishlist/search under 1024px (bottom nav + search); centered header logo; storefront logo setting overrides POS business logo. |
