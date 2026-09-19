@@ -145,7 +145,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
 
               <Link
                 href={localePath(locale, signedIn ? "/account" : "/login")}
-                class="action-link"
+                class="action-link action-account"
                 prefetch={false}
                 aria-label={signedIn ? tStatic(locale, "header.myAccount") : tStatic(locale, "header.signIn")}
               >

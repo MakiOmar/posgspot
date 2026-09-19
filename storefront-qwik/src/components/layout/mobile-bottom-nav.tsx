@@ -6,6 +6,7 @@ import { useAuth } from "~/lib/auth-context";
 import { totalCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { HEADER_STYLE } from "~/lib/config";
+import { useHeaderDropdown } from "~/lib/header-dropdown-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath, stripLocalePrefix } from "~/lib/i18n/paths";
 import { wishlistCount } from "~/lib/wishlist-actions";
@@ -28,6 +29,7 @@ export const MobileBottomNav = component$(() => {
   const auth = useAuth();
   const cart = useCart();
   const wishlist = useWishlist();
+  const headerMenu = useHeaderDropdown();
   const signedIn = isAuthenticated(auth);
   const bare = stripLocalePrefix(loc.url.pathname);
   const cartCount = totalCartItems(cart);
@@ -35,7 +37,7 @@ export const MobileBottomNav = component$(() => {
   const isStyleOne = HEADER_STYLE === "one";
 
   const homeActive = isActivePath(bare, "/");
-  const searchActive = isActivePath(bare, "/search");
+  const searchActive = isActivePath(bare, "/search") || headerMenu.searchModalOpen;
   const cartActive = isActivePath(bare, "/cart") || isActivePath(bare, "/checkout");
   const wishlistActive = isActivePath(bare, "/wishlist");
   const profileActive =
@@ -44,8 +46,8 @@ export const MobileBottomNav = component$(() => {
     isActivePath(bare, "/register");
 
   const openSearch$ = $(() => {
-    if (isStyleOne && typeof document !== "undefined") {
-      document.dispatchEvent(new CustomEvent("storefront:open-search"));
+    if (isStyleOne) {
+      headerMenu.searchModalOpen = true;
       return;
     }
     void nav(localePath(locale, "/search"));
@@ -68,6 +70,7 @@ export const MobileBottomNav = component$(() => {
         type="button"
         class={`mobile-bottom-nav__item${searchActive ? " mobile-bottom-nav__item--active" : ""}`}
         aria-label={tStatic(locale, "header.search")}
+        aria-expanded={isStyleOne ? headerMenu.searchModalOpen : undefined}
         onClick$={openSearch$}
       >
         <span class="mobile-bottom-nav__icon">

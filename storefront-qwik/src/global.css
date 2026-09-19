@@ -3581,8 +3581,9 @@ html[dir="rtl"] .header-search-type {
     display: flex;
   }
 
-  /* Cart / wishlist live in the bottom bar — drop header duplicates. */
+  /* Cart / wishlist / account live in the bottom bar — drop header duplicates. */
   .header-actions .action-wishlist,
+  .header-actions .action-account,
   .header-actions .mini-cart {
     display: none;
   }

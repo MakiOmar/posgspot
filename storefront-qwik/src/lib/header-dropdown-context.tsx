@@ -19,6 +19,8 @@ export type HeaderDropdownId =
 
 export interface HeaderDropdownState {
   openId: HeaderDropdownId;
+  /** Style-one search dialog (opened from header trigger or mobile bottom nav). */
+  searchModalOpen: boolean;
 }
 
 export const HeaderDropdownContext = createContextId<HeaderDropdownState>(
@@ -48,7 +50,7 @@ export function closeHeaderDropdown(
 }
 
 export const HeaderDropdownProvider = component$(() => {
-  const state = useStore<HeaderDropdownState>({ openId: null });
+  const state = useStore<HeaderDropdownState>({ openId: null, searchModalOpen: false });
   useContextProvider(HeaderDropdownContext, state);
   return <Slot />;
 });

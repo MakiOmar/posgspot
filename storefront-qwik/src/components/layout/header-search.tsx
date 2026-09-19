@@ -57,7 +57,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
   const { locale } = useI18n();
   const headerMenu = useHeaderDropdown();
   const searching = useSignal(false);
-  const modalOpen = useSignal(false);
   const digitalEnabled = settings.digital?.enabled !== false;
   const searchType = useSignal<CatalogSearchType>(
     parseCatalogSearchType(loc.url.searchParams.get("type")),
@@ -126,16 +125,6 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
     }),
   );
 
-  // Mobile bottom nav (and other hosts) can open the style-one search modal.
-  useOnDocument(
-    "storefront:open-search",
-    $(() => {
-      if (variant === "modal") {
-        modalOpen.value = true;
-      }
-    }),
-  );
-
   const submitSearch$ = $(async (term: string) => {
     const href = searchHref(locale, term, searchType.value);
     closeHeaderDropdown(headerMenu, "search");
@@ -167,7 +156,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
   const isModal = variant === "modal";
 
   const closeModal$ = $(() => {
-    modalOpen.value = false;
+    headerMenu.searchModalOpen = false;
     closeHeaderDropdown(headerMenu, "search");
   });
 
@@ -182,7 +171,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
             const item = results.value[activeIndex.value];
             if (item) {
               await goToHit$(activeIndex.value);
-              if (isModal) modalOpen.value = false;
+              if (isModal) headerMenu.searchModalOpen = false;
               return;
             }
           }
@@ -190,7 +179,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
           const q = new FormData(form).get("q");
           const term = typeof q === "string" ? q.trim() : "";
           await submitSearch$(term);
-          if (isModal) modalOpen.value = false;
+          if (isModal) headerMenu.searchModalOpen = false;
         }}
       >
         {digitalEnabled ? (
@@ -246,7 +235,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
               closeHeaderDropdown(headerMenu, "search");
               activeIndex.value = -1;
               if (isModal) {
-                modalOpen.value = false;
+                headerMenu.searchModalOpen = false;
               }
               return;
             }
@@ -270,7 +259,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
               const item = results.value[activeIndex.value];
               if (item) {
                 void goToHit$(activeIndex.value).then(() => {
-                  if (isModal) modalOpen.value = false;
+                  if (isModal) headerMenu.searchModalOpen = false;
                 });
               }
             }
@@ -315,7 +304,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
                     event.preventDefault();
                     event.stopPropagation();
                     await goToHit$(index);
-                    if (isModal) modalOpen.value = false;
+                    if (isModal) headerMenu.searchModalOpen = false;
                   }}
                 >
                   {hit.image_url ? (
@@ -355,7 +344,7 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
               event.preventDefault();
               event.stopPropagation();
               await submitSearch$(query.value.trim());
-              if (isModal) modalOpen.value = false;
+              if (isModal) headerMenu.searchModalOpen = false;
             }}
           >
             {tStatic(locale, "common.viewAllResults", { query: query.value.trim() })}
@@ -372,14 +361,14 @@ export const HeaderSearch = component$<HeaderSearchProps>(({ settings, variant =
           type="button"
           class="header-search-trigger"
           aria-label={tStatic(locale, "header.search")}
-          aria-expanded={modalOpen.value}
+          aria-expanded={headerMenu.searchModalOpen}
           onClick$={() => {
-            modalOpen.value = true;
+            headerMenu.searchModalOpen = true;
           }}
         >
           <SearchIcon size={22} />
         </button>
-        {modalOpen.value ? (
+        {headerMenu.searchModalOpen ? (
           <div class="header-search-modal" role="dialog" aria-modal="true" aria-label={tStatic(locale, "header.search")}>
             <button
               type="button"
