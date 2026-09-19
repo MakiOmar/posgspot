@@ -848,7 +848,12 @@ class AdminSidebarMenu
                             $sub->url(
                                 action([\App\Http\Controllers\StorefrontCommunityPostController::class, 'index']),
                                 'Community posts',
-                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'community']
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'community' && request()->segment(3) != 'applications']
+                            );
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'index']),
+                                'Community applications',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'community' && request()->segment(3) == 'applications']
                             );
                             $sub->url(
                                 action([\App\Http\Controllers\StorefrontProductRequestController::class, 'index']),

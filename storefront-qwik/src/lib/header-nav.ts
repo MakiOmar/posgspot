@@ -33,7 +33,7 @@ export interface ResolvedNavItem {
 
 /**
  * Build header nav: Home, Shop mega, Services, Our Stores, Build Your Bundle,
- * Community (no destinations yet), Sell to Us.
+ * Community (when enabled), Sell to Us.
  */
 export function buildMainNavLinks(
   lang: StoreLocaleCode,
@@ -42,11 +42,13 @@ export function buildMainNavLinks(
     categories?: Category[];
     customBundleEnabled?: boolean;
     sellToUsEnabled?: boolean;
+    communityEnabled?: boolean;
   },
 ): ResolvedNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
   const customBundleEnabled = Boolean(options?.customBundleEnabled);
   const sellToUsEnabled = Boolean(options?.sellToUsEnabled);
+  const communityEnabled = Boolean(options?.communityEnabled);
 
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
@@ -130,16 +132,25 @@ export function buildMainNavLinks(
 
   items.push({ label: tStatic(lang, "nav.stores"), href: localePath(lang, "/stores") });
 
-  // Community stays in the bar as a dropdown, but has no destinations yet.
-  items.push({
-    label: tStatic(lang, "nav.community"),
-    children: [
-      {
-        label: tStatic(lang, "nav.comingSoon"),
-        disabled: true,
-      },
-    ],
-  });
+  if (communityEnabled) {
+    items.push({
+      label: tStatic(lang, "nav.community"),
+      children: [
+        {
+          label: tStatic(lang, "nav.tournaments"),
+          href: localePath(lang, "/tournaments"),
+        },
+        {
+          label: tStatic(lang, "nav.events"),
+          href: localePath(lang, "/events"),
+        },
+        {
+          label: tStatic(lang, "nav.gamingNews"),
+          href: localePath(lang, "/gaming-news"),
+        },
+      ],
+    });
+  }
 
   if (sellToUsEnabled) {
     items.push({

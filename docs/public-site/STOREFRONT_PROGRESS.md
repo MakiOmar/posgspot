@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry/Geidea works |
-| Header / footer spec | 🟡 | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs in Quick Links; floating contact FAB (Call / Chat / Message) |
+| Header / footer spec | ✅ | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us; FAQs in Quick Links; floating contact FAB |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry + Geidea) | ✅ | Pluggable gateway layer; Fawry hosted checkout; Geidea HPP session + webhook HMAC; one active provider |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -69,7 +69,7 @@
 | Promo codes (`coupons`, `coupon_redemptions`) | ✅ | Settings: show at checkout + allow stacking; multi-code API; POS admin `/coupons`; account coupon wallet |
 | AI support chat | ✅ | `STOREFRONT_SUPPORT_CHAT` + OpenAI; conversations/messages; guest token + Sanctum; tools (orders/repairs/devices/catalog); CRM escalate when env assignee set; `SupportChatTest` |
 | Sell to us / trade-in | ✅ | `STOREFRONT_SELL_TO_US`; `/sell-to-us/meta|verify-invoice|requests`; POS `/storefront/sell-requests`; notify email in settings; `SellToUsTest` |
-| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; `GET /community/posts`; POS `/storefront/community`; translations EN/AR; `CommunityPostTest` |
+| Community CMS | ✅ | `STOREFRONT_COMMUNITY`; list/detail + `POST …/applications`; featured, media, registration modes, location; POS form + applications inbox/export; `CommunityPostTest` |
 | Request a product | ✅ | `STOREFRONT_REQUEST_PRODUCT`; `/request-product/meta|requests`; POS `/storefront/product-requests`; notify email in settings; `RequestProductTest` |
 
 ---
@@ -103,7 +103,7 @@
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE`; Expo full parity |
 | `/[lang]/sell-to-us` | ✅ | Trade-in (account/disc/device); invoice verify; photos; gated by `STOREFRONT_SELL_TO_US`; Expo full parity |
 | `/[lang]/track-order` | ✅ | Guest invoice+phone/email lookup; signed-in recent orders via `GET /account/orders`; Expo `/track-order` |
-| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; gated by `STOREFRONT_COMMUNITY`; Expo lists/details |
+| `/[lang]/tournaments`, `/events`, `/gaming-news` (+ `[slug]`) | ✅ | Community CMS; SSR lists; news Featured+Latest; registration (internal form / external URL); gallery + related; og:image |
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
@@ -149,7 +149,7 @@
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns |
 | Categories drawer | ✅ | Top-level; not full nested tree |
 | Brands nav + footer | ✅ | Header nav + footer shop link → `/brands` |
-| Main nav (Shop mega, Services, Community, stores, contact, FAQ, about) | ✅ | Shop mega: catalog + sell/request; Services: repair/console/order/truck; Community when `STOREFRONT_COMMUNITY` |
+| Main nav (Shop mega, Services, Community, stores, contact, FAQ, about) | ✅ | Shop mega: catalog + sell/request; Services: repair/console/order/truck; Community children when `STOREFRONT_COMMUNITY` |
 | Cart badge + subtotal + mini-cart dropdown | ✅ | `mini-cart.tsx` |
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
@@ -249,6 +249,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community CMS expansion: featured news, gallery/media, location + structured tournament/event fields, dual registration (`off`/`internal`/`external`) + apply API, POS applications inbox; Qwik SSR lists + Register Now; Expo parity. |
 | 2026-09-19 | Nav IA: Home / Shop / Services / Build Your Bundle / Our Stores / Community (soon) / Sell to Us; FAQs → Quick Links; floating contact FAB; hero drops Bundle CTA. |
 | 2026-09-17 | Expo: Custom Bundle builder + Sell to us full form (verify, photos); login/register `next`. |
 | 2026-09-17 | Expo: Shop/Services/Community nav parity; Track Order; Community lists/details; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |

@@ -1,26 +1,23 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import {
+  CommunityHtmlSection,
+  CommunityMediaGallery,
+  CommunityPostFacts,
+  CommunityRelatedPosts,
+} from "~/components/community/community-detail-sections";
+import { formatCommunityRange } from "~/components/community/community-dates";
+import { CommunityRegistrationForm } from "~/components/community/community-registration-form";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
-import { ApiError, fetchCommunityPost } from "~/lib/api";
+import { ApiError, fetchCommunityPost, fetchPhoneCountries } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
+import type { PhoneCountry } from "~/lib/phone-validation";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { CommunityPostDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
-
-function formatWhen(value: string | null, locale: string): string {
-  if (!value) return "";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? value
-    : d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-EG", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-}
 
 export const useTournamentPost = routeLoader$(async ({ params, redirect, resolveValue }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -29,17 +26,28 @@ export const useTournamentPost = routeLoader$(async ({ params, redirect, resolve
     throw redirect(302, localePath(locale, "/"));
   }
 
+  let phoneCountries: PhoneCountry[] = [];
+  try {
+    const { data } = await fetchPhoneCountries();
+    phoneCountries = data;
+  } catch {
+    phoneCountries = [];
+  }
+
   try {
     const { data } = await fetchCommunityPost(params.slug || "", locale);
     if (data.type !== "tournament") {
       throw redirect(302, localePath(locale, "/tournaments"));
     }
-    return { post: data as CommunityPostDetail, notFound: false as const };
+    return {
+      post: data as CommunityPostDetail,
+      notFound: false as const,
+      phoneCountries,
+    };
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) {
-      return { post: null, notFound: true as const };
+      return { post: null, notFound: true as const, phoneCountries };
     }
-    // Redirect throws a Response — rethrow anything else that looks like a redirect.
     throw e;
   }
 });
@@ -60,6 +68,10 @@ export default component$(() => {
     );
   }
 
+  const range = formatCommunityRange(post.starts_at, post.ends_at, locale);
+  const regOpen = Boolean(post.registration_open);
+  const mode = post.registration_mode || "off";
+
   return (
     <article class="content-page community-page community-detail">
       <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
@@ -74,16 +86,46 @@ export default component$(() => {
 
       {post.cover_url ? (
         <div class="community-detail__cover">
-          <img src={post.cover_url} alt="" />
+          <img src={post.cover_url} alt="" width={1200} height={675} />
         </div>
       ) : null}
 
       <h1 class="content-title">{post.title}</h1>
-      {post.starts_at ? (
-        <p class="community-post-card__meta">{formatWhen(post.starts_at, locale)}</p>
-      ) : null}
+      {range ? <p class="community-post-card__meta">{range}</p> : null}
       {post.excerpt ? <p class="content-lead">{post.excerpt}</p> : null}
+      <CommunityPostFacts post={post} />
       <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
+
+      <CommunityHtmlSection titleKey="community.rules" html={post.rules} />
+      <CommunityHtmlSection titleKey="community.results" html={post.results} />
+      <CommunityHtmlSection titleKey="community.highlights" html={post.highlights} />
+      <CommunityMediaGallery media={post.media} />
+
+      {regOpen && mode === "external" && post.registration_url ? (
+        <section class="community-register">
+          {post.registration_details ? (
+            <p class="footer-muted">{post.registration_details}</p>
+          ) : null}
+          <a
+            class="btn btn-primary"
+            href={post.registration_url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {tStatic(locale, "community.registerNow")}
+          </a>
+        </section>
+      ) : null}
+
+      {regOpen && mode === "internal" ? (
+        <CommunityRegistrationForm
+          slug={post.slug}
+          registrationDetails={post.registration_details}
+          phoneCountries={page.value.phoneCountries}
+        />
+      ) : null}
+
+      <CommunityRelatedPosts posts={post.related_posts} detailBase="/tournaments" />
 
       <p>
         <Link class="link-accent" href={localePath(locale, "/tournaments")}>
@@ -102,6 +144,7 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
     ? `${page.post.title} — ${settings.business_name}`
     : `${tStatic(lang, "community.tournamentsTitle")} — ${settings.business_name}`;
   const description = page.post?.excerpt || tStatic(lang, "community.tournamentsLead");
+  const ogImage = page.post?.cover_url || undefined;
 
   return withStorefrontThemeHead(
     {
@@ -112,9 +155,11 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
         { property: "og:url", content: url.href },
+        ...(ogImage ? [{ property: "og:image", content: ogImage }] : []),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        ...(ogImage ? [{ name: "twitter:image", content: ogImage }] : []),
       ],
       links: publicSeoLinks(url.origin, `/tournaments/${params.slug || ""}`, lang),
     },

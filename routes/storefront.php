@@ -74,6 +74,7 @@ Route::prefix('storefront/v1')->group(function () {
 
     Route::get('/community/posts', [CommunityPostController::class, 'index']);
     Route::get('/community/posts/{slug}', [CommunityPostController::class, 'show']);
+    Route::post('/community/posts/{slug}/applications', [CommunityPostController::class, 'apply']);
 
     Route::get('/request-product/meta', [RequestProductController::class, 'meta']);
     Route::post('/request-product/requests', [RequestProductController::class, 'store']);

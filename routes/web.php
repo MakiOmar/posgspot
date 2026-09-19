@@ -159,6 +159,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/storefront/community', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'index'])->name('storefront.community.index');
     Route::get('/storefront/community/create', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'create'])->name('storefront.community.create');
     Route::post('/storefront/community', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'store'])->name('storefront.community.store');
+    Route::get('/storefront/community/applications', [\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'index'])->name('storefront.community.applications');
+    Route::get('/storefront/community/applications/export', [\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'export'])->name('storefront.community.applications.export');
+    Route::put('/storefront/community/applications/{id}/status', [\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'updateStatus'])->name('storefront.community.applications.status');
     Route::get('/storefront/community/{id}/edit', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'edit'])->name('storefront.community.edit');
     Route::put('/storefront/community/{id}', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'update'])->name('storefront.community.update');
     Route::delete('/storefront/community/{id}', [\App\Http\Controllers\StorefrontCommunityPostController::class, 'destroy'])->name('storefront.community.destroy');

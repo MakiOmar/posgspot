@@ -7,7 +7,7 @@
 |---|---|
 | **Last updated** | 2026-09-19 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
-| **Overall** | Nav parity (Our Stores / Bundle / Community soon / Sell to Us); contact FAB; Track Order; Custom Bundle + Sell to us; digital + auth-gated repair/console |
+| **Overall** | Nav parity (Community live when enabled); contact FAB; Track Order; Custom Bundle + Sell to us; Community Featured/registration; digital + auth-gated repair/console |
 
 **Status legend:** Done · Partial · Not started
 
@@ -41,12 +41,12 @@
 | Custom Bundle screen | Done — meta, platform tabs, picker, variation modal, add-to-cart when `STOREFRONT_CUSTOM_BUNDLE` |
 | Sell to us / trade-in screen | Done — login gate + `next`, form, invoice verify, device photos when `STOREFRONT_SELL_TO_US` |
 | Track order | Done — guest lookup + signed-in recent orders |
-| Community (tournaments / events / news) | Done — lists + detail; gated by `STOREFRONT_COMMUNITY` |
+| Community (tournaments / events / news) | Done — Featured+Latest news; structured tournament/event detail; gallery; Register Now (internal/external); gated by `STOREFRONT_COMMUNITY` |
 | Request a product | Done — form + API; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | Repair truck request | Done — coming-soon placeholder |
 | Digital games grid (images/prices/search) + detail add-to-cart | Done |
 | Repair / track-console: auto-list when signed in; guest forms only | Done |
-| Header nav drawer (menu + categories + language) | Done | Parity with Qwik: Shop / Services / Bundle / Our Stores / Community (soon) / Sell to Us |
+| Header nav drawer (menu + categories + language) | Done | Parity with Qwik: Shop / Services / Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us |
 | Floating contact FAB (Call / Chat / Message) | Done | Chat opens `/support` when enabled |
 | Searchable country/state/district selects | Done |
 | Arabic RTL layout (header, forms, screens) | Done |
@@ -89,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-19 | Community CMS parity: nav links when enabled; news Featured+Latest; HTML body; registration form / external link; gallery + related. |
 | 2026-09-19 | Nav parity + floating contact FAB (Call / Chat / Message); label renames; Community coming soon. |
 | 2026-09-17 | Custom Bundle + Sell to us full Expo flows (builder/cart; login gate, verify, photos); login/register `next` redirect. |
 | 2026-09-17 | Nav IA Shop/Services/Community; Track Order; Community CMS screens; Request a product; repair-truck coming soon; custom-bundle/sell-to-us notices. |

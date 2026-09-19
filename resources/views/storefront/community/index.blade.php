@@ -12,6 +12,9 @@
             <a href="{{ action([\App\Http\Controllers\StorefrontCommunityPostController::class, 'create']) }}" class="tw-dw-btn tw-dw-btn-primary">
                 <i class="fa fa-plus"></i> New post
             </a>
+            <a href="{{ action([\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'index']) }}" class="tw-dw-btn tw-dw-btn-outline">
+                All applications
+            </a>
         </div>
         <div class="tw-transition-all lg:tw-col-span-1 tw-duration-200 tw-bg-white tw-shadow-sm tw-rounded-xl tw-ring-1 hover:tw-shadow-md tw-ring-gray-200">
             <div class="tw-p-4 sm:tw-p-5">
@@ -42,6 +45,7 @@
                                 <th>Title (EN)</th>
                                 <th>Type</th>
                                 <th>Status</th>
+                                <th>Registration</th>
                                 <th>Starts</th>
                                 <th>Published</th>
                                 <th>@lang('messages.action')</th>
@@ -72,6 +76,7 @@
                     { data: 'title', name: 'title', orderable: false, searchable: false },
                     { data: 'type', name: 'type' },
                     { data: 'status', name: 'status' },
+                    { data: 'registration_mode', name: 'registration_mode' },
                     { data: 'starts_at', name: 'starts_at' },
                     { data: 'published_at', name: 'published_at' },
                     { data: 'action', name: 'action', orderable: false, searchable: false }

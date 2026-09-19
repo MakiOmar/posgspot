@@ -42,6 +42,7 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
     categories,
     customBundleEnabled: settings.custom_bundle?.enabled === true,
     sellToUsEnabled: settings.sell_to_us?.enabled === true,
+    communityEnabled: settings.community?.enabled === true,
   });
   const categoriesOpen = headerMenu.openId === "categories";
   const mobileNavOpen = headerMenu.openId === "mobileNav";

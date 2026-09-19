@@ -1,32 +1,37 @@
 import { component$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
-import { CommunityPostListPage } from "~/components/community/community-post-list-page";
+import { CommunityNewsListPage } from "~/components/community/community-news-list-page";
+import { ApiError, fetchCommunityPosts } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
+import type { CommunityPostSummary } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useGamingNewsGate = routeLoader$(async ({ params, redirect, resolveValue }) => {
+export const useGamingNewsPage = routeLoader$(async ({ params, redirect, resolveValue }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const settings = await resolveValue(useSiteSettings);
   if (!settings.community?.enabled) {
     throw redirect(302, localePath(locale, "/"));
   }
-  return true;
+
+  try {
+    const { data } = await fetchCommunityPosts({ type: "news" }, locale);
+    return { posts: data as CommunityPostSummary[], unavailable: false };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) {
+      return { posts: [] as CommunityPostSummary[], unavailable: true };
+    }
+    throw e;
+  }
 });
 
 export default component$(() => {
-  useGamingNewsGate();
+  const page = useGamingNewsPage();
   return (
-    <CommunityPostListPage
-      type="news"
-      detailBase="/gaming-news"
-      scoped={false}
-      titleKey="community.newsTitle"
-      leadKey="community.newsLead"
-    />
+    <CommunityNewsListPage posts={page.value.posts} unavailable={page.value.unavailable} />
   );
 });
 

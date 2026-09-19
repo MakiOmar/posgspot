@@ -711,6 +711,19 @@ export interface TrackedOrder {
 
 export type CommunityPostType = "tournament" | "event" | "news";
 
+export type CommunityRegistrationMode = "off" | "internal" | "external";
+
+export interface CommunityPostLocation {
+  id: number;
+  name: string;
+}
+
+export interface CommunityPostMediaItem {
+  kind: "image" | "video" | string;
+  url: string;
+  caption: string | null;
+}
+
 export interface CommunityPostSummary {
   id: number;
   type: CommunityPostType;
@@ -721,10 +734,27 @@ export interface CommunityPostSummary {
   starts_at: string | null;
   ends_at: string | null;
   published_at: string | null;
+  is_featured?: boolean;
+  game_title?: string | null;
+  prize_pool?: string | null;
+  entry_fee?: string | null;
+  available_spots?: number | null;
+  registration_mode?: CommunityRegistrationMode;
+  registration_open?: boolean;
+  winner?: string | null;
+  location?: CommunityPostLocation | null;
 }
 
 export interface CommunityPostDetail extends CommunityPostSummary {
   body: string;
+  rules?: string;
+  results?: string;
+  highlights?: string;
+  recap?: string;
+  registration_details?: string | null;
+  registration_url?: string | null;
+  media?: CommunityPostMediaItem[];
+  related_posts?: CommunityPostSummary[];
 }
 
 export interface RequestProductMeta {

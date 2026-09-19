@@ -1,5 +1,10 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import {
+  CommunityMediaGallery,
+  CommunityRelatedPosts,
+} from "~/components/community/community-detail-sections";
+import { formatCommunityWhen } from "~/components/community/community-dates";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { ApiError, fetchCommunityPost } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -9,18 +14,6 @@ import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { CommunityPostDetail } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
-
-function formatWhen(value: string | null, locale: string): string {
-  if (!value) return "";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? value
-    : d.toLocaleDateString(locale === "ar" ? "ar-EG" : "en-EG", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-}
 
 export const useNewsPost = routeLoader$(async ({ params, redirect, resolveValue }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
@@ -73,16 +66,19 @@ export default component$(() => {
 
       {post.cover_url ? (
         <div class="community-detail__cover">
-          <img src={post.cover_url} alt="" />
+          <img src={post.cover_url} alt="" width={1200} height={675} />
         </div>
       ) : null}
 
       <h1 class="content-title">{post.title}</h1>
       {post.published_at ? (
-        <p class="community-post-card__meta">{formatWhen(post.published_at, locale)}</p>
+        <p class="community-post-card__meta">{formatCommunityWhen(post.published_at, locale)}</p>
       ) : null}
       {post.excerpt ? <p class="content-lead">{post.excerpt}</p> : null}
       <SanitizedHtml html={post.body} class="content-prose community-detail__body" />
+
+      <CommunityMediaGallery media={post.media} />
+      <CommunityRelatedPosts posts={post.related_posts} detailBase="/gaming-news" />
 
       <p>
         <Link class="link-accent" href={localePath(locale, "/gaming-news")}>
@@ -101,6 +97,7 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
     ? `${page.post.title} — ${settings.business_name}`
     : `${tStatic(lang, "community.newsTitle")} — ${settings.business_name}`;
   const description = page.post?.excerpt || tStatic(lang, "community.newsLead");
+  const ogImage = page.post?.cover_url || undefined;
 
   return withStorefrontThemeHead(
     {
@@ -111,9 +108,11 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         { property: "og:description", content: description },
         { property: "og:type", content: "article" },
         { property: "og:url", content: url.href },
+        ...(ogImage ? [{ property: "og:image", content: ogImage }] : []),
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
+        ...(ogImage ? [{ name: "twitter:image", content: ogImage }] : []),
       ],
       links: publicSeoLinks(url.origin, `/gaming-news/${params.slug || ""}`, lang),
     },

@@ -62,6 +62,7 @@ export function NavDrawer({ visible, onClose }: Props) {
         sellToUsEnabled: settings
           ? Boolean(settings.sell_to_us?.enabled)
           : true,
+        communityEnabled: settings?.community?.enabled === true,
       }),
     [locale, settings, categories],
   );

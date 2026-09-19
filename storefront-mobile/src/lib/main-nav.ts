@@ -26,11 +26,13 @@ export function buildMainNavLinks(
     categories?: Category[];
     customBundleEnabled?: boolean;
     sellToUsEnabled?: boolean;
+    communityEnabled?: boolean;
   },
 ): MainNavItem[] {
   const digitalEnabled = options?.digitalEnabled !== false;
   const customBundleEnabled = Boolean(options?.customBundleEnabled);
   const sellToUsEnabled = Boolean(options?.sellToUsEnabled);
+  const communityEnabled = Boolean(options?.communityEnabled);
 
   const consoleChildren = consoleNavCategories(options?.categories ?? []).map((category) => ({
     label: category.name,
@@ -78,11 +80,16 @@ export function buildMainNavLinks(
 
   items.push({ label: t(locale, "nav.stores"), href: "/stores" });
 
-  // Community stays visible but has no destinations yet.
-  items.push({
-    label: t(locale, "nav.community"),
-    children: [{ label: t(locale, "nav.comingSoon"), disabled: true }],
-  });
+  if (communityEnabled) {
+    items.push({
+      label: t(locale, "nav.community"),
+      children: [
+        { label: t(locale, "nav.tournaments"), href: "/tournaments" },
+        { label: t(locale, "nav.events"), href: "/events" },
+        { label: t(locale, "nav.gamingNews"), href: "/gaming-news" },
+      ],
+    });
+  }
 
   if (sellToUsEnabled) {
     items.push({

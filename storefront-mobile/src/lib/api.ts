@@ -850,6 +850,32 @@ export function fetchCommunityPost(slug: string, locale?: ContentLocale) {
   );
 }
 
+/** Internal registration (name + mobile) for tournament/event posts. */
+export function submitCommunityApplication(
+  slug: string,
+  payload: {
+    name: string;
+    mobile: string;
+    dial_code?: string;
+    source?: "web" | "mobile";
+    turnstile_token?: string;
+  },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<{
+    id: number;
+    status: string;
+    name: string;
+    mobile: string;
+    post_slug: string;
+    post_type: string;
+  }>(
+    `/community/posts/${encodeURIComponent(slug)}/applications`,
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
 export function fetchRequestProductMeta(locale?: ContentLocale) {
   return storefrontFetch<import("./types").RequestProductMeta>(
     "/request-product/meta",

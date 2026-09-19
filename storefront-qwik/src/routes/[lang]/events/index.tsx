@@ -1,24 +1,35 @@
 import { component$ } from "@builder.io/qwik";
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { CommunityPostListPage } from "~/components/community/community-post-list-page";
+import { ApiError, fetchCommunityPosts } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
+import type { CommunityPostSummary } from "~/lib/types";
 import { useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useEventsGate = routeLoader$(async ({ params, redirect, resolveValue }) => {
+export const useEventsPage = routeLoader$(async ({ params, redirect, resolveValue }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const settings = await resolveValue(useSiteSettings);
   if (!settings.community?.enabled) {
     throw redirect(302, localePath(locale, "/"));
   }
-  return true;
+
+  try {
+    const { data } = await fetchCommunityPosts({ type: "event", scope: "upcoming" }, locale);
+    return { posts: data as CommunityPostSummary[] };
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) {
+      return { posts: [] as CommunityPostSummary[] };
+    }
+    throw e;
+  }
 });
 
 export default component$(() => {
-  useEventsGate();
+  const page = useEventsPage();
   return (
     <CommunityPostListPage
       type="event"
@@ -26,6 +37,7 @@ export default component$(() => {
       scoped
       titleKey="community.eventsTitle"
       leadKey="community.eventsLead"
+      initialPosts={page.value.posts}
     />
   );
 });

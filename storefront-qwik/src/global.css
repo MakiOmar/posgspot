@@ -644,6 +644,136 @@ button.header-nav-dropdown__trigger {
   margin: 0 0 1.25rem;
   border-radius: var(--gs-radius, 8px);
   overflow: hidden;
+}
+.community-post-card__game {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--gs-accent, #00d4aa);
+}
+.community-section-title {
+  margin: 2rem 0 1rem;
+  font-size: 1.25rem;
+}
+.community-news-featured {
+  margin: 1.5rem 0 2rem;
+}
+.community-news-featured__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.community-news-featured__card {
+  display: grid;
+  gap: 1rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: var(--gs-radius, 8px);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--gs-surface, #0f1a17) 80%, transparent);
+}
+@media (min-width: 768px) {
+  .community-news-featured__card {
+    grid-template-columns: 1.2fr 1fr;
+    align-items: stretch;
+  }
+}
+.community-news-featured__card img {
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+.community-news-featured__body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.community-news-featured__body h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+.community-facts {
+  display: grid;
+  gap: 0.5rem 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  margin: 1rem 0 1.5rem;
+}
+.community-facts dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+.community-facts dd {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+.community-gallery,
+.community-related,
+.community-html-section,
+.community-register {
+  margin: 2rem 0;
+}
+.community-gallery__grid {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.community-gallery__grid img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: var(--gs-radius, 8px);
+  display: block;
+}
+.community-gallery__video {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  border-radius: var(--gs-radius, 8px);
+  border: 1px dashed color-mix(in srgb, currentColor 25%, transparent);
+  padding: 0.75rem;
+  text-align: center;
+}
+.community-register__form {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 28rem;
+  margin-top: 0.75rem;
+}
+.community-register__form label {
+  display: grid;
+  gap: 0.35rem;
+}
+.community-register__form input[type="text"],
+.community-register__form input[type="tel"] {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--gs-radius, 8px);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.community-register__phone {
+  display: grid;
+  grid-template-columns: minmax(7rem, 9rem) 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+  margin: 0 0 1.25rem;
+  border-radius: var(--gs-radius, 8px);
+  overflow: hidden;
   max-height: 360px;
 }
 .track-order-lines {
