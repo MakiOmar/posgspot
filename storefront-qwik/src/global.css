@@ -7013,14 +7013,9 @@ body.is-globally-pending {
   transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
 
-.home-carousel__btn:hover:not(:disabled) {
+.home-carousel__btn:hover {
   border-color: var(--gs-accent);
   color: var(--gs-accent);
-}
-
-.home-carousel__btn:disabled {
-  opacity: 0.35;
-  cursor: default;
 }
 
 [dir="rtl"] .home-carousel__btn--prev svg,

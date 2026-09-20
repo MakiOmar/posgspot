@@ -130,26 +130,30 @@ export const HomeCarousel = component$<HomeCarouselProps>((props) => {
           <div class="home-carousel__action">
             <Slot name="action" />
           </div>
-          <div class="home-carousel__nav" role="group" aria-label={props.label}>
-            <button
-              type="button"
-              class="home-carousel__btn home-carousel__btn--prev"
-              aria-label={tStatic(locale, "common.prev")}
-              disabled={!canPrev}
-              onClick$={goPrev$}
-            >
-              <ChevronLeftIcon size={18} />
-            </button>
-            <button
-              type="button"
-              class="home-carousel__btn home-carousel__btn--next"
-              aria-label={tStatic(locale, "common.next")}
-              disabled={!canNext}
-              onClick$={goNext$}
-            >
-              <ChevronRightIcon size={18} />
-            </button>
-          </div>
+          {canPrev || canNext ? (
+            <div class="home-carousel__nav" role="group" aria-label={props.label}>
+              {canPrev ? (
+                <button
+                  type="button"
+                  class="home-carousel__btn home-carousel__btn--prev"
+                  aria-label={tStatic(locale, "common.prev")}
+                  onClick$={goPrev$}
+                >
+                  <ChevronLeftIcon size={18} />
+                </button>
+              ) : null}
+              {canNext ? (
+                <button
+                  type="button"
+                  class="home-carousel__btn home-carousel__btn--next"
+                  aria-label={tStatic(locale, "common.next")}
+                  onClick$={goNext$}
+                >
+                  <ChevronRightIcon size={18} />
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
