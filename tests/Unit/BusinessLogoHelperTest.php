@@ -16,6 +16,17 @@ class BusinessLogoHelperTest extends TestCase
         $this->assertFalse($business_util->getBusinessLogoUrl($business));
     }
 
+    public function test_get_business_logo_url_returns_uploads_asset_when_file_missing()
+    {
+        $business_util = new BusinessUtil();
+        $business = new Business(['logo' => 'missing-on-disk.png']);
+
+        $url = $business_util->getBusinessLogoUrl($business);
+
+        $this->assertIsString($url);
+        $this->assertStringContainsString('uploads/business_logos/missing-on-disk.png', $url);
+    }
+
     public function test_get_document_logo_url_respects_show_logo_setting()
     {
         $business_util = new BusinessUtil();

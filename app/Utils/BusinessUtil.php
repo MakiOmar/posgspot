@@ -290,11 +290,9 @@ class BusinessUtil extends Util
 
         $logo_path = $this->getBusinessLogoPath($logo_name);
 
-        if (empty($logo_path)) {
-            return false;
-        }
-
-        if (str_contains($logo_path, public_path('storage'.DIRECTORY_SEPARATOR.'business_logos'))) {
+        // Prefer a verified local file; if missing (other host / CDN mount), still
+        // expose the conventional public uploads URL from the stored filename.
+        if (! empty($logo_path) && str_contains($logo_path, public_path('storage'.DIRECTORY_SEPARATOR.'business_logos'))) {
             return url('storage/business_logos/'.$logo_name);
         }
 

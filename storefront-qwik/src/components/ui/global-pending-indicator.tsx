@@ -25,8 +25,8 @@ export const GlobalPendingIndicator = component$(() => {
   const shell = useSiteShell();
   const { locale } = useI18n();
   const isActive = loc.isNavigating || pending.clientCount > 0;
-  // Prefer POS business logo; header may use a different storefront Appearance logo.
-  const logoUrl = shell.settings.business_logo_url || shell.settings.logo_url || "";
+  // POS Business Settings logo only — never the storefront Appearance override.
+  const logoUrl = shell.settings.business_logo_url || "";
   const businessName = shell.settings.business_name || "Games Spot";
 
   // Sync body busy state for assistive tech (DOM-only; needs client).

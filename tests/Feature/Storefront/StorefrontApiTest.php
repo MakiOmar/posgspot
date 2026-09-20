@@ -181,9 +181,10 @@ class StorefrontApiTest extends TestCase
 
         $payload = $response->json('data');
         $this->assertArrayHasKey('business_logo_url', $payload);
-        // When a storefront Appearance logo is set, header logo differs from POS business logo.
+        // Splash / transition must never reuse the storefront Appearance override.
         if (! empty($payload['business_logo_url'])) {
             $this->assertNotSame($payload['logo_url'], $payload['business_logo_url']);
+            $this->assertStringContainsString('business_logos', (string) $payload['business_logo_url']);
         }
     }
 

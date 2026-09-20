@@ -254,6 +254,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |
 | 2026-09-20 | Homepage carousels: fix broken nav (`display:contents`); unified toolbar (title / view link / prev+next); mobile stacks title then actions. |
 | 2026-09-20 | Homepage section carousels: prev/next paired in the title row (not side arrows); one full-width slide on mobile. |
 | 2026-09-19 | Roll out fancy `PageTitleBar` across public catalog, services, legal, search, cart, wishlist (auth/account/checkout keep compact titles). |
