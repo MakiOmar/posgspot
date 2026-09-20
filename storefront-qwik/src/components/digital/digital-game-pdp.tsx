@@ -256,7 +256,8 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
         ]}
       />
 
-      <div class="pdp-layout digital-pdp" style={{ marginTop: "1rem" }}>
+      <div class="digital-pdp-page__body">
+      <div class="pdp-layout digital-pdp">
         <div class="pdp-gallery pdp-gallery--digital">
           {image ? (
             <>
@@ -272,8 +273,8 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
                   <img
                     src={image}
                     alt={title}
-                    width={480}
-                    height={480}
+                    width={640}
+                    height={640}
                     loading="eager"
                     decoding="async"
                   />
@@ -460,6 +461,7 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
           />
         </section>
       ) : null}
+      </div>
     </article>
   );
 });

@@ -3177,15 +3177,25 @@ html[dir="rtl"] .header-search-type {
   display: block;
 }
 
-/* Digital game / membership art is often tall — keep the PDP image compact. */
-.pdp-gallery--digital .pdp-gallery__main {
-  max-width: min(22rem, 100%);
+/* Digital game / membership art — larger gallery; body is boxed below the title bar. */
+.digital-pdp-page__body {
+  width: 100%;
+  max-width: 72rem;
   margin-inline: auto;
+  padding-inline: 0;
+  box-sizing: border-box;
+}
+
+.pdp-gallery--digital .pdp-gallery__main {
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
 }
 
 .pdp-gallery--digital .pdp-gallery__main img,
 .pdp-gallery--digital .pdp-gallery__placeholder {
-  max-height: min(22rem, 55vh);
+  max-height: min(38rem, 75vh);
+  width: 100%;
   aspect-ratio: auto;
   height: auto;
   object-fit: contain;
@@ -3194,8 +3204,16 @@ html[dir="rtl"] .header-search-type {
 
 @media (min-width: 768px) {
   .pdp-layout.digital-pdp {
-    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 2.25rem;
     align-items: start;
+  }
+}
+
+@media (min-width: 1100px) {
+  .pdp-layout.digital-pdp {
+    grid-template-columns: minmax(0, 34rem) minmax(0, 1fr);
+    gap: 2.75rem;
   }
 }
 
