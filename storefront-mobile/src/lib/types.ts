@@ -50,7 +50,17 @@ export interface StoreSettings {
     region?: string | null;
     environment?: string | null;
   };
-  digital?: { enabled?: boolean; primary_product_id?: number };
+  digital?: {
+    enabled?: boolean;
+    primary_product_id?: number;
+    ask_whatsapp?: string | null;
+    pdp_faqs?: Array<{ question: string; answer: string }>;
+  };
+  contact?: {
+    phone?: string | null;
+    whatsapp?: string | null;
+    email_encoded?: string | null;
+  };
   promo_codes?: {
     enabled_at_checkout?: boolean;
     allow_stacking?: boolean;

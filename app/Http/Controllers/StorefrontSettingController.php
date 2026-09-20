@@ -350,6 +350,12 @@ class StorefrontSettingController extends Controller
             'digital_gift_card_product_id' => 'nullable|integer|min:1',
             'digital_pos_document_type' => 'nullable|in:sell,quotation',
             'digital_expose_credentials_to_customer' => 'nullable|boolean',
+            'digital_ask_whatsapp' => 'nullable|string|max:32',
+            'digital_pdp_faqs' => 'nullable|array|max:20',
+            'digital_pdp_faqs.*.question_en' => 'nullable|string|max:200',
+            'digital_pdp_faqs.*.question_ar' => 'nullable|string|max:200',
+            'digital_pdp_faqs.*.answer_en' => 'nullable|string|max:2000',
+            'digital_pdp_faqs.*.answer_ar' => 'nullable|string|max:2000',
             'footer_contact_title_en' => 'nullable|string|max:80',
             'footer_contact_title_ar' => 'nullable|string|max:80',
             'footer_columns' => 'nullable|array|max:3',
@@ -409,6 +415,8 @@ class StorefrontSettingController extends Controller
                     ? 'quotation'
                     : 'sell',
                 'expose_credentials_to_customer' => $request->boolean('digital_expose_credentials_to_customer'),
+                'ask_whatsapp' => $validated['digital_ask_whatsapp'] ?? '',
+                'pdp_faqs' => $this->buildDigitalPdpFaqsPayload($validated['digital_pdp_faqs'] ?? []),
             ],
             'contact' => [
                 'phone' => $validated['contact_phone'] ?? '',
@@ -729,6 +737,34 @@ class StorefrontSettingController extends Controller
         $physical = array_is_list($decoded) ? $decoded : ($decoded['physical'] ?? []);
 
         return $this->settings->normalizeShopMenu(['physical' => $physical]);
+    }
+
+    /**
+     * Map POS form FAQ rows into storage shape (normalized further in StorefrontSettingService).
+     *
+     * @param  array<int, mixed>  $rows
+     * @return list<array{question: array{en: string, ar: string}, answer: array{en: string, ar: string}}>
+     */
+    private function buildDigitalPdpFaqsPayload(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $out[] = [
+                'question' => [
+                    'en' => (string) ($row['question_en'] ?? ''),
+                    'ar' => (string) ($row['question_ar'] ?? ''),
+                ],
+                'answer' => [
+                    'en' => (string) ($row['answer_en'] ?? ''),
+                    'ar' => (string) ($row['answer_ar'] ?? ''),
+                ],
+            ];
+        }
+
+        return $out;
     }
 
     /**

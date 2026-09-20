@@ -96,7 +96,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
-| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); platform-strict stock; add primary/secondary → cart with digital meta; failed PDP shows retry (no silent redirect to list) |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); Sigma-style PDP (offer select, notice, WhatsApp ask, trust→stores, optional about, also-bought×4, settings FAQs); platform-strict stock; parallel also-bought load; failed PDP shows retry |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
@@ -169,7 +169,7 @@
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
 | Settings JSON import / export | ✅ | Full ZIP bundle (`storefront_bundle` v2): settings + shipping + media files + media library rows + coupons + catalog overlays + translations; library paths remapped to target business; legacy JSON still works (no media) |
 | Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
-| Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Couriers section; `digital.*` |
+| Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Digital section; `digital.*` incl. `ask_whatsapp` + `pdp_faqs` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Gateway Geidea (test+live keys, mode, region, HPP options) | ✅ | `/storefront/settings`; both API passwords encrypted; webhook URL shown |
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
@@ -254,6 +254,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |
 | 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |
 | 2026-09-20 | Homepage carousels: fix broken nav (`display:contents`); unified toolbar (title / view link / prev+next); mobile stacks title then actions. |
 | 2026-09-20 | Homepage section carousels: prev/next paired in the title row (not side arrows); one full-width slide on mobile. |

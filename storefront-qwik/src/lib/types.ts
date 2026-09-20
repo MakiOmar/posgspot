@@ -118,6 +118,10 @@ export interface StoreSettings {
   /** Digital games / gift cards catalog (Accounts-backed). */
   digital?: {
     enabled: boolean;
+    /** Digits-only WhatsApp for PDP ask CTA (may fall back to contact.whatsapp). */
+    ask_whatsapp?: string | null;
+    /** Locale-resolved FAQ rows for the digital PDP. */
+    pdp_faqs?: Array<{ question: string; answer: string }>;
   };
   /** OAuth social login flags (env-driven; not contact social links). */
   social_login?: {

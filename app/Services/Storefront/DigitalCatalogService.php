@@ -14,7 +14,8 @@ class DigitalCatalogService
 {
     public function __construct(
         private AccountsApiClient $accounts,
-        private StorefrontSettingService $settings
+        private StorefrontSettingService $settings,
+        private StorefrontHtmlSanitizer $htmlSanitizer
     ) {
     }
 
@@ -270,6 +271,14 @@ class DigitalCatalogService
             if (! empty($game[$imageKey])) {
                 $game[$imageKey] = $this->absoluteAccountsUrl((string) $game[$imageKey]);
             }
+        }
+
+        // Pass through Accounts description when present; sanitize like physical PDP HTML.
+        $description = $game['description'] ?? null;
+        if (is_string($description) && trim($description) !== '') {
+            $game['description'] = $this->htmlSanitizer->sanitize($description);
+        } else {
+            $game['description'] = null;
         }
 
         return [

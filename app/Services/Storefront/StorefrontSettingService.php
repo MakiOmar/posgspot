@@ -80,6 +80,10 @@ class StorefrontSettingService
                 'pos_document_type' => 'sell',
                 // When false: credentials only on staff_note (not sell line / account / email / invoice description)
                 'expose_credentials_to_customer' => true,
+                // PDP “Ask about product” WhatsApp (digits); falls back to contact.whatsapp when empty
+                'ask_whatsapp' => '',
+                // Digital PDP FAQ accordion (plain text EN/AR); seeded with Sigma-style defaults
+                'pdp_faqs' => $this->defaultDigitalPdpFaqs(),
             ],
             'contact' => [
                 'phone' => '',
@@ -518,6 +522,7 @@ class StorefrontSettingService
         if (array_key_exists('about_team', $data)) {
             $merged['about_team'] = $this->normalizeAboutTeam($data['about_team']);
         }
+        $merged = $this->withNormalizedDigital($merged, $data);
 
         return $this->homepageSections()->ensureSections(
             $this->withNormalizedShopMenu(
@@ -1133,6 +1138,25 @@ class StorefrontSettingService
         // Numeric lists must replace wholesale — array_replace_recursive cannot clear rows.
         if (array_key_exists('payment_icons', $settings)) {
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
+        }
+
+        if (array_key_exists('digital', $settings)) {
+            $digitalIn = is_array($settings['digital']) ? $settings['digital'] : [];
+            // Preserve FAQ / WhatsApp when a partial digital payload omits them.
+            if (! array_key_exists('pdp_faqs', $digitalIn)) {
+                $digitalIn['pdp_faqs'] = $this->getRaw($businessId)['digital']['pdp_faqs']
+                    ?? $this->defaultDigitalPdpFaqs();
+            }
+            if (! array_key_exists('ask_whatsapp', $digitalIn)) {
+                $digitalIn['ask_whatsapp'] = $this->getRaw($businessId)['digital']['ask_whatsapp'] ?? '';
+            }
+            $merged = $this->withNormalizedDigital($merged, ['digital' => $digitalIn]);
+        } else {
+            $existingDigital = $this->getRaw($businessId)['digital'] ?? null;
+            $merged = $this->withNormalizedDigital(
+                $merged,
+                is_array($existingDigital) ? ['digital' => $existingDigital] : []
+            );
         }
 
         if (array_key_exists('about_team', $settings)) {
@@ -2348,6 +2372,186 @@ class StorefrontSettingService
     private function emptyAboutTeamSocial(): array
     {
         return array_fill_keys($this->aboutTeamSocialKeys(), '');
+    }
+
+    /**
+     * Digits-only WhatsApp destination (8–15). Empty/invalid → empty string for storage.
+     */
+    public function normalizeWhatsAppDigits(?string $raw): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $raw) ?? '';
+        if ($digits === '' || ! preg_match('/^[0-9]{8,15}$/', $digits)) {
+            return '';
+        }
+
+        return $digits;
+    }
+
+    /**
+     * Sigma-style digital PDP FAQ defaults (plain text EN/AR).
+     *
+     * @return list<array{question: array{en: string, ar: string}, answer: array{en: string, ar: string}}>
+     */
+    public function defaultDigitalPdpFaqs(): array
+    {
+        return [
+            [
+                'question' => [
+                    'en' => 'What are Digital Games?',
+                    'ar' => 'ما هي الألعاب الرقمية؟',
+                ],
+                'answer' => [
+                    'en' => 'Digital games are PlayStation titles delivered online after payment—no physical disc. You receive account credentials to play on your console.',
+                    'ar' => 'الألعاب الرقمية هي عناوين بلاي ستيشن تُسلَّم عبر الإنترنت بعد الدفع دون قرص فعلي. تستلم بيانات حساب للعب على جهازك.',
+                ],
+            ],
+            [
+                'question' => [
+                    'en' => 'Digital vs CD games?',
+                    'ar' => 'الفرق بين الألعاب الرقمية وأقراص CD؟',
+                ],
+                'answer' => [
+                    'en' => 'CD/disc games are physical media you can resell or lend. Digital games here are account access delivered electronically after checkout.',
+                    'ar' => 'ألعاب الأقراص وسائط فعلية يمكن إعادة بيعها أو إعارتها. الألعاب الرقمية هنا وصول عبر حساب يُسلَّم إلكترونيًا بعد إتمام الطلب.',
+                ],
+            ],
+            [
+                'question' => [
+                    'en' => 'Full / Primary / Secondary?',
+                    'ar' => 'ما الفرق بين Full و Primary و Secondary؟',
+                ],
+                'answer' => [
+                    'en' => 'Primary is the main account with full privileges on one console. Secondary is a shared second account with some limits. Choose the offer that matches how you play.',
+                    'ar' => 'الحساب الأساسي (Primary) هو الحساب الرئيسي بصلاحيات كاملة على جهاز واحد. الثانوي (Secondary) حساب مشارك بحدود معينة. اختر العرض المناسب لطريقة لعبك.',
+                ],
+            ],
+            [
+                'question' => [
+                    'en' => 'How do I receive my Digital Game?',
+                    'ar' => 'كيف أستلم لعبتي الرقمية؟',
+                ],
+                'answer' => [
+                    'en' => 'After payment, credentials appear on your order page and by email when customer delivery is enabled. Keep them private and do not share them.',
+                    'ar' => 'بعد الدفع تظهر بيانات الدخول في صفحة طلبك وبالبريد عند تفعيل التسليم للعميل. احتفظ بها لنفسك ولا تشاركها.',
+                ],
+            ],
+            [
+                'question' => [
+                    'en' => 'Guarantee on Digital Games?',
+                    'ar' => 'هل هناك ضمان على الألعاب الرقمية؟',
+                ],
+                'answer' => [
+                    'en' => 'We stand behind working credentials as delivered. Contact Games Spot support if login fails and we will help resolve it.',
+                    'ar' => 'نضمن صلاحية بيانات الدخول كما سُلِّمت. تواصل مع دعم Games Spot إذا فشل تسجيل الدخول وسنساعدك على الحل.',
+                ],
+            ],
+            [
+                'question' => [
+                    'en' => 'How can I pay?',
+                    'ar' => 'كيف يمكنني الدفع؟',
+                ],
+                'answer' => [
+                    'en' => 'Pay online at checkout or choose cash on delivery where available. Visit our stores for in-person help—see the Stores page for locations.',
+                    'ar' => 'ادفع عبر الإنترنت عند الدفع أو اختر الدفع عند الاستلام إن كان متاحًا. زُر فروعنا للمساعدة—راجع صفحة الفروع للعناوين.',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Cap and plain-text normalize digital PDP FAQ rows.
+     *
+     * @param  mixed  $rows
+     * @return list<array{question: array{en: string, ar: string}, answer: array{en: string, ar: string}}>
+     */
+    public function normalizeDigitalPdpFaqs($rows): array
+    {
+        if (! is_array($rows)) {
+            return $this->defaultDigitalPdpFaqs();
+        }
+
+        $out = [];
+        foreach (array_slice(array_values($rows), 0, 20) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $question = $this->localizedPlainTextPair($row['question'] ?? null, $row['question_en'] ?? null, $row['question_ar'] ?? null, 200);
+            $answer = $this->localizedPlainTextPair($row['answer'] ?? null, $row['answer_en'] ?? null, $row['answer_ar'] ?? null, 2000);
+            if ($question['en'] === '' && $question['ar'] === '' && $answer['en'] === '' && $answer['ar'] === '') {
+                continue;
+            }
+            $out[] = [
+                'question' => $question,
+                'answer' => $answer,
+            ];
+        }
+
+        return $out !== [] ? $out : $this->defaultDigitalPdpFaqs();
+    }
+
+    /**
+     * @param  mixed  $map
+     * @param  mixed  $enFlat
+     * @param  mixed  $arFlat
+     * @return array{en: string, ar: string}
+     */
+    private function localizedPlainTextPair($map, $enFlat, $arFlat, int $maxLen): array
+    {
+        $en = '';
+        $ar = '';
+        if (is_array($map)) {
+            $en = (string) ($map['en'] ?? '');
+            $ar = (string) ($map['ar'] ?? '');
+        } elseif (is_string($map) && $map !== '') {
+            $en = $map;
+        }
+        if ($en === '' && is_string($enFlat)) {
+            $en = $enFlat;
+        }
+        if ($ar === '' && is_string($arFlat)) {
+            $ar = $arFlat;
+        }
+
+        return [
+            'en' => $this->plainTextField($en, $maxLen),
+            'ar' => $this->plainTextField($ar, $maxLen),
+        ];
+    }
+
+    private function plainTextField(string $value, int $maxLen): string
+    {
+        $clean = strip_tags($value);
+        $clean = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $clean) ?? $clean;
+        $clean = trim(preg_replace('/\s+/u', ' ', $clean) ?? $clean);
+
+        return mb_substr($clean, 0, $maxLen);
+    }
+
+    /**
+     * Normalize digital.ask_whatsapp + digital.pdp_faqs after recursive merge.
+     *
+     * @param  array<string, mixed>  $merged
+     * @param  array<string, mixed>  $source  Settings slice that may contain digital.*
+     * @return array<string, mixed>
+     */
+    private function withNormalizedDigital(array $merged, array $source): array
+    {
+        $digital = is_array($merged['digital'] ?? null) ? $merged['digital'] : $this->defaults()['digital'];
+        $sourceDigital = is_array($source['digital'] ?? null) ? $source['digital'] : [];
+
+        $digital['ask_whatsapp'] = $this->normalizeWhatsAppDigits(
+            (string) ($sourceDigital['ask_whatsapp'] ?? $digital['ask_whatsapp'] ?? '')
+        );
+
+        if (array_key_exists('pdp_faqs', $sourceDigital)) {
+            $digital['pdp_faqs'] = $this->normalizeDigitalPdpFaqs($sourceDigital['pdp_faqs']);
+        } else {
+            $digital['pdp_faqs'] = $this->normalizeDigitalPdpFaqs($digital['pdp_faqs'] ?? null);
+        }
+
+        $merged['digital'] = $digital;
+
+        return $merged;
     }
 
     /**

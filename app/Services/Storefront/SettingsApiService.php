@@ -107,6 +107,8 @@ class SettingsApiService
             'repair' => $this->repairPayload($businessId),
             'digital' => [
                 'enabled' => ! empty($settings['digital']['enabled']),
+                'ask_whatsapp' => $this->digitalAskWhatsApp($settings),
+                'pdp_faqs' => $this->digitalPdpFaqsPayload($settings, $locale),
             ],
             // OAuth providers — env-driven; do not collide with contact "social" links.
             'social_login' => [
@@ -616,5 +618,49 @@ class SettingsApiService
             'lookup_enabled' => $lookup->isAvailable($businessId),
             'lookup_by_mobile' => $lookup->lookupByMobileEnabled(),
         ];
+    }
+
+    /**
+     * Digits-only WhatsApp for digital PDP ask CTA (fallback to contact.whatsapp).
+     */
+    private function digitalAskWhatsApp(array $settings): ?string
+    {
+        $fromDigital = $this->storefrontSettings->normalizeWhatsAppDigits(
+            (string) ($settings['digital']['ask_whatsapp'] ?? '')
+        );
+        if ($fromDigital !== '') {
+            return $fromDigital;
+        }
+        $fromContact = $this->storefrontSettings->normalizeWhatsAppDigits(
+            (string) ($settings['contact']['whatsapp'] ?? '')
+        );
+
+        return $fromContact !== '' ? $fromContact : null;
+    }
+
+    /**
+     * Locale-resolved plain-text FAQ rows for the digital PDP.
+     *
+     * @return list<array{question: string, answer: string}>
+     */
+    private function digitalPdpFaqsPayload(array $settings, string $locale): array
+    {
+        $rows = $this->storefrontSettings->normalizeDigitalPdpFaqs(
+            $settings['digital']['pdp_faqs'] ?? null
+        );
+        $out = [];
+        foreach ($rows as $row) {
+            $question = $this->presenter->localizedSetting($row['question'] ?? '', $locale, '');
+            $answer = $this->presenter->localizedSetting($row['answer'] ?? '', $locale, '');
+            if ($question === '' && $answer === '') {
+                continue;
+            }
+            $out[] = [
+                'question' => $question,
+                'answer' => $answer,
+            ];
+        }
+
+        return $out;
     }
 }

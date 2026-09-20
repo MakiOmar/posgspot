@@ -430,6 +430,76 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Digital PDP: WhatsApp ask + FAQ accordion (web + mobile) --}}
+                <h4 style="margin-top: 20px;">Digital product page (PDP)</h4>
+                <p class="help-block">
+                    Shown on the digital game detail page (website and mobile app). WhatsApp falls back to Contact → WhatsApp when empty.
+                    FAQ answers are plain text only (max 20 rows).
+                </p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('digital_ask_whatsapp', 'Ask about product — WhatsApp number') !!}
+                            {!! Form::text(
+                                'digital_ask_whatsapp',
+                                $settings['digital']['ask_whatsapp'] ?? '',
+                                ['class' => 'form-control', 'placeholder' => '2010xxxxxxx', 'maxlength' => 32]
+                            ) !!}
+                            <p class="help-block">Digits only (country code + number). Invalid values are cleared on save.</p>
+                        </div>
+                    </div>
+                </div>
+                @php
+                    $digitalPdpFaqs = $settings['digital']['pdp_faqs'] ?? [];
+                    if (! is_array($digitalPdpFaqs) || $digitalPdpFaqs === []) {
+                        $digitalPdpFaqs = app(\App\Services\Storefront\StorefrontSettingService::class)->defaultDigitalPdpFaqs();
+                    }
+                @endphp
+                <div id="digital_pdp_faqs_rows">
+                    @foreach ($digitalPdpFaqs as $fi => $faq)
+                        @php
+                            $q = is_array($faq['question'] ?? null) ? $faq['question'] : ['en' => '', 'ar' => ''];
+                            $a = is_array($faq['answer'] ?? null) ? $faq['answer'] : ['en' => '', 'ar' => ''];
+                        @endphp
+                        <div class="panel panel-default digital-pdp-faq-row" data-index="{{ $fi }}">
+                            <div class="panel-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Question (EN)</label>
+                                            <input type="text" class="form-control" name="digital_pdp_faqs[{{ $fi }}][question_en]" value="{{ $q['en'] ?? '' }}" maxlength="200">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Question (AR)</label>
+                                            <input type="text" class="form-control" name="digital_pdp_faqs[{{ $fi }}][question_ar]" value="{{ $q['ar'] ?? '' }}" maxlength="200" dir="rtl">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Answer (EN)</label>
+                                            <textarea class="form-control" name="digital_pdp_faqs[{{ $fi }}][answer_en]" rows="3" maxlength="2000">{{ $a['en'] ?? '' }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Answer (AR)</label>
+                                            <textarea class="form-control" name="digital_pdp_faqs[{{ $fi }}][answer_ar]" rows="3" maxlength="2000" dir="rtl">{{ $a['ar'] ?? '' }}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-danger btn-xs remove-digital-pdp-faq">Remove</button>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" class="btn btn-default btn-sm" id="add_digital_pdp_faq_row">
+                    <i class="fa fa-plus"></i> Add FAQ
+                </button>
             </div>
 
             {{-- Appearance: theme, sale badge, catalog cards, announcement --}}
@@ -1622,6 +1692,45 @@
 
         $('#about_team_rows').on('click', '.remove-about-team', function () {
             $(this).closest('.about-team-row').remove();
+        });
+
+        var digitalPdpFaqIndex = $('#digital_pdp_faqs_rows .digital-pdp-faq-row').length;
+
+        function digitalPdpFaqRowHtml(index) {
+            return '' +
+                '<div class="panel panel-default digital-pdp-faq-row" data-index="' + index + '">' +
+                '<div class="panel-body">' +
+                '<div class="row">' +
+                '<div class="col-md-6"><div class="form-group"><label>Question (EN)</label>' +
+                '<input type="text" class="form-control" name="digital_pdp_faqs[' + index + '][question_en]" value="" maxlength="200">' +
+                '</div></div>' +
+                '<div class="col-md-6"><div class="form-group"><label>Question (AR)</label>' +
+                '<input type="text" class="form-control" name="digital_pdp_faqs[' + index + '][question_ar]" value="" maxlength="200" dir="rtl">' +
+                '</div></div>' +
+                '</div>' +
+                '<div class="row">' +
+                '<div class="col-md-6"><div class="form-group"><label>Answer (EN)</label>' +
+                '<textarea class="form-control" name="digital_pdp_faqs[' + index + '][answer_en]" rows="3" maxlength="2000"></textarea>' +
+                '</div></div>' +
+                '<div class="col-md-6"><div class="form-group"><label>Answer (AR)</label>' +
+                '<textarea class="form-control" name="digital_pdp_faqs[' + index + '][answer_ar]" rows="3" maxlength="2000" dir="rtl"></textarea>' +
+                '</div></div>' +
+                '</div>' +
+                '<button type="button" class="btn btn-danger btn-xs remove-digital-pdp-faq">Remove</button>' +
+                '</div></div>';
+        }
+
+        $('#add_digital_pdp_faq_row').on('click', function () {
+            if ($('#digital_pdp_faqs_rows .digital-pdp-faq-row').length >= 20) {
+                toastr.warning('Maximum 20 FAQ rows.');
+                return;
+            }
+            $('#digital_pdp_faqs_rows').append(digitalPdpFaqRowHtml(digitalPdpFaqIndex));
+            digitalPdpFaqIndex += 1;
+        });
+
+        $('#digital_pdp_faqs_rows').on('click', '.remove-digital-pdp-faq', function () {
+            $(this).closest('.digital-pdp-faq-row').remove();
         });
 
         // Footer menu columns — add / remove links (max 12 per column)
