@@ -19,13 +19,10 @@ export const BrandSlider = component$<BrandSliderProps>(({ brands, limit = 16 })
 
   return (
     <section class="home-section home-brands" aria-labelledby="home-brands-heading">
-      <div class="home-section__head">
-        <h2 id="home-brands-heading" class="home-section__title">
-          {tStatic(locale, "home.shopByBrand")}
-        </h2>
-      </div>
       <HomeCarousel
         label={tStatic(locale, "home.shopByBrand")}
+        title={tStatic(locale, "home.shopByBrand")}
+        titleId="home-brands-heading"
         trackClass="home-brands__rail"
       >
         {items.map((brand) => (

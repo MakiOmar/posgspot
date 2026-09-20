@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { TrashIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { useAuth } from "~/lib/auth-context";
@@ -25,7 +26,10 @@ export default component$(() => {
 
   return (
     <section class="container wishlist-page">
-      <h1>{tStatic(locale, "wishlist.title")}</h1>
+      <PageTitleBar
+        title={tStatic(locale, "wishlist.title")}
+        crumbs={[{ label: tStatic(locale, "wishlist.title") }]}
+      />
 
       {!wishlist.hydrated ? (
         <p class="footer-muted">{tStatic(locale, "common.loading")}</p>

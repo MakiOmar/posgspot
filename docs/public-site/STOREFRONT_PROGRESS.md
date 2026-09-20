@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-19 |
+| **Last updated** | 2026-09-20 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -145,7 +145,7 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Logo, announcement bar | ✅ | `site-header.tsx`; `logo_url` prefers storefront Appearance logo over POS business logo |
+| Logo, announcement bar | ✅ | `site-header.tsx`; `logo_url` prefers storefront Appearance logo; `business_logo_url` is POS business logo (transition splash) |
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns; mobile opens from bottom nav |
 | Mobile bottom nav | ✅ | Home / Search / Cart / Wishlist / Account; header hides cart+wishlist+search+account (&lt;1024px); centered logo (header style one) |
 | Shop Physical menu (settings-driven) | ✅ | `shop_menu.physical` → mega + drawer nested groups; empty → `consoleNavCategories` |
@@ -175,7 +175,7 @@
 | Cloudflare Turnstile (site + secret key) | ✅ | `/storefront/settings`; encrypted secret; contact + register when both set |
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
-| Storefront logo (upload / URL) | ✅ | Settings → Appearance; overrides POS business logo in public `logo_url` |
+| Storefront logo (upload / URL) | ✅ | Settings → Appearance; overrides POS business logo in public `logo_url`; splash uses `business_logo_url` |
 | Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop + drag-right/left indent/outdent (max depth 5); public `shop_menu.physical`; Qwik + Expo |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
@@ -254,6 +254,11 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | Homepage carousels: fix broken nav (`display:contents`); unified toolbar (title / view link / prev+next); mobile stacks title then actions. |
+| 2026-09-20 | Homepage section carousels: prev/next paired in the title row (not side arrows); one full-width slide on mobile. |
+| 2026-09-19 | Roll out fancy `PageTitleBar` across public catalog, services, legal, search, cart, wishlist (auth/account/checkout keep compact titles). |
+| 2026-09-19 | Transition splash uses POS `business_logo_url` (new settings field); header keeps storefront `logo_url`. |
+| 2026-09-19 | Page-transition loader: full-screen black splash with settings logo + opposite-rotating ¾ arcs (Expo BrandSplash parity) via GlobalPendingIndicator. |
 | 2026-09-19 | Wave 1 security: server-only digital catalog prices; `order_access_token` on checkout/payment session/return (no public invoice URLs); Turnstile+throttle on device/repair; Expo pending-payment drops auth snapshot + biometric bypass; Geidea/community WebView allowlists. |
 | 2026-09-19 | Wave 3 payload: Qwik gzip; locale AR messages lazy-loaded via `ensureLocaleMessages`; Cache-Control on settings/categories; cover LCP hints. |
 | 2026-09-19 | Wave 3 API/Qwik: upload allowlist + server filenames (sell-to-us/avatar); Turnstile on login + inactive reject; OTP throttle 5/min; Fawry remote fetchStatus before markPaid; settings `?shell=1` omits about.team; Cache-Control/ETag on settings/categories; community list limit; VLD composite index; Qwik gzip + cover fetchPriority. |

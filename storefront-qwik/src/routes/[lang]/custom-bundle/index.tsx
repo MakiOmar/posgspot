@@ -1,11 +1,11 @@
 import { $, component$, useSignal, useTask$, useComputed$ } from "@builder.io/qwik";
 import {
-  Link,
   routeLoader$,
   useNavigate,
   type DocumentHead,
 } from "@builder.io/qwik-city";
 import { CartPlusIcon, MinusIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { JsonLd } from "~/components/seo/json-ld";
 import {
   ApiError,
@@ -396,15 +396,13 @@ export default component$(() => {
   };
 
   return (
-    <article class="content-page custom-bundle-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.customBundle")}</span>
-      </nav>
-
+    <div class="custom-bundle-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "customBundle.title")}
+        crumbs={[{ label: tStatic(locale, "nav.customBundle") }]}
+      />
+      <article class="content-page custom-bundle-page">
       <p class="custom-bundle-badge">{tStatic(locale, "customBundle.badge")}</p>
-      <h1 class="content-title">{tStatic(locale, "customBundle.title")}</h1>
       <p class="content-prose custom-bundle-lead">{tStatic(locale, "customBundle.lead")}</p>
 
       <ol class="custom-bundle-steps">
@@ -682,7 +680,8 @@ export default component$(() => {
       ) : null}
 
       <JsonLd data={howToLd} />
-    </article>
+      </article>
+    </div>
   );
 });
 

@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
@@ -11,27 +12,26 @@ export default component$(() => {
   const { locale } = useI18n();
 
   return (
-    <article class="content-page coming-soon-page">
-      <nav class="breadcrumb" aria-label="Breadcrumb">
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">/</span>
-        <span>{tStatic(locale, "nav.repairTruck")}</span>
-      </nav>
+    <div class="repair-truck-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "repairTruck.title")}
+        crumbs={[{ label: tStatic(locale, "nav.repairTruck") }]}
+      />
+      <article class="content-page coming-soon-page">
+        <p class="coming-soon-badge">{tStatic(locale, "repairTruck.badge")}</p>
+        <p class="content-prose">{tStatic(locale, "repairTruck.lead")}</p>
+        <p class="footer-muted">{tStatic(locale, "repairTruck.hint")}</p>
 
-      <p class="coming-soon-badge">{tStatic(locale, "repairTruck.badge")}</p>
-      <h1 class="content-title">{tStatic(locale, "repairTruck.title")}</h1>
-      <p class="content-prose">{tStatic(locale, "repairTruck.lead")}</p>
-      <p class="footer-muted">{tStatic(locale, "repairTruck.hint")}</p>
-
-      <div class="coming-soon-actions">
-        <Link class="btn btn-secondary" href={localePath(locale, "/repair-status")}>
-          {tStatic(locale, "nav.trackRepairs")}
-        </Link>
-        <Link class="btn btn-primary" href={localePath(locale, "/contact")}>
-          {tStatic(locale, "nav.leaveMessage")}
-        </Link>
-      </div>
-    </article>
+        <div class="coming-soon-actions">
+          <Link class="btn btn-secondary" href={localePath(locale, "/repair-status")}>
+            {tStatic(locale, "nav.trackRepairs")}
+          </Link>
+          <Link class="btn btn-primary" href={localePath(locale, "/contact")}>
+            {tStatic(locale, "nav.leaveMessage")}
+          </Link>
+        </div>
+      </article>
+    </div>
   );
 });
 
@@ -50,7 +50,7 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
-        { property: "og:url", content: url.href },
+        { name: "twitter:card", content: "summary" },
       ],
       links: publicSeoLinks(url.origin, "/repair-truck-request", lang),
     },

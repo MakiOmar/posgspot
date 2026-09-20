@@ -38,11 +38,16 @@ class SettingsApiService
             ];
         }
 
+        $businessLogoUrl = business_logo_url($business) ?: null;
+
         return [
             'business_name' => $business->name ?? '',
+            // Header / marketing: storefront Appearance logo when set, else POS business logo.
             'logo_url' => $this->storefrontSettings->logoPublicUrl(
                 is_array($settings['logo'] ?? null) ? $settings['logo'] : null
-            ) ?: (business_logo_url($business) ?: null),
+            ) ?: $businessLogoUrl,
+            // Always the POS Business Settings logo (splash / transition loader).
+            'business_logo_url' => $businessLogoUrl,
             'currency' => [
                 'code' => $business->currency_code ?? 'EGP',
                 'symbol' => $business->currency_symbol ?? 'L.E.',

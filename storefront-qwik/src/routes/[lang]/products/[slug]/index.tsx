@@ -11,7 +11,7 @@ import { ProductShareButtons } from "~/components/catalog/product-share-buttons"
 import { RecentlyViewed } from "~/components/catalog/recently-viewed";
 import { StarRating } from "~/components/catalog/star-rating";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
-import { Breadcrumbs } from "~/components/seo/breadcrumbs";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { JsonLd } from "~/components/seo/json-ld";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
@@ -129,16 +129,21 @@ export default component$(() => {
         )}
       />
 
-      <article class="pdp">
-        <div class="pdp-top">
-          <Breadcrumbs items={breadcrumbItems} />
-        </div>
+      <PageTitleBar
+        title={p.name}
+        crumbs={[
+          { label: tStatic(locale, "nav.shop"), href: "/products" },
+          ...(p.category && categoryPath
+            ? [{ label: p.category.name, href: categoryPath }]
+            : []),
+        ]}
+      />
 
+      <article class="pdp">
         <div class="pdp-layout">
           <ProductGallery images={galleryImages} alt={p.name} />
 
           <div class="pdp-info">
-            <h1>{p.name}</h1>
             {p.brand ? (
               <p class="footer-muted">
                 {tStatic(locale, "catalog.brand")}:{" "}

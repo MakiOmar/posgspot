@@ -113,7 +113,7 @@ export default component$(() => {
           <h1 class="page-title">{tStatic(locale, "auth.accountCreated")}</h1>
           <p class="alert alert-success">{tStatic(locale, "auth.welcomeAboard")}</p>
           <div class="auth-links">
-            <Link href={accountPath} class="link-accent">
+            <Link href={nextUrl} class="link-accent">
               {tStatic(locale, "auth.goToAccount")}
             </Link>
           </div>

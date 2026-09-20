@@ -378,7 +378,8 @@ From [React Native](https://docs.geidea.net/docs/react-native-1):
 - Resolve SDK version clashes with `expo-build-properties` (`minSdkVersion: 24`), never by rewriting generated Gradle.
 - Native `payWithGeidea` is attempted first on iOS and Android in `src/lib/geidea.ts`; if the package is missing or unlinkable, the same function falls back to hosted HTML.
 - Android bridge presents with `SDKPresentationStyle.BottomSheet` (not `Push`). `Push` opens `GDPaymentActivity`, which Expo `singleTask` MainActivity can clear mid-3DS / “processing”, remounting RN and looking like a logout.
-- Mid-checkout remounts still persist `gs-pending-payment-v1` (optional short-lived auth snapshot), restore auth past passkey lock, and resume via `/checkout/payment?resume=1`. Unpaid orders expose **Pay now** on account order detail.
+- Mid-checkout remounts still persist `gs-pending-payment-v1` (optional short-lived auth snapshot), restore auth past passkey lock, and resume via `/checkout/payment?resume=1`. Unpaid orders expose **Pay Now** on account order detail.
+- Android Geidea CTA: PGW ships `gpw_pay_now` as “Online now”; `plugins/withGeideaSdk.js` overrides `gpw_pay_now` / `pay` to **Pay Now** (EN) and **ادفع الآن** (AR).
 
 **Server vs client mode:** Laravel selects test/live **only** by which credential pair signs Create Session. There is no sandbox API host. The **client SDK** needs `environment` (`production` when live, `sandbox` when test) plus `region` — mapped from the session payload. Clients never hardcode a stage. Server `callbackUrl` stays `{APP_URL}/api/storefront/v1/payments/geidea/webhook`.
 

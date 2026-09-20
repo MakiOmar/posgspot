@@ -33,8 +33,8 @@ export const PageTitleBar = component$<Props>((props) => {
               <HomeIcon size={14} />
               <span>{tStatic(locale, "nav.home")}</span>
             </Link>
-            {crumbs.map((crumb) => (
-              <span key={crumb.label} class="page-title-bar__crumb">
+            {crumbs.map((crumb, index) => (
+              <span key={`${index}-${crumb.label}`} class="page-title-bar__crumb">
                 <span aria-hidden="true">›</span>
                 {crumb.href ? (
                   <Link href={localePath(locale, crumb.href)}>{crumb.label}</Link>

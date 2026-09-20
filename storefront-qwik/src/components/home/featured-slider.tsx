@@ -21,18 +21,20 @@ export const FeaturedSlider = component$<FeaturedSliderProps>(({ products, setti
 
   return (
     <section class="home-section home-featured" aria-labelledby="home-featured-heading">
-      <div class="home-section__head">
-        <h2 id="home-featured-heading" class="home-section__title">
-          {tStatic(locale, "home.featured")}
-        </h2>
-        <Link href={localePath(locale, "/products")} class="home-all-products-link" prefetch={false}>
-          {tStatic(locale, "footer.allProducts")}
-        </Link>
-      </div>
       <HomeCarousel
         label={tStatic(locale, "home.featured")}
+        title={tStatic(locale, "home.featured")}
+        titleId="home-featured-heading"
         trackClass="home-product-rail"
       >
+        <Link
+          q:slot="action"
+          href={localePath(locale, "/products")}
+          class="home-all-products-link"
+          prefetch={false}
+        >
+          {tStatic(locale, "footer.allProducts")}
+        </Link>
         {products.map((product) => (
           <div key={product.id} class="home-product-rail__item">
             <ProductCard product={product} settings={settings} />

@@ -3,6 +3,7 @@ import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { fetchBrand, fetchProductsPage } from "~/lib/api";
 import { parseProductListFilters } from "~/lib/catalog-filters";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -75,7 +76,13 @@ export default component$(() => {
   if (!brand) {
     return (
       <section>
-        <h1 class="page-title">{tStatic(lang, "catalog.brandNotFound")}</h1>
+        <PageTitleBar
+          title={tStatic(lang, "catalog.brandNotFound")}
+          crumbs={[
+            { label: tStatic(lang, "nav.brands"), href: "/brands" },
+            { label: tStatic(lang, "catalog.brandNotFound") },
+          ]}
+        />
         <div class="empty-state">
           {tStatic(lang, "catalog.brandNotFoundBody")}{" "}
           <Link href={localePath(lang, "/brands")}>{tStatic(lang, "nav.brands")}</Link>
@@ -86,7 +93,13 @@ export default component$(() => {
 
   return (
     <section>
-      <h1 class="page-title">{brand.name}</h1>
+      <PageTitleBar
+        title={brand.name}
+        crumbs={[
+          { label: tStatic(lang, "nav.brands"), href: "/brands" },
+          { label: brand.name },
+        ]}
+      />
 
       <ProductListToolbar basePath={loc.url.pathname} filters={filters} />
 

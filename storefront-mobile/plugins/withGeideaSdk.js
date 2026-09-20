@@ -8,8 +8,10 @@
 const fs = require("fs");
 const path = require("path");
 const {
+  AndroidConfig,
   withAppBuildGradle,
   withProjectBuildGradle,
+  withStringsXml,
   withDangerousMod,
   createRunOncePlugin,
 } = require("expo/config-plugins");
@@ -17,6 +19,10 @@ const {
 const PKG = "@geidea/payment-sdk-react-native";
 const LOGO_SOURCE = "assets/images/geidea-merchant-logo.png";
 const LOGO_ANDROID_NAME = "geidea_merchant_logo.png";
+
+/** Geidea PGW ships `gpw_pay_now` as "Online now" — override CTA to "Pay Now". */
+const PAY_BUTTON_EN = "Pay Now";
+const PAY_BUTTON_AR = "ادفع الآن";
 
 function sdkInstalled(projectRoot) {
   try {
@@ -29,6 +35,20 @@ function sdkInstalled(projectRoot) {
 }
 
 function withGeideaSdk(config) {
+  config = withStringsXml(config, (mod) => {
+    if (!sdkInstalled(mod.modRequest.projectRoot)) {
+      return mod;
+    }
+    mod.modResults = AndroidConfig.Strings.setStringItem(
+      [
+        { $: { name: "gpw_pay_now" }, _: PAY_BUTTON_EN },
+        { $: { name: "pay" }, _: PAY_BUTTON_EN },
+      ],
+      mod.modResults,
+    );
+    return mod;
+  });
+
   config = withProjectBuildGradle(config, (mod) => {
     if (!sdkInstalled(mod.modRequest.projectRoot)) {
       return mod;
@@ -84,20 +104,34 @@ function withGeideaSdk(config) {
       if (!sdkInstalled(mod.modRequest.projectRoot)) {
         return mod;
       }
-      const src = path.join(mod.modRequest.projectRoot, LOGO_SOURCE);
-      if (!fs.existsSync(src)) {
-        return mod;
-      }
-      const destDir = path.join(
+      const resRoot = path.join(
         mod.modRequest.platformProjectRoot,
         "app",
         "src",
         "main",
         "res",
-        "drawable",
       );
-      fs.mkdirSync(destDir, { recursive: true });
-      fs.copyFileSync(src, path.join(destDir, LOGO_ANDROID_NAME));
+
+      const src = path.join(mod.modRequest.projectRoot, LOGO_SOURCE);
+      if (fs.existsSync(src)) {
+        const destDir = path.join(resRoot, "drawable");
+        fs.mkdirSync(destDir, { recursive: true });
+        fs.copyFileSync(src, path.join(destDir, LOGO_ANDROID_NAME));
+      }
+
+      // Arabic override (withStringsXml only writes values/strings.xml).
+      const arDir = path.join(resRoot, "values-ar");
+      fs.mkdirSync(arDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(arDir, "strings.xml"),
+        `<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+  <string name="gpw_pay_now">${PAY_BUTTON_AR}</string>
+  <string name="pay">${PAY_BUTTON_AR}</string>
+</resources>
+`,
+        "utf8",
+      );
       return mod;
     },
   ]);
@@ -105,4 +139,4 @@ function withGeideaSdk(config) {
   return config;
 }
 
-module.exports = createRunOncePlugin(withGeideaSdk, "with-geidea-sdk", "1.0.0");
+module.exports = createRunOncePlugin(withGeideaSdk, "with-geidea-sdk", "1.1.0");

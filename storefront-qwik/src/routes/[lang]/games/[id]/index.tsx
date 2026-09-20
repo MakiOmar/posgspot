@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ImageLightbox } from "~/components/ui/image-lightbox";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
@@ -94,12 +95,21 @@ export default component$(() => {
   if (!detail.value.ok || !detail.value.game) {
     return (
       <article>
-        {/* Stay on this URL so a timeout is not mistaken for "the game list never left". */}
-        <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
-          <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
-          <span aria-hidden="true"> / </span>
-          <Link href={localePath(lang, "/games")}>{tStatic(lang, "nav.games")}</Link>
-        </nav>
+        <PageTitleBar
+          title={
+            detail.value.notFound
+              ? tStatic(lang, "digital.gameNotFound")
+              : tStatic(lang, "digital.gameLoadFailed")
+          }
+          crumbs={[
+            { label: tStatic(lang, "nav.games"), href: "/games" },
+            {
+              label: detail.value.notFound
+                ? tStatic(lang, "digital.gameNotFound")
+                : tStatic(lang, "digital.gameLoadFailed"),
+            },
+          ]}
+        />
         <div class="empty-state" style={{ marginTop: "2rem" }}>
           <p>
             {detail.value.notFound
@@ -234,13 +244,13 @@ export default component$(() => {
 
   return (
     <article>
-      <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
-        <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
-        <span aria-hidden="true"> / </span>
-        <Link href={localePath(lang, "/games")}>{tStatic(lang, "nav.games")}</Link>
-        <span aria-hidden="true"> / </span>
-        <span>{title}</span>
-      </nav>
+      <PageTitleBar
+        title={title}
+        crumbs={[
+          { label: tStatic(lang, "nav.games"), href: "/games" },
+          { label: title },
+        ]}
+      />
 
       <div class="pdp-layout" style={{ marginTop: "1rem" }}>
         <div class="pdp-gallery">
@@ -263,9 +273,6 @@ export default component$(() => {
           )}
         </div>
         <div class="pdp-summary">
-          <h1 class="page-title" style={{ marginTop: 0 }}>
-            {title}
-          </h1>
           <p class="footer-muted">{tStatic(lang, "digital.platformLabel", { platform })}</p>
 
           <div style={{ display: "grid", gap: "1rem", marginTop: "1.5rem" }}>

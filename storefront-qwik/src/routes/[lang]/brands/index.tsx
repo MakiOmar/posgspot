@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { fetchBrands } from "~/lib/api";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
@@ -24,7 +25,10 @@ export default component$(() => {
 
   return (
     <section>
-      <h1 class="page-title">{tStatic(lang.value, "brands.title")}</h1>
+      <PageTitleBar
+        title={tStatic(lang.value, "brands.title")}
+        crumbs={[{ label: tStatic(lang.value, "brands.title") }]}
+      />
       <p class="footer-muted" style={{ marginBottom: "1.5rem" }}>
         {tStatic(lang.value, "brands.lead")}
       </p>

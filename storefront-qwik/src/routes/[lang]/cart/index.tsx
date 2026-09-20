@@ -2,6 +2,7 @@ import { $, component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { TrashIcon } from "~/components/icons";
 import { CouponField } from "~/components/checkout/coupon-field";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { ApiError, inspectCart } from "~/lib/api";
 import {
@@ -219,7 +220,10 @@ export default component$(() => {
   if (!cart.hydrated) {
     return (
       <section>
-        <h1 class="page-title">{tStatic(locale, "cart.title")}</h1>
+        <PageTitleBar
+          title={tStatic(locale, "cart.title")}
+          crumbs={[{ label: tStatic(locale, "cart.title") }]}
+        />
         <p class="footer-muted cart-status" role="status">
           {tStatic(locale, "cart.refreshing")}
         </p>
@@ -230,7 +234,10 @@ export default component$(() => {
   if (cart.items.length === 0) {
     return (
       <section>
-        <h1 class="page-title">{tStatic(locale, "cart.title")}</h1>
+        <PageTitleBar
+          title={tStatic(locale, "cart.title")}
+          crumbs={[{ label: tStatic(locale, "cart.title") }]}
+        />
         {removedNotice.value ? (
           <p class="alert alert-success" role="status">
             {removedNotice.value}
@@ -280,7 +287,10 @@ export default component$(() => {
 
   return (
     <section>
-      <h1 class="page-title">{tStatic(locale, "cart.title")}</h1>
+      <PageTitleBar
+        title={tStatic(locale, "cart.title")}
+        crumbs={[{ label: tStatic(locale, "cart.title") }]}
+      />
 
       {validating.value ? (
         <p class="footer-muted cart-status" role="status">

@@ -43,8 +43,13 @@ export const useEventPost = routeLoader$(async ({ params, redirect, resolveValue
       phoneCountries = [];
     }
   }
-  const { wrongType: _w, ...page } = loaded;
-  return { ...page, phoneCountries };
+  return {
+    post: loaded.post,
+    notFound: loaded.notFound,
+    upcomingTournaments: loaded.upcomingTournaments,
+    upcomingEvents: loaded.upcomingEvents,
+    phoneCountries,
+  };
 });
 
 export default component$(() => {

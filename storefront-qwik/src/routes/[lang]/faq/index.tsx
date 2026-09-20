@@ -1,11 +1,11 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { FaqAccordion } from "~/components/content/content-blocks";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { JsonLd } from "~/components/seo/json-ld";
 import { getFaqEntries } from "~/lib/faq-content";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { useSiteSettings } from "~/routes/[lang]/layout";
@@ -38,19 +38,16 @@ export default component$(() => {
   };
 
   return (
-    <article class="content-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.faq")}</span>
-      </nav>
-
-      <h1 class="content-title">{tStatic(locale, "nav.faq")}</h1>
-
-      <FaqAccordion items={faq.value} openIndex={openIndex.value} onToggle$={toggle$} />
-
-      <JsonLd data={faqSchema} />
-    </article>
+    <div class="faq-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "nav.faq")}
+        crumbs={[{ label: tStatic(locale, "nav.faq") }]}
+      />
+      <article class="content-page">
+        <FaqAccordion items={faq.value} openIndex={openIndex.value} onToggle$={toggle$} />
+        <JsonLd data={faqSchema} />
+      </article>
+    </div>
   );
 });
 

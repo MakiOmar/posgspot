@@ -43,3 +43,13 @@ play-service-account.json
 # generated native folders
 /ios
 /android
+
+# Local emulator / UIAutomator / Gradle debug dumps (never commit)
+.idea/
+devmenu-prefs.xml
+emu-*.png
+emulator-*.png
+logcat-*.txt
+gradle-*.log
+ui-*.xml
+ui[0-9]*.xml

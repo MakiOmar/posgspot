@@ -3,6 +3,7 @@ import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { fetchProductsPage } from "~/lib/api";
 import { parseProductListFilters } from "~/lib/catalog-filters";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -58,7 +59,10 @@ export default component$(() => {
 
   return (
     <section>
-      <h1 class="page-title">{tStatic(lang as "en" | "ar", "nav.shop")}</h1>
+      <PageTitleBar
+        title={tStatic(lang as "en" | "ar", "nav.shop")}
+        crumbs={[{ label: tStatic(lang as "en" | "ar", "nav.shop") }]}
+      />
 
       <ProductListToolbar basePath={listPath} filters={filters} />
 

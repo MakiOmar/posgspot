@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
-import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { checkDigitalCardStock, fetchDigitalCardCategories } from "~/lib/api";
@@ -99,14 +100,12 @@ export default component$(() => {
 
   return (
     <section class="digital-catalog">
-      <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
-        <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
-        <span aria-hidden="true"> / </span>
-        <span>{tStatic(lang, "nav.giftCards")}</span>
-      </nav>
+      <PageTitleBar
+        title={tStatic(lang, "digital.giftCardsTitle")}
+        crumbs={[{ label: tStatic(lang, "nav.giftCards") }]}
+      />
 
       <header class="digital-catalog__header">
-        <h1 class="page-title digital-catalog__title">{tStatic(lang, "digital.giftCardsTitle")}</h1>
         <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.giftCardsLead")}</p>
       </header>
 

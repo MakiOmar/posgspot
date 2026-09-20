@@ -21,18 +21,20 @@ export const TopCategories = component$<TopCategoriesProps>(({ categories, limit
 
   return (
     <section class="home-section home-top-categories" aria-labelledby="home-top-cats-heading">
-      <div class="home-section__head">
-        <h2 id="home-top-cats-heading" class="home-section__title">
-          {tStatic(locale, "home.topCategories")}
-        </h2>
-        <Link href={localePath(locale, "/products")} class="home-all-products-link" prefetch={false}>
-          {tStatic(locale, "footer.allProducts")}
-        </Link>
-      </div>
       <HomeCarousel
         label={tStatic(locale, "home.topCategories")}
+        title={tStatic(locale, "home.topCategories")}
+        titleId="home-top-cats-heading"
         trackClass="home-top-categories__rail"
       >
+        <Link
+          q:slot="action"
+          href={localePath(locale, "/products")}
+          class="home-all-products-link"
+          prefetch={false}
+        >
+          {tStatic(locale, "footer.allProducts")}
+        </Link>
         {items.map((category) => (
           <Link
             key={category.id}

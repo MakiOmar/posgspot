@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import {
   ApiError,
   fetchAccountRepairs,
@@ -203,14 +204,12 @@ export default component$(() => {
   });
 
   return (
-    <article class="content-page repair-status-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.trackRepairs")}</span>
-      </nav>
-
-      <h1 class="content-title">{tStatic(locale, "repair.title")}</h1>
+    <div class="repair-status-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "repair.title")}
+        crumbs={[{ label: tStatic(locale, "nav.trackRepairs") }]}
+      />
+      <article class="content-page repair-status-page">
       {/* Guest-only intro; signed-in customers see their list instead of lookup copy. */}
       {auth.ready && !signedIn ? (
         <p class="content-lead">{tStatic(locale, "repair.intro")}</p>
@@ -310,7 +309,8 @@ export default component$(() => {
         </div>
         </div>
       ) : null}
-    </article>
+      </article>
+    </div>
   );
 });
 

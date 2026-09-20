@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import {
   ApiError,
   fetchOrders,
@@ -171,15 +172,13 @@ export default component$(() => {
   });
 
   return (
-    <article class="content-page track-order-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.trackOrder")}</span>
-      </nav>
-
+    <div class="track-order-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "trackOrder.title")}
+        crumbs={[{ label: tStatic(locale, "nav.trackOrder") }]}
+      />
+      <article class="content-page track-order-page">
       <p class="coming-soon-badge">{tStatic(locale, "trackOrder.badge")}</p>
-      <h1 class="content-title">{tStatic(locale, "trackOrder.title")}</h1>
 
       {/* Signed-in: recent orders */}
       {signedIn || !auth.ready ? (
@@ -285,7 +284,8 @@ export default component$(() => {
           {tracked.value ? <TrackedOrderCard order={tracked.value} /> : null}
         </div>
       </section>
-    </article>
+      </article>
+    </div>
   );
 });
 

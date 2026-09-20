@@ -7,6 +7,7 @@ import {
 } from "@builder.io/qwik-city";
 import { JsonLd } from "~/components/seo/json-ld";
 import { LockIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { SearchableSelect } from "~/components/forms/searchable-select";
 import {
   ApiError,
@@ -247,13 +248,12 @@ export default component$(() => {
   // Full page gate until auth is known and the customer is signed in.
   if (!auth.ready || !signedIn) {
     return (
-      <article class="content-page sell-to-us-page sell-to-us-page--gate">
-        <nav class="breadcrumb" aria-label="Breadcrumb">
-          <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-          <span aria-hidden="true">/</span>
-          <span>{tStatic(locale, "nav.sellToUs")}</span>
-        </nav>
-
+      <div class="sell-to-us-layout-page">
+        <PageTitleBar
+          title={tStatic(locale, "sellToUs.title")}
+          crumbs={[{ label: tStatic(locale, "nav.sellToUs") }]}
+        />
+        <article class="content-page sell-to-us-page sell-to-us-page--gate">
         <div class="sell-to-us-gate">
           {!auth.ready ? (
             <p class="footer-muted sell-to-us-gate__loading" aria-live="polite">
@@ -265,7 +265,7 @@ export default component$(() => {
               <div class="sell-to-us-gate__icon" aria-hidden="true">
                 <LockIcon size={48} />
               </div>
-              <h1 class="sell-to-us-gate__title">{tStatic(locale, "sellToUs.gateTitle")}</h1>
+              <h2 class="sell-to-us-gate__title">{tStatic(locale, "sellToUs.gateTitle")}</h2>
               <p class="sell-to-us-gate__lead">{tStatic(locale, "sellToUs.gateLead")}</p>
               <Link
                 class="btn btn-primary sell-to-us-gate__cta"
@@ -283,21 +283,21 @@ export default component$(() => {
             </div>
           )}
         </div>
-      </article>
+        </article>
+      </div>
     );
   }
 
   return (
-    <article class="content-page sell-to-us-page">
+    <div class="sell-to-us-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "sellToUs.title")}
+        crumbs={[{ label: tStatic(locale, "nav.sellToUs") }]}
+      />
+      <article class="content-page sell-to-us-page">
       <JsonLd data={howLd} />
-      <nav class="breadcrumb" aria-label="Breadcrumb">
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">/</span>
-        <span>{tStatic(locale, "nav.sellToUs")}</span>
-      </nav>
 
       <p class="sell-to-us-badge">{tStatic(locale, "sellToUs.badge")}</p>
-      <h1 class="content-title">{tStatic(locale, "sellToUs.title")}</h1>
       <p class="content-prose sell-to-us-lead">{tStatic(locale, "sellToUs.lead")}</p>
 
       <h2 class="sell-to-us-section-title">{tStatic(locale, "sellToUs.howTitle")}</h2>
@@ -600,7 +600,8 @@ export default component$(() => {
           ) : null}
         </>
       )}
-    </article>
+      </article>
+    </div>
   );
 });
 

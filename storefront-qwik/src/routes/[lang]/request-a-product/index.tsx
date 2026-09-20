@@ -2,6 +2,7 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import {
   ApiError,
   fetchPhoneCountries,
@@ -149,15 +150,13 @@ export default component$(() => {
   });
 
   return (
-    <article class="content-page request-product-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.requestProduct")}</span>
-      </nav>
-
+    <div class="request-product-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "requestProduct.title")}
+        crumbs={[{ label: tStatic(locale, "nav.requestProduct") }]}
+      />
+      <article class="content-page request-product-page">
       <p class="coming-soon-badge">{tStatic(locale, "requestProduct.badge")}</p>
-      <h1 class="content-title">{tStatic(locale, "requestProduct.title")}</h1>
       <p class="content-lead">{tStatic(locale, "requestProduct.lead")}</p>
 
       {!signedIn && auth.ready ? (
@@ -268,7 +267,8 @@ export default component$(() => {
             : tStatic(locale, "requestProduct.submit")}
         </button>
       </form>
-    </article>
+      </article>
+    </div>
   );
 });
 

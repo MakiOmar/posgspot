@@ -4,6 +4,7 @@ import { ProductCard } from "~/components/catalog/product-card";
 import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { PromoBanners } from "~/components/catalog/promo-banners";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { fetchCategory, fetchProductsPage } from "~/lib/api";
 import { parseProductListFilters } from "~/lib/catalog-filters";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -74,7 +75,13 @@ export default component$(() => {
   if (!category) {
     return (
       <section>
-        <h1 class="page-title">{tStatic(lang, "catalog.categoryNotFound")}</h1>
+        <PageTitleBar
+          title={tStatic(lang, "catalog.categoryNotFound")}
+          crumbs={[
+            { label: tStatic(lang, "nav.shop"), href: "/products" },
+            { label: tStatic(lang, "catalog.categoryNotFound") },
+          ]}
+        />
         <div class="empty-state">
           {tStatic(lang, "catalog.categoryNotFoundBody")}{" "}
           <Link href={localePath(lang, "/products")}>
@@ -87,8 +94,13 @@ export default component$(() => {
 
   return (
     <section>
-      {/* Category heading driven by the resolved POS category name. */}
-      <h1 class="page-title">{category.name}</h1>
+      <PageTitleBar
+        title={category.name}
+        crumbs={[
+          { label: tStatic(lang, "nav.shop"), href: "/products" },
+          { label: category.name },
+        ]}
+      />
 
       <PromoBanners
         banners={settings.value.banners ?? []}

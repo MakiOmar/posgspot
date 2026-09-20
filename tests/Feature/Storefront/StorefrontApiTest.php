@@ -165,6 +165,28 @@ class StorefrontApiTest extends TestCase
             ->assertJsonPath('data.contact.email_encoded', base64_encode($email));
     }
 
+    public function test_settings_exposes_business_logo_separate_from_storefront_logo(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'logo' => [
+                'image' => '',
+                'url' => 'https://cdn.example.com/storefront-header-logo.png',
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.logo_url', 'https://cdn.example.com/storefront-header-logo.png');
+
+        $payload = $response->json('data');
+        $this->assertArrayHasKey('business_logo_url', $payload);
+        // When a storefront Appearance logo is set, header logo differs from POS business logo.
+        if (! empty($payload['business_logo_url'])) {
+            $this->assertNotSame($payload['logo_url'], $payload['business_logo_url']);
+        }
+    }
+
     public function test_settings_exposes_catalog_availability_on_cards_flag(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [

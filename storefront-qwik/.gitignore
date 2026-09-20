@@ -37,6 +37,11 @@ lerna-debug.log*
 *.sln
 *.sw?
 
+# Local zip dumps
+*.zip
+/dist.zip
+/server.zip
+
 # Yarn
 .yarn/*
 !.yarn/releases

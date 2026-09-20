@@ -1,6 +1,7 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { MapPinIcon, PhoneIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
 import { JsonLd } from "~/components/seo/json-ld";
 import { fetchLocations } from "~/lib/api";
@@ -62,19 +63,15 @@ export default component$(() => {
     locations.value.find((loc) => loc.id === selectedId.value) ?? initial;
 
   return (
-    <article class="content-page stores-page">
+    <div class="stores-layout-page">
+      <PageTitleBar
+        title={tStatic(locale, "stores.title")}
+        crumbs={[{ label: tStatic(locale, "nav.stores") }]}
+      />
+      <article class="content-page stores-page">
       <JsonLd data={storesJsonLd(locations.value, settings.value.business_name)} />
 
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "nav.stores")}</span>
-      </nav>
-
-      <header class="stores-page__intro">
-        <h1 class="content-title">{tStatic(locale, "stores.title")}</h1>
-        <p class="stores-page__lead">{tStatic(locale, "stores.lead")}</p>
-      </header>
+      <p class="stores-page__lead">{tStatic(locale, "stores.lead")}</p>
 
       {locations.value.length === 0 ? (
         <div class="empty-state">
@@ -162,7 +159,8 @@ export default component$(() => {
         {tStatic(locale, "stores.contactPrompt")}{" "}
         <Link href={localePath(locale, "/contact")}>{tStatic(locale, "nav.contact")}</Link>
       </p>
-    </article>
+      </article>
+    </div>
   );
 });
 

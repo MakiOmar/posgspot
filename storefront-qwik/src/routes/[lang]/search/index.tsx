@@ -3,6 +3,7 @@ import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductListToolbar } from "~/components/catalog/product-list-toolbar";
 import { ChevronLeftIcon, ChevronRightIcon } from "~/components/icons";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { fetchProductsPage, searchCatalog } from "~/lib/api";
 import { parseProductListFilters } from "~/lib/catalog-filters";
 import { formatPrice } from "~/lib/format";
@@ -100,13 +101,10 @@ export default component$(() => {
 
   return (
     <section class="search-page">
-      <nav class="content-breadcrumb" aria-label={tStatic(locale, "a11y.breadcrumb")}>
-        <Link href={localePath(locale, "/")}>{tStatic(locale, "nav.home")}</Link>
-        <span aria-hidden="true">›</span>
-        <span>{tStatic(locale, "search.heading")}</span>
-      </nav>
-
-      <h1 class="page-title">{tStatic(locale, "search.heading")}</h1>
+      <PageTitleBar
+        title={tStatic(locale, "search.heading")}
+        crumbs={[{ label: tStatic(locale, "search.heading") }]}
+      />
 
       {/* Search input lives in the site header only — avoid a second form here. */}
 

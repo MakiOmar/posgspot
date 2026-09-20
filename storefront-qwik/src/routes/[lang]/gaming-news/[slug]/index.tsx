@@ -28,8 +28,12 @@ export const useNewsPost = routeLoader$(async ({ params, redirect, resolveValue 
   if (loaded.wrongType) {
     throw redirect(302, localePath(locale, "/gaming-news"));
   }
-  const { wrongType: _w, ...page } = loaded;
-  return page;
+  return {
+    post: loaded.post,
+    notFound: loaded.notFound,
+    upcomingTournaments: loaded.upcomingTournaments,
+    upcomingEvents: loaded.upcomingEvents,
+  };
 });
 
 export default component$(() => {

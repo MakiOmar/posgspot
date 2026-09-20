@@ -185,6 +185,7 @@ export default component$(() => {
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
+            <GlobalPendingIndicator />
             {isBarePage ? (
               <Slot />
             ) : (
@@ -215,7 +216,6 @@ export default component$(() => {
   return (
     <PendingProvider>
       <HeaderDropdownProvider>
-        <GlobalPendingIndicator />
         {shell}
       </HeaderDropdownProvider>
     </PendingProvider>

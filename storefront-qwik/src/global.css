@@ -808,6 +808,8 @@ button.header-nav-dropdown__trigger {
   color: var(--gs-text, #fff);
 }
 .page-title-bar + .content-page .content-lead,
+.page-title-bar + .content-page .custom-bundle-lead,
+.page-title-bar + .content-page .stores-page__lead,
 .community-page-intro {
   margin: 0 0 1.25rem;
   max-width: 40rem;
@@ -4897,61 +4899,90 @@ html[dir="rtl"] .header-search-type {
   border: 0;
 }
 
-.global-pending-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  z-index: 200;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
-}
-
-.global-pending-bar--active {
-  opacity: 1;
-}
-
-.global-pending-bar__track {
-  display: block;
-  height: 100%;
-  width: 40%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--gs-accent),
-    var(--gs-accent-hover),
-    transparent
-  );
-  animation: global-pending-slide 1s ease-in-out infinite;
-}
-
-@keyframes global-pending-slide {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(350%);
-  }
-}
-
-.global-pending-overlay {
+/* Page-transition splash — matches Expo BrandSplash (black + opposite ¾ arcs). */
+.brand-nav-splash {
   position: fixed;
   inset: 0;
-  z-index: 150;
-  background: rgba(13, 15, 20, 0.12);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: var(--gs-accent, #ff7a00);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.15s ease;
-  cursor: wait;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
-.global-pending-overlay--visible {
+.brand-nav-splash--active {
   opacity: 1;
-  pointer-events: all;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.brand-nav-splash__stage {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.brand-nav-splash__ring {
+  position: absolute;
+  inset: 0;
+  width: 260px;
+  height: 260px;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.brand-nav-splash__ring--outer {
+  animation: brand-nav-spin-cw 2.4s linear infinite;
+}
+
+.brand-nav-splash__ring--inner {
+  animation: brand-nav-spin-ccw 1.7s linear infinite;
+}
+
+.brand-nav-splash__logo {
+  position: relative;
+  z-index: 1;
+  width: 55%;
+  height: 55%;
+  object-fit: contain;
+}
+
+.brand-nav-splash__wordmark {
+  position: relative;
+  z-index: 1;
+  max-width: 70%;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+@keyframes brand-nav-spin-cw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes brand-nav-spin-ccw {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
 
 body.is-globally-pending {
@@ -6889,15 +6920,67 @@ body.is-globally-pending {
 }
 
 .home-carousel {
-  position: relative;
-  display: block;
-  /* Room for side arrows without covering cards. */
-  padding-inline: 2.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.home-carousel__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  min-width: 0;
+}
+
+.home-carousel__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  /* Keep section titles on one line next to actions. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-carousel__toolbar-end {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.65rem;
+  max-width: 100%;
+}
+
+.home-carousel__action {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.home-carousel__action:empty {
+  display: none;
+}
+
+.home-carousel__action .home-all-products-link {
+  white-space: nowrap;
+}
+
+.home-carousel__nav {
+  display: inline-flex;
+  flex-direction: row;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .home-carousel__viewport {
   overflow: hidden;
   width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+  container-name: home-carousel;
 }
 
 .home-carousel__track {
@@ -6911,14 +6994,13 @@ body.is-globally-pending {
 }
 
 .home-carousel__btn {
-  position: absolute;
-  top: 50%;
+  position: static;
   z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   margin: 0;
   padding: 0;
   border: 1px solid var(--gs-border);
@@ -6926,7 +7008,7 @@ body.is-globally-pending {
   background: var(--gs-surface);
   color: var(--gs-text);
   cursor: pointer;
-  transform: translateY(-50%);
+  transform: none;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
   transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
 }
@@ -6941,27 +7023,34 @@ body.is-globally-pending {
   cursor: default;
 }
 
-.home-carousel__btn--prev {
-  left: 0;
-}
-
-.home-carousel__btn--next {
-  right: 0;
-}
-
-[dir="rtl"] .home-carousel__btn--prev {
-  left: auto;
-  right: 0;
-}
-
-[dir="rtl"] .home-carousel__btn--next {
-  right: auto;
-  left: 0;
-}
-
 [dir="rtl"] .home-carousel__btn--prev svg,
 [dir="rtl"] .home-carousel__btn--next svg {
   transform: scaleX(-1);
+}
+
+/* Mobile: title on row 1; view link + arrows together on row 2. */
+@media (max-width: 639px) {
+  .home-carousel__toolbar {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0.55rem;
+  }
+
+  .home-carousel__title {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .home-carousel__toolbar-end {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .home-carousel__btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
 }
 
 .home-product-rail {
@@ -6969,21 +7058,37 @@ body.is-globally-pending {
   gap: 1rem;
 }
 
+/* Mobile: one full-width card per slide (cqw = carousel viewport width). */
 .home-product-rail__item {
-  flex: 0 0 min(15.5rem, 78vw);
+  flex: 0 0 100cqw;
+  width: 100cqw;
+  max-width: 100cqw;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
   .home-product-rail__item {
-    flex: 0 0 14.5rem;
+    flex-basis: calc((100cqw - 1rem) / 2);
+    width: calc((100cqw - 1rem) / 2);
+    max-width: calc((100cqw - 1rem) / 2);
+  }
+}
+
+@media (min-width: 900px) {
+  .home-product-rail__item {
+    flex-basis: calc((100cqw - 2rem) / 3);
+    width: calc((100cqw - 2rem) / 3);
+    max-width: calc((100cqw - 2rem) / 3);
   }
 }
 
 @media (min-width: 1100px) {
   .home-product-rail__item {
-    flex: 0 0 15.75rem;
+    flex-basis: calc((100cqw - 3rem) / 4);
+    width: calc((100cqw - 3rem) / 4);
+    max-width: calc((100cqw - 3rem) / 4);
   }
 }
 
@@ -6998,9 +7103,12 @@ body.is-globally-pending {
   gap: 0.85rem;
 }
 
+/* Mobile: one category/brand card full width. */
 .home-top-categories__card,
 .home-brands__card {
-  flex: 0 0 8.5rem;
+  flex: 0 0 100cqw;
+  width: 100cqw;
+  max-width: 100cqw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7012,7 +7120,26 @@ body.is-globally-pending {
   color: var(--gs-text);
   text-align: center;
   text-decoration: none;
+  box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (min-width: 480px) {
+  .home-top-categories__card,
+  .home-brands__card {
+    flex-basis: calc((100cqw - 0.85rem) / 2);
+    width: calc((100cqw - 0.85rem) / 2);
+    max-width: calc((100cqw - 0.85rem) / 2);
+  }
+}
+
+@media (min-width: 768px) {
+  .home-top-categories__card,
+  .home-brands__card {
+    flex-basis: 8.5rem;
+    width: 8.5rem;
+    max-width: 8.5rem;
+  }
 }
 
 .home-top-categories__card:hover,

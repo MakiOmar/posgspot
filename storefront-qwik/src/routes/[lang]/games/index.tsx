@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ApiError, API_BASE, fetchDigitalGames } from "~/lib/api";
 import { digitalListGameInStock } from "~/lib/digital-game";
 import { formatPrice } from "~/lib/format";
@@ -110,14 +111,12 @@ export default component$(() => {
 
   return (
     <section class="digital-catalog">
-      <nav class="content-breadcrumb" aria-label={tStatic(lang, "a11y.breadcrumb")}>
-        <Link href={localePath(lang, "/")}>{tStatic(lang, "nav.home")}</Link>
-        <span aria-hidden="true"> / </span>
-        <span>{tStatic(lang, "nav.games")}</span>
-      </nav>
+      <PageTitleBar
+        title={tStatic(lang, "digital.gamesTitle")}
+        crumbs={[{ label: tStatic(lang, "nav.games") }]}
+      />
 
       <header class="digital-catalog__header">
-        <h1 class="page-title digital-catalog__title">{tStatic(lang, "digital.gamesTitle")}</h1>
         <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.gamesLead")}</p>
 
         <div class="digital-catalog__platforms" role="tablist" aria-label={tStatic(lang, "digital.platformFilter")}>
