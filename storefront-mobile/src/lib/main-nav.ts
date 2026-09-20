@@ -71,6 +71,10 @@ export function buildMainNavLinks(
     shopChildren.push(
       { label: t(locale, "nav.gamesPs4"), href: "/games?platform=4" },
       { label: t(locale, "nav.gamesPs5"), href: "/games?platform=5" },
+      {
+        label: t(locale, "nav.gamesPsPlus"),
+        href: "/games?product_type=subscription&platform=5",
+      },
       { label: t(locale, "nav.giftCards"), href: "/gift-cards" },
     );
   }

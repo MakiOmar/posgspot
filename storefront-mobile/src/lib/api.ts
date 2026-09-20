@@ -503,10 +503,12 @@ export function fetchDigitalGames(
   page = 1,
   locale?: ContentLocale,
   q?: string,
+  productType: "game" | "subscription" = "game",
 ) {
   const qs = new URLSearchParams({
     platform,
     page: String(page),
+    product_type: productType === "subscription" ? "subscription" : "game",
   });
   const term = (q || "").trim();
   if (term) {
@@ -514,6 +516,7 @@ export function fetchDigitalGames(
   }
   return storefrontFetch<{
     platform: string;
+    product_type?: string;
     skus: import("./types").DigitalSkus;
     games: import("./types").DigitalGameSummary[];
     meta: { current_page: number; last_page: number; per_page: number; total: number | null };
@@ -788,13 +791,30 @@ export function fetchAvailability(
 export function checkDigitalGameStock(
   payload: {
     game_id: number;
-    type: "primary" | "secondary";
+    type: "primary" | "secondary" | "full";
     platform: "4" | "5";
   },
   locale?: ContentLocale,
 ) {
   return storefrontFetch<Record<string, unknown>>(
     "/digital/check-stock",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+export function submitDigitalReview(
+  payload: {
+    phone: string;
+    stars: number;
+    comment?: string;
+    game_id?: number;
+    card_category_id?: number;
+  },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/reviews",
     { method: "POST", body: JSON.stringify(payload) },
     locale,
   );

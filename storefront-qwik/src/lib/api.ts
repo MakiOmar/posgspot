@@ -1166,10 +1166,17 @@ export function mergeWishlist(token: string, productIds: number[], locale?: stri
 }
 
 /** Digital games listing by PlayStation platform (4 or 5). */
-export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string, q?: string) {
+export function fetchDigitalGames(
+  platform: "4" | "5",
+  page = 1,
+  locale?: string,
+  q?: string,
+  productType: "game" | "subscription" = "game",
+) {
   const params = new URLSearchParams({
     platform,
     page: String(page),
+    product_type: productType === "subscription" ? "subscription" : "game",
   });
   const term = q?.trim();
   if (term) {
@@ -1177,6 +1184,7 @@ export function fetchDigitalGames(platform: "4" | "5", page = 1, locale?: string
   }
   return storefrontFetch<{
     platform: string;
+    product_type?: string;
     skus: import("./types").DigitalSkus;
     games: import("./types").DigitalGameSummary[];
     meta: { current_page: number; last_page: number; per_page: number; total: number | null };
@@ -1201,13 +1209,30 @@ export function fetchDigitalCardCategories(locale?: string) {
 export function checkDigitalGameStock(
   payload: {
     game_id: number;
-    type: "primary" | "secondary";
+    type: "primary" | "secondary" | "full";
     platform: "4" | "5";
   },
   locale?: string,
 ) {
   return storefrontFetch<Record<string, unknown>>(
     "/digital/check-stock",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
+}
+
+export function submitDigitalReview(
+  payload: {
+    phone: string;
+    stars: number;
+    comment?: string;
+    game_id?: number;
+    card_category_id?: number;
+  },
+  locale?: string,
+) {
+  return storefrontFetch<Record<string, unknown>>(
+    "/digital/reviews",
     { method: "POST", body: JSON.stringify(payload) },
     locale,
   );

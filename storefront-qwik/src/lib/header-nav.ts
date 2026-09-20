@@ -128,6 +128,10 @@ export function buildMainNavLinks(
             href: localePath(lang, "/games?platform=5"),
           },
           {
+            label: tStatic(lang, "nav.gamesPsPlus"),
+            href: localePath(lang, "/games?product_type=subscription&platform=5"),
+          },
+          {
             label: tStatic(lang, "nav.giftCards"),
             href: localePath(lang, "/gift-cards"),
           },

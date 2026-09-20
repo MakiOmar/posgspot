@@ -105,9 +105,15 @@ class AccountsApiClient
         ], false);
     }
 
-    public function getGamesByPlatform(string $platform, int $page = 1, ?string $q = null): array
-    {
+    public function getGamesByPlatform(
+        string $platform,
+        int $page = 1,
+        ?string $q = null,
+        string $productType = 'game'
+    ): array {
         $query = ['page' => $page];
+        $productType = $productType === 'subscription' ? 'subscription' : 'game';
+        $query['product_type'] = $productType;
         $term = trim((string) $q);
         if ($term !== '') {
             // Accounts may honor either key; ignored params are harmless.
@@ -121,6 +127,17 @@ class AccountsApiClient
     public function getGame(int $id): array
     {
         return $this->request('GET', 'api/games/'.$id, null, false);
+    }
+
+    /**
+     * Public Accounts review submit (pending until Accounts admin approves).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{success: bool, status: int, body: mixed, error: ?string}
+     */
+    public function submitReview(array $payload): array
+    {
+        return $this->request('POST', 'api/reviews', $payload, false);
     }
 
     public function getCardCategories(): array

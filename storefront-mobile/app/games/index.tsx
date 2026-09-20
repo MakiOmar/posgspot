@@ -28,7 +28,9 @@ function displayPrice(game: DigitalGameSummary): number {
   const primary = Number(game.primary_price ?? 0);
   if (Number.isFinite(primary) && primary > 0) return primary;
   const secondary = Number(game.secondary_price ?? 0);
-  return Number.isFinite(secondary) && secondary > 0 ? secondary : 0;
+  if (Number.isFinite(secondary) && secondary > 0) return secondary;
+  const full = Number(game.full_price ?? 0);
+  return Number.isFinite(full) && full > 0 ? full : 0;
 }
 
 function GameCard({
@@ -90,10 +92,16 @@ function GameCard({
 export default function GamesScreen() {
   const { locale, t, settings, accent } = useApp();
   const { row, textAlign, writingDirection } = useRtl();
-  const params = useLocalSearchParams<{ platform?: string }>();
+  const params = useLocalSearchParams<{ platform?: string; product_type?: string }>();
   const [platform, setPlatform] = useState<Platform>(() =>
     parsePlatform(params.platform),
   );
+  const productType =
+    (Array.isArray(params.product_type) ? params.product_type[0] : params.product_type) ===
+    "subscription"
+      ? "subscription"
+      : "game";
+  const isPlus = productType === "subscription";
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [page, setPage] = useState(1);
@@ -124,6 +132,7 @@ export default function GamesScreen() {
           pageNum,
           locale,
           debouncedQ || undefined,
+          productType,
         );
         const list = data.games || [];
         setGames((prev) => (append ? [...prev, ...list] : list));
@@ -138,7 +147,7 @@ export default function GamesScreen() {
         setLoadingMore(false);
       }
     },
-    [locale, t, settings, platform, debouncedQ],
+    [locale, t, settings, platform, debouncedQ, productType],
   );
 
   useEffect(() => {
@@ -154,7 +163,7 @@ export default function GamesScreen() {
     () => (
       <View>
         <Text style={[styles.lead, { textAlign, writingDirection }]}>
-          {t("digital.gamesLead")}
+          {isPlus ? t("digital.psPlusLead") : t("digital.gamesLead")}
         </Text>
         <View style={[styles.platformRow, { flexDirection: row }]}>
           {(["5", "4"] as Platform[]).map((p) => {
@@ -185,7 +194,7 @@ export default function GamesScreen() {
         />
       </View>
     ),
-    [accent, platform, q, row, t, textAlign, writingDirection],
+    [accent, isPlus, platform, q, row, t, textAlign, writingDirection],
   );
 
   if (loading && games.length === 0) {
@@ -226,7 +235,7 @@ export default function GamesScreen() {
             ListEmptyComponent={
               loading ? null : (
                 <Text style={[styles.empty, { textAlign }]}>
-                  {t("digital.noGames")}
+                  {isPlus ? t("digital.noPsPlus") : t("digital.noGames")}
                 </Text>
               )
             }

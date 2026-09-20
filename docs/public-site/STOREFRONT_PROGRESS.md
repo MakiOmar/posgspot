@@ -52,7 +52,7 @@
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
 | Track order API | ✅ | `POST /track-order` (invoice + phone/email); Qwik `/track-order`; `TrackOrderTest` |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards; platform-strict list/PDP stock; paid-only Accounts allocate (any `updatePaymentStatus` → paid); ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` (sent-to-POS badge) + stamp fallback by `order_id`; optional `pos_document_type` sell\|quotation; optional hide creds from customer |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + `POST /digital/reviews`; platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
@@ -96,7 +96,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
-| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games (PS4/PS5); Sigma-style PDP (offer select, notice, WhatsApp ask, trust→stores, optional about, also-bought×4, settings FAQs); platform-strict stock; parallel also-bought load; failed PDP shows retry |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
@@ -254,6 +254,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-20 | Digital menu + Accounts catalog parity: PS Plus nav + `product_type=subscription` list; PDP gallery/reviews/Full offer; `POST /digital/reviews` proxy; Qwik + Expo. |
 | 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |
 | 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |
 | 2026-09-20 | Homepage carousels: fix broken nav (`display:contents`); unified toolbar (title / view link / prev+next); mobile stacks title then actions. |

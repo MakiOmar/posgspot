@@ -615,7 +615,7 @@ export interface PaymentReturnResult {
 export interface CartItemDigital {
   kind: "game" | "card";
   game_id?: number;
-  type?: "primary" | "secondary";
+  type?: "primary" | "secondary" | "full";
   platform?: "4" | "5";
   card_category_id?: number;
   line_key: string;
@@ -663,13 +663,17 @@ export interface DigitalGameSummary {
   id: number;
   title: string;
   code?: string;
+  product_type?: "game" | "subscription";
   image_url?: string | null;
   primary_price?: number | string | null;
   secondary_price?: number | string | null;
+  full_price?: number | string | null;
   primary_status?: boolean | number | null;
   secondary_status?: boolean | number | null;
+  full_status?: boolean | number | null;
   total_primary_stock?: number | string | null;
   total_secondary_stock?: number | string | null;
+  total_full_stock?: number | string | null;
 }
 
 export interface DigitalCardCategory {

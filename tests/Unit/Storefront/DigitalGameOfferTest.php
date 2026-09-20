@@ -71,5 +71,19 @@ class DigitalGameOfferTest extends TestCase
         $this->assertSame(0, $out['ps5_primary_stock']);
         $this->assertSame(12, $out['ps4_primary_stock']);
         $this->assertSame(0, $out['ps5_secondary_stock']);
+        $this->assertSame(0, $out['ps5_full_stock']);
+    }
+
+    public function test_full_offer_enabled_from_price_when_status_omitted(): void
+    {
+        $game = [
+            'ps5_full_price' => 1100,
+            'ps5_full_stock' => 2,
+        ];
+
+        $this->assertTrue(DigitalGameOffer::enabled($game, '5', 'full'));
+        $this->assertSame(1100.0, DigitalGameOffer::price($game, '5', 'full'));
+        $this->assertSame(2, DigitalGameOffer::stock($game, '5', 'full'));
+        $this->assertSame('full', DigitalGameOffer::normalizeType('full'));
     }
 }

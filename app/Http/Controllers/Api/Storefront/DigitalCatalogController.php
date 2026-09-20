@@ -26,13 +26,17 @@ class DigitalCatalogController extends StorefrontController
             'platform' => 'required|in:4,5',
             'page' => 'nullable|integer|min:1',
             'q' => 'nullable|string|max:120',
+            'product_type' => 'nullable|in:game,subscription',
         ]);
+
+        $productType = ($data['product_type'] ?? 'game') === 'subscription' ? 'subscription' : 'game';
 
         $result = $this->catalog->listGames(
             $businessId,
             (string) $data['platform'],
             (int) ($data['page'] ?? 1),
-            isset($data['q']) ? (string) $data['q'] : null
+            isset($data['q']) ? (string) $data['q'] : null,
+            $productType
         );
 
         if (! $result['success']) {
@@ -41,6 +45,7 @@ class DigitalCatalogController extends StorefrontController
 
             return $this->jsonSuccess([
                 'platform' => (string) $data['platform'],
+                'product_type' => $productType,
                 'skus' => $skus,
                 'games' => [],
                 'meta' => [
@@ -99,7 +104,7 @@ class DigitalCatalogController extends StorefrontController
 
         $data = $request->validate([
             'game_id' => 'required|integer|min:1',
-            'type' => 'required|in:primary,secondary',
+            'type' => 'required|in:primary,secondary,full',
             'platform' => 'required|in:4,5',
             'store_profile_id' => 'nullable|integer|min:1',
         ]);
@@ -119,6 +124,57 @@ class DigitalCatalogController extends StorefrontController
         }
 
         return $this->jsonSuccess($body);
+    }
+
+    /**
+     * Proxy Accounts digital review submit (games or gift-card category).
+     */
+    public function submitReview(Request $request)
+    {
+        $businessId = $this->businessId($request);
+        if (! $this->catalog->isEnabled($businessId)) {
+            return $this->jsonError('Digital catalog is not available.', 503);
+        }
+
+        $data = $request->validate([
+            'phone' => 'required|string|max:20',
+            'stars' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:2000',
+            'game_id' => 'nullable|integer|min:1',
+            'card_category_id' => 'nullable|integer|min:1',
+        ]);
+
+        $hasGame = ! empty($data['game_id']);
+        $hasCard = ! empty($data['card_category_id']);
+        if ($hasGame === $hasCard) {
+            return $this->jsonError('Provide exactly one of game_id or card_category_id.', 422);
+        }
+
+        $payload = [
+            'phone' => (string) $data['phone'],
+            'stars' => (int) $data['stars'],
+            'comment' => (string) ($data['comment'] ?? ''),
+        ];
+        if ($hasGame) {
+            $payload['game_id'] = (int) $data['game_id'];
+        } else {
+            $payload['card_category_id'] = (int) $data['card_category_id'];
+        }
+
+        $result = $this->catalog->submitReview($payload);
+        if (! $result['success']) {
+            $status = (int) ($result['status'] ?: 422);
+            $message = $result['error'] ?? 'Failed to submit review';
+            if (is_array($result['body'] ?? null) && isset($result['body']['message'])) {
+                $message = (string) $result['body']['message'];
+            }
+
+            return $this->jsonError($message, $status);
+        }
+
+        return $this->jsonSuccess($result['body'] ?? [
+            'message' => 'Review submitted and pending approval.',
+        ], [], (int) ($result['status'] ?: 201));
     }
 
     public function checkCardStock(Request $request)

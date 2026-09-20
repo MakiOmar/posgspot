@@ -106,6 +106,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/digital/card-categories', [DigitalCatalogController::class, 'cardCategories']);
     Route::post('/digital/check-stock', [DigitalCatalogController::class, 'checkGameStock']);
     Route::post('/digital/check-card-stock', [DigitalCatalogController::class, 'checkCardStock']);
+    Route::post('/digital/reviews', [DigitalCatalogController::class, 'submitReview']);
 
     Route::post('/coupons/validate', [CouponController::class, 'validateCode']);
     Route::post('/coupons/available', [CouponController::class, 'available']);

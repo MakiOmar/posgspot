@@ -10,6 +10,9 @@ namespace App\Services\Storefront;
  */
 final class DigitalGameOffer
 {
+    /** @var list<string> */
+    public const TYPES = ['primary', 'secondary', 'full'];
+
     /**
      * @param  array<string, mixed>  $game
      */
@@ -23,7 +26,18 @@ final class DigitalGameOffer
      */
     public static function enabled(array $game, string $platform, string $type): bool
     {
-        return self::boolField($game, 'ps'.$platform.'_'.$type.'_status');
+        $statusKey = 'ps'.$platform.'_'.$type.'_status';
+        if (array_key_exists($statusKey, $game) && $game[$statusKey] !== null && $game[$statusKey] !== '') {
+            return self::boolField($game, $statusKey);
+        }
+
+        // Detail payloads often omit *_full_status — treat sellable stock as enabled.
+        if ($type === 'full') {
+            return self::stock($game, $platform, 'full') > 0
+                || self::price($game, $platform, 'full') > 0;
+        }
+
+        return self::boolField($game, $statusKey);
     }
 
     /**
@@ -38,7 +52,11 @@ final class DigitalGameOffer
         if ($specific !== null && $specific > 0) {
             return $specific;
         }
-        $generic = $type === 'primary' ? 'primary_price' : 'secondary_price';
+        $generic = match ($type) {
+            'secondary' => 'secondary_price',
+            'full' => 'full_price',
+            default => 'primary_price',
+        };
         $fallback = self::numericOrNull($game, $generic);
 
         return $fallback !== null && $fallback > 0 ? $fallback : 0.0;
@@ -91,13 +109,18 @@ final class DigitalGameOffer
     public static function normalizeDetail(array $game): array
     {
         foreach (['4', '5'] as $platform) {
-            foreach (['primary', 'secondary'] as $type) {
+            foreach (self::TYPES as $type) {
                 $stockKey = 'ps'.$platform.'_'.$type.'_stock';
                 $game[$stockKey] = self::intField($game, $stockKey);
             }
         }
 
         return $game;
+    }
+
+    public static function normalizeType(string $type): string
+    {
+        return in_array($type, self::TYPES, true) ? $type : 'primary';
     }
 
     /**

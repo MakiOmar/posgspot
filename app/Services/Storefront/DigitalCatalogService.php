@@ -40,18 +40,30 @@ class DigitalCatalogService
         ];
     }
 
-    public function listGames(int $businessId, string $platform, int $page = 1, ?string $q = null): array
-    {
+    public function listGames(
+        int $businessId,
+        string $platform,
+        int $page = 1,
+        ?string $q = null,
+        string $productType = 'game'
+    ): array {
+        $productType = $productType === 'subscription' ? 'subscription' : 'game';
         $term = trim((string) $q);
         $path = 'api/games/platform/'.$platform;
         $accountsBase = $this->accounts->baseUrl();
-        $requestUrl = ($accountsBase !== '' ? $accountsBase.'/' : '').$path.'?page='.$page;
+        $requestUrl = ($accountsBase !== '' ? $accountsBase.'/' : '').$path
+            .'?page='.$page.'&product_type='.$productType;
         if ($term !== '') {
             $requestUrl .= '&q='.rawurlencode($term);
         }
         $skus = $this->posSkuMap($businessId);
 
-        $result = $this->accounts->getGamesByPlatform($platform, $page, $term !== '' ? $term : null);
+        $result = $this->accounts->getGamesByPlatform(
+            $platform,
+            $page,
+            $term !== '' ? $term : null,
+            $productType
+        );
         $body = is_array($result['body'] ?? null) ? $result['body'] : [];
         $rawGames = $body['data'] ?? [];
         if (! is_array($rawGames)) {
@@ -88,6 +100,7 @@ class DigitalCatalogService
             'request_path' => $path,
             'request_url' => $requestUrl,
             'platform' => $platform,
+            'product_type' => $productType,
             'page' => $page,
             'http_status' => (int) ($result['status'] ?? 0),
             'accounts_ok' => (bool) $result['success'],
@@ -116,6 +129,7 @@ class DigitalCatalogService
             'success' => true,
             'data' => [
                 'platform' => $platform,
+                'product_type' => $productType,
                 'skus' => $skus,
                 'games' => $games,
                 'meta' => [
@@ -281,12 +295,42 @@ class DigitalCatalogService
             $game['description'] = null;
         }
 
+        $productType = ($game['product_type'] ?? '') === 'subscription' ? 'subscription' : 'game';
+        $game['product_type'] = $productType;
+        $game['gallery'] = $this->normalizeGallery($game['gallery'] ?? null);
+        $game['reviews'] = $this->normalizeReviews($game['reviews'] ?? null);
+
         return [
             'success' => true,
             'data' => [
                 'game' => $game,
                 'skus' => $this->posSkuMap($businessId),
             ],
+        ];
+    }
+
+    /**
+     * Proxy Accounts public review submit.
+     *
+     * @param  array{phone: string, stars: int, comment?: string, game_id?: int, card_category_id?: int}  $payload
+     * @return array{success: bool, status: int, body?: mixed, error?: string}
+     */
+    public function submitReview(array $payload): array
+    {
+        $result = $this->accounts->submitReview($payload);
+        if (! $result['success']) {
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Failed to submit review',
+                'status' => (int) ($result['status'] ?: 422),
+                'body' => $result['body'] ?? null,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'status' => (int) ($result['status'] ?: 201),
+            'body' => $result['body'] ?? null,
         ];
     }
 
@@ -303,11 +347,8 @@ class DigitalCatalogService
             if ($gameId <= 0) {
                 return null;
             }
-            $type = (string) ($digital['type'] ?? 'primary');
+            $type = DigitalGameOffer::normalizeType((string) ($digital['type'] ?? 'primary'));
             $platform = (string) ($digital['platform'] ?? '4');
-            if (! in_array($type, ['primary', 'secondary'], true)) {
-                $type = 'primary';
-            }
             if (! in_array($platform, ['4', '5'], true)) {
                 $platform = '4';
             }
@@ -317,16 +358,9 @@ class DigitalCatalogService
                 return null;
             }
             $game = is_array($result['data']['game'] ?? null) ? $result['data']['game'] : [];
-            $priceKey = "ps{$platform}_{$type}_price";
-            $fallbackKey = $type === 'primary' ? 'primary_price' : 'secondary_price';
-            $ps4Key = $type === 'primary' ? 'ps4_primary_price' : 'ps4_secondary_price';
-            foreach ([$game[$priceKey] ?? null, $game[$fallbackKey] ?? null, $game[$ps4Key] ?? null] as $candidate) {
-                if ($candidate !== null && $candidate !== '' && is_numeric($candidate) && (float) $candidate > 0) {
-                    return (float) $candidate;
-                }
-            }
+            $price = DigitalGameOffer::price($game, $platform, $type);
 
-            return null;
+            return $price > 0 ? $price : null;
         }
 
         if ($kind === 'card') {
@@ -444,7 +478,7 @@ class DigitalCatalogService
     }
 
     /**
-     * Normalize Accounts list item (`types.primary|secondary`) for the storefront.
+     * Normalize Accounts list item (`types.primary|secondary|full`) for the storefront.
      *
      * @param  mixed  $game
      * @return array<string, mixed>
@@ -458,6 +492,7 @@ class DigitalCatalogService
         $types = $game['types'] ?? [];
         $primary = is_array($types['primary'] ?? null) ? $types['primary'] : [];
         $secondary = is_array($types['secondary'] ?? null) ? $types['secondary'] : [];
+        $full = is_array($types['full'] ?? null) ? $types['full'] : [];
         [$primaryInStock, $primaryStock] = $this->listOfferAvailability(
             $primary,
             $game['primary_status'] ?? false,
@@ -468,21 +503,100 @@ class DigitalCatalogService
             $game['secondary_status'] ?? false,
             $game['total_secondary_stock'] ?? 0
         );
+        [$fullInStock, $fullStock] = $this->listOfferAvailability(
+            $full,
+            $game['full_status'] ?? false,
+            $game['total_full_stock'] ?? ($full['stock'] ?? 0)
+        );
+
+        $productType = ($game['product_type'] ?? '') === 'subscription' ? 'subscription' : 'game';
 
         return [
             'id' => (int) ($game['id'] ?? 0),
             'title' => (string) ($game['title'] ?? ''),
             'code' => $game['code'] ?? null,
+            'product_type' => $productType,
             'image_url' => $this->absoluteAccountsUrl(
                 isset($game['image_url']) ? (string) $game['image_url'] : null
             ),
             'primary_price' => $primary['price'] ?? ($game['primary_price'] ?? null),
             'secondary_price' => $secondary['price'] ?? ($game['secondary_price'] ?? null),
+            'full_price' => $full['price'] ?? ($game['full_price'] ?? null),
             'primary_status' => $primaryInStock,
             'secondary_status' => $secondaryInStock,
+            'full_status' => $fullInStock,
             'total_primary_stock' => $primaryStock,
             'total_secondary_stock' => $secondaryStock,
+            'total_full_stock' => $fullStock,
             'types' => $types,
+        ];
+    }
+
+    /**
+     * @param  mixed  $gallery
+     * @return list<array{id: int, url: string, sort_order: int}>
+     */
+    private function normalizeGallery($gallery): array
+    {
+        if (! is_array($gallery)) {
+            return [];
+        }
+        $out = [];
+        foreach ($gallery as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $url = $this->absoluteAccountsUrl(
+                isset($row['url']) ? (string) $row['url'] : (isset($row['path']) ? (string) $row['path'] : null)
+            );
+            if ($url === null || $url === '') {
+                continue;
+            }
+            $out[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'url' => $url,
+                'sort_order' => (int) ($row['sort_order'] ?? count($out)),
+            ];
+        }
+        usort($out, fn ($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+
+        return array_values($out);
+    }
+
+    /**
+     * @param  mixed  $reviews
+     * @return array{average: float, count: int, items: list<array<string, mixed>>}
+     */
+    private function normalizeReviews($reviews): array
+    {
+        if (! is_array($reviews)) {
+            return ['average' => 0.0, 'count' => 0, 'items' => []];
+        }
+        $items = [];
+        $rawItems = $reviews['items'] ?? [];
+        if (is_array($rawItems)) {
+            foreach ($rawItems as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $items[] = [
+                    'id' => (int) ($item['id'] ?? 0),
+                    'stars' => max(1, min(5, (int) ($item['stars'] ?? 0))),
+                    'comment' => trim(strip_tags((string) ($item['comment'] ?? ''))),
+                    'reviewer_name' => trim(strip_tags((string) ($item['reviewer_name'] ?? 'Customer'))),
+                    'created_at' => isset($item['created_at']) ? (string) $item['created_at'] : null,
+                ];
+            }
+        }
+        $count = (int) ($reviews['count'] ?? count($items));
+        $average = isset($reviews['average']) && is_numeric($reviews['average'])
+            ? round((float) $reviews['average'], 2)
+            : 0.0;
+
+        return [
+            'average' => $average,
+            'count' => max(0, $count),
+            'items' => $items,
         ];
     }
 

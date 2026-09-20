@@ -35,12 +35,20 @@ interface GamesListDebug {
 export const useGamesList = routeLoader$(async ({ query, params, redirect }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   const platform = (query.get("platform") === "5" ? "5" : "4") as "4" | "5";
+  const productType =
+    query.get("product_type") === "subscription" ? "subscription" : "game";
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const q = (query.get("q") || "").trim();
-  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&product_type=${productType}&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
 
   try {
-    const { data } = await fetchDigitalGames(platform, page, locale, q || undefined);
+    const { data } = await fetchDigitalGames(
+      platform,
+      page,
+      locale,
+      q || undefined,
+      productType,
+    );
     const games = (data.games ?? []) as DigitalGameSummary[];
     const debug = {
       ...((data as { debug?: GamesListDebug }).debug ?? {}),
@@ -50,6 +58,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
     return {
       enabled: true,
       platform,
+      productType,
       page,
       q,
       games,
@@ -66,6 +75,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
     return {
       enabled: true,
       platform,
+      productType,
       page,
       q,
       games: [] as DigitalGameSummary[],
@@ -90,11 +100,15 @@ export default component$(() => {
   const loc = useLocation();
   const lang = (loc.params.lang || "en") as "en" | "ar";
   const listPath = loc.url.pathname || localePath(lang, "/games");
+  const isPlus = list.value.productType === "subscription";
 
   const buildUrl = (platform: string, page = 1) => {
     const params = new URLSearchParams();
     if (platform !== "4") {
       params.set("platform", platform);
+    }
+    if (isPlus) {
+      params.set("product_type", "subscription");
     }
     if (list.value.q) {
       params.set("q", list.value.q);
@@ -112,12 +126,26 @@ export default component$(() => {
   return (
     <section class="digital-catalog">
       <PageTitleBar
-        title={tStatic(lang, "digital.gamesTitle")}
-        crumbs={[{ label: tStatic(lang, "nav.games") }]}
+        title={
+          isPlus
+            ? tStatic(lang, "digital.psPlusTitle")
+            : tStatic(lang, "digital.gamesTitle")
+        }
+        crumbs={[
+          {
+            label: isPlus
+              ? tStatic(lang, "nav.gamesPsPlus")
+              : tStatic(lang, "nav.games"),
+          },
+        ]}
       />
 
       <header class="digital-catalog__header">
-        <p class="footer-muted digital-catalog__lead">{tStatic(lang, "digital.gamesLead")}</p>
+        <p class="footer-muted digital-catalog__lead">
+          {isPlus
+            ? tStatic(lang, "digital.psPlusLead")
+            : tStatic(lang, "digital.gamesLead")}
+        </p>
 
         <div class="digital-catalog__platforms" role="tablist" aria-label={tStatic(lang, "digital.platformFilter")}>
           <Link
@@ -149,16 +177,23 @@ export default component$(() => {
       </header>
 
       {list.value.games.length === 0 ? (
-        <div class="empty-state">{tStatic(lang, "digital.noGames")}</div>
+        <div class="empty-state">
+          {isPlus ? tStatic(lang, "digital.noPsPlus") : tStatic(lang, "digital.noGames")}
+        </div>
       ) : (
         <div class="product-grid digital-catalog__grid">
           {list.value.games.map((game) => {
-            const price = Number(game.primary_price ?? game.secondary_price ?? 0);
+            const price = Number(
+              game.primary_price ?? game.secondary_price ?? game.full_price ?? 0,
+            );
             const inStock = digitalListGameInStock(game);
             return (
               <Link
                 key={game.id}
-                href={localePath(lang, `/games/${game.id}?platform=${list.value.platform}`)}
+                href={localePath(
+                  lang,
+                  `/games/${game.id}?platform=${list.value.platform}`,
+                )}
                 class="product-card digital-game-card"
                 prefetch={false}
               >
@@ -292,15 +327,23 @@ export default component$(() => {
 export const head: DocumentHead = ({ resolveValue, url }) => {
   const lang = resolveValue(useLangParam);
   const settings = resolveValue(useSiteSettings);
+  const list = resolveValue(useGamesList);
+  const isPlus = list.productType === "subscription";
   return withStorefrontThemeHead(
     {
-      title: tStatic(lang, "digital.gamesSeoTitle", { businessName: settings.business_name }),
+      title: tStatic(
+        lang,
+        isPlus ? "digital.psPlusSeoTitle" : "digital.gamesSeoTitle",
+        { businessName: settings.business_name },
+      ),
       meta: [
         {
           name: "description",
-          content: tStatic(lang, "digital.gamesSeoDescription", {
-            businessName: settings.business_name,
-          }),
+          content: tStatic(
+            lang,
+            isPlus ? "digital.psPlusSeoDescription" : "digital.gamesSeoDescription",
+            { businessName: settings.business_name },
+          ),
         },
       ],
       links: publicSeoLinks(url.origin, "/games", lang),

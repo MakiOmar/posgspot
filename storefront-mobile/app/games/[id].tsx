@@ -1,17 +1,20 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Dimensions,
   Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import {
   checkDigitalGameStock,
   fetchDigitalGame,
   fetchDigitalGames,
+  submitDigitalReview,
 } from "../../src/lib/api";
 import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import type { DigitalGameSummary, DigitalSkus } from "../../src/lib/types";
@@ -25,21 +28,33 @@ import {
   Screen,
 } from "../../src/components/ui";
 import {
+  DIGITAL_OFFER_TYPES,
+  digitalGalleryUrls,
   digitalOfferEnabled,
   digitalOfferInStock,
   digitalOfferPrice,
   digitalOfferStock,
+  digitalReviewsFromGame,
   liveCheckStockIsOut,
+  pickDefaultDigitalOffer,
+  type DigitalOfferType,
 } from "../../src/lib/digital-game";
 import { toast } from "../../src/lib/toast";
 import { useRtl } from "../../src/lib/rtl";
 import { buildWhatsAppUrl, normalizeWhatsAppDigits } from "../../src/lib/whatsapp";
 
-type Offer = "primary" | "secondary";
 type Platform = "4" | "5";
+
+const SCREEN_W = Dimensions.get("window").width;
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function offerLabelKey(offer: DigitalOfferType): string {
+  if (offer === "secondary") return "digital.secondary";
+  if (offer === "full") return "digital.full";
+  return "digital.primary";
 }
 
 export default function GameDetailScreen() {
@@ -48,8 +63,8 @@ export default function GameDetailScreen() {
     platform?: string;
   }>();
   const platform: Platform = platformParam === "5" ? "5" : "4";
-  const { locale, t, accent, settings } = useApp();
-  const { textAlign, writingDirection } = useRtl();
+  const { locale, t, accent, settings, contact } = useApp();
+  const { textAlign, writingDirection, row } = useRtl();
   const { addItem } = useCart();
   const router = useRouter();
   const [game, setGame] = useState<Record<string, unknown> | null>(null);
@@ -57,9 +72,15 @@ export default function GameDetailScreen() {
   const [alsoBought, setAlsoBought] = useState<DigitalGameSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
-  const [selected, setSelected] = useState<Offer>("primary");
+  const [selected, setSelected] = useState<DigitalOfferType>("primary");
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [reviewPhone, setReviewPhone] = useState("");
+  const [reviewStars, setReviewStars] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewBusy, setReviewBusy] = useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,8 +90,10 @@ export default function GameDetailScreen() {
         fetchDigitalGame(gameId, locale),
         fetchDigitalGames(platform, 1, locale).catch(() => null),
       ]);
-      setGame(detailRes.data.game);
+      const nextGame = detailRes.data.game;
+      setGame(nextGame);
       setSkus(detailRes.data.skus);
+      setSelected(pickDefaultDigitalOffer(nextGame, platform));
       const games = listRes?.data.games ?? [];
       setAlsoBought(games.filter((g) => Number(g.id) !== gameId).slice(0, 4));
       setError(null);
@@ -85,6 +108,12 @@ export default function GameDetailScreen() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (contact?.mobile) {
+      setReviewPhone(contact.mobile);
+    }
+  }, [contact?.mobile]);
+
   const faqs = settings?.digital?.pdp_faqs ?? [];
   const askWhatsApp =
     normalizeWhatsAppDigits(settings?.digital?.ask_whatsapp) ||
@@ -92,35 +121,50 @@ export default function GameDetailScreen() {
     null;
 
   const title = game ? String(game.title || game.name || `Game #${id}`) : "";
-  const imageRaw = game
-    ? platform === "5"
-      ? String(game.ps5_image_url || game.image_url || "")
-      : String(game.ps4_image_url || game.image_url || "")
-    : "";
-  const image = absoluteMediaUrl(imageRaw) || imageRaw;
+  const galleryImages = useMemo(() => {
+    if (!game) return [];
+    return digitalGalleryUrls(game, platform)
+      .map((src) => absoluteMediaUrl(src) || src)
+      .filter(Boolean);
+  }, [game, platform]);
+  const image = galleryImages[0] || "";
 
-  const primaryPrice = game ? digitalOfferPrice(game, platform, "primary") : 0;
-  const secondaryPrice = game ? digitalOfferPrice(game, platform, "secondary") : 0;
-  const primaryOk = game ? digitalOfferEnabled(game, platform, "primary") : false;
-  const secondaryOk = game ? digitalOfferEnabled(game, platform, "secondary") : false;
-  const primaryInStock = game ? digitalOfferInStock(game, platform, "primary") : false;
-  const secondaryInStock = game
-    ? digitalOfferInStock(game, platform, "secondary")
-    : false;
-
-  const activeOffer: Offer = useMemo(() => {
-    if (selected === "primary" && (!primaryOk || primaryPrice <= 0) && secondaryOk) {
-      return "secondary";
+  const offerMeta = useMemo(() => {
+    if (!game) {
+      return DIGITAL_OFFER_TYPES.map((type) => ({
+        type,
+        ok: false,
+        price: 0,
+        inStock: false,
+      }));
     }
-    if (selected === "secondary" && (!secondaryOk || secondaryPrice <= 0) && primaryOk) {
-      return "primary";
-    }
-    return selected;
-  }, [selected, primaryOk, secondaryOk, primaryPrice, secondaryPrice]);
+    return DIGITAL_OFFER_TYPES.map((type) => {
+      const ok = digitalOfferEnabled(game, platform, type);
+      const price = digitalOfferPrice(game, platform, type);
+      const inStock = digitalOfferInStock(game, platform, type);
+      return { type, ok, price, inStock };
+    });
+  }, [game, platform]);
 
-  const activeInStock = activeOffer === "primary" ? primaryInStock : secondaryInStock;
-  const activePrice = activeOffer === "primary" ? primaryPrice : secondaryPrice;
-  const activeOk = activeOffer === "primary" ? primaryOk : secondaryOk;
+  const activeOffer: DigitalOfferType = useMemo(() => {
+    const current = offerMeta.find((o) => o.type === selected);
+    if (current && current.ok && current.price > 0) {
+      return selected;
+    }
+    const fallback = offerMeta.find((o) => o.ok && o.price > 0);
+    return fallback?.type ?? selected;
+  }, [selected, offerMeta]);
+
+  const active = offerMeta.find((o) => o.type === activeOffer);
+  const activeInStock = active?.inStock ?? false;
+  const activePrice = active?.price ?? 0;
+  const activeOk = Boolean(active?.ok && activePrice > 0);
+  const anyOfferOk = offerMeta.some((o) => o.ok && o.price > 0);
+
+  const reviews = useMemo(
+    () => (game ? digitalReviewsFromGame(game) : { average: 0, count: 0, items: [] }),
+    [game],
+  );
 
   const descriptionPlain = useMemo(() => {
     const raw = game?.description;
@@ -135,12 +179,10 @@ export default function GameDetailScreen() {
     if (!askWhatsApp || !game) {
       return null;
     }
-    const offerLabel =
-      activeOffer === "primary" ? t("digital.primary") : t("digital.secondary");
     const message = t("digital.askWhatsAppMessage", {
       title,
       platform,
-      offer: offerLabel,
+      offer: t(offerLabelKey(activeOffer)),
       url: `games/${id}?platform=${platform}`,
     });
     return buildWhatsAppUrl(askWhatsApp, message);
@@ -163,14 +205,14 @@ export default function GameDetailScreen() {
 
   const addSelected = async () => {
     const offer = activeOffer;
-    const sku = offer === "primary" ? skus?.primary : skus?.secondary;
+    const sku = offer === "secondary" ? skus?.secondary : skus?.primary;
     if (!sku) {
       toast.error(t("digital.skuMissing"));
       return;
     }
-    const price = offer === "primary" ? primaryPrice : secondaryPrice;
+    const price = digitalOfferPrice(game, platform, offer);
     const stock = digitalOfferStock(game, platform, offer);
-    const offerEnabled = offer === "primary" ? primaryOk : secondaryOk;
+    const offerEnabled = digitalOfferEnabled(game, platform, offer);
     if (!offerEnabled || price <= 0) {
       toast.error(t("digital.unavailable"));
       return;
@@ -199,8 +241,7 @@ export default function GameDetailScreen() {
         return;
       }
 
-      const label =
-        offer === "primary" ? t("digital.primary") : t("digital.secondary");
+      const label = t(offerLabelKey(offer));
       const lineTitle = `${title} (${label} · PS${platform})`;
       await addItem({
         variationId: sku.variation_id,
@@ -228,10 +269,62 @@ export default function GameDetailScreen() {
     }
   };
 
+  const submitReview = async () => {
+    const phone = reviewPhone.trim();
+    if (!phone) {
+      toast.error(t("digital.reviewPhone"));
+      return;
+    }
+    setReviewBusy(true);
+    try {
+      await submitDigitalReview(
+        {
+          phone,
+          stars: reviewStars,
+          comment: reviewComment.trim() || undefined,
+          game_id: Number(game.id || id),
+        },
+        locale,
+      );
+      setReviewSubmitted(true);
+      setReviewComment("");
+      toast.success(t("digital.reviewPending"));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t("digital.reviewFailed"));
+    } finally {
+      setReviewBusy(false);
+    }
+  };
+
   return (
     <Screen padded={false}>
       <ScrollView contentContainerStyle={styles.pad}>
-        <RemoteImage uri={image} style={styles.image} contentFit="contain" />
+        <View style={styles.galleryBox}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const w = e.nativeEvent.layoutMeasurement.width;
+              const i = Math.round(e.nativeEvent.contentOffset.x / Math.max(w, 1));
+              setGalleryIndex(i);
+            }}
+          >
+            {(galleryImages.length ? galleryImages : [null]).map((uri, idx) => (
+              <RemoteImage
+                key={`${uri || "ph"}-${idx}`}
+                uri={uri || undefined}
+                style={styles.image}
+                contentFit="contain"
+              />
+            ))}
+          </ScrollView>
+          {galleryImages.length > 1 ? (
+            <Text style={styles.galleryDots}>
+              {galleryIndex + 1}/{galleryImages.length}
+            </Text>
+          ) : null}
+        </View>
 
         <Text
           style={[
@@ -253,6 +346,14 @@ export default function GameDetailScreen() {
           {t("digital.platformLabel")} · PS{platform}
         </Text>
 
+        {reviews.count > 0 ? (
+          <Text style={[styles.meta, { textAlign }]}>
+            {"★".repeat(Math.round(reviews.average))}
+            {"☆".repeat(Math.max(0, 5 - Math.round(reviews.average)))}{" "}
+            ({reviews.count})
+          </Text>
+        ) : null}
+
         {activeOk && activePrice > 0 ? (
           <Text style={[styles.heroPrice, { color: accent, textAlign }]}>
             {activePrice.toFixed(2)} EGP
@@ -260,46 +361,28 @@ export default function GameDetailScreen() {
         ) : null}
 
         <View style={styles.offers}>
-          {primaryOk && primaryPrice > 0 ? (
-            <Pressable
-              onPress={() => setSelected("primary")}
-              style={[
-                styles.offer,
-                activeOffer === "primary" ? { borderColor: accent, borderWidth: 2 } : null,
-              ]}
-            >
-              <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
-                {t("digital.primary")}
-              </Text>
-              <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
-                {primaryPrice.toFixed(2)} EGP
-              </Text>
-              <Text style={[styles.meta, { textAlign }]}>
-                {primaryInStock ? t("catalog.inStock") : t("catalog.outOfStock")}
-              </Text>
-            </Pressable>
-          ) : null}
-          {secondaryOk && secondaryPrice > 0 ? (
-            <Pressable
-              onPress={() => setSelected("secondary")}
-              style={[
-                styles.offer,
-                activeOffer === "secondary"
-                  ? { borderColor: accent, borderWidth: 2 }
-                  : null,
-              ]}
-            >
-              <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
-                {t("digital.secondary")}
-              </Text>
-              <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
-                {secondaryPrice.toFixed(2)} EGP
-              </Text>
-              <Text style={[styles.meta, { textAlign }]}>
-                {secondaryInStock ? t("catalog.inStock") : t("catalog.outOfStock")}
-              </Text>
-            </Pressable>
-          ) : null}
+          {offerMeta.map(({ type, ok, price, inStock }) =>
+            ok && price > 0 ? (
+              <Pressable
+                key={type}
+                onPress={() => setSelected(type)}
+                style={[
+                  styles.offer,
+                  activeOffer === type ? { borderColor: accent, borderWidth: 2 } : null,
+                ]}
+              >
+                <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
+                  {t(offerLabelKey(type))}
+                </Text>
+                <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
+                  {price.toFixed(2)} EGP
+                </Text>
+                <Text style={[styles.meta, { textAlign }]}>
+                  {inStock ? t("catalog.inStock") : t("catalog.outOfStock")}
+                </Text>
+              </Pressable>
+            ) : null,
+          )}
         </View>
 
         <View style={styles.notice}>
@@ -311,7 +394,7 @@ export default function GameDetailScreen() {
           </Text>
         </View>
 
-        {!primaryOk && !secondaryOk ? (
+        {!anyOfferOk ? (
           <Text style={[styles.meta, { textAlign }]}>{t("digital.unavailable")}</Text>
         ) : (
           <PrimaryButton
@@ -360,6 +443,65 @@ export default function GameDetailScreen() {
           </View>
         ) : null}
 
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { textAlign, writingDirection }]}>
+            {t("digital.reviewTitle")}
+          </Text>
+          {reviews.count > 0 ? (
+            <Text style={[styles.meta, { textAlign }]}>
+              {reviews.average.toFixed(1)} · {reviews.count} {t("digital.reviewTitle")}
+            </Text>
+          ) : (
+            <Text style={[styles.meta, { textAlign }]}>{t("digital.reviewEmpty")}</Text>
+          )}
+          {reviews.items.map((r) => (
+            <View key={r.id || `${r.reviewer_name}-${r.stars}`} style={styles.reviewCard}>
+              <Text style={styles.reviewStars}>
+                {"★".repeat(r.stars)}
+                {"☆".repeat(Math.max(0, 5 - r.stars))}
+              </Text>
+              {r.comment ? (
+                <Text style={[styles.body, { textAlign, writingDirection }]}>{r.comment}</Text>
+              ) : null}
+              <Text style={[styles.meta, { textAlign }]}>{r.reviewer_name}</Text>
+            </View>
+          ))}
+          {reviewSubmitted ? (
+            <Text style={[styles.meta, { textAlign }]}>{t("digital.reviewPending")}</Text>
+          ) : (
+            <View style={styles.reviewForm}>
+              <View style={[styles.starsRow, { flexDirection: row }]}>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <Pressable key={n} onPress={() => setReviewStars(n)}>
+                    <Text style={{ fontSize: 22, color: n <= reviewStars ? accent : "#ccc" }}>
+                      ★
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <TextInput
+                style={styles.input}
+                placeholder={t("digital.reviewPhone")}
+                value={reviewPhone}
+                onChangeText={setReviewPhone}
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={[styles.input, styles.inputMulti]}
+                placeholder={t("digital.reviewComment")}
+                value={reviewComment}
+                onChangeText={setReviewComment}
+                multiline
+              />
+              <PrimaryButton
+                label={reviewBusy ? t("common.loading") : t("digital.reviewSubmit")}
+                disabled={reviewBusy}
+                onPress={() => void submitReview()}
+              />
+            </View>
+          )}
+        </View>
+
         {alsoBought.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { textAlign, writingDirection }]}>
@@ -373,7 +515,9 @@ export default function GameDetailScreen() {
                     ? Number(g.primary_price)
                     : g.secondary_price != null && Number(g.secondary_price) > 0
                       ? Number(g.secondary_price)
-                      : null;
+                      : g.full_price != null && Number(g.full_price) > 0
+                        ? Number(g.full_price)
+                        : null;
                 return (
                   <Pressable
                     key={g.id}
@@ -437,11 +581,29 @@ export default function GameDetailScreen() {
 
 const styles = StyleSheet.create({
   pad: { padding: 16, gap: 12, paddingBottom: 40 },
-  image: {
-    width: "100%",
-    height: 280,
+  galleryBox: {
     borderRadius: 16,
+    overflow: "hidden",
     backgroundColor: "#111",
+    position: "relative",
+  },
+  image: {
+    width: SCREEN_W - 32,
+    height: 320,
+    backgroundColor: "#111",
+  },
+  galleryDots: {
+    position: "absolute",
+    bottom: 10,
+    alignSelf: "center",
+    color: "#fff",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    overflow: "hidden",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: "700",
   },
   stock: { fontWeight: "700", fontSize: 13, textTransform: "uppercase" },
   title: { fontSize: 24, fontWeight: "800", color: "#111" },
@@ -482,6 +644,26 @@ const styles = StyleSheet.create({
   section: { gap: 10, marginTop: 8 },
   sectionTitle: { fontSize: 18, fontWeight: "800", color: "#111" },
   body: { color: "#444", fontSize: 15, lineHeight: 22 },
+  reviewCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "#eee",
+  },
+  reviewStars: { color: "#f5a623", fontSize: 14 },
+  reviewForm: { gap: 10 },
+  starsRow: { gap: 6 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+  },
+  inputMulti: { minHeight: 80, textAlignVertical: "top" },
   alsoCard: { width: 140, marginEnd: 12, gap: 6 },
   alsoImage: {
     width: 140,
