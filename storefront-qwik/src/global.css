@@ -7098,12 +7098,8 @@ body.is-globally-pending {
   gap: 0.85rem;
 }
 
-/* Mobile: one category/brand card full width. */
 .home-top-categories__card,
 .home-brands__card {
-  flex: 0 0 100cqw;
-  width: 100cqw;
-  max-width: 100cqw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -7119,8 +7115,29 @@ body.is-globally-pending {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Categories: always two cards per slide (including mobile). */
+.home-top-categories__card {
+  flex: 0 0 calc((100cqw - 0.85rem) / 2);
+  width: calc((100cqw - 0.85rem) / 2);
+  max-width: calc((100cqw - 0.85rem) / 2);
+}
+
+@media (min-width: 768px) {
+  .home-top-categories__card {
+    flex-basis: 8.5rem;
+    width: 8.5rem;
+    max-width: 8.5rem;
+  }
+}
+
+/* Brands: one full-width on small phones, then denser. */
+.home-brands__card {
+  flex: 0 0 100cqw;
+  width: 100cqw;
+  max-width: 100cqw;
+}
+
 @media (min-width: 480px) {
-  .home-top-categories__card,
   .home-brands__card {
     flex-basis: calc((100cqw - 0.85rem) / 2);
     width: calc((100cqw - 0.85rem) / 2);
@@ -7129,7 +7146,6 @@ body.is-globally-pending {
 }
 
 @media (min-width: 768px) {
-  .home-top-categories__card,
   .home-brands__card {
     flex-basis: 8.5rem;
     width: 8.5rem;
