@@ -6,6 +6,7 @@ use App\Contact;
 use App\Mail\StorefrontSellRequestSubmitted;
 use App\StorefrontSellRequest;
 use App\StorefrontSellRequestMedia;
+use App\Support\ImageWebpConverter;
 use App\Utils\Util;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -253,6 +254,11 @@ class SellToUsService
                     ]);
                 }
                 $this->util->ensurePublicUploadPermissions($dir, $fileName);
+                $webpName = app(ImageWebpConverter::class)->convertStoredUpload($dir, $fileName);
+                if (is_string($webpName) && $webpName !== '') {
+                    $fileName = $webpName;
+                    $stored = $dir.'/'.$fileName;
+                }
                 StorefrontSellRequestMedia::create([
                     'sell_request_id' => $row->id,
                     'path' => str_replace('\\', '/', $stored),

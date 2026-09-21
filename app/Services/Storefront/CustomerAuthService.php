@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Contact;
 use App\Mail\StorefrontEmailVerification;
 use App\Media;
+use App\Support\ImageWebpConverter;
 use App\Utils\ContactUtil;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -232,6 +233,10 @@ class CustomerAuthService
             $generated = time().'_'.bin2hex(random_bytes(8)).'.'.$ext;
             if ($file->storeAs('/media', $generated)) {
                 $fileName = $generated;
+                $webpName = app(ImageWebpConverter::class)->convertStoredUpload('media', $generated);
+                if (is_string($webpName) && $webpName !== '') {
+                    $fileName = $webpName;
+                }
             }
         }
         if (empty($fileName)) {

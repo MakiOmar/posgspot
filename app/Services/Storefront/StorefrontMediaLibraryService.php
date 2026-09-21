@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Media;
 use App\Product;
 use App\StorefrontMedia;
+use App\Support\ImageWebpConverter;
 use App\Utils\Util;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -21,7 +22,8 @@ class StorefrontMediaLibraryService
     public const MAX_BYTES = 5_242_880; // 5 MB
 
     public function __construct(
-        private Util $util
+        private Util $util,
+        private ImageWebpConverter $webp
     ) {
     }
 
@@ -136,14 +138,50 @@ class StorefrontMediaLibraryService
         }
         $this->util->ensurePublicUploadPermissions(self::DIR.'/'.$businessId, $filename);
 
+        $storedRelative = $relativePath;
+        $storedMime = $isSvg ? 'image/svg+xml' : mb_substr($mime !== '' ? $mime : 'application/octet-stream', 0, 120);
+        $storedBytes = $bytes;
+        $storedChecksum = $checksum;
+
+        // Convert raster library uploads to WebP (keeps SVG as-is).
+        if (! $isSvg) {
+            $converted = $this->webp->convertAbsolutePath($absPath, true);
+            if ($converted !== null) {
+                $filename = $converted['filename'];
+                $relativePath = $relativeDir.'/'.$filename;
+                $storedRelative = $relativePath;
+                $storedMime = 'image/webp';
+                $storedBytes = $converted['bytes'];
+                $storedChecksum = hash_file('sha256', $converted['path']) ?: $checksum;
+                $this->util->ensurePublicUploadPermissions(self::DIR.'/'.$businessId, $filename);
+
+                // Dedup again after conversion (another row may already hold this WebP).
+                $dup = StorefrontMedia::withTrashed()
+                    ->where('business_id', $businessId)
+                    ->where('checksum', $storedChecksum)
+                    ->first();
+                if ($dup) {
+                    @unlink($converted['path']);
+                    if ($dup->trashed()) {
+                        $dup->restore();
+                    }
+
+                    return [
+                        'media' => $dup->fresh(),
+                        'created' => false,
+                    ];
+                }
+            }
+        }
+
         $media = StorefrontMedia::create([
             'business_id' => $businessId,
-            'path' => $relativePath,
+            'path' => $storedRelative,
             'original_name' => mb_substr((string) $file->getClientOriginalName(), 0, 255),
-            'mime' => $isSvg ? 'image/svg+xml' : mb_substr($mime !== '' ? $mime : 'application/octet-stream', 0, 120),
+            'mime' => $storedMime,
             'kind' => $kind,
-            'bytes' => $bytes,
-            'checksum' => $checksum,
+            'bytes' => $storedBytes,
+            'checksum' => $storedChecksum,
             'uploaded_by' => $uploadedBy,
         ]);
 

@@ -103,3 +103,22 @@ Guest or signed-in customers submit product requests; staff get POS list + email
 Notify inbox: **Storefront Settings → Request a product notify email** (`settings.request_product.notify_email`; falls back to contact form inbox).
 
 Config: `config/storefront.php` → `request_product.enabled`.
+
+## Upload images to WebP
+
+When PHP GD has `imagewebp()`, raster uploads (JPEG/PNG/GIF/BMP) are converted to WebP after store. SVG, ICO, animated GIF, and existing WebP are left unchanged. Applies to POS `Util::uploadFile(..., 'image')` (products, brands, business logo, storefront Appearance uploads, etc.), the storefront media library, customer avatars, and sell-to-us photos.
+
+| Variable | Purpose |
+|----------|---------|
+| `UPLOAD_WEBP_CONVERT` | Convert on upload (default `true`) |
+| `UPLOAD_WEBP_QUALITY` | GD WebP quality 1-100 (default `82`) |
+
+Config: `config/images.php`.
+
+**Bulk existing storefront assets** (settings JSON paths + `storefront_media` rows):
+
+```
+php artisan storefront:convert-images-to-webp
+php artisan storefront:convert-images-to-webp 1 --dry-run --verbose-details
+php artisan storefront:convert-images-to-webp --keep-originals
+```

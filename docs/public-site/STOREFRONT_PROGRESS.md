@@ -255,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-21 | Upload WebP: auto-convert raster POS/storefront uploads; `storefront:convert-images-to-webp` bulk command. |
 | 2026-09-21 | Appearance mobile logo (`logo_mobile` / `logo_mobile_url`); Qwik header `<picture>` at ≤1023px. |
 | 2026-09-21 | PDP summary stars always visible + link to `#product-reviews`; listing stars on product/game cards (not gift cards). |
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |

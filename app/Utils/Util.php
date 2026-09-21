@@ -7,6 +7,7 @@ use App\BusinessLocation;
 use App\Contact;
 use App\Product;
 use App\ReferenceCount;
+use App\Support\ImageWebpConverter;
 use App\System;
 use App\Transaction;
 use App\TransactionSellLine;
@@ -733,6 +734,16 @@ class Util
                     $uploaded_file_name = $new_file_name;
                     // Host umask often creates 0700 dirs → web server 404s public uploads.
                     $this->ensurePublicUploadPermissions($dir_name, $new_file_name);
+
+                    // Raster images → WebP when GD supports it (SVG/ICO/animated GIF skipped).
+                    if ($file_type === 'image') {
+                        $webpName = app(ImageWebpConverter::class)
+                            ->convertStoredUpload($dir_name, $new_file_name);
+                        if (is_string($webpName) && $webpName !== '') {
+                            $uploaded_file_name = $webpName;
+                            $this->ensurePublicUploadPermissions($dir_name, $webpName);
+                        }
+                    }
                 }
             }
         }
