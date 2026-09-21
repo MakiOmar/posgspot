@@ -7132,7 +7132,7 @@ body.is-globally-pending {
   aspect-ratio: auto;
 }
 
-/* Click-to-play facade — no third-party iframe until the visitor opts in. */
+/* Facade until viewport (or click) — no third-party iframe until then. */
 .home-video__facade {
   position: absolute;
   inset: 0;

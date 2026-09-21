@@ -263,6 +263,7 @@
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |
 | 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
+| 2026-09-21 | Homepage YouTube/Vimeo: IntersectionObserver lazy-load — iframe mounts only when section is near viewport (or play click); facade until then. |
 | 2026-09-21 | Homepage Lighthouse: active-only hero img + LCP preload; async Playfair/Cairo CSS; hero dot a11y/24px targets; footer contrast; promo `sizes`; DEPLOY notes for staging noindex + CMS image budgets. |
 | 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |
 | 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |

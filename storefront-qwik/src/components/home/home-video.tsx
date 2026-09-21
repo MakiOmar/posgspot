@@ -1,4 +1,4 @@
-import { component$, useSignal } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 
 export type HomeVideoSource = "self" | "youtube" | "vimeo";
@@ -60,20 +60,52 @@ function privacyEmbedUrl(raw: string, videoId: string | null): string {
   }
 }
 
+function withAutoplay(embedSrc: string): string {
+  return embedSrc.includes("?") ? `${embedSrc}&autoplay=1` : `${embedSrc}?autoplay=1`;
+}
+
 /**
  * Homepage video from GET /homepage — YouTube, Vimeo embed, or self-hosted file.
- * Third-party embeds use a click-to-play facade so cookies / Roboto / player JS
- * are not requested until the visitor opts in (Lighthouse Best Practices + LCP).
+ * Embeds stay as a poster facade until the section is near the viewport (or the
+ * visitor clicks play). The YouTube/Vimeo iframe is not requested until then.
  */
 export const HomeVideo = component$<HomeVideoProps>(
   ({ source = "self", src, embedUrl, poster, title }) => {
     const { locale } = useI18n();
-    const playing = useSignal(false);
+    const rootRef = useSignal<HTMLElement>();
+    /** Mount third-party iframe (viewport intersection or play click). */
+    const loadEmbed = useSignal(false);
+    /** Play was clicked — request autoplay when the iframe mounts. */
+    const wantAutoplay = useSignal(false);
     const kind = source === "youtube" || source === "vimeo" ? source : "self";
     const rawEmbed = (embedUrl || "").trim();
     const fileSrc = src.trim();
     const label = (title || "").trim() || tStatic(locale, "home.videoAria");
     const playLabel = tStatic(locale, "home.playVideo");
+
+    useVisibleTask$(({ cleanup }) => {
+      if (kind === "self") {
+        return;
+      }
+      const el = rootRef.value;
+      if (!el) {
+        return;
+      }
+      if (typeof IntersectionObserver === "undefined") {
+        return;
+      }
+      const io = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            loadEmbed.value = true;
+            io.disconnect();
+          }
+        },
+        { root: null, rootMargin: "200px 0px", threshold: 0.01 },
+      );
+      io.observe(el);
+      cleanup(() => io.disconnect());
+    });
 
     if (kind !== "self") {
       if (!rawEmbed) {
@@ -86,63 +118,57 @@ export const HomeVideo = component$<HomeVideoProps>(
       const facadePoster =
         (poster || "").trim() ||
         (ytId ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : "");
+      const playerSrc = wantAutoplay.value ? withAutoplay(iframeSrc) : iframeSrc;
 
-      if (playing.value) {
-        const autoplaySrc = iframeSrc.includes("?")
-          ? `${iframeSrc}&autoplay=1`
-          : `${iframeSrc}?autoplay=1`;
-        return (
-          <section class="home-video" aria-label={label}>
-            <div class="home-video__frame home-video__frame--embed">
+      return (
+        <section ref={rootRef} class="home-video" aria-label={label}>
+          <div class="home-video__frame home-video__frame--embed">
+            {loadEmbed.value ? (
               <iframe
                 class="home-video__player home-video__player--embed"
-                src={autoplaySrc}
+                src={playerSrc}
                 title={label}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullscreen
+                loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
               />
-            </div>
-          </section>
-        );
-      }
-
-      return (
-        <section class="home-video" aria-label={label}>
-          <div class="home-video__frame home-video__frame--embed">
-            <button
-              type="button"
-              class="home-video__facade"
-              aria-label={playLabel}
-              onClick$={() => {
-                playing.value = true;
-              }}
-            >
-              {facadePoster ? (
-                <img
-                  class="home-video__facade-img"
-                  src={facadePoster}
-                  alt=""
-                  width={1280}
-                  height={720}
-                  sizes="(max-width: 960px) 100vw, 960px"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <span class="home-video__facade-fallback" aria-hidden="true" />
-              )}
-              <span class="home-video__facade-play" aria-hidden="true">
-                <svg viewBox="0 0 68 48" width="68" height="48" focusable="false">
-                  <path
-                    d="M66.5 7.7c-.8-2.9-2.5-5.4-5.4-6.2C55.9.1 34 0 34 0S12.1.1 6.9 1.5C4 2.3 2.3 4.8 1.5 7.7 0 13 0 24 0 24s0 11 1.5 16.3c.8 2.9 2.5 5.4 5.4 6.2C12.1 47.9 34 48 34 48s21.9-.1 27.1-1.5c2.9-.8 4.6-3.3 5.4-6.2C68 35 68 24 68 24s0-11-1.5-16.3z"
-                    fill="currentColor"
-                    fill-opacity="0.85"
+            ) : (
+              <button
+                type="button"
+                class="home-video__facade"
+                aria-label={playLabel}
+                onClick$={() => {
+                  wantAutoplay.value = true;
+                  loadEmbed.value = true;
+                }}
+              >
+                {facadePoster ? (
+                  <img
+                    class="home-video__facade-img"
+                    src={facadePoster}
+                    alt=""
+                    width={1280}
+                    height={720}
+                    sizes="(max-width: 960px) 100vw, 960px"
+                    loading="lazy"
+                    decoding="async"
                   />
-                  <path d="M45 24 27 14v20z" fill="#fff" />
-                </svg>
-              </span>
-            </button>
+                ) : (
+                  <span class="home-video__facade-fallback" aria-hidden="true" />
+                )}
+                <span class="home-video__facade-play" aria-hidden="true">
+                  <svg viewBox="0 0 68 48" width="68" height="48" focusable="false">
+                    <path
+                      d="M66.5 7.7c-.8-2.9-2.5-5.4-5.4-6.2C55.9.1 34 0 34 0S12.1.1 6.9 1.5C4 2.3 2.3 4.8 1.5 7.7 0 13 0 24 0 24s0 11 1.5 16.3c.8 2.9 2.5 5.4 5.4 6.2C12.1 47.9 34 48 34 48s21.9-.1 27.1-1.5c2.9-.8 4.6-3.3 5.4-6.2C68 35 68 24 68 24s0-11-1.5-16.3z"
+                      fill="currentColor"
+                      fill-opacity="0.85"
+                    />
+                    <path d="M45 24 27 14v20z" fill="#fff" />
+                  </svg>
+                </span>
+              </button>
+            )}
           </div>
         </section>
       );
