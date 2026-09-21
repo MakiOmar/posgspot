@@ -52,7 +52,7 @@
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
 | Track order API | ✅ | `POST /track-order` (invoice + phone/email); Qwik `/track-order`; `TrackOrderTest` |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + `POST /digital/reviews`; platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + auth `POST /digital/reviews` (phone from contact); platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
@@ -254,7 +254,7 @@
 
 | Date | Change |
 |------|--------|
-| 2026-09-21 | Digital `check-card-stock`: map storefront `card_category_id` → Accounts `category_id`. |
+| 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
 | 2026-09-21 | Homepage Lighthouse: active-only hero img + LCP preload; async Playfair/Cairo CSS; hero dot a11y/24px targets; footer contrast; promo `sizes`; DEPLOY notes for staging noindex + CMS image budgets. |
 | 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |
 | 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |

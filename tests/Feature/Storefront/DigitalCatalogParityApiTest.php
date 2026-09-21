@@ -116,6 +116,15 @@ class DigitalCatalogParityApiTest extends TestCase
         $this->assertStringNotContainsString('<script>', $description);
     }
 
+    public function test_submit_review_requires_auth(): void
+    {
+        $this->postJson('/api/storefront/v1/digital/reviews', [
+            'stars' => 4,
+            'comment' => 'Solid game',
+            'game_id' => 42,
+        ])->assertUnauthorized();
+    }
+
     public function test_submit_review_proxies_to_accounts(): void
     {
         Http::fake([
@@ -124,32 +133,64 @@ class DigitalCatalogParityApiTest extends TestCase
             ], 201),
         ]);
 
-        $this->postJson('/api/storefront/v1/digital/reviews', [
-            'phone' => '01012345678',
-            'stars' => 4,
-            'comment' => 'Solid game',
-            'game_id' => 42,
-        ])
+        $auth = $this->registerAndLoginForDigitalReview();
+
+        $this->withHeader('Authorization', 'Bearer '.$auth['token'])
+            ->postJson('/api/storefront/v1/digital/reviews', [
+                'stars' => 4,
+                'comment' => 'Solid game',
+                'game_id' => 42,
+            ])
             ->assertStatus(201)
             ->assertJsonPath('success', true);
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($auth) {
             return $request->url() === 'https://accounts.test/api/reviews'
                 && $request->method() === 'POST'
                 && ($request['game_id'] ?? null) === 42
                 && ($request['stars'] ?? null) === 4
-                && ($request['phone'] ?? null) === '01012345678';
+                && ($request['phone'] ?? null) === $auth['mobile'];
         });
     }
 
     public function test_submit_review_requires_exactly_one_target(): void
     {
-        $this->postJson('/api/storefront/v1/digital/reviews', [
-            'phone' => '01012345678',
-            'stars' => 5,
-            'game_id' => 1,
-            'card_category_id' => 2,
-        ])->assertStatus(422);
+        $auth = $this->registerAndLoginForDigitalReview();
+
+        $this->withHeader('Authorization', 'Bearer '.$auth['token'])
+            ->postJson('/api/storefront/v1/digital/reviews', [
+                'stars' => 5,
+                'game_id' => 1,
+                'card_category_id' => 2,
+            ])->assertStatus(422);
+    }
+
+    /**
+     * @return array{token: string, mobile: string}
+     */
+    private function registerAndLoginForDigitalReview(): array
+    {
+        $email = 'digital_review_'.uniqid().'@example.com';
+        $mobile = '+2010'.random_int(10000000, 99999999);
+
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Digital',
+            'last_name' => 'Reviewer',
+            'email' => $email,
+            'mobile' => $mobile,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $login = $this->postJson('/api/storefront/v1/auth/login', [
+            'login' => $email,
+            'password' => 'password123',
+        ])->assertOk();
+
+        return [
+            'token' => (string) $login->json('data.token'),
+            'mobile' => $mobile,
+        ];
     }
 
     public function test_check_stock_accepts_full_type(): void

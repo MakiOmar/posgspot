@@ -320,13 +320,17 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
                       selected.value = type;
                     }}
                   >
-                    <span class="digital-pdp__offer-label">
-                      {tStatic(lang, offerI18nKey(type))}
+                    <span class="digital-pdp__offer-row">
+                      <span class="digital-pdp__offer-label">
+                        {tStatic(lang, offerI18nKey(type))}
+                      </span>
+                      <span class="digital-pdp__offer-price">
+                        {formatPrice(price, props.currency, lang)}
+                      </span>
                     </span>
-                    <span class="digital-pdp__offer-price">
-                      {formatPrice(price, props.currency, lang)}
-                    </span>
-                    <span class="footer-muted">
+                    <span
+                      class={`stock-pill ${inStock ? "stock-pill--in" : "stock-pill--out"}`}
+                    >
                       {inStock
                         ? tStatic(lang, "digital.inStock")
                         : tStatic(lang, "digital.outOfStock")}

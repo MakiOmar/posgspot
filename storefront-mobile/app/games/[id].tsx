@@ -63,7 +63,7 @@ export default function GameDetailScreen() {
     platform?: string;
   }>();
   const platform: Platform = platformParam === "5" ? "5" : "4";
-  const { locale, t, accent, settings, contact } = useApp();
+  const { locale, t, accent, settings, contact, token } = useApp();
   const { textAlign, writingDirection, row } = useRtl();
   const { addItem } = useCart();
   const router = useRouter();
@@ -76,7 +76,6 @@ export default function GameDetailScreen() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [reviewPhone, setReviewPhone] = useState("");
   const [reviewStars, setReviewStars] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -270,20 +269,24 @@ export default function GameDetailScreen() {
   };
 
   const submitReview = async () => {
-    const phone = reviewPhone.trim();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    const phone = (contact?.mobile || "").trim();
     if (!phone) {
-      toast.error(t("digital.reviewPhone"));
+      toast.error(t("digital.reviewPhoneMissing"));
       return;
     }
     setReviewBusy(true);
     try {
       await submitDigitalReview(
         {
-          phone,
           stars: reviewStars,
           comment: reviewComment.trim() || undefined,
           game_id: Number(game.id || id),
         },
+        token,
         locale,
       );
       setReviewSubmitted(true);
@@ -468,8 +471,25 @@ export default function GameDetailScreen() {
           ))}
           {reviewSubmitted ? (
             <Text style={[styles.meta, { textAlign }]}>{t("digital.reviewPending")}</Text>
+          ) : !token ? (
+            <View style={styles.reviewForm}>
+              <Text style={[styles.meta, { textAlign, writingDirection }]}>
+                {t("reviews.signIn")}
+              </Text>
+              <PrimaryButton
+                label={t("auth.signIn")}
+                onPress={() => router.push("/login")}
+              />
+            </View>
+          ) : !(contact?.mobile || "").trim() ? (
+            <Text style={[styles.meta, { textAlign, writingDirection }]}>
+              {t("digital.reviewPhoneMissing")}
+            </Text>
           ) : (
             <View style={styles.reviewForm}>
+              <Text style={[styles.meta, { textAlign }]}>
+                {t("digital.reviewAs", { phone: (contact?.mobile || "").trim() })}
+              </Text>
               <View style={[styles.starsRow, { flexDirection: row }]}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <Pressable key={n} onPress={() => setReviewStars(n)}>
@@ -480,15 +500,8 @@ export default function GameDetailScreen() {
                 ))}
               </View>
               <TextInput
-                style={styles.input}
-                placeholder={t("digital.reviewPhone")}
-                value={reviewPhone}
-                onChangeText={setReviewPhone}
-                keyboardType="phone-pad"
-              />
-              <TextInput
                 style={[styles.input, styles.inputMulti]}
-                placeholder={t("digital.reviewComment")}
+                placeholder={t("digital.reviewCommentPlaceholder")}
                 value={reviewComment}
                 onChangeText={setReviewComment}
                 multiline

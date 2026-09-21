@@ -128,6 +128,7 @@ class DigitalCatalogController extends StorefrontController
 
     /**
      * Proxy Accounts digital review submit (games or gift-card category).
+     * Auth required — phone is taken from the signed-in contact.
      */
     public function submitReview(Request $request)
     {
@@ -136,8 +137,13 @@ class DigitalCatalogController extends StorefrontController
             return $this->jsonError('Digital catalog is not available.', 503);
         }
 
+        $contact = $request->user();
+        $phone = trim((string) ($contact->mobile ?? ''));
+        if ($phone === '') {
+            return $this->jsonError('Add a phone number to your profile to leave a review.', 422);
+        }
+
         $data = $request->validate([
-            'phone' => 'required|string|max:20',
             'stars' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:2000',
             'game_id' => 'nullable|integer|min:1',
@@ -151,7 +157,7 @@ class DigitalCatalogController extends StorefrontController
         }
 
         $payload = [
-            'phone' => (string) $data['phone'],
+            'phone' => $phone,
             'stars' => (int) $data['stars'],
             'comment' => (string) ($data['comment'] ?? ''),
         ];

@@ -1223,17 +1223,21 @@ export function checkDigitalGameStock(
 
 export function submitDigitalReview(
   payload: {
-    phone: string;
     stars: number;
     comment?: string;
     game_id?: number;
     card_category_id?: number;
   },
+  token: string,
   locale?: string,
 ) {
   return storefrontFetch<Record<string, unknown>>(
     "/digital/reviews",
-    { method: "POST", body: JSON.stringify(payload) },
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    },
     locale,
   );
 }
