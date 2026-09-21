@@ -7132,6 +7132,55 @@ body.is-globally-pending {
   aspect-ratio: auto;
 }
 
+/* Click-to-play facade — no third-party iframe until the visitor opts in. */
+.home-video__facade {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  background: #111;
+  color: #f00;
+}
+
+.home-video__facade:focus-visible {
+  outline: 2px solid var(--gs-accent);
+  outline-offset: 2px;
+}
+
+.home-video__facade-img,
+.home-video__facade-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.home-video__facade-fallback {
+  background: linear-gradient(145deg, #1a1a1a 0%, #2a2a2a 100%);
+}
+
+.home-video__facade-play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.home-video__facade:hover .home-video__facade-play,
+.home-video__facade:focus-visible .home-video__facade-play {
+  transform: scale(1.06);
+}
+
 .home-trust-badges {
   margin: 0;
   width: 100%;

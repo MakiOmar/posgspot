@@ -93,6 +93,9 @@ export const FooterNewsletter = component$<FooterNewsletterProps>(({ settings })
           siteKey={turnstile.site_key}
           token={turnstileToken}
           resetKey={turnstileResetKey.value}
+          /* Defer third-party script until the visitor engages the form. */
+          activation="interaction"
+          unlockOnFocusId="footer-newsletter-email"
         />
       ) : null}
     </div>

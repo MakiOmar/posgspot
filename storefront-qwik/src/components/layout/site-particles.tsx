@@ -12,7 +12,7 @@ interface Particle {
 
 /**
  * Full-viewport ambient particles (dim + slow). Gated by PUBLIC_SITE_PARTICLES.
- * Skipped when the user prefers reduced motion.
+ * Skipped when the user prefers reduced motion. Starts after idle so LCP/TBT win.
  */
 export const SiteParticles = component$(() => {
   const canvasRef = useSignal<HTMLCanvasElement>();
@@ -40,10 +40,18 @@ export const SiteParticles = component$(() => {
     let raf = 0;
     let particles: Particle[] = [];
     let running = true;
+    let started = false;
+    let idleHandle = 0;
+    let timeoutHandle = 0;
 
     const countForArea = () => {
       const area = width * height;
-      return Math.max(28, Math.min(72, Math.round(area / 28000)));
+      const isNarrow = width < 768;
+      // Fewer particles on mobile — main-thread work shows up in Lighthouse TBT/TTI.
+      const min = isNarrow ? 12 : 28;
+      const max = isNarrow ? 28 : 72;
+      const divisor = isNarrow ? 48000 : 28000;
+      return Math.max(min, Math.min(max, Math.round(area / divisor)));
     };
 
     const spawn = (): Particle => ({
@@ -108,20 +116,44 @@ export const SiteParticles = component$(() => {
         window.cancelAnimationFrame(raf);
         return;
       }
-      if (!running) {
+      if (!running && started) {
         running = true;
         raf = window.requestAnimationFrame(tick);
       }
     };
 
-    resize();
-    raf = window.requestAnimationFrame(tick);
-    window.addEventListener("resize", resize, { passive: true });
-    document.addEventListener("visibilitychange", onVisibility);
+    const start = () => {
+      if (started || !running) {
+        return;
+      }
+      started = true;
+      resize();
+      raf = window.requestAnimationFrame(tick);
+      window.addEventListener("resize", resize, { passive: true });
+      document.addEventListener("visibilitychange", onVisibility);
+    };
+
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback?: (id: number) => void;
+      }
+    ).requestIdleCallback;
+    if (typeof ric === "function") {
+      idleHandle = ric(() => start(), { timeout: 2500 });
+    } else {
+      timeoutHandle = window.setTimeout(start, 1200);
+    }
 
     cleanup(() => {
       running = false;
       window.cancelAnimationFrame(raf);
+      if (idleHandle && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (timeoutHandle) {
+        window.clearTimeout(timeoutHandle);
+      }
       window.removeEventListener("resize", resize);
       document.removeEventListener("visibilitychange", onVisibility);
     });
@@ -131,11 +163,5 @@ export const SiteParticles = component$(() => {
     return null;
   }
 
-  return (
-    <canvas
-      ref={canvasRef}
-      class="site-particles"
-      aria-hidden="true"
-    />
-  );
+  return <canvas ref={canvasRef} class="site-particles" aria-hidden="true" />;
 });

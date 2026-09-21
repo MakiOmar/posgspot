@@ -74,13 +74,28 @@ app.use(compression());
 
 // Static asset handlers
 // https://expressjs.com/en/starter/static-files.html
+// Fingerprinted Qwik/Vite chunks — long cache + immutable.
 app.use(`/build`, express.static(buildDir, { immutable: true, maxAge: "1y" }));
 app.use(
   `/assets`,
   express.static(assetsDir, { immutable: true, maxAge: "1y" }),
 );
-app.use(express.static(distDir, { redirect: false }));
-
+// public/ copies (heroes, favicon, fonts) — long cache (unique names); HTML no-cache.
+app.use(
+  express.static(distDir, {
+    redirect: false,
+    maxAge: "1y",
+    setHeaders(res, filePath) {
+      if (/\.html?$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "no-cache, must-revalidate");
+        return;
+      }
+      if (/\.(woff2?|ttf|eot|otf|webp|avif|png|jpe?g|gif|svg|ico)$/i.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      }
+    },
+  }),
+);
 // Use Qwik City's page and endpoint request handler
 app.use(router);
 

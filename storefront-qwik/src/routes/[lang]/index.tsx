@@ -403,7 +403,9 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
                 rel: "preload",
                 as: "image",
                 href: lcpImage,
-              },
+                // Lowercase HTML attr — Lighthouse LCP discovery wants this on the preload.
+                fetchpriority: "high",
+              } as { key: string; rel: string; as: string; href: string; fetchpriority: string },
             ]
           : []),
       ],

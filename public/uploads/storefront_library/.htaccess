@@ -1,11 +1,17 @@
 # CORS for CSS mask-image (Qwik storefront). Applies to all library/{business_id}/ files.
+# Long browser cache — filenames are unique (checksum / timestamp).
 # See docs/public-site/API.md
 <IfModule mod_headers.c>
     Header always set Access-Control-Allow-Origin "*"
     Header always set Access-Control-Allow-Methods "GET, HEAD, OPTIONS"
     Header always set Access-Control-Allow-Headers "Origin, Accept, Content-Type"
+    <FilesMatch "\.(?i:webp|avif|png|jpe?g|gif|svg|ico)$">
+        Header always set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
 </IfModule>
 
+# LiteSpeed page cache can omit ACAO on stale entries — disable LS public cache here;
+# browser Cache-Control above still applies.
 <IfModule LiteSpeed>
     CacheDisable public
 </IfModule>
@@ -14,4 +20,9 @@
     RewriteEngine On
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^ - [R=204,L]
+</IfModule>
+
+<IfModule mod_mime.c>
+    AddType image/webp .webp
+    AddType image/avif .avif
 </IfModule>

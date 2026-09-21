@@ -73,6 +73,7 @@ export const CommunityNewsSidebar = component$<Props>((props) => {
             }}
           >
             <input
+              id="community-newsletter-email"
               type="email"
               name="email"
               autocomplete="email"
@@ -95,6 +96,8 @@ export const CommunityNewsSidebar = component$<Props>((props) => {
               siteKey={turnstile.site_key}
               token={turnstileToken}
               resetKey={turnstileResetKey.value}
+              activation="interaction"
+              unlockOnFocusId="community-newsletter-email"
             />
           ) : null}
         </section>

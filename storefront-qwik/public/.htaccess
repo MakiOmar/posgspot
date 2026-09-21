@@ -1,0 +1,71 @@
+# Browser caching for Qwik storefront static files (Apache / LiteSpeed).
+# Lives in storefront-qwik/public/ and is copied to dist/ on `npm run build`.
+#
+# Applies when Apache serves files from dist/ (Alias / DocumentRoot).
+# If the vhost only ProxyPass-es everything to Node, Express headers apply instead
+# (see src/entry.express.tsx). Do not put this under Laravel public/.
+#
+# Requires mod_headers (and optionally mod_expires, mod_setenvif, mod_mime).
+
+# ---------------------------------------------------------------------------
+# Long-lived cache: fingerprinted build output (/build/*, /assets/*)
+# LocationMatch is not allowed in .htaccess — use SetEnvIf + Header env=.
+# ---------------------------------------------------------------------------
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/(build|assets)/" LONG_CACHE=1
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Path-based override first so it wins over extension FilesMatch below.
+  Header set Cache-Control "public, max-age=31536000, immutable" env=LONG_CACHE
+
+  # Non-hashed public/ root files (heroes, icons, fonts, …)
+  <FilesMatch "\.(woff2?|ttf|eot|otf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable" env=!LONG_CACHE
+  </FilesMatch>
+
+  <FilesMatch "\.(webp|avif|png|jpe?g|gif|svg|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable" env=!LONG_CACHE
+  </FilesMatch>
+
+  <FilesMatch "\.(json|webmanifest)$">
+    Header set Cache-Control "public, max-age=86400" env=!LONG_CACHE
+  </FilesMatch>
+
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType application/json "access plus 1 day"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/avif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType image/avif .avif
+  AddType font/woff2 .woff2
+  AddType application/manifest+json .webmanifest
+</IfModule>
+
+# Optional SPA fallback — leave commented for Express SSR deploys.
+# <IfModule mod_rewrite.c>
+#   RewriteEngine On
+#   RewriteBase /
+#   RewriteCond %{REQUEST_FILENAME} !-f
+#   RewriteCond %{REQUEST_FILENAME} !-d
+#   RewriteRule . /index.html [L]
+# </IfModule>

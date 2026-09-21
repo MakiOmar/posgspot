@@ -366,12 +366,14 @@ Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros d
 - `storefront_order_id` on transactions for checkout idempotency
 - CORS: configure `CORS_ALLOWED_ORIGINS` in `.env` (Laravel API only — `api/*` / Sanctum). That does **not** cover static `/uploads/…` files. Trust-badge SVG **masks** need ACAO on the file response:
   - **Apache / LiteSpeed:** `public/uploads/storefront_homepage/.htaccess` and `public/uploads/storefront_library/.htaccess` set `Access-Control-Allow-Origin: *`. Deploy those files, then **purge LiteSpeed Cache** (and any CDN) for `/uploads/storefront_*` — cached copies often omit the new headers.
+  - **Browser cache (Lighthouse “efficient cache lifetimes”):** shop pages load hero/promo images from **`pos.*/uploads/…`**, not the Qwik Node `public/.htaccess`. `public/uploads/.htaccess` (+ storefront library/homepage) send `Cache-Control: public, max-age=31536000, immutable`. After deploy, purge CDN/LSSpeed and verify with `curl -sI "https://YOUR-POS/uploads/storefront_library/…/file.webp"`.
   - **Nginx:**
 
 ```nginx
 location ~* ^/uploads/storefront_(homepage|library)/ {
     add_header Access-Control-Allow-Origin "*" always;
     add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
     if ($request_method = OPTIONS) { return 204; }
 }
 ```

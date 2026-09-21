@@ -6,3 +6,28 @@ Require all denied
 Require all denied
 </FilesMatch>
 Options -Indexes
+
+# Browser cache for catalog / media images (unique filenames under img/, media/, …).
+# Lighthouse “efficient cache lifetimes” expects ≫ 7 days for static images.
+# Shop HTML is on the Qwik host — this only affects pos.*/uploads/*.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(?i:webp|avif|png|jpe?g|gif|svg|ico|woff2?|ttf|eot|otf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/avif "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/x-icon "access plus 1 year"
+</IfModule>
+
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType image/avif .avif
+</IfModule>

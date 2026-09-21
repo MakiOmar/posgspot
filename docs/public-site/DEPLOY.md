@@ -165,7 +165,30 @@ If you terminate TLS at Nginx, keep `ORIGIN=https://shop.example.com`. Uncomment
 
 ### Apache / LiteSpeed
 
-Proxy `/` to `http://127.0.0.1:3000` the same way (mod_proxy / LiteSpeed reverse proxy). Do **not** point the shop vhost at Laravel `public/` — that is the POS, not the Qwik app.
+Proxy HTML/SSR to Node (`http://127.0.0.1:3000`). Do **not** point the shop vhost at Laravel `public/` — that is the POS, not the Qwik app.
+
+**Browser cache for static files**
+
+- **Node path (default):** Express sends `Cache-Control: public, max-age=1y, immutable` for `/build`, `/assets`, and other static files under `dist/` (`src/entry.express.tsx`).
+- **Apache serving `dist/` files** (optional): `storefront-qwik/public/.htaccess` is copied into `dist/` on build. Point `Alias` / static roots at `dist/build` and `dist/assets` (and optionally other `dist/` files) **before** `ProxyPass`, so Apache applies those headers; proxy everything else to Node for SSR.
+- **POS upload images** (`pos.*/uploads/…` in Lighthouse): configure Laravel `public/uploads/.htaccess` (and storefront library/homepage). Qwik Node `.htaccess` does **not** affect those URLs.
+Example (adjust paths):
+
+```apache
+Alias /build /var/www/storefront-qwik/dist/build
+Alias /assets /var/www/storefront-qwik/dist/assets
+<Directory /var/www/storefront-qwik/dist>
+    AllowOverride FileInfo
+    Require all granted
+</Directory>
+
+ProxyPass /build !
+ProxyPass /assets !
+ProxyPass / http://127.0.0.1:3000/
+ProxyPassReverse / http://127.0.0.1:3000/
+```
+
+SSR HTML cache is controlled by the Node/Qwik response (not `.htaccess` `FilesMatch` for `.html`).
 
 ---
 
@@ -180,7 +203,8 @@ Proxy `/` to `http://127.0.0.1:3000` the same way (mod_proxy / LiteSpeed reverse
 | Auth | Register / login / password reset email links use `STOREFRONT_URL` |
 | Payments | Fawry/Geidea return URL hits `{STOREFRONT_URL}/…/checkout/payment/return/` |
 | Staging | `PUBLIC_ROBOTS_DISALLOW_ALL=true` on non-production shop hosts (Lighthouse SEO ~69 / `is-crawlable` fail is **expected** on preview/staging). For the **live** shop build, leave this unset/false or SEO stays blocked. |
-| Homepage images | Hero slides ≤~200–300 KB WebP; promo tiles ≤~100–150 KB; header logo ≥~2× display size (CSS ~40px tall → upload ≥80px tall / ~560px wide). Oversized CMS assets dominate mobile LCP. |
+| Homepage images | Hero slides ≤~200–300 KB WebP; promo tiles ≤~100–150 KB; header logo ≥~2× display size (CSS ~40px tall → upload ≥80px tall / ~560px wide). Oversized CMS assets dominate mobile LCP (~2.5 MiB waste in recent audits). |
+| Homepage embeds | YouTube/Vimeo use click-to-play (no iframe until play). Footer Turnstile loads only after newsletter focus. |
 | AI chat | Optional: `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` on POS; widget appears when settings flag is on |
 
 ---
@@ -226,7 +250,8 @@ Set POS `STOREFRONT_URL=http://localhost:5173` and CORS accordingly.
 | Payment return 404 on shop | Shop routes not deployed / wrong `ORIGIN` host |
 | Staging indexed by Google | Missing `PUBLIC_ROBOTS_DISALLOW_ALL=true` at **build** time |
 | Lighthouse SEO ~69 on preview | `PUBLIC_ROBOTS_DISALLOW_ALL` is on (meta + `X-Robots-Tag` noindex) — intentional for staging; unset for production builds |
-| Mobile LCP / huge image delivery | Compress POS library hero/promo assets; code only mounts the active hero slide |
+| Lighthouse Best Practices (cookies / deprecated APIs) | YouTube iframe + footer Turnstile / Cloudflare challenge scripts. Click-to-play + deferred Turnstile fix app-owned third parties; `cdn-cgi/challenge-platform` deprecations are Cloudflare-injected and not app-fixable. |
+| Mobile LCP / huge image delivery | Compress POS library hero/promo assets; code only mounts the active hero slide + preloads LCP with `fetchpriority=high` |
 | Support chat missing | POS `STOREFRONT_SUPPORT_CHAT` / `OPENAI_API_KEY`; rebuild not required |
 | CSP blocks gateway script | See `plugin@security.ts`; use `PUBLIC_CSP_REPORT_ONLY` to diagnose |
 
