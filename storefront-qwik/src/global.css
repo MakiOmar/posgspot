@@ -1337,7 +1337,7 @@ button.header-nav-dropdown__trigger {
 }
 
 .brand img {
-  height: 36px;
+  height: 35px;
   width: auto;
 }
 
@@ -9059,9 +9059,5 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   .site-header--one .header-search-wrap--modal {
     grid-column: 1;
     grid-row: 1;
-  }
-
-  .site-header--one .brand img {
-    height: 40px;
   }
 }
