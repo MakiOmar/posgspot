@@ -20,7 +20,7 @@ import {
 } from "~/lib/api";
 import { EGYPT_GEO_STATES } from "~/lib/geo-eg-states";
 import { useAuth } from "~/lib/auth-context";
-import { clearCart, clearAppliedCoupon, cartItemsFingerprint, couponCodesKey, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, sameCouponCodes, toCartApiItem } from "~/lib/cart-actions";
+import { clearCart, clearAppliedCoupon, cartItemsFingerprint, cartLineKey, couponCodesKey, couponRequestPayload, loadAppliedCoupons, persistAppliedCoupons, sameCouponCodes, toCartApiItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { storePaymentSession, storeOrderAccessToken } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
@@ -986,21 +986,37 @@ export default component$(() => {
               {tStatic(locale, "coupon.signInRequired")}
             </p>
           ) : null}
-          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          <ul class="checkout-summary__lines">
             {cart.items.map((line) => (
-              <li
-                key={line.variationId}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "0.5rem",
-                  fontSize: "0.875rem",
-                }}
-              >
-                <span>
-                  {line.name} × {line.quantity}
+              <li key={cartLineKey(line)} class="checkout-summary__line">
+                <div class="cart-product cart-product--compact">
+                  <div class="cart-product__thumb-wrap">
+                    {line.imageUrl ? (
+                      <img
+                        class="cart-product__thumb"
+                        src={line.imageUrl}
+                        alt=""
+                        width={48}
+                        height={48}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span class="cart-product__thumb cart-product__thumb--placeholder" aria-hidden="true" />
+                    )}
+                  </div>
+                  <div class="cart-product__meta">
+                    <span class="checkout-summary__line-name">
+                      {line.name} × {line.quantity}
+                    </span>
+                    {line.variationName !== "DUMMY" ? (
+                      <span class="footer-muted checkout-summary__line-variant">{line.variationName}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <span class="checkout-summary__line-price">
+                  {formatPrice(line.price * line.quantity, settings.value.currency)}
                 </span>
-                <span>{formatPrice(line.price * line.quantity, settings.value.currency)}</span>
               </li>
             ))}
           </ul>

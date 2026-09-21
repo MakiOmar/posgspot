@@ -536,17 +536,15 @@ Optional Phase 2: trust badges (SSL, verified business).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  SHOP              CUSTOMER SERVICE    COMPANY           STAY CONNECTED   │
-│  All categories    Contact us        About us          Tagline...       │
-│  Deals             FAQ               Our stores        📞 +20 ...         │
-│  Best sellers      Shipping          Privacy           ✉ support@...    │
-│  ...               Returns           Terms             [f][ig][tt][yt]   │
-│                                                      [ email ] [Subscribe]│
+│  [Logo]            CUSTOMER            ABOUT US          QUICK LINKS     │
+│  Slogan…           (editable)          (editable)        (editable)      │
+│  [f][ig][tt][yt]                                                           │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ © 2026 Games Spot          [COD][Visa][MC]          🔒 Secure checkout  │
+│ © 2026 Games Spot          [COD][Visa][MC]          Newsletter           │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+First column: storefront logo + short slogan (`footer.tagline`) + social icons. Branch addresses live on `/stores`, not in the footer.
 ### Mobile header + drawer
 
 ```

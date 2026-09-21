@@ -3,7 +3,6 @@ import { Link } from "@builder.io/qwik-city";
 import {
   FacebookIcon,
   InstagramIcon,
-  MapPinIcon,
   TiktokIcon,
   WhatsappIcon,
   YoutubeIcon,
@@ -12,11 +11,10 @@ import { FooterNewsletter } from "~/components/layout/footer-newsletter";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { StoreLocaleCode } from "~/lib/i18n/config";
-import type { StoreLocation, StoreSettings } from "~/lib/types";
+import type { StoreSettings } from "~/lib/types";
 
 interface SiteFooterProps {
   settings: StoreSettings;
-  locations: StoreLocation[];
 }
 
 function resolveFooterHref(
@@ -45,57 +43,50 @@ function whatsappHref(raw: string): string {
   return digits ? `https://wa.me/${digits}` : raw;
 }
 
-/** Site footer: locations + social, then up to 3 editable menu columns. */
-export const SiteFooter = component$<SiteFooterProps>(({ settings, locations }) => {
+/** Site footer: brand (logo + slogan + social), then up to 3 editable menu columns. */
+export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
   const year = new Date().getFullYear();
   const { locale } = useI18n();
   const footer = settings.footer;
-  const contactTitle = footer?.contact_title || tStatic(locale, "footer.contactInfo");
   const columns = (footer?.columns ?? []).slice(0, 3);
   const social = settings.social || {};
   const whatsapp = settings.contact?.whatsapp?.trim() || "";
+  const logoUrl = (settings.logo_url || "").trim();
+  const slogan = tStatic(locale, "footer.tagline");
 
   return (
     <footer class="site-footer">
       <div class="container footer-grid">
         <div class="footer-col footer-col--contact">
-          <h3>{contactTitle}</h3>
-          {locations.length > 0 ? (
-            <ul class="footer-locations">
-              {locations.map((loc) => (
-                <li key={loc.id} class="footer-location">
-                  <div class="footer-location__head">
-                    <MapPinIcon class="footer-location__pin" size={18} />
-                    <div>
-                      <div class="footer-location__name">{loc.name}</div>
-                      {loc.address ? (
-                        <p class="footer-location__address">{loc.address}</p>
-                      ) : null}
-                      <div class="footer-location__actions">
-                        {loc.maps_url ? (
-                          <a
-                            href={loc.maps_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="footer-location__action"
-                          >
-                            {tStatic(locale, "footer.visitUs")}
-                          </a>
-                        ) : null}
-                        {loc.phone ? (
-                          <a href={`tel:${loc.phone}`} class="footer-location__action" dir="ltr">
-                            {tStatic(locale, "footer.callUs")}
-                          </a>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p class="footer-muted">{tStatic(locale, "footer.noLocations")}</p>
-          )}
+          <div class="footer-brand">
+            {logoUrl ? (
+              <Link
+                href={localePath(locale, "/")}
+                class="footer-brand__logo-link"
+                aria-label={settings.business_name}
+                prefetch={false}
+              >
+                <img
+                  class="footer-brand__logo"
+                  src={logoUrl}
+                  alt={settings.business_name}
+                  width={160}
+                  height={48}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </Link>
+            ) : (
+              <Link
+                href={localePath(locale, "/")}
+                class="footer-brand__name"
+                prefetch={false}
+              >
+                {settings.business_name}
+              </Link>
+            )}
+            <p class="footer-brand__slogan">{slogan}</p>
+          </div>
 
           <div class="footer-social" aria-label={tStatic(locale, "footer.followUs")}>
             {social.facebook && social.facebook !== "#" ? (

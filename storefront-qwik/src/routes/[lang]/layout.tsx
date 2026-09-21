@@ -153,7 +153,7 @@ const SiteShellHeader = component$(() => {
 
 const SiteShellFooter = component$(() => {
   const shell = useSiteShell();
-  return <SiteFooter settings={shell.settings} locations={shell.locations} />;
+  return <SiteFooter settings={shell.settings} />;
 });
 
 export default component$(() => {

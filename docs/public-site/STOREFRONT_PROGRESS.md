@@ -19,7 +19,7 @@
 |------|--------|
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry/Geidea works |
-| Header / footer spec | ✅ | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us; FAQs in Quick Links; floating contact FAB |
+| Header / footer spec | ✅ | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us; FAQs in Quick Links; floating contact FAB; footer brand col = logo + slogan + social (locations on `/stores`) |
 | i18n / RTL (AR + EN) | ✅ |
 | Online payments (Fawry + Geidea) | ✅ | Pluggable gateway layer; Fawry hosted checkout; Geidea HPP session + webhook HMAC; one active provider |
 | SEO launch pack (sitemap, legal, breadcrumbs) | ✅ Legal, robots/sitemap, PDP breadcrumbs + gallery, canonical/hreflang |
@@ -156,7 +156,7 @@
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
-| Footer contact, social, shop links | ✅ | 4-col footer: locations (`GET /locations`) + social/WhatsApp; 3 editable menus from `settings.footer` |
+| Footer contact, social, shop links | ✅ | 4-col footer: brand (logo + slogan + social/WhatsApp); 3 editable menus from `settings.footer`; branches on `/stores` |
 | Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; Customer menu includes Delete Account → `/delete-account`, Custom Bundle → `/custom-bundle`, Sell to Us → `/sell-to-us` when enabled; newsletter + `payment_icons` in bottom bar |
 | Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
@@ -263,6 +263,7 @@
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |
 | 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
+| 2026-09-21 | Cart two-column layout (lines + sticky summary); product/game/gift-card thumbs on cart + checkout; footer contact col → storefront logo + slogan + social (no branch list). |
 | 2026-09-21 | Homepage YouTube/Vimeo: IntersectionObserver lazy-load — iframe mounts only when section is near viewport (or play click); facade until then. |
 | 2026-09-21 | Homepage Lighthouse: active-only hero img + LCP preload; async Playfair/Cairo CSS; hero dot a11y/24px targets; footer contrast; promo `sizes`; DEPLOY notes for staging noindex + CMS image budgets. |
 | 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |

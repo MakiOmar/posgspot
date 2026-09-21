@@ -337,112 +337,135 @@ export default component$(() => {
         </p>
       ) : null}
 
-      <table class="cart-table">
-        <thead>
-          <tr>
-            <th>{tStatic(locale, "cart.product")}</th>
-            <th>{tStatic(locale, "cart.price")}</th>
-            <th>{tStatic(locale, "cart.qty")}</th>
-            <th>{tStatic(locale, "cart.total")}</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {cart.items.map((line) => (
-            <tr key={cartLineKey(line)}>
-              <td>
-                <strong>{line.name}</strong>
-                {line.variationName !== "DUMMY" ? (
-                  <div class="footer-muted">{line.variationName}</div>
-                ) : null}
-              </td>
-              <td>{formatPrice(line.price, settings.value.currency, locale)}</td>
-              <td>
-                {line.digital ? (
-                  <span>{line.quantity}</span>
-                ) : (
-                  <QuantityStepper
-                    value={line.quantity}
-                    label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
-                    onChange$={(next) => setCartQuantity(cart, cartLineKey(line), next)}
-                  />
-                )}
-              </td>
-              <td>{formatPrice(line.price * line.quantity, settings.value.currency, locale)}</td>
-              <td>
-                <button
-                  type="button"
-                  class="btn btn-secondary footer-contact"
-                  aria-label={tStatic(locale, "a11y.removeItem")}
-                  onClick$={() => removeCartItem(cart, cartLineKey(line))}
-                >
-                  <TrashIcon size={16} />
-                  {tStatic(locale, "cart.remove")}
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div class="cart-layout">
+        <div class="cart-layout__main">
+          <table class="cart-table">
+            <thead>
+              <tr>
+                <th>{tStatic(locale, "cart.product")}</th>
+                <th>{tStatic(locale, "cart.price")}</th>
+                <th>{tStatic(locale, "cart.qty")}</th>
+                <th>{tStatic(locale, "cart.total")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {cart.items.map((line) => (
+                <tr key={cartLineKey(line)}>
+                  <td>
+                    <div class="cart-product">
+                      <div class="cart-product__thumb-wrap">
+                        {line.imageUrl ? (
+                          <img
+                            class="cart-product__thumb"
+                            src={line.imageUrl}
+                            alt=""
+                            width={64}
+                            height={64}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span class="cart-product__thumb cart-product__thumb--placeholder" aria-hidden="true" />
+                        )}
+                      </div>
+                      <div class="cart-product__meta">
+                        <strong>{line.name}</strong>
+                        {line.variationName !== "DUMMY" ? (
+                          <div class="footer-muted">{line.variationName}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </td>
+                  <td>{formatPrice(line.price, settings.value.currency, locale)}</td>
+                  <td>
+                    {line.digital ? (
+                      <span>{line.quantity}</span>
+                    ) : (
+                      <QuantityStepper
+                        value={line.quantity}
+                        label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
+                        onChange$={(next) => setCartQuantity(cart, cartLineKey(line), next)}
+                      />
+                    )}
+                  </td>
+                  <td>{formatPrice(line.price * line.quantity, settings.value.currency, locale)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-secondary footer-contact"
+                      aria-label={tStatic(locale, "a11y.removeItem")}
+                      onClick$={() => removeCartItem(cart, cartLineKey(line))}
+                    >
+                      <TrashIcon size={16} />
+                      {tStatic(locale, "cart.remove")}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      <div class="cart-summary">
-        {promoAtCheckout && auth.token ? (
-          <CouponField
-            items={cart.items}
-            token={auth.token}
-            allowStacking={allowCouponStacking}
-            currency={settings.value.currency}
-            appliedCoupons={appliedCoupons.value}
-            couponDiscount={couponDiscount.value}
-            onApplied$={onCouponApplied$}
-          />
-        ) : promoAtCheckout ? (
-          <p class="footer-muted" style={{ marginBottom: "1rem" }}>
-            <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/cart"))}`}>
-              {tStatic(locale, "auth.login")}
-            </Link>{" "}
-            {tStatic(locale, "coupon.signInRequired")}
-          </p>
-        ) : null}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-          <span>{tStatic(locale, "cart.subtotal")}</span>
-          <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>
-        </div>
-        {couponDiscount.value > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "0.5rem",
-              color: "var(--gs-accent)",
-            }}
-          >
-            <span>{tStatic(locale, "coupon.discount")}</span>
-            <span>-{formatPrice(couponDiscount.value, settings.value.currency, locale)}</span>
-          </div>
-        ) : null}
-        {validatedTotal.value !== null ? (
+        <aside class="cart-summary">
+          {promoAtCheckout && auth.token ? (
+            <CouponField
+              items={cart.items}
+              token={auth.token}
+              allowStacking={allowCouponStacking}
+              currency={settings.value.currency}
+              appliedCoupons={appliedCoupons.value}
+              couponDiscount={couponDiscount.value}
+              onApplied$={onCouponApplied$}
+            />
+          ) : promoAtCheckout ? (
+            <p class="footer-muted" style={{ marginBottom: "1rem" }}>
+              <Link href={`${localePath(locale, "/login")}?next=${encodeURIComponent(localePath(locale, "/cart"))}`}>
+                {tStatic(locale, "auth.login")}
+              </Link>{" "}
+              {tStatic(locale, "coupon.signInRequired")}
+            </p>
+          ) : null}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-            <span>{tStatic(locale, "cart.shippingEstimate")}</span>
-            <span>
-              {validatedShipping.value > 0
-                ? formatPrice(validatedShipping.value, settings.value.currency, locale)
-                : tStatic(locale, "cart.shippingAtCheckout")}
-            </span>
+            <span>{tStatic(locale, "cart.subtotal")}</span>
+            <strong>{formatPrice(subtotal, settings.value.currency, locale)}</strong>
           </div>
-        ) : null}
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontWeight: 700 }}>
-          <span>{tStatic(locale, "checkout.total")}</span>
-          <strong>{formatPrice(orderTotal, settings.value.currency, locale)}</strong>
-        </div>
-        <button
-          type="button"
-          class="btn btn-primary btn-block"
-          disabled={validating.value || checkoutChecking.value}
-          onClick$={goToCheckout$}
-        >
-          {checkoutChecking.value ? tStatic(locale, "cart.checkingCheckout") : tStatic(locale, "cart.checkout")}
-        </button>
+          {couponDiscount.value > 0 ? (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "0.5rem",
+                color: "var(--gs-accent)",
+              }}
+            >
+              <span>{tStatic(locale, "coupon.discount")}</span>
+              <span>-{formatPrice(couponDiscount.value, settings.value.currency, locale)}</span>
+            </div>
+          ) : null}
+          {validatedTotal.value !== null ? (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+              <span>{tStatic(locale, "cart.shippingEstimate")}</span>
+              <span>
+                {validatedShipping.value > 0
+                  ? formatPrice(validatedShipping.value, settings.value.currency, locale)
+                  : tStatic(locale, "cart.shippingAtCheckout")}
+              </span>
+            </div>
+          ) : null}
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontWeight: 700 }}>
+            <span>{tStatic(locale, "checkout.total")}</span>
+            <strong>{formatPrice(orderTotal, settings.value.currency, locale)}</strong>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary btn-block"
+            disabled={validating.value || checkoutChecking.value}
+            onClick$={goToCheckout$}
+          >
+            {checkoutChecking.value ? tStatic(locale, "cart.checkingCheckout") : tStatic(locale, "cart.checkout")}
+          </button>
+        </aside>
       </div>
     </section>
   );
