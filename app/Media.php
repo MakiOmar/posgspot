@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Support\ImageWebpConverter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
@@ -143,6 +144,11 @@ class Media extends Model
             $new_file_name = time().'_'.mt_rand().'_'.$file->getClientOriginalName();
             if ($file->storeAs('/media', $new_file_name)) {
                 $file_name = $new_file_name;
+                $webpName = app(ImageWebpConverter::class)
+                    ->convertStoredUpload('media', $new_file_name);
+                if (is_string($webpName) && $webpName !== '') {
+                    $file_name = $webpName;
+                }
             }
         }
 
@@ -162,6 +168,12 @@ class Media extends Model
 
         // clean up the file resource
         fclose($ifp);
+
+        $webpName = app(ImageWebpConverter::class)
+            ->convertStoredUpload('media', $file_name);
+        if (is_string($webpName) && $webpName !== '') {
+            $file_name = $webpName;
+        }
 
         return $file_name;
     }

@@ -255,6 +255,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-21 | WebP bulk: ingest remote homepage media URLs (promo tiles/hero) into library WebP; catalog products/categories/brands/media. |
+| 2026-09-21 | `storefront:convert-images-to-webp` also converts product/category/brand/gallery images (`--only=catalog|storefront|all`). |
 | 2026-09-21 | Upload WebP: auto-convert raster POS/storefront uploads; `storefront:convert-images-to-webp` bulk command. |
 | 2026-09-21 | Appearance mobile logo (`logo_mobile` / `logo_mobile_url`); Qwik header `<picture>` at ≤1023px. |
 | 2026-09-21 | PDP summary stars always visible + link to `#product-reviews`; listing stars on product/game cards (not gift cards). |

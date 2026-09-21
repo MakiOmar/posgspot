@@ -115,10 +115,15 @@ When PHP GD has `imagewebp()`, raster uploads (JPEG/PNG/GIF/BMP) are converted t
 
 Config: `config/images.php`.
 
-**Bulk existing storefront assets** (settings JSON paths + `storefront_media` rows):
+**Bulk existing assets** (storefront settings/library + POS products/categories/brands/gallery):
 
 ```
 php artisan storefront:convert-images-to-webp
 php artisan storefront:convert-images-to-webp 1 --dry-run --verbose-details
-php artisan storefront:convert-images-to-webp --keep-originals
+php artisan storefront:convert-images-to-webp --only=catalog
+php artisan storefront:convert-images-to-webp --only=storefront --keep-originals
 ```
+
+`--only=all` (default) converts storefront Appearance/library **and** catalog (`products.image`, category image/shelf images, brand logos, `media` gallery files). Use `--only=catalog` or `--only=storefront` to limit scope.
+
+External image URLs in homepage sections (promo tiles, hero slides, etc. — e.g. WordPress `/wp-content/uploads/…`) are downloaded, converted to WebP, saved under `uploads/storefront_library/{business_id}/`, and the settings `url` is replaced with a local `image` path.
