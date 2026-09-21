@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { fetchDigitalGames } from "../../src/lib/api";
 import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import type { DigitalGameSummary } from "../../src/lib/types";
@@ -16,6 +16,7 @@ import { FormTextInput } from "../../src/components/FormTextInput";
 import { RemoteImage } from "../../src/components/RemoteImage";
 import { StarRating } from "../../src/components/catalog/StarRating";
 import { ErrorBlock, LoadingBlock, Screen } from "../../src/components/ui";
+import { digitalListGameInStock } from "../../src/lib/digital-game";
 import { useRtl } from "../../src/lib/rtl";
 
 type Platform = "4" | "5";
@@ -49,6 +50,7 @@ function GameCard({
   const title = game.title || game.name || `Game #${game.id}`;
   const image = absoluteMediaUrl(game.image_url);
   const price = displayPrice(game);
+  const inStock = digitalListGameInStock(game);
 
   return (
     <Pressable
@@ -90,6 +92,14 @@ function GameCard({
           {t("digital.unavailable")}
         </Text>
       )}
+      <Text
+        style={[
+          styles.cardStock,
+          { color: inStock ? "#166534" : "#991b1b", textAlign },
+        ]}
+      >
+        {inStock ? t("catalog.inStock") : t("catalog.outOfStock")}
+      </Text>
       <Text style={[styles.cardCta, { color: accent, textAlign }]}>
         {t("digital.viewOffers")}
       </Text>
@@ -208,6 +218,11 @@ export default function GamesScreen() {
   if (loading && games.length === 0) {
     return (
       <Screen>
+        <Stack.Screen
+          options={{
+            title: isPlus ? t("digital.psPlusTitle") : t("digital.gamesTitle"),
+          }}
+        />
         {header}
         <LoadingBlock />
       </Screen>
@@ -216,6 +231,11 @@ export default function GamesScreen() {
 
   return (
     <Screen padded={false}>
+      <Stack.Screen
+        options={{
+          title: isPlus ? t("digital.psPlusTitle") : t("digital.gamesTitle"),
+        }}
+      />
       <View style={styles.body}>
         {error && games.length === 0 ? (
           <>
@@ -320,6 +340,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: "#888",
+  },
+  cardStock: {
+    marginHorizontal: 10,
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: "700",
   },
   cardCta: {
     marginHorizontal: 10,

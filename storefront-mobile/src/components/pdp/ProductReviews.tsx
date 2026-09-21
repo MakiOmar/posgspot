@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LabeledInput } from "../LabeledInput";
 import { PrimaryButton } from "../ui";
+import { StarRating } from "../catalog/StarRating";
 import { useApp } from "../../contexts/AppContext";
 import { useRtl } from "../../lib/rtl";
 import type {
@@ -22,6 +23,19 @@ type Props = {
   onSubmit: () => void;
   onSignIn: () => void;
 };
+
+function reviewerInitials(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
 
 /**
  * Product reviews list + write-review form.
@@ -49,28 +63,44 @@ export function ProductReviews({
       <Text style={[styles.section, { textAlign, writingDirection }]}>
         {t("reviews.title")} ({reviews.length})
       </Text>
-      {reviews.map((r) => (
-        <View key={r.id} style={styles.reviewCard}>
-          <Text style={styles.reviewStars}>
-            {"★".repeat(r.rating)}
-            {"☆".repeat(Math.max(0, 5 - r.rating))}
-          </Text>
-          {r.title ? (
-            <Text
-              style={[styles.reviewTitle, { textAlign, writingDirection }]}
-            >
-              {r.title}
+      {reviews.map((r) => {
+        const name = r.author_name || "Customer";
+        return (
+          <View key={r.id} style={styles.reviewCard}>
+            <View style={[styles.reviewHead, { flexDirection: row }]}>
+              <View style={styles.reviewAvatar}>
+                <Text style={styles.reviewAvatarText}>
+                  {reviewerInitials(name)}
+                </Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[styles.reviewAuthor, { textAlign }]}>{name}</Text>
+                <StarRating
+                  average={r.rating}
+                  count={0}
+                  size="sm"
+                  showAverage={false}
+                />
+              </View>
+            </View>
+            {r.title ? (
+              <Text
+                style={[styles.reviewTitle, { textAlign, writingDirection }]}
+              >
+                {r.title}
+              </Text>
+            ) : null}
+            <Text style={[styles.reviewBody, { textAlign, writingDirection }]}>
+              {r.body}
             </Text>
-          ) : null}
-          <Text style={[styles.reviewBody, { textAlign, writingDirection }]}>
-            {r.body}
-          </Text>
-          <Text style={[styles.reviewMeta, { textAlign, writingDirection }]}>
-            {r.author_name || "Customer"}
-            {r.is_verified_purchase ? ` · ${t("reviews.verified")}` : ""}
-          </Text>
-        </View>
-      ))}
+            {r.is_verified_purchase ? (
+              <Text style={[styles.reviewMeta, { textAlign, writingDirection }]}>
+                {t("reviews.verified")}
+              </Text>
+            ) : null}
+          </View>
+        );
+      })}
       {token && eligibility?.can_review ? (
         <View style={styles.reviewForm}>
           <Text style={[styles.section, { textAlign, writingDirection }]}>
@@ -125,16 +155,27 @@ const styles = StyleSheet.create({
   varRow: { flexWrap: "wrap", gap: 8 },
   reviewCard: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
+    marginBottom: 10,
+    gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#eee",
   },
-  reviewStars: { color: "#F5A623", marginBottom: 4 },
-  reviewTitle: { fontWeight: "700", marginBottom: 4 },
+  reviewHead: { gap: 10, alignItems: "center" },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1f2937",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reviewAvatarText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  reviewAuthor: { fontWeight: "700", fontSize: 15, color: "#111" },
+  reviewTitle: { fontWeight: "700", marginBottom: 2 },
   reviewBody: { color: "#333", lineHeight: 20 },
-  reviewMeta: { color: "#888", fontSize: 12, marginTop: 6 },
+  reviewMeta: { color: "#888", fontSize: 12 },
   reviewForm: { marginTop: 12, gap: 8 },
   meta: { color: "#666", marginBottom: 6 },
 });

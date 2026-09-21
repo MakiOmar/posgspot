@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-19 |
+| **Last updated** | 2026-09-21 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Nav parity (Community live when enabled); contact FAB; Track Order; Custom Bundle + Sell to us; Community Featured/registration; digital + auth-gated repair/console |
 
@@ -89,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-21 | Digital parity: fixed PDP `setReviewPhone` crash; offer row + stock pills; prefetch live stock; list stock line; PS Plus stack title; review profile link + ProductReviews avatars. |
 | 2026-09-19 | List perf: horizontal FlatList product rails; memo ProductCard + shared AvailabilityModal; PLP FlatList window tuning; Wave 3 hygiene (gitignore play SA, expo-crypto guest UUID, iOS screen-capture, lazy invoice PDF). |
 | 2026-09-19 | Shop Physical menu: removed hardcoded Shop all / All consoles prepend (builder tree only). |
 | 2026-09-19 | Shop Physical menu supports nested groups (same `shop_menu.physical` tree as web, max depth 5). |

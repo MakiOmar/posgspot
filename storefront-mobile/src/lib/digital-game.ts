@@ -163,6 +163,28 @@ export function digitalOfferInStock(
   );
 }
 
+/** List cards: status is already gated by stock on the API. */
+export function digitalListGameInStock(game: {
+  primary_status?: boolean | number | null;
+  secondary_status?: boolean | number | null;
+  full_status?: boolean | number | null;
+  total_primary_stock?: number | string | null;
+  total_secondary_stock?: number | string | null;
+  total_full_stock?: number | string | null;
+}): boolean {
+  const primaryStock = asNumber(game.total_primary_stock);
+  const secondaryStock = asNumber(game.total_secondary_stock);
+  const fullStock = asNumber(game.total_full_stock);
+  const primaryOk = game.primary_status === true || game.primary_status === 1;
+  const secondaryOk = game.secondary_status === true || game.secondary_status === 1;
+  const fullOk = game.full_status === true || game.full_status === 1;
+  return (
+    (primaryOk && primaryStock > 0) ||
+    (secondaryOk && secondaryStock > 0) ||
+    (fullOk && fullStock > 0)
+  );
+}
+
 export function liveCheckStockIsOut(data: {
   is_available?: boolean | number | string;
   stock?: number | string | null;

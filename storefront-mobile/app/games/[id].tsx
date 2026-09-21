@@ -12,6 +12,7 @@ import {
   type ScrollView as ScrollViewType,
 } from "react-native";
 import {
+  ApiError,
   checkDigitalGameStock,
   fetchDigitalGame,
   fetchDigitalGames,
@@ -82,6 +83,10 @@ export default function GameDetailScreen() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  /** Live Accounts OOS flags keyed by offer type (mirrors Qwik `liveOut`). */
+  const [liveOut, setLiveOut] = useState<Partial<Record<DigitalOfferType, boolean>>>(
+    {},
+  );
   const scrollRef = useRef<ScrollViewType>(null);
   const reviewsOffsetY = useRef(0);
 
@@ -118,11 +123,42 @@ export default function GameDetailScreen() {
     void load();
   }, [load]);
 
+  // Confirm Accounts stock after load so an OOS offer cannot stay clickable.
   useEffect(() => {
-    if (contact?.mobile) {
-      setReviewPhone(contact.mobile);
+    if (!game) {
+      return;
     }
-  }, [contact?.mobile]);
+    let cancelled = false;
+    setLiveOut({});
+    const gameId = Number(game.id ?? id);
+    void (async () => {
+      const next: Partial<Record<DigitalOfferType, boolean>> = {};
+      for (const offer of DIGITAL_OFFER_TYPES) {
+        if (!digitalOfferInStock(game, platform, offer)) {
+          next[offer] = true;
+          continue;
+        }
+        try {
+          const stockCheck = await checkDigitalGameStock({
+            game_id: gameId,
+            type: offer,
+            platform,
+          });
+          next[offer] = liveCheckStockIsOut(
+            stockCheck.data as { is_available?: boolean; stock?: number | string },
+          );
+        } catch (e) {
+          next[offer] = e instanceof ApiError && e.status === 422;
+        }
+      }
+      if (!cancelled) {
+        setLiveOut(next);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [game, platform, id]);
 
   const faqs = settings?.digital?.pdp_faqs ?? [];
   const askWhatsApp =
@@ -151,10 +187,11 @@ export default function GameDetailScreen() {
     return DIGITAL_OFFER_TYPES.map((type) => {
       const ok = digitalOfferEnabled(game, platform, type);
       const price = digitalOfferPrice(game, platform, type);
-      const inStock = digitalOfferInStock(game, platform, type);
+      const inStock =
+        digitalOfferInStock(game, platform, type) && !liveOut[type];
       return { type, ok, price, inStock };
     });
-  }, [game, platform]);
+  }, [game, platform, liveOut]);
 
   const activeOffer: DigitalOfferType = useMemo(() => {
     const current = offerMeta.find((o) => o.type === selected);
@@ -393,15 +430,31 @@ export default function GameDetailScreen() {
                   activeOffer === type ? { borderColor: accent, borderWidth: 2 } : null,
                 ]}
               >
-                <Text style={[styles.offerTitle, { textAlign, writingDirection }]}>
-                  {t(offerLabelKey(type))}
-                </Text>
-                <Text style={[styles.offerPrice, { color: accent, textAlign }]}>
-                  {price.toFixed(2)} EGP
-                </Text>
-                <Text style={[styles.meta, { textAlign }]}>
-                  {inStock ? t("catalog.inStock") : t("catalog.outOfStock")}
-                </Text>
+                <View style={[styles.offerRow, { flexDirection: row }]}>
+                  <Text
+                    style={[styles.offerTitle, { textAlign, writingDirection, flex: 1 }]}
+                  >
+                    {t(offerLabelKey(type))}
+                  </Text>
+                  <Text style={[styles.offerPrice, { color: accent }]}>
+                    {price.toFixed(2)} EGP
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.stockPill,
+                    inStock ? styles.stockPillIn : styles.stockPillOut,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.stockPillText,
+                      inStock ? styles.stockPillTextIn : styles.stockPillTextOut,
+                    ]}
+                  >
+                    {inStock ? t("catalog.inStock") : t("catalog.outOfStock")}
+                  </Text>
+                </View>
               </Pressable>
             ) : null,
           )}
@@ -506,10 +559,7 @@ export default function GameDetailScreen() {
                   )}
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.reviewAuthor, { textAlign }]}>{name}</Text>
-                    <Text style={styles.reviewStars}>
-                      {"★".repeat(r.stars)}
-                      {"☆".repeat(Math.max(0, 5 - r.stars))}
-                    </Text>
+                    <StarRating average={r.stars} count={0} size="sm" showAverage={false} />
                   </View>
                 </View>
                 {r.comment ? (
@@ -531,9 +581,15 @@ export default function GameDetailScreen() {
               />
             </View>
           ) : !(contact?.mobile || "").trim() ? (
-            <Text style={[styles.meta, { textAlign, writingDirection }]}>
-              {t("digital.reviewPhoneMissing")}
-            </Text>
+            <View style={styles.reviewForm}>
+              <Text style={[styles.meta, { textAlign, writingDirection }]}>
+                {t("digital.reviewPhoneMissing")}
+              </Text>
+              <PrimaryButton
+                label={t("digital.reviewUpdateProfile")}
+                onPress={() => router.push("/account/profile")}
+              />
+            </View>
           ) : (
             <View style={styles.reviewForm}>
               <Text style={[styles.meta, { textAlign }]}>
@@ -683,12 +739,28 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 14,
     padding: 16,
-    gap: 6,
+    gap: 10,
     borderWidth: 1,
     borderColor: "#eee",
   },
-  offerTitle: { fontWeight: "800", fontSize: 16 },
-  offerPrice: { fontWeight: "800", fontSize: 20 },
+  offerRow: {
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  offerTitle: { fontWeight: "800", fontSize: 16, color: "#111" },
+  offerPrice: { fontWeight: "800", fontSize: 18 },
+  stockPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  stockPillIn: { backgroundColor: "#dcfce7" },
+  stockPillOut: { backgroundColor: "#fee2e2" },
+  stockPillText: { fontSize: 12, fontWeight: "700" },
+  stockPillTextIn: { color: "#166534" },
+  stockPillTextOut: { color: "#991b1b" },
   notice: {
     backgroundColor: "#f4f4f4",
     borderRadius: 12,
