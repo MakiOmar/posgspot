@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-20 |
+| **Last updated** | 2026-09-21 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -254,7 +254,8 @@
 
 | Date | Change |
 |------|--------|
-| 2026-09-20 | Digital menu + Accounts catalog parity: PS Plus nav + `product_type=subscription` list; PDP gallery/reviews/Full offer; `POST /digital/reviews` proxy; Qwik + Expo. |
+| 2026-09-21 | Digital `check-card-stock`: map storefront `card_category_id` → Accounts `category_id`. |
+| 2026-09-21 | Homepage Lighthouse: active-only hero img + LCP preload; async Playfair/Cairo CSS; hero dot a11y/24px targets; footer contrast; promo `sizes`; DEPLOY notes for staging noindex + CMS image budgets. |
 | 2026-09-20 | Digital games Sigma-style PDP (Qwik + Expo): offer select, notice, WhatsApp ask, trust/stores, optional sanitized about, also-bought×4, settings FAQs; POS `digital.ask_whatsapp` + `pdp_faqs`; public settings + sanitizer tests. |
 | 2026-09-20 | Transition splash uses only `business_logo_url` (no storefront `logo_url` fallback); POS logo URL emitted even if local file probe fails. |
 | 2026-09-20 | Homepage carousels: fix broken nav (`display:contents`); unified toolbar (title / view link / prev+next); mobile stacks title then actions. |

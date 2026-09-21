@@ -114,8 +114,11 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
                 <img
                   src={settings.logo_url}
                   alt={settings.business_name}
-                  width={283}
-                  height={85}
+                  /* Intrinsic hint ~2× CSS height (~40px) so DPR≥2 is not undersampled. */
+                  width={566}
+                  height={170}
+                  decoding="async"
+                  fetchPriority="high"
                 />
               ) : (
                 <span>{settings.business_name}</span>

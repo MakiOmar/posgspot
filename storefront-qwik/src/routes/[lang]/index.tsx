@@ -369,12 +369,18 @@ export default component$(() => {
 
 export const head: DocumentHead = ({ resolveValue, url, params }) => {
   const settings = resolveValue(useSiteSettings);
+  const sections = resolveValue(useHomepageSections);
   const lang = isSupportedLocale(params.lang) ? params.lang : "en";
   const title = tStatic(lang, "seo.homeTitle", { businessName: settings.business_name });
   const description = tStatic(lang, "seo.homeDescription", {
     businessName: settings.business_name,
   });
   const canonical = publicSeoLinks(url.origin, "/", lang)[0]?.href;
+
+  const heroSection = sections.find((s) => s.type === "hero_slider");
+  const heroSlides =
+    (heroSection?.settings?.slides as HomepageHeroSlide[] | undefined) ?? [];
+  const lcpImage = heroSlides[0]?.image_url?.trim() || "";
 
   return withStorefrontThemeHead(
     {
@@ -388,7 +394,19 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
         ...(settings.logo_url ? [{ property: "og:image", content: settings.logo_url }] : []),
         { name: "twitter:card", content: "summary_large_image" },
       ],
-      links: publicSeoLinks(url.origin, "/", lang),
+      links: [
+        ...publicSeoLinks(url.origin, "/", lang),
+        ...(lcpImage
+          ? [
+              {
+                key: "preload-hero-lcp",
+                rel: "preload",
+                as: "image",
+                href: lcpImage,
+              },
+            ]
+          : []),
+      ],
     },
     settings,
   );

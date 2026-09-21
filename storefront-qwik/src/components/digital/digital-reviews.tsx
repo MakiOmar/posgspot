@@ -108,7 +108,7 @@ export const DigitalReviews = component$<DigitalReviewsProps>((props) => {
             <textarea
               name="comment"
               rows={3}
-              maxlength={2000}
+              maxLength={2000}
               value={comment.value}
               onInput$={(e) => {
                 comment.value = (e.target as HTMLTextAreaElement).value;

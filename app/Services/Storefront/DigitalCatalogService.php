@@ -440,11 +440,29 @@ class DigitalCatalogService
     }
 
     /**
+     * Proxy Accounts card stock check.
+     *
+     * Storefront clients send `card_category_id`; Accounts `POST /orders/check_card_stock`
+     * validates `category_id` only — remap here so the public shape stays consistent with
+     * receive/reviews (`card_category_id`).
+     *
      * @param  array<string, mixed>  $payload
      */
     public function checkCardStock(array $payload): array
     {
-        return $this->accounts->checkCardStock($payload);
+        $categoryId = (int) ($payload['category_id'] ?? $payload['card_category_id'] ?? 0);
+        if ($categoryId <= 0) {
+            return [
+                'success' => false,
+                'status' => 422,
+                'body' => null,
+                'error' => 'card_category_id is required',
+            ];
+        }
+
+        return $this->accounts->checkCardStock([
+            'category_id' => $categoryId,
+        ]);
     }
 
     /**

@@ -170,4 +170,28 @@ class DigitalCatalogParityApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true);
     }
+
+    public function test_check_card_stock_maps_to_accounts_category_id(): void
+    {
+        Http::fake([
+            'accounts.test/api/login' => Http::response(['token' => 'test-token'], 200),
+            'accounts.test/api/orders/check_card_stock' => Http::response([
+                'stock' => 5,
+                'is_available' => true,
+            ], 200),
+        ]);
+
+        $this->postJson('/api/storefront/v1/digital/check-card-stock', [
+            'card_category_id' => 3,
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://accounts.test/api/orders/check_card_stock'
+                && $request->method() === 'POST'
+                && ($request['category_id'] ?? null) === 3
+                && ! array_key_exists('card_category_id', $request->data());
+        });
+    }
 }

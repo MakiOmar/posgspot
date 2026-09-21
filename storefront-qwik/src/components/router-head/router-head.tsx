@@ -2,7 +2,11 @@ import { component$, useVisibleTask$ } from "@builder.io/qwik";
 import { useServerData } from "@builder.io/qwik";
 import { useDocumentHead, useLocation } from "@builder.io/qwik-city";
 import { setActiveContentLocale } from "~/lib/api";
-import { ROBOTS_DISALLOW_ALL } from "~/lib/config";
+import { FONT_FAMILY, ROBOTS_DISALLOW_ALL } from "~/lib/config";
+import {
+  PLAYFAIR_GOOGLE_CSS,
+  asyncStylesheetLinkProps,
+} from "~/lib/fonts/async-stylesheet";
 import {
   arabicFontStylesheetHref,
   needsArabicFont,
@@ -20,6 +24,10 @@ export const RouterHead = component$(() => {
   const nonce = useServerData<string>("nonce");
   const locale = localeFromPathname(loc.url.pathname);
   const loadArabicFont = needsArabicFont(locale);
+  const loadPlayfair = FONT_FAMILY === "playfair";
+  const arabicHref = loadArabicFont ? arabicFontStylesheetHref() : "";
+  const playfairProps = loadPlayfair ? asyncStylesheetLinkProps(PLAYFAIR_GOOGLE_CSS) : null;
+  const arabicProps = loadArabicFont ? asyncStylesheetLinkProps(arabicHref) : null;
 
   // Keep html lang/dir in sync on client navigations (language switcher).
   // eslint-disable-next-line qwik/no-use-visible-task
@@ -61,8 +69,35 @@ export const RouterHead = component$(() => {
         </>
       ) : null}
 
-      {loadArabicFont ? (
-        <link rel="stylesheet" href={arabicFontStylesheetHref()} />
+      {loadPlayfair ? <link rel="preconnect" href="https://fonts.googleapis.com" /> : null}
+
+      {/* Non-blocking font CSS (print → all). */}
+      {playfairProps ? (
+        <>
+          <link
+            rel={playfairProps.rel}
+            href={playfairProps.href}
+            media={playfairProps.media}
+            {...{ onload: playfairProps.onload }}
+          />
+          <noscript>
+            <link rel="stylesheet" href={playfairProps.href} />
+          </noscript>
+        </>
+      ) : null}
+
+      {arabicProps ? (
+        <>
+          <link
+            rel={arabicProps.rel}
+            href={arabicProps.href}
+            media={arabicProps.media}
+            {...{ onload: arabicProps.onload }}
+          />
+          <noscript>
+            <link rel="stylesheet" href={arabicProps.href} />
+          </noscript>
+        </>
       ) : null}
 
       {meta.map((m) => (

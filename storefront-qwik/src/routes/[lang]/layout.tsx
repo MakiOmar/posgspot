@@ -118,19 +118,13 @@ export const head: DocumentHead = ({ resolveValue, params }) => {
   const links: DocumentLink[] = [];
 
   if (FONT_FAMILY === "playfair") {
-    links.push(
-      {
-        key: "font-playfair-preconnect-gstatic",
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossorigin: "anonymous",
-      },
-      {
-        key: "font-playfair",
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap",
-      },
-    );
+    // Stylesheet is loaded async in RouterHead (print→all); preconnect only here.
+    links.push({
+      key: "font-playfair-preconnect-gstatic",
+      rel: "preconnect",
+      href: "https://fonts.gstatic.com",
+      crossorigin: "anonymous",
+    });
   }
 
   if (faviconUrl) {

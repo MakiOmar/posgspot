@@ -60,7 +60,15 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
               alt={tile.label || ""}
               width={i === 0 ? 800 : 400}
               height={i === 0 ? 600 : 300}
+              sizes={
+                i === 0
+                  ? "(max-width: 768px) 100vw, 42vw"
+                  : i === 1
+                    ? "(max-width: 768px) 100vw, 54vw"
+                    : "(max-width: 768px) 50vw, 27vw"
+              }
               loading="lazy"
+              decoding="async"
             />
             <span class="home-promo-tiles__cta">{tStatic(locale, "home.shopNow")}</span>
           </Link>

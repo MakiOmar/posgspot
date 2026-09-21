@@ -179,7 +179,8 @@ Proxy `/` to `http://127.0.0.1:3000` the same way (mod_proxy / LiteSpeed reverse
 | Uploads CORS | Trust-badge SVGs: see [API.md Notes](./API.md) (`storefront_homepage` / `storefront_library` ACAO) |
 | Auth | Register / login / password reset email links use `STOREFRONT_URL` |
 | Payments | Fawry/Geidea return URL hits `{STOREFRONT_URL}/…/checkout/payment/return/` |
-| Staging | `PUBLIC_ROBOTS_DISALLOW_ALL=true` on non-production shop hosts |
+| Staging | `PUBLIC_ROBOTS_DISALLOW_ALL=true` on non-production shop hosts (Lighthouse SEO ~69 / `is-crawlable` fail is **expected** on preview/staging). For the **live** shop build, leave this unset/false or SEO stays blocked. |
+| Homepage images | Hero slides ≤~200–300 KB WebP; promo tiles ≤~100–150 KB; header logo ≥~2× display size (CSS ~40px tall → upload ≥80px tall / ~560px wide). Oversized CMS assets dominate mobile LCP. |
 | AI chat | Optional: `STOREFRONT_SUPPORT_CHAT` + `OPENAI_API_KEY` on POS; widget appears when settings flag is on |
 
 ---
@@ -224,6 +225,8 @@ Set POS `STOREFRONT_URL=http://localhost:5173` and CORS accordingly.
 | Login works but emails link to wrong host | POS `STOREFRONT_URL` |
 | Payment return 404 on shop | Shop routes not deployed / wrong `ORIGIN` host |
 | Staging indexed by Google | Missing `PUBLIC_ROBOTS_DISALLOW_ALL=true` at **build** time |
+| Lighthouse SEO ~69 on preview | `PUBLIC_ROBOTS_DISALLOW_ALL` is on (meta + `X-Robots-Tag` noindex) — intentional for staging; unset for production builds |
+| Mobile LCP / huge image delivery | Compress POS library hero/promo assets; code only mounts the active hero slide |
 | Support chat missing | POS `STOREFRONT_SUPPORT_CHAT` / `OPENAI_API_KEY`; rebuild not required |
 | CSP blocks gateway script | See `plugin@security.ts`; use `PUBLIC_CSP_REPORT_ONLY` to diagnose |
 

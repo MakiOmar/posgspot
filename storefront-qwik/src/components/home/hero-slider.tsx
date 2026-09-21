@@ -10,6 +10,7 @@ interface HeroSliderProps {
 
 /**
  * Full-bleed homepage hero carousel (slides from GET /homepage section settings).
+ * Only the active slide mounts an <img> so inactive heroes are not downloaded for LCP.
  */
 export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
   const { locale } = useI18n();
@@ -32,27 +33,39 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
     return null;
   }
 
-  const slide = slides[index.value] ?? slides[0];
+  const activeIndex = index.value;
+  const slide = slides[activeIndex] ?? slides[0];
 
   return (
-    <section class="home-hero-slider" aria-roledescription="carousel" aria-label={tStatic(locale, "home.heroAria")}>
-      {slides.map((item, i) => (
-        <div
-          key={item.id}
-          class={["home-hero-slider__slide", i === index.value ? "is-active" : ""].join(" ")}
-          aria-hidden={i !== index.value}
-        >
-          <img
-            src={item.image_url}
-            alt=""
-            class="home-hero-slider__bg"
-            width={1920}
-            height={800}
-            loading={i === 0 ? "eager" : "lazy"}
-            fetchPriority={i === 0 ? "high" : undefined}
-          />
-        </div>
-      ))}
+    <section
+      class="home-hero-slider"
+      aria-roledescription="carousel"
+      aria-label={tStatic(locale, "home.heroAria")}
+    >
+      {slides.map((item, i) => {
+        const isActive = i === activeIndex;
+        return (
+          <div
+            key={item.id}
+            class={["home-hero-slider__slide", isActive ? "is-active" : ""].join(" ")}
+            aria-hidden={!isActive}
+          >
+            {isActive ? (
+              <img
+                src={item.image_url}
+                alt=""
+                class="home-hero-slider__bg"
+                width={1920}
+                height={800}
+                sizes="100vw"
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchPriority="high"
+                decoding="async"
+              />
+            ) : null}
+          </div>
+        );
+      })}
       <div class="home-hero-slider__content">
         <p class="home-hero-slider__kicker">{slide.kicker}</p>
         <h1 class="home-hero-slider__title">{slide.title}</h1>
@@ -62,18 +75,20 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
           </Link>
         </div>
       </div>
-      <div class="home-hero-slider__dots" role="tablist">
+      <div class="home-hero-slider__dots">
         {slides.map((item, i) => (
           <button
             key={item.id}
             type="button"
-            class={["home-hero-slider__dot", i === index.value ? "is-active" : ""].join(" ")}
+            class={["home-hero-slider__dot", i === activeIndex ? "is-active" : ""].join(" ")}
             aria-label={`${tStatic(locale, "home.slide")} ${i + 1}`}
-            aria-selected={i === index.value}
+            aria-pressed={i === activeIndex}
             onClick$={() => {
               index.value = i;
             }}
-          />
+          >
+            <span class="home-hero-slider__dot-pip" aria-hidden="true" />
+          </button>
         ))}
       </div>
     </section>

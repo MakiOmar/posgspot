@@ -153,14 +153,17 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
       ? String(game.ps5_image_url ?? game.image_url ?? "")
       : String(game.ps4_image_url ?? game.image_url ?? ""));
 
-  return withStorefrontThemeHead(settings, {
-    title,
-    meta: [
-      { name: "description", content: description },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      ...(image ? [{ property: "og:image", content: image }] : []),
-    ],
-    links: publicSeoLinks(url.origin, path, lang),
-  });
+  return withStorefrontThemeHead(
+    {
+      title,
+      meta: [
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        ...(image ? [{ property: "og:image", content: image }] : []),
+      ],
+      links: publicSeoLinks(url.origin, path, lang),
+    },
+    settings,
+  );
 };
