@@ -1,5 +1,6 @@
 import { component$, useSignal } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { StarRating } from "~/components/catalog/star-rating";
 import { TrashIcon } from "~/components/icons";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
@@ -69,6 +70,13 @@ export default component$(() => {
                   {product.variation_name ? (
                     <p class="footer-muted wishlist-item__variant">{product.variation_name}</p>
                   ) : null}
+                  <div class="wishlist-item__rating">
+                    <StarRating
+                      average={product.rating_average ?? 0}
+                      count={product.rating_count ?? 0}
+                      size="sm"
+                    />
+                  </div>
                   <p class="wishlist-item__price">
                     {formatPrice(product.price, settings.value.currency, locale)}
                   </p>

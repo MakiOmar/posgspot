@@ -428,6 +428,7 @@
     "alreadyReviewed": "لقد راجعت هذا المنتج مسبقاً.",
     "purchaseRequired": "يمكن للعملاء الذين اشتروا هذا المنتج فقط ترك مراجعة.",
     "loginPrompt": "سجّل الدخول لترك مراجعة.",
+    "seeReviews": "عرض التقييمات",
     "verifiedPurchase": "شراء موثّق",
     "averageTitle": "{average} من 5 من {count} مراجعة",
     "countLabel": "{count} تقييمات"

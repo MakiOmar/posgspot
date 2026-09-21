@@ -511,6 +511,8 @@ export interface DigitalGameSummary {
   total_primary_stock?: number | string | null;
   total_secondary_stock?: number | string | null;
   total_full_stock?: number | string | null;
+  rating_average?: number;
+  rating_count?: number;
 }
 
 export interface StoreLocation {

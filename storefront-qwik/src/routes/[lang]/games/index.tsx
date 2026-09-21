@@ -1,5 +1,6 @@
 import { component$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { StarRating } from "~/components/catalog/star-rating";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ApiError, API_BASE, fetchDigitalGames } from "~/lib/api";
 import { digitalListGameInStock } from "~/lib/digital-game";
@@ -213,6 +214,13 @@ export default component$(() => {
                 </div>
                 <div class="product-card__body digital-game-card__body">
                   <h2 class="product-card__name digital-game-card__title">{game.title}</h2>
+                  <div class="product-card__rating">
+                    <StarRating
+                      average={Number(game.rating_average ?? 0)}
+                      count={Number(game.rating_count ?? 0)}
+                      size="sm"
+                    />
+                  </div>
                   {price > 0 ? (
                     <p class="product-card__price digital-game-card__price">
                       {formatPrice(price, settings.value.currency, lang)}

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   Linking,
@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  type ScrollView as ScrollViewType,
 } from "react-native";
 import {
   checkDigitalGameStock,
@@ -21,6 +22,7 @@ import type { DigitalGameSummary, DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { RemoteImage } from "../../src/components/RemoteImage";
+import { StarRating } from "../../src/components/catalog/StarRating";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -80,6 +82,15 @@ export default function GameDetailScreen() {
   const [reviewComment, setReviewComment] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const scrollRef = useRef<ScrollViewType>(null);
+  const reviewsOffsetY = useRef(0);
+
+  const scrollToReviews = () => {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, reviewsOffsetY.current - 16),
+      animated: true,
+    });
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -301,7 +312,7 @@ export default function GameDetailScreen() {
 
   return (
     <Screen padded={false}>
-      <ScrollView contentContainerStyle={styles.pad}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.pad}>
         <View style={styles.galleryBox}>
           <ScrollView
             horizontal
@@ -349,13 +360,21 @@ export default function GameDetailScreen() {
           {t("digital.platformLabel")} · PS{platform}
         </Text>
 
-        {reviews.count > 0 ? (
-          <Text style={[styles.meta, { textAlign }]}>
-            {"★".repeat(Math.round(reviews.average))}
-            {"☆".repeat(Math.max(0, 5 - Math.round(reviews.average)))}{" "}
-            ({reviews.count})
+        <Pressable
+          onPress={scrollToReviews}
+          style={styles.ratingLink}
+          accessibilityRole="link"
+          accessibilityLabel={t("reviews.seeReviews")}
+        >
+          <StarRating
+            average={reviews.average}
+            count={reviews.count}
+            size="sm"
+          />
+          <Text style={[styles.ratingCta, { color: accent, textAlign }]}>
+            {t("reviews.seeReviews")}
           </Text>
-        ) : null}
+        </Pressable>
 
         {activeOk && activePrice > 0 ? (
           <Text style={[styles.heroPrice, { color: accent, textAlign }]}>
@@ -446,7 +465,12 @@ export default function GameDetailScreen() {
           </View>
         ) : null}
 
-        <View style={styles.section}>
+        <View
+          style={styles.section}
+          onLayout={(e) => {
+            reviewsOffsetY.current = e.nativeEvent.layout.y;
+          }}
+        >
           <Text style={[styles.sectionTitle, { textAlign, writingDirection }]}>
             {t("digital.reviewTitle")}
           </Text>
@@ -457,18 +481,43 @@ export default function GameDetailScreen() {
           ) : (
             <Text style={[styles.meta, { textAlign }]}>{t("digital.reviewEmpty")}</Text>
           )}
-          {reviews.items.map((r) => (
-            <View key={r.id || `${r.reviewer_name}-${r.stars}`} style={styles.reviewCard}>
-              <Text style={styles.reviewStars}>
-                {"★".repeat(r.stars)}
-                {"☆".repeat(Math.max(0, 5 - r.stars))}
-              </Text>
-              {r.comment ? (
-                <Text style={[styles.body, { textAlign, writingDirection }]}>{r.comment}</Text>
-              ) : null}
-              <Text style={[styles.meta, { textAlign }]}>{r.reviewer_name}</Text>
-            </View>
-          ))}
+          {reviews.items.map((r) => {
+            const name = r.reviewer_name || "Customer";
+            const initials = name
+              .trim()
+              .split(/\s+/)
+              .filter(Boolean)
+              .slice(0, 2)
+              .map((p) => p[0])
+              .join("")
+              .toUpperCase() || "?";
+            return (
+              <View key={r.id || `${name}-${r.stars}`} style={styles.reviewCard}>
+                <View style={[styles.reviewHead, { flexDirection: row }]}>
+                  {r.avatar_url ? (
+                    <RemoteImage
+                      uri={absoluteMediaUrl(r.avatar_url) || r.avatar_url}
+                      style={styles.reviewAvatarImg}
+                    />
+                  ) : (
+                    <View style={styles.reviewAvatar}>
+                      <Text style={styles.reviewAvatarText}>{initials}</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.reviewAuthor, { textAlign }]}>{name}</Text>
+                    <Text style={styles.reviewStars}>
+                      {"★".repeat(r.stars)}
+                      {"☆".repeat(Math.max(0, 5 - r.stars))}
+                    </Text>
+                  </View>
+                </View>
+                {r.comment ? (
+                  <Text style={[styles.body, { textAlign, writingDirection }]}>{r.comment}</Text>
+                ) : null}
+              </View>
+            );
+          })}
           {reviewSubmitted ? (
             <Text style={[styles.meta, { textAlign }]}>{t("digital.reviewPending")}</Text>
           ) : !token ? (
@@ -547,6 +596,11 @@ export default function GameDetailScreen() {
                     <Text numberOfLines={2} style={styles.alsoTitle}>
                       {g.title || g.name || `#${g.id}`}
                     </Text>
+                    <StarRating
+                      average={Number(g.rating_average ?? 0)}
+                      count={Number(g.rating_count ?? 0)}
+                      size="sm"
+                    />
                     {price != null ? (
                       <Text style={[styles.alsoPrice, { color: accent }]}>
                         {price.toFixed(2)} EGP
@@ -621,6 +675,8 @@ const styles = StyleSheet.create({
   stock: { fontWeight: "700", fontSize: 13, textTransform: "uppercase" },
   title: { fontSize: 24, fontWeight: "800", color: "#111" },
   meta: { color: "#666", fontSize: 14 },
+  ratingLink: { gap: 6, marginTop: 4 },
+  ratingCta: { fontSize: 14, fontWeight: "600" },
   heroPrice: { fontSize: 28, fontWeight: "800" },
   offers: { gap: 10 },
   offer: {
@@ -661,10 +717,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 12,
-    gap: 4,
+    gap: 8,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "#eee",
   },
+  reviewHead: { gap: 10, alignItems: "center" },
+  reviewAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#1f2937",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reviewAvatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  reviewAvatarText: { color: "#fff", fontWeight: "800", fontSize: 13 },
+  reviewAuthor: { fontWeight: "700", fontSize: 15, color: "#111" },
   reviewStars: { color: "#f5a623", fontSize: 14 },
   reviewForm: { gap: 10 },
   starsRow: { gap: 6 },

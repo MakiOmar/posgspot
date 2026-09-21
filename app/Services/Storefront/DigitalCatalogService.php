@@ -546,6 +546,10 @@ class DigitalCatalogService
             'total_primary_stock' => $primaryStock,
             'total_secondary_stock' => $secondaryStock,
             'total_full_stock' => $fullStock,
+            'rating_average' => isset($game['rating_average']) && is_numeric($game['rating_average'])
+                ? round((float) $game['rating_average'], 2)
+                : 0.0,
+            'rating_count' => max(0, (int) ($game['rating_count'] ?? 0)),
             'types' => $types,
         ];
     }
@@ -602,6 +606,11 @@ class DigitalCatalogService
                     'stars' => max(1, min(5, (int) ($item['stars'] ?? 0))),
                     'comment' => trim(strip_tags((string) ($item['comment'] ?? ''))),
                     'reviewer_name' => trim(strip_tags((string) ($item['reviewer_name'] ?? 'Customer'))),
+                    'avatar_url' => $this->absoluteAccountsUrl(
+                        isset($item['avatar_url'])
+                            ? (string) $item['avatar_url']
+                            : (isset($item['reviewer_avatar_url']) ? (string) $item['reviewer_avatar_url'] : null)
+                    ),
                     'created_at' => isset($item['created_at']) ? (string) $item['created_at'] : null,
                 ];
             }

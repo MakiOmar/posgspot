@@ -178,11 +178,16 @@ export default component$(() => {
               )}
             </div>
 
-            {(p.rating?.count ?? 0) > 0 ? (
-              <div class="pdp-rating">
-                <StarRating average={p.rating!.average} count={p.rating!.count} size="md" />
-              </div>
-            ) : null}
+            <a href="#product-reviews" class="pdp-rating pdp-rating--link">
+              <StarRating
+                average={p.rating?.average ?? 0}
+                count={p.rating?.count ?? 0}
+                size="md"
+              />
+              <span class="pdp-rating__cta">
+                {tStatic(locale, "reviews.seeReviews")}
+              </span>
+            </a>
 
             {p.variations.length > 1 ? (
               <label>

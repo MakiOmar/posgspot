@@ -1,5 +1,5 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -10,6 +10,7 @@ import {
   View,
   Platform,
 } from "react-native";
+import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   fetchAvailability,
@@ -76,6 +77,15 @@ export default function ProductScreen() {
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewBody, setReviewBody] = useState("");
   const [reviewBusy, setReviewBusy] = useState(false);
+  const scrollRef = useRef<KeyboardAwareScrollViewRef>(null);
+  const reviewsOffsetY = useRef(0);
+
+  const scrollToReviews = () => {
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, reviewsOffsetY.current - 16),
+      animated: true,
+    });
+  };
 
   const load = useCallback(async () => {
     if (!idOrSlug) {
@@ -263,6 +273,7 @@ export default function ProductScreen() {
       <Stack.Screen options={{ title: product.name }} />
       <View style={styles.body}>
         <FormScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={[styles.pad, { paddingBottom: stickyPad }]}
           bottomInset={stickyPad}
@@ -291,19 +302,25 @@ export default function ProductScreen() {
           >
             {price.toFixed(2)} EGP
           </Text>
-          {(product.rating?.count ?? product.rating_count ?? 0) > 0 ? (
-            <View style={styles.ratingWrap}>
-              <StarRating
-                average={Number(
-                  product.rating?.average ?? product.rating_average ?? 0,
-                )}
-                count={Number(
-                  product.rating?.count ?? product.rating_count ?? 0,
-                )}
-                size="md"
-              />
-            </View>
-          ) : null}
+          <Pressable
+            onPress={scrollToReviews}
+            style={styles.ratingWrap}
+            accessibilityRole="link"
+            accessibilityLabel={t("reviews.seeReviews")}
+          >
+            <StarRating
+              average={Number(
+                product.rating?.average ?? product.rating_average ?? 0,
+              )}
+              count={Number(
+                product.rating?.count ?? product.rating_count ?? 0,
+              )}
+              size="md"
+            />
+            <Text style={[styles.ratingCta, { color: accent, textAlign }]}>
+              {t("reviews.seeReviews")}
+            </Text>
+          </Pressable>
           <Text
             style={[
               styles.stock,
@@ -376,20 +393,26 @@ export default function ProductScreen() {
             </View>
           ) : null}
 
-          <ProductReviews
-            reviews={reviews}
-            eligibility={eligibility}
-            token={token}
-            reviewRating={reviewRating}
-            reviewTitle={reviewTitle}
-            reviewBody={reviewBody}
-            reviewBusy={reviewBusy}
-            onRatingChange={setReviewRating}
-            onTitleChange={setReviewTitle}
-            onBodyChange={setReviewBody}
-            onSubmit={() => void onSubmitReview()}
-            onSignIn={() => router.push("/login")}
-          />
+          <View
+            onLayout={(e) => {
+              reviewsOffsetY.current = e.nativeEvent.layout.y;
+            }}
+          >
+            <ProductReviews
+              reviews={reviews}
+              eligibility={eligibility}
+              token={token}
+              reviewRating={reviewRating}
+              reviewTitle={reviewTitle}
+              reviewBody={reviewBody}
+              reviewBusy={reviewBusy}
+              onRatingChange={setReviewRating}
+              onTitleChange={setReviewTitle}
+              onBodyChange={setReviewBody}
+              onSubmit={() => void onSubmitReview()}
+              onSignIn={() => router.push("/login")}
+            />
+          </View>
         </FormScrollView>
 
         {variationId ? (
@@ -426,7 +449,15 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   title: { flex: 1, fontSize: 22, fontWeight: "800", marginBottom: 8 },
-  ratingWrap: { paddingHorizontal: 16, marginBottom: 8 },
+  ratingWrap: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    gap: 6,
+  },
+  ratingCta: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
   price: { fontSize: 20, fontWeight: "700", paddingHorizontal: 16, marginBottom: 4 },
   stock: { paddingHorizontal: 16, fontWeight: "600", marginBottom: 6 },
   meta: { color: "#666", paddingHorizontal: 16, marginBottom: 6 },

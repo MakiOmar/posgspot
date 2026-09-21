@@ -298,9 +298,16 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
             <h1 class="digital-pdp__title">{title}</h1>
             <p class="footer-muted">{tStatic(lang, "digital.platformLabel", { platform })}</p>
 
-            {reviews.count > 0 ? (
-              <StarRating average={reviews.average} count={reviews.count} size="sm" />
-            ) : null}
+            <a href="#product-reviews" class="pdp-rating pdp-rating--link">
+              <StarRating
+                average={reviews.average}
+                count={reviews.count}
+                size="sm"
+              />
+              <span class="pdp-rating__cta">
+                {tStatic(lang, "reviews.seeReviews")}
+              </span>
+            </a>
 
             {activeOk && activePrice > 0 ? (
               <p class="pdp-price digital-pdp__price">
@@ -440,6 +447,13 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
                       <span class="digital-pdp__also-ph" aria-hidden="true" />
                     )}
                     <span class="digital-pdp__also-title">{g.title}</span>
+                    <span class="digital-pdp__also-rating">
+                      <StarRating
+                        average={Number(g.rating_average ?? 0)}
+                        count={Number(g.rating_count ?? 0)}
+                        size="sm"
+                      />
+                    </span>
                     {price != null ? (
                       <span class="digital-pdp__also-price">
                         {formatPrice(price, props.currency, lang)}

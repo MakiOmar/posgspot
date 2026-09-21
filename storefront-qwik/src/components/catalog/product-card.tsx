@@ -77,15 +77,13 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
           <h2 class="product-card__name">{product.name}</h2>
         </Link>
 
-        {(product.rating_count ?? 0) > 0 ? (
-          <div class="product-card__rating">
-            <StarRating
-              average={product.rating_average ?? 0}
-              count={product.rating_count ?? 0}
-              size="sm"
-            />
-          </div>
-        ) : null}
+        <div class="product-card__rating">
+          <StarRating
+            average={product.rating_average ?? 0}
+            count={product.rating_count ?? 0}
+            size="sm"
+          />
+        </div>
 
         <div class="product-card__prices">
           {product.on_sale && product.compare_at_price != null ? (

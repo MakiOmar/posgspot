@@ -158,11 +158,9 @@ function ProductCardInner({ product, wide = false }: ProductCardProps) {
           {product.name}
         </Text>
       </Pressable>
-      {ratingCount > 0 ? (
-        <View style={styles.ratingRow}>
-          <StarRating average={ratingAvg} count={ratingCount} size="sm" />
-        </View>
-      ) : null}
+      <View style={styles.ratingRow}>
+        <StarRating average={ratingAvg} count={ratingCount} size="sm" />
+      </View>
       <View style={styles.priceRow}>
         <Text style={{ ...styles.cardPrice, color: accent }}>
           {price.toFixed(2)} EGP

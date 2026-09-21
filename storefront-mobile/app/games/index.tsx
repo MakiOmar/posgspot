@@ -14,6 +14,7 @@ import type { DigitalGameSummary } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { FormTextInput } from "../../src/components/FormTextInput";
 import { RemoteImage } from "../../src/components/RemoteImage";
+import { StarRating } from "../../src/components/catalog/StarRating";
 import { ErrorBlock, LoadingBlock, Screen } from "../../src/components/ui";
 import { useRtl } from "../../src/lib/rtl";
 
@@ -73,6 +74,13 @@ function GameCard({
       >
         {title}
       </Text>
+      <View style={styles.ratingRow}>
+        <StarRating
+          average={Number(game.rating_average ?? 0)}
+          count={Number(game.rating_count ?? 0)}
+          size="sm"
+        />
+      </View>
       {price > 0 ? (
         <Text style={[styles.cardPrice, { color: accent, textAlign }]}>
           {price.toFixed(2)} EGP
@@ -296,6 +304,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#111",
     minHeight: 36,
+  },
+  ratingRow: {
+    marginHorizontal: 10,
+    marginTop: 4,
   },
   cardPrice: {
     marginHorizontal: 10,

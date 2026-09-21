@@ -40,7 +40,6 @@ export const ProductCardHorizontal = component$<ProductCardHorizontalProps>(({ p
             average={product.rating_average ?? 0}
             count={product.rating_count ?? 0}
             size="sm"
-            showCount
             showAverage={false}
           />
         </div>

@@ -10,6 +10,7 @@ export interface DigitalReviewItem {
   stars: number;
   comment: string;
   reviewer_name: string;
+  avatar_url?: string | null;
   created_at: string | null;
 }
 
@@ -80,6 +81,12 @@ export function digitalReviewsFromGame(game: Record<string, unknown>): DigitalRe
       stars: Math.max(1, Math.min(5, Number(item.stars) || 0)),
       comment: String(item.comment ?? ""),
       reviewer_name: String(item.reviewer_name ?? "Customer"),
+      avatar_url:
+        typeof item.avatar_url === "string" && item.avatar_url.trim()
+          ? item.avatar_url.trim()
+          : typeof item.reviewer_avatar_url === "string" && item.reviewer_avatar_url.trim()
+            ? item.reviewer_avatar_url.trim()
+            : null,
       created_at: item.created_at != null ? String(item.created_at) : null,
     });
   }
