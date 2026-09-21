@@ -145,7 +145,7 @@
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Logo, announcement bar | ✅ | `site-header.tsx`; `logo_url` prefers storefront Appearance logo; `business_logo_url` is POS business logo (transition splash) |
+| Logo, announcement bar | ✅ | `site-header.tsx`; `logo_url` prefers storefront Appearance logo; optional `logo_mobile_url` via `<picture>` ≤1023px; `business_logo_url` is POS business logo (transition splash) |
 | Search → `/search?q=` + autocomplete | ✅ | `header-search.tsx` → dedicated `/search` + `GET /search` autocomplete; type select (products / PS4+PS5 games / gift cards); overlays stack above nav; exclusive header dropdowns; mobile opens from bottom nav |
 | Mobile bottom nav | ✅ | Home / Search / Cart / Wishlist / Account; header hides cart+wishlist+search+account (&lt;1024px); centered logo (header style one) |
 | Shop Physical menu (settings-driven) | ✅ | `shop_menu.physical` → mega + drawer nested groups; empty → `consoleNavCategories` |
@@ -176,6 +176,7 @@
 | Theme accent, sale badge, card availability toggle | ✅ | |
 | Favicon (upload / URL) | ✅ | Settings → Appearance; public `favicon_url`; Qwik `RouterHead` / layout head |
 | Storefront logo (upload / URL) | ✅ | Settings → Appearance; overrides POS business logo in public `logo_url`; splash uses `business_logo_url` |
+| Mobile logo (upload / URL) | ✅ | Settings → Appearance → Mobile logo; public `logo_mobile_url`; header ≤1023px; falls back to desktop logo |
 | Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop + drag-right/left indent/outdent (max depth 5); public `shop_menu.physical`; Qwik + Expo |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
@@ -254,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-21 | Appearance mobile logo (`logo_mobile` / `logo_mobile_url`); Qwik header `<picture>` at ≤1023px. |
 | 2026-09-21 | PDP summary stars always visible + link to `#product-reviews`; listing stars on product/game cards (not gift cards). |
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |

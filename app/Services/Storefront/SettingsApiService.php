@@ -46,6 +46,10 @@ class SettingsApiService
             'logo_url' => $this->storefrontSettings->logoPublicUrl(
                 is_array($settings['logo'] ?? null) ? $settings['logo'] : null
             ) ?: $businessLogoUrl,
+            // Optional mobile header logo (viewport ≤1023px). Null when unset — clients fall back to logo_url.
+            'logo_mobile_url' => $this->storefrontSettings->logoPublicUrl(
+                is_array($settings['logo_mobile'] ?? null) ? $settings['logo_mobile'] : null
+            ),
             // Always the POS Business Settings logo (splash / transition loader).
             'business_logo_url' => $businessLogoUrl,
             'currency' => [

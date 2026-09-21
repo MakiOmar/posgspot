@@ -172,12 +172,17 @@ class StorefrontApiTest extends TestCase
                 'image' => '',
                 'url' => 'https://cdn.example.com/storefront-header-logo.png',
             ],
+            'logo_mobile' => [
+                'image' => '',
+                'url' => 'https://cdn.example.com/storefront-mobile-logo.png',
+            ],
         ]);
         \Illuminate\Support\Facades\Cache::flush();
 
         $response = $this->getJson('/api/storefront/v1/settings')
             ->assertOk()
-            ->assertJsonPath('data.logo_url', 'https://cdn.example.com/storefront-header-logo.png');
+            ->assertJsonPath('data.logo_url', 'https://cdn.example.com/storefront-header-logo.png')
+            ->assertJsonPath('data.logo_mobile_url', 'https://cdn.example.com/storefront-mobile-logo.png');
 
         $payload = $response->json('data');
         $this->assertArrayHasKey('business_logo_url', $payload);
@@ -186,6 +191,26 @@ class StorefrontApiTest extends TestCase
             $this->assertNotSame($payload['logo_url'], $payload['business_logo_url']);
             $this->assertStringContainsString('business_logos', (string) $payload['business_logo_url']);
         }
+    }
+
+    public function test_settings_logo_mobile_url_null_when_unset(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'logo' => [
+                'image' => '',
+                'url' => 'https://cdn.example.com/storefront-header-logo.png',
+            ],
+            'logo_mobile' => [
+                'image' => '',
+                'url' => '',
+            ],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+
+        $this->getJson('/api/storefront/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.logo_url', 'https://cdn.example.com/storefront-header-logo.png')
+            ->assertJsonPath('data.logo_mobile_url', null);
     }
 
     public function test_settings_exposes_catalog_availability_on_cards_flag(): void

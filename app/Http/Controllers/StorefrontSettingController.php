@@ -307,6 +307,9 @@ class StorefrontSettingController extends Controller
             'logo_url' => 'nullable|string|max:500',
             'logo_existing_image' => 'nullable|string|max:191',
             'logo_clear' => 'nullable|boolean',
+            'logo_mobile_url' => 'nullable|string|max:500',
+            'logo_mobile_existing_image' => 'nullable|string|max:191',
+            'logo_mobile_clear' => 'nullable|boolean',
             'shop_menu_physical' => 'nullable|string|max:50000',
             'sale_badge_mode' => 'nullable|in:percent,text',
             'sale_badge_text_en' => 'nullable|string|max:30',
@@ -477,6 +480,7 @@ class StorefrontSettingController extends Controller
             ],
             'favicon' => $this->buildFaviconPayload($request, $validated),
             'logo' => $this->buildLogoPayload($request, $validated),
+            'logo_mobile' => $this->buildLogoMobilePayload($request, $validated),
             'shop_menu' => $this->buildShopMenuPayload($validated),
             'sale_badge' => [
                 'mode' => $validated['sale_badge_mode'] ?? 'percent',
@@ -686,21 +690,66 @@ class StorefrontSettingController extends Controller
      */
     private function buildLogoPayload(Request $request, array $validated): array
     {
+        return $this->buildStorefrontLogoRowPayload(
+            $request,
+            $validated,
+            'logo_clear',
+            'logo_existing_image',
+            'logo_url',
+            'logo_image',
+            'storefront.logo.upload_failed'
+        );
+    }
+
+    /**
+     * Build mobile/responsive header logo settings from Appearance tab.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{image: string|null, url: string}
+     */
+    private function buildLogoMobilePayload(Request $request, array $validated): array
+    {
+        return $this->buildStorefrontLogoRowPayload(
+            $request,
+            $validated,
+            'logo_mobile_clear',
+            'logo_mobile_existing_image',
+            'logo_mobile_url',
+            'logo_mobile_image',
+            'storefront.logo_mobile.upload_failed'
+        );
+    }
+
+    /**
+     * Shared upload/URL/clear handling for storefront logo rows (desktop + mobile).
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array{image: string|null, url: string}
+     */
+    private function buildStorefrontLogoRowPayload(
+        Request $request,
+        array $validated,
+        string $clearKey,
+        string $existingKey,
+        string $urlKey,
+        string $fileKey,
+        string $logKey
+    ): array {
         $this->commonUtil->ensurePublicUploadPermissions('storefront_logo', null, true);
 
-        if ($request->boolean('logo_clear')) {
+        if ($request->boolean($clearKey)) {
             return ['image' => null, 'url' => ''];
         }
 
-        $existing = basename(trim((string) ($validated['logo_existing_image'] ?? '')));
-        $url = trim((string) ($validated['logo_url'] ?? ''));
+        $existing = basename(trim((string) ($validated[$existingKey] ?? '')));
+        $url = trim((string) ($validated[$urlKey] ?? ''));
         $uploaded = null;
 
-        if ($request->hasFile('logo_image')) {
+        if ($request->hasFile($fileKey)) {
             try {
-                $uploaded = $this->commonUtil->uploadFile($request, 'logo_image', 'storefront_logo', 'image');
+                $uploaded = $this->commonUtil->uploadFile($request, $fileKey, 'storefront_logo', 'image');
             } catch (\Throwable $e) {
-                \Log::warning('storefront.logo.upload_failed', ['error' => $e->getMessage()]);
+                \Log::warning($logKey, ['error' => $e->getMessage()]);
             }
         }
 

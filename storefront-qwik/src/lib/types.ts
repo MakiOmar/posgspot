@@ -15,6 +15,11 @@ export interface StoreSettings {
   business_name: string;
   /** Header logo: storefront Appearance when set, else POS business logo. */
   logo_url: string | null;
+  /**
+   * Optional mobile header logo (viewport ≤1023px).
+   * Null when unset — header falls back to `logo_url`.
+   */
+  logo_mobile_url?: string | null;
   /** POS Business Settings logo (splash / page-transition loader). */
   business_logo_url?: string | null;
   /** Absolute favicon URL from settings, or null for the built-in /favicon.svg. */

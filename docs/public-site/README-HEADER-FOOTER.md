@@ -141,7 +141,7 @@ On `/checkout` and `/checkout/*`:
 | **Asset** | Games Spot logo (SVG preferred; PNG fallback) |
 | **Alt text** | "Games Spot" / "جيمز سبوت" (i18n) |
 | **Link** | `/` (homepage) |
-| **Source** | Public `GET /settings` → `logo_url`: storefront Appearance logo when set, else POS business logo. Transition splash uses `business_logo_url` (always POS business logo). |
+| **Source** | Public `GET /settings` → `logo_url`: storefront Appearance logo when set, else POS business logo. Optional `logo_mobile_url` for ≤1023px header (`<picture>`). Transition splash uses `business_logo_url` (always POS business logo). |
 | **Size** | Max height ~40px desktop, ~32px mobile — preserve aspect ratio |
 
 ### Announcement bar

@@ -1341,6 +1341,12 @@ button.header-nav-dropdown__trigger {
   width: auto;
 }
 
+.brand picture {
+  display: flex;
+  align-items: center;
+  line-height: 0;
+}
+
 .header-search-wrap {
   flex: 1;
   position: relative;

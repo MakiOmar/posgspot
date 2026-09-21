@@ -111,15 +111,24 @@ export const SiteHeader = component$<SiteHeaderProps>(({ settings, categories })
               prefetch={false}
             >
               {settings.logo_url ? (
-                <img
-                  src={settings.logo_url}
-                  alt={settings.business_name}
-                  /* Intrinsic hint ~2× CSS height (~40px) so DPR≥2 is not undersampled. */
-                  width={566}
-                  height={170}
-                  decoding="async"
-                  fetchPriority="high"
-                />
+                <picture>
+                  {settings.logo_mobile_url ? (
+                    <source
+                      media="(max-width: 1023px)"
+                      srcset={settings.logo_mobile_url}
+                    />
+                  ) : null}
+                  <img
+                    src={settings.logo_url}
+                    alt={settings.business_name}
+                    /* Intrinsic hint ~2× CSS height (~40px) so DPR≥2 is not undersampled. */
+                    width={566}
+                    height={170}
+                    decoding="async"
+                    /* Do not compete with homepage hero LCP bandwidth. */
+                    fetchPriority="low"
+                  />
+                </picture>
               ) : (
                 <span>{settings.business_name}</span>
               )}

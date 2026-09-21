@@ -535,7 +535,7 @@
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>Preview</label>
+                            <label>Preview (desktop)</label>
                             <div style="width:120px;height:48px;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fafafa;padding:4px;">
                                 @if ($sfLogoPreview)
                                     <img src="{{ $sfLogoPreview }}" alt="" style="max-width:112px;max-height:40px;object-fit:contain;">
@@ -550,7 +550,7 @@
                             {!! Form::label('logo_image', 'Upload logo') !!}
                             {!! Form::file('logo_image', ['class' => 'form-control', 'accept' => 'image/png,image/jpeg,image/webp,image/svg+xml']) !!}
                             <input type="hidden" name="logo_existing_image" value="{{ $sfLogoImage }}">
-                            <p class="help-block">PNG, SVG, WebP, or JPEG. Transparent PNG recommended for the dark header.</p>
+                            <p class="help-block">PNG, SVG, WebP, or JPEG. Transparent PNG recommended for the dark header. Used on viewports wider than 1023px.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -562,6 +562,53 @@
                         <div class="checkbox">
                             <label>
                                 {!! Form::checkbox('logo_clear', 1, false) !!} Clear storefront logo (use POS business logo)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="margin-top:18px;">Mobile logo <small class="text-muted">(optional)</small></h4>
+                @php
+                    $sfLogoMobile = $settings['logo_mobile'] ?? ['image' => null, 'url' => ''];
+                    $sfLogoMobileImage = is_array($sfLogoMobile) ? trim((string) ($sfLogoMobile['image'] ?? '')) : '';
+                    $sfLogoMobileUrl = is_array($sfLogoMobile) ? trim((string) ($sfLogoMobile['url'] ?? '')) : '';
+                    $sfLogoMobilePreview = $sfLogoMobileImage !== ''
+                        ? asset('uploads/storefront_logo/'.$sfLogoMobileImage)
+                        : ($sfLogoMobileUrl !== '' ? $sfLogoMobileUrl : null);
+                @endphp
+                <p class="help-block" style="margin-top:0;">Shown in the header on viewports ≤1023px (phones/tablets). Leave empty to reuse the desktop storefront logo.</p>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Preview (mobile)</label>
+                            <div style="width:120px;height:48px;border:1px solid #ddd;border-radius:4px;display:flex;align-items:center;justify-content:center;background:#fafafa;padding:4px;">
+                                @if ($sfLogoMobilePreview)
+                                    <img src="{{ $sfLogoMobilePreview }}" alt="" style="max-width:112px;max-height:40px;object-fit:contain;">
+                                @elseif ($sfLogoPreview)
+                                    <img src="{{ $sfLogoPreview }}" alt="" title="Falls back to desktop logo" style="max-width:112px;max-height:40px;object-fit:contain;opacity:0.55;">
+                                @else
+                                    <span class="text-muted" style="font-size:11px;">Same as desktop</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            {!! Form::label('logo_mobile_image', 'Upload mobile logo') !!}
+                            {!! Form::file('logo_mobile_image', ['class' => 'form-control', 'accept' => 'image/png,image/jpeg,image/webp,image/svg+xml']) !!}
+                            <input type="hidden" name="logo_mobile_existing_image" value="{{ $sfLogoMobileImage }}">
+                            <p class="help-block">Compact mark or stacked wordmark works best in the centered mobile header.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            {!! Form::label('logo_mobile_url', 'Or external URL') !!}
+                            {!! Form::text('logo_mobile_url', $sfLogoMobileUrl, ['class' => 'form-control', 'maxlength' => 500, 'placeholder' => 'https://…/logo-mobile.png']) !!}
+                            <p class="help-block">Used only when no uploaded mobile file is set.</p>
+                        </div>
+                        <div class="checkbox">
+                            <label>
+                                {!! Form::checkbox('logo_mobile_clear', 1, false) !!} Clear mobile logo (use desktop logo)
                             </label>
                         </div>
                     </div>

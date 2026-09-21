@@ -125,6 +125,11 @@ class StorefrontSettingService
                 'image' => null,
                 'url' => '',
             ],
+            // Optional mobile/responsive header logo (max-width 1023px). Falls back to `logo`.
+            'logo_mobile' => [
+                'image' => null,
+                'url' => '',
+            ],
             // Shop mega Physical column (ordered links + optional group headers).
             'shop_menu' => [
                 'physical' => [],
@@ -526,10 +531,12 @@ class StorefrontSettingService
 
         return $this->homepageSections()->ensureSections(
             $this->withNormalizedShopMenu(
-                $this->withNormalizedLogo(
-                    $this->withNormalizedFavicon(
-                        $this->withNormalizedFooter(
-                            $this->normalizeLocalized($merged)
+                $this->withNormalizedLogoMobile(
+                    $this->withNormalizedLogo(
+                        $this->withNormalizedFavicon(
+                            $this->withNormalizedFooter(
+                                $this->normalizeLocalized($merged)
+                            )
                         )
                     )
                 )
@@ -559,6 +566,19 @@ class StorefrontSettingService
     private function withNormalizedLogo(array $settings): array
     {
         $settings['logo'] = $this->normalizeLogo($settings['logo'] ?? null);
+
+        return $settings;
+    }
+
+    /**
+     * Replace recursively-merged mobile logo with a clean normalized structure.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array<string, mixed>
+     */
+    private function withNormalizedLogoMobile(array $settings): array
+    {
+        $settings['logo_mobile'] = $this->normalizeLogo($settings['logo_mobile'] ?? null);
 
         return $settings;
     }
@@ -1186,6 +1206,15 @@ class StorefrontSettingService
             );
         }
 
+        if (array_key_exists('logo_mobile', $settings)) {
+            $merged['logo_mobile'] = $this->normalizeLogo($settings['logo_mobile']);
+        } else {
+            $existingLogoMobile = $this->getRaw($businessId)['logo_mobile'] ?? null;
+            $merged['logo_mobile'] = $this->normalizeLogo(
+                is_array($existingLogoMobile) ? $existingLogoMobile : $this->defaults()['logo_mobile']
+            );
+        }
+
         if (array_key_exists('shop_menu', $settings)) {
             $merged['shop_menu'] = $this->normalizeShopMenu($settings['shop_menu']);
         } else {
@@ -1607,7 +1636,7 @@ class StorefrontSettingService
         $objectKeys = [
             'newsletter', 'gateway', 'shipping', 'couriers', 'digital', 'turnstile',
             'promo_codes', 'announcement', 'sale_badge', 'reward_points', 'social',
-            'contact', 'catalog', 'theme', 'footer', 'favicon', 'logo', 'shop_menu',
+            'contact', 'catalog', 'theme', 'footer', 'favicon', 'logo', 'logo_mobile', 'shop_menu',
         ];
         $defaults = $this->defaults();
         foreach ($objectKeys as $key) {
