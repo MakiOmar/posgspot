@@ -302,7 +302,17 @@
             kicker: emptyLocale(),
             title: emptyLocale(),
             image_url: null,
+            mobile: { image: null, url: "", image_url: null },
           });
+        },
+        ensureSlideMobile: function (slide) {
+          if (!slide.mobile || typeof slide.mobile !== "object") {
+            slide.mobile = { image: null, url: "", image_url: null };
+          }
+          return slide.mobile;
+        },
+        clearSlideMobile: function (slide) {
+          slide.mobile = { image: null, url: "", image_url: null };
         },
         removeSlide: function (section, index) {
           section.settings.slides.splice(index, 1);
@@ -688,14 +698,43 @@
                   <div v-for="(slide, si) in section.settings.slides" :key="slide.id" class="sf-hp-media-row">
                     <img v-if="slide.image_url || slide.url" :src="slide.image_url || slide.url" alt="" class="sf-hp-thumb" />
                     <div class="sf-hp-media-fields">
-                      <input class="form-control input-sm" v-model="slide.url" placeholder="Image URL" :disabled="!!slide.image" />
+                      <label class="sf-hp-field-label">Desktop image</label>
+                      <input class="form-control input-sm" v-model="slide.url" placeholder="Desktop image URL" :disabled="!!slide.image" />
+                      <div class="btn-group" style="margin-bottom:8px;">
+                        <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(slide)">Upload desktop</button>
+                        <button type="button" class="btn btn-default btn-xs" @click="openLibrary(slide, { kind: 'image' })">Library</button>
+                      </div>
+                      <label class="sf-hp-field-label">Mobile image (optional)</label>
+                      <p class="help-block" style="margin-top:0;">Shown at ≤1023px. Falls back to the desktop image when empty.</p>
+                      <div class="sf-hp-media-row sf-hp-media-row--nested">
+                        <img
+                          v-if="ensureSlideMobile(slide).image_url || ensureSlideMobile(slide).url"
+                          :src="ensureSlideMobile(slide).image_url || ensureSlideMobile(slide).url"
+                          alt=""
+                          class="sf-hp-thumb"
+                        />
+                        <div class="sf-hp-media-fields">
+                          <input
+                            class="form-control input-sm"
+                            v-model="ensureSlideMobile(slide).url"
+                            placeholder="Mobile image URL"
+                            :disabled="!!ensureSlideMobile(slide).image"
+                          />
+                          <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(ensureSlideMobile(slide))">Upload mobile</button>
+                          <button type="button" class="btn btn-default btn-xs" @click="openLibrary(ensureSlideMobile(slide), { kind: 'image' })">Library</button>
+                          <button
+                            type="button"
+                            class="btn btn-default btn-xs"
+                            v-if="ensureSlideMobile(slide).image || ensureSlideMobile(slide).url"
+                            @click="clearSlideMobile(slide)"
+                          >Clear mobile</button>
+                        </div>
+                      </div>
                       <input class="form-control input-sm" v-model="slide.href" placeholder="Link path e.g. /products" />
                       <input class="form-control input-sm" v-model="slide.kicker.en" placeholder="Kicker (EN)" />
                       <input class="form-control input-sm" v-model="slide.kicker.ar" placeholder="Kicker (AR)" dir="rtl" />
                       <input class="form-control input-sm" v-model="slide.title.en" placeholder="Title (EN)" />
                       <input class="form-control input-sm" v-model="slide.title.ar" placeholder="Title (AR)" dir="rtl" />
-                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(slide)">Upload image</button>
-                      <button type="button" class="btn btn-default btn-xs" @click="openLibrary(slide, { kind: 'image' })">Library</button>
                       <button type="button" class="btn btn-danger btn-xs" @click="removeSlide(section, si)">Remove</button>
                     </div>
                   </div>

@@ -8,9 +8,16 @@ interface HeroSliderProps {
   slides: HomepageHeroSlide[];
 }
 
+/** Prefer mobile crop ≤1023px; fall back to desktop when unset. */
+function heroSlideSrc(slide: HomepageHeroSlide): { desktop: string; mobile: string } {
+  const desktop = (slide.image_url || "").trim();
+  const mobile = (slide.image_mobile_url || "").trim() || desktop;
+  return { desktop, mobile };
+}
+
 /**
  * Full-bleed homepage hero carousel (slides from GET /homepage section settings).
- * Only the active slide mounts an <img> so inactive heroes are not downloaded for LCP.
+ * Only the active slide mounts media so inactive heroes are not downloaded for LCP.
  */
 export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
   const { locale } = useI18n();
@@ -44,24 +51,31 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
     >
       {slides.map((item, i) => {
         const isActive = i === activeIndex;
+        const { desktop, mobile } = heroSlideSrc(item);
+        const hasMobileCrop = Boolean((item.image_mobile_url || "").trim());
         return (
           <div
             key={item.id}
             class={["home-hero-slider__slide", isActive ? "is-active" : ""].join(" ")}
             aria-hidden={!isActive}
           >
-            {isActive ? (
-              <img
-                src={item.image_url}
-                alt=""
-                class="home-hero-slider__bg"
-                width={1920}
-                height={800}
-                sizes="100vw"
-                loading={i === 0 ? "eager" : "lazy"}
-                fetchPriority="high"
-                decoding="async"
-              />
+            {isActive && desktop ? (
+              <picture>
+                {hasMobileCrop ? (
+                  <source media="(max-width: 1023px)" srcset={mobile} />
+                ) : null}
+                <img
+                  src={desktop}
+                  alt=""
+                  class="home-hero-slider__bg"
+                  width={1920}
+                  height={800}
+                  sizes="100vw"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority="high"
+                  decoding="async"
+                />
+              </picture>
             ) : null}
           </div>
         );

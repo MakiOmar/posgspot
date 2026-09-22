@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-21 |
+| **Last updated** | 2026-09-22 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -33,7 +33,7 @@
 |------|--------|-------|
 | Versioned API `/api/storefront/v1` | ✅ | `routes/storefront.php`, `throttle:storefront` only (no `throttle:api`); read/write budgets |
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); `show_on_storefront` hides branches from listings + availability; categories/brands expose `image_url`; homepage shelves; `GET /categories` slim tree cached 120s; `GET /settings?shell=1` omits `about.team`; public Cache-Control/ETag on settings + categories |
-| Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder |
+| Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder; hero slides optional `image_mobile_url` |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers (cached scores 1h); detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set; product cards eager-load variations+VLD |
 | Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
@@ -263,6 +263,7 @@
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |
 | 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
+| 2026-09-22 | Hero slider optional mobile image (`mobile.image`/`url` → `image_mobile_url`); POS builder upload; Qwik `<picture>` ≤1023px + Expo prefers mobile; desktop fallback. |
 | 2026-09-21 | Cart mobile: stacked line cards (no cramped table columns); desktop row layout from 720px; two-col page from 960px. |
 | 2026-09-21 | Cart two-column layout (lines + sticky summary); product/game/gift-card thumbs on cart + checkout; footer contact col → storefront logo + slogan + social (no branch list). |
 | 2026-09-21 | Homepage YouTube/Vimeo: IntersectionObserver lazy-load — iframe mounts only when section is near viewport (or play click); facade until then. |

@@ -7048,6 +7048,12 @@ body.is-globally-pending {
   pointer-events: auto;
 }
 
+.home-hero-slider__slide picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .home-hero-slider__bg {
   display: block;
   width: 100%;

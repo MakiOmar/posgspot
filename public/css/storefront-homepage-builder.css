@@ -37,6 +37,23 @@
   border-bottom: 1px solid #eee;
 }
 
+.sf-hp-media-row--nested {
+  grid-column: 1 / -1;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  margin: 0 0 6px;
+  background: #fafafa;
+}
+
+.sf-hp-field-label {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
 .sf-hp-thumb {
   width: 96px;
   height: 64px;

@@ -176,6 +176,8 @@ export interface HomepageSection {
 export interface HomepageHeroSlide {
   id: string;
   image_url: string;
+  /** Optional mobile crop (≤1023px). Null/empty → use `image_url`. */
+  image_mobile_url?: string | null;
   href: string;
   kicker: string;
   title: string;

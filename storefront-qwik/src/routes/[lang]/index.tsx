@@ -380,7 +380,9 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
   const heroSection = sections.find((s) => s.type === "hero_slider");
   const heroSlides =
     (heroSection?.settings?.slides as HomepageHeroSlide[] | undefined) ?? [];
-  const lcpImage = heroSlides[0]?.image_url?.trim() || "";
+  const lcpDesktop = heroSlides[0]?.image_url?.trim() || "";
+  const lcpMobile =
+    heroSlides[0]?.image_mobile_url?.trim() || lcpDesktop;
 
   return withStorefrontThemeHead(
     {
@@ -396,16 +398,38 @@ export const head: DocumentHead = ({ resolveValue, url, params }) => {
       ],
       links: [
         ...publicSeoLinks(url.origin, "/", lang),
-        ...(lcpImage
+        ...(lcpDesktop
           ? [
               {
-                key: "preload-hero-lcp",
+                key: "preload-hero-lcp-desktop",
                 rel: "preload",
                 as: "image",
-                href: lcpImage,
-                // Lowercase HTML attr — Lighthouse LCP discovery wants this on the preload.
+                href: lcpDesktop,
+                media: "(min-width: 1024px)",
                 fetchpriority: "high",
-              } as { key: string; rel: string; as: string; href: string; fetchpriority: string },
+              } as {
+                key: string;
+                rel: string;
+                as: string;
+                href: string;
+                media: string;
+                fetchpriority: string;
+              },
+              {
+                key: "preload-hero-lcp-mobile",
+                rel: "preload",
+                as: "image",
+                href: lcpMobile,
+                media: "(max-width: 1023px)",
+                fetchpriority: "high",
+              } as {
+                key: string;
+                rel: string;
+                as: string;
+                href: string;
+                media: string;
+                fetchpriority: string;
+              },
             ]
           : []),
       ],

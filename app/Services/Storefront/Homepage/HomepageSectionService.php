@@ -500,9 +500,13 @@ class HomepageSectionService
                         return null;
                     }
 
+                    $mobile = is_array($slide['mobile'] ?? null) ? $slide['mobile'] : [];
+                    $mobileUrl = $this->mediaPublicUrl($mobile['image'] ?? null, $mobile['url'] ?? null);
+
                     return [
                         'id' => $slide['id'],
                         'image_url' => $imageUrl,
+                        'image_mobile_url' => $mobileUrl,
                         'href' => $slide['href'] ?? '/products',
                         'kicker' => $this->pickLocale($slide['kicker'] ?? [], $locale),
                         'title' => $this->pickLocale($slide['title'] ?? [], $locale),
@@ -793,10 +797,32 @@ class HomepageSectionService
                 'href' => mb_substr(trim((string) ($row['href'] ?? '/products')), 0, 500) ?: '/products',
                 'kicker' => $this->localeMap($row['kicker'] ?? null, 120),
                 'title' => $this->localeMap($row['title'] ?? null, 200),
+                'mobile' => $this->normalizeSlideMobile($row['mobile'] ?? null),
             ];
         }
 
         return $out;
+    }
+
+    /**
+     * Optional mobile crop for a hero slide. Empty when unset (storefront falls back to desktop).
+     *
+     * @param  mixed  $mobile
+     * @return array{image: ?string, url: string}
+     */
+    private function normalizeSlideMobile($mobile): array
+    {
+        if (! is_array($mobile)) {
+            return ['image' => null, 'url' => ''];
+        }
+
+        $image = trim((string) ($mobile['image'] ?? ''));
+        $url = trim((string) ($mobile['url'] ?? ''));
+
+        return [
+            'image' => $image !== '' ? $image : null,
+            'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
+        ];
     }
 
     /**

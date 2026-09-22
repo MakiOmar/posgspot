@@ -69,6 +69,58 @@ class HomepageApiTest extends TestCase
         $this->assertArrayHasKey('slides', $sections[0]['settings']);
         $this->assertNotEmpty($sections[0]['settings']['slides']);
         $this->assertArrayHasKey('image_url', $sections[0]['settings']['slides'][0]);
+        $this->assertArrayHasKey('image_mobile_url', $sections[0]['settings']['slides'][0]);
+    }
+
+    public function test_hero_slide_mobile_image_presented_with_desktop_fallback_null(): void
+    {
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_hero',
+                    'type' => 'hero_slider',
+                    'enabled' => true,
+                    'layout_width' => 'full',
+                    'settings' => [
+                        'slides' => [
+                            [
+                                'id' => 'slide_desk',
+                                'image' => null,
+                                'url' => 'https://example.com/desktop-hero.jpg',
+                                'href' => '/products',
+                                'kicker' => ['en' => 'Desktop', 'ar' => ''],
+                                'title' => ['en' => 'Hero', 'ar' => ''],
+                            ],
+                            [
+                                'id' => 'slide_both',
+                                'image' => null,
+                                'url' => 'https://example.com/desktop-2.jpg',
+                                'mobile' => [
+                                    'image' => null,
+                                    'url' => 'https://example.com/mobile-2.jpg',
+                                ],
+                                'href' => '/products',
+                                'kicker' => ['en' => 'Both', 'ar' => ''],
+                                'title' => ['en' => 'Hero 2', 'ar' => ''],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk()
+            ->assertJsonPath('data.sections.0.type', 'hero_slider');
+
+        $slides = $response->json('data.sections.0.settings.slides');
+        $this->assertCount(2, $slides);
+        $this->assertSame('https://example.com/desktop-hero.jpg', $slides[0]['image_url']);
+        $this->assertNull($slides[0]['image_mobile_url']);
+        $this->assertSame('https://example.com/desktop-2.jpg', $slides[1]['image_url']);
+        $this->assertSame('https://example.com/mobile-2.jpg', $slides[1]['image_mobile_url']);
     }
 
     public function test_homepage_omits_disabled_sections(): void

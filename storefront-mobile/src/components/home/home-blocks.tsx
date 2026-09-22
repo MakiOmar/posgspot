@@ -43,7 +43,9 @@ export function HeroSlider({ slides }: { slides: HomepageHeroSlide[] }) {
 
   if (!slides.length) return null;
   const slide = slides[index] ?? slides[0];
-  const image = absoluteMediaUrl(slide.image_url);
+  const image = absoluteMediaUrl(
+    (slide.image_mobile_url || "").trim() || slide.image_url,
+  );
 
   return (
     <View

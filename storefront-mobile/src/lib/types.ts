@@ -143,6 +143,8 @@ export interface ProductSummary {
 export interface HomepageHeroSlide {
   id: string;
   image_url: string;
+  /** Optional mobile crop; Expo prefers this, else `image_url`. */
+  image_mobile_url?: string | null;
   href: string;
   kicker?: string;
   title?: string;
