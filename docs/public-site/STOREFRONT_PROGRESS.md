@@ -263,6 +263,7 @@
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |
 | 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
+| 2026-09-21 | Cart mobile: stacked line cards (no cramped table columns); desktop row layout from 720px; two-col page from 960px. |
 | 2026-09-21 | Cart two-column layout (lines + sticky summary); product/game/gift-card thumbs on cart + checkout; footer contact col → storefront logo + slogan + social (no branch list). |
 | 2026-09-21 | Homepage YouTube/Vimeo: IntersectionObserver lazy-load — iframe mounts only when section is near viewport (or play click); facade until then. |
 | 2026-09-21 | Homepage Lighthouse: active-only hero img + LCP preload; async Playfair/Cairo CSS; hero dot a11y/24px targets; footer contrast; promo `sizes`; DEPLOY notes for staging noindex + CMS image budgets. |

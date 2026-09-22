@@ -83,6 +83,8 @@ export const HomeVideo = component$<HomeVideoProps>(
     const label = (title || "").trim() || tStatic(locale, "home.videoAria");
     const playLabel = tStatic(locale, "home.playVideo");
 
+    // Viewport gate for third-party iframe — must observe the DOM node after paint.
+    // eslint-disable-next-line qwik/no-use-visible-task
     useVisibleTask$(({ cleanup }) => {
       if (kind === "self") {
         return;

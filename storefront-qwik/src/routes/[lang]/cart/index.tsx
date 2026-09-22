@@ -339,72 +339,65 @@ export default component$(() => {
 
       <div class="cart-layout">
         <div class="cart-layout__main">
-          <table class="cart-table">
-            <thead>
-              <tr>
-                <th>{tStatic(locale, "cart.product")}</th>
-                <th>{tStatic(locale, "cart.price")}</th>
-                <th>{tStatic(locale, "cart.qty")}</th>
-                <th>{tStatic(locale, "cart.total")}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {cart.items.map((line) => (
-                <tr key={cartLineKey(line)}>
-                  <td>
-                    <div class="cart-product">
-                      <div class="cart-product__thumb-wrap">
-                        {line.imageUrl ? (
-                          <img
-                            class="cart-product__thumb"
-                            src={line.imageUrl}
-                            alt=""
-                            width={64}
-                            height={64}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                        ) : (
-                          <span class="cart-product__thumb cart-product__thumb--placeholder" aria-hidden="true" />
-                        )}
-                      </div>
-                      <div class="cart-product__meta">
-                        <strong>{line.name}</strong>
-                        {line.variationName !== "DUMMY" ? (
-                          <div class="footer-muted">{line.variationName}</div>
-                        ) : null}
-                      </div>
+          <ul class="cart-lines">
+            {cart.items.map((line) => (
+              <li key={cartLineKey(line)} class="cart-line">
+                <div class="cart-line__product">
+                  <div class="cart-product">
+                    <div class="cart-product__thumb-wrap">
+                      {line.imageUrl ? (
+                        <img
+                          class="cart-product__thumb"
+                          src={line.imageUrl}
+                          alt=""
+                          width={64}
+                          height={64}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      ) : (
+                        <span class="cart-product__thumb cart-product__thumb--placeholder" aria-hidden="true" />
+                      )}
                     </div>
-                  </td>
-                  <td>{formatPrice(line.price, settings.value.currency, locale)}</td>
-                  <td>
-                    {line.digital ? (
-                      <span>{line.quantity}</span>
-                    ) : (
-                      <QuantityStepper
-                        value={line.quantity}
-                        label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
-                        onChange$={(next) => setCartQuantity(cart, cartLineKey(line), next)}
-                      />
-                    )}
-                  </td>
-                  <td>{formatPrice(line.price * line.quantity, settings.value.currency, locale)}</td>
-                  <td>
-                    <button
-                      type="button"
-                      class="btn btn-secondary footer-contact"
-                      aria-label={tStatic(locale, "a11y.removeItem")}
-                      onClick$={() => removeCartItem(cart, cartLineKey(line))}
-                    >
-                      <TrashIcon size={16} />
-                      {tStatic(locale, "cart.remove")}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <div class="cart-product__meta">
+                      <strong>{line.name}</strong>
+                      {line.variationName !== "DUMMY" ? (
+                        <div class="footer-muted">{line.variationName}</div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+                <div class="cart-line__price" data-label={tStatic(locale, "cart.price")}>
+                  {formatPrice(line.price, settings.value.currency, locale)}
+                </div>
+                <div class="cart-line__qty" data-label={tStatic(locale, "cart.qty")}>
+                  {line.digital ? (
+                    <span>{line.quantity}</span>
+                  ) : (
+                    <QuantityStepper
+                      value={line.quantity}
+                      label={tStatic(locale, "a11y.quantityFor", { name: line.name })}
+                      onChange$={(next) => setCartQuantity(cart, cartLineKey(line), next)}
+                    />
+                  )}
+                </div>
+                <div class="cart-line__total" data-label={tStatic(locale, "cart.total")}>
+                  <strong>{formatPrice(line.price * line.quantity, settings.value.currency, locale)}</strong>
+                </div>
+                <div class="cart-line__actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary footer-contact cart-line__remove"
+                    aria-label={tStatic(locale, "a11y.removeItem")}
+                    onClick$={() => removeCartItem(cart, cartLineKey(line))}
+                  >
+                    <TrashIcon size={16} />
+                    {tStatic(locale, "cart.remove")}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <aside class="cart-summary">
