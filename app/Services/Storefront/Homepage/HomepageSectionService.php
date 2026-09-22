@@ -368,7 +368,16 @@ class HomepageSectionService
             }
             $settings = $section['settings'] ?? [];
             if ($type === 'hero_slider') {
-                $settings['slides'] = array_map(fn ($s) => $this->withMediaUrl($s), $settings['slides'] ?? []);
+                $settings['slides'] = array_map(function ($s) {
+                    $row = $this->withMediaUrl(is_array($s) ? $s : []);
+                    $mobile = is_array($row['mobile'] ?? null) ? $row['mobile'] : [];
+                    $row['mobile'] = $this->withMediaUrl([
+                        'image' => $mobile['image'] ?? null,
+                        'url' => $mobile['url'] ?? '',
+                    ]);
+
+                    return $row;
+                }, $settings['slides'] ?? []);
             }
             if ($type === 'promo_tiles') {
                 $settings['tiles'] = array_map(fn ($t) => $this->withMediaUrl($t), $settings['tiles'] ?? []);

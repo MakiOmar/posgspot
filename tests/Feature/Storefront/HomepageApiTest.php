@@ -123,6 +123,49 @@ class HomepageApiTest extends TestCase
         $this->assertSame('https://example.com/mobile-2.jpg', $slides[1]['image_mobile_url']);
     }
 
+    public function test_hero_slide_mobile_image_hydrated_for_admin_builder(): void
+    {
+        $rel = 'storefront_library/'.$this->businessId.'/hero-mobile-test.webp';
+        $desk = 'storefront_library/'.$this->businessId.'/hero-desktop-test.webp';
+        $absDir = public_path('uploads/storefront_library/'.$this->businessId);
+        if (! is_dir($absDir)) {
+            mkdir($absDir, 0755, true);
+        }
+        file_put_contents(public_path('uploads/'.$rel), 'webp');
+        file_put_contents(public_path('uploads/'.$desk), 'webp');
+
+        $normalized = app(HomepageSectionService::class)->normalizeSections([
+            [
+                'id' => 'sec_hero',
+                'type' => 'hero_slider',
+                'enabled' => true,
+                'settings' => [
+                    'slides' => [
+                        [
+                            'id' => 'slide_1',
+                            'image' => $desk,
+                            'url' => '',
+                            'mobile' => [
+                                'image' => $rel,
+                                'url' => '',
+                            ],
+                            'href' => '/products',
+                            'kicker' => ['en' => 'K', 'ar' => ''],
+                            'title' => ['en' => 'T', 'ar' => ''],
+                        ],
+                    ],
+                ],
+            ],
+        ], $this->businessId);
+
+        $admin = app(HomepageSectionService::class)->presentForAdmin($normalized);
+        $slide = $admin[0]['settings']['slides'][0] ?? null;
+        $this->assertNotNull($slide);
+        $this->assertStringContainsString('uploads/'.$desk, (string) ($slide['image_url'] ?? ''));
+        $this->assertSame($rel, $slide['mobile']['image'] ?? null);
+        $this->assertStringContainsString('uploads/'.$rel, (string) ($slide['mobile']['image_url'] ?? ''));
+    }
+
     public function test_homepage_omits_disabled_sections(): void
     {
         $defaults = app(HomepageSectionService::class)->defaultSections();

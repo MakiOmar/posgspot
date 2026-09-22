@@ -263,6 +263,7 @@
 | 2026-09-21 | Listing stars: always show rating on product/game cards (empty when none); gift cards excluded; Accounts list batches `rating_*`. |
 | 2026-09-21 | Digital/product reviews UI: shell wrapper, card rows, initials avatars (+ optional `avatar_url`). |
 | 2026-09-21 | Digital reviews: auth-only submit (phone from contact); form layout polish; `check-card-stock` maps `card_category_id` → Accounts `category_id`. |
+| 2026-09-22 | Fix hero mobile image missing after save/reload: `presentForAdmin` hydrates `mobile.image_url`. |
 | 2026-09-22 | Hero slider optional mobile image (`mobile.image`/`url` → `image_mobile_url`); POS builder upload; Qwik `<picture>` ≤1023px + Expo prefers mobile; desktop fallback. |
 | 2026-09-21 | Cart mobile: stacked line cards (no cramped table columns); desktop row layout from 720px; two-col page from 960px. |
 | 2026-09-21 | Cart two-column layout (lines + sticky summary); product/game/gift-card thumbs on cart + checkout; footer contact col → storefront logo + slogan + social (no branch list). |
