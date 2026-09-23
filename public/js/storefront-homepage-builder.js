@@ -319,6 +319,16 @@
           }
           return slide.mobile;
         },
+        ensurePromoTilesSettings: function (section) {
+          if (!section.settings || typeof section.settings !== "object") {
+            section.settings = { count: 4 };
+          }
+          var c = parseInt(section.settings.count, 10);
+          if (isNaN(c) || c < 1) {
+            section.settings.count = 4;
+          }
+          return section.settings;
+        },
         clearSlideMobile: function (slide) {
           slide.mobile = { image: null, url: "", image_url: null };
         },
@@ -734,18 +744,20 @@
 
                 <template v-else-if="section.type === 'promo_tiles'">
                   <p class="help-block">
-                    Shows featured digital games from Accounts for <strong>PS4 + PS5</strong>
-                    (each platform up to the count below). Shop buttons open the game detail page.
-                    Mark games as featured in the Accounts catalog.
+                    Shows featured digital games from Accounts (PS4 + PS5).
+                    <strong>Tile count</strong> is the total number of unique games shown (default 4).
+                    Shop buttons open the game detail page. Mark games as featured in the Accounts catalog.
                   </p>
                   <div class="form-group">
-                    <label>Count (per platform)</label>
+                    <label for="sf-hp-promo-count">Tile count</label>
                     <input
+                      id="sf-hp-promo-count"
                       type="number"
                       class="form-control"
                       min="1"
                       max="50"
-                      v-model.number="section.settings.count"
+                      :value="(section.settings && section.settings.count) || 4"
+                      @input="ensurePromoTilesSettings(section); section.settings.count = Math.min(50, Math.max(1, parseInt($event.target.value, 10) || 4))"
                     />
                   </div>
                 </template>

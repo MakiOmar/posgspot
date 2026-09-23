@@ -85,6 +85,75 @@ class DigitalFeaturedPromoTilesTest extends TestCase
         });
     }
 
+    public function test_featured_tiles_dedupe_by_game_id_and_respect_total_count(): void
+    {
+        Http::fake([
+            'accounts.test/api/games/featured*' => Http::response([
+                'count' => 4,
+                '4' => [
+                    [
+                        'id' => 20,
+                        'title' => 'Same Game PS4 art',
+                        'image_url' => 'assets/ps4/same.webp',
+                        'types' => [
+                            'primary' => ['available' => true, 'stock' => 1, 'price' => 100],
+                            'secondary' => ['available' => false, 'stock' => 0, 'price' => 0],
+                            'full' => ['available' => false, 'stock' => 0, 'price' => 0],
+                        ],
+                    ],
+                    [
+                        'id' => 30,
+                        'title' => 'PS4 Only',
+                        'image_url' => 'assets/ps4/only.webp',
+                        'types' => [
+                            'primary' => ['available' => true, 'stock' => 1, 'price' => 80],
+                            'secondary' => ['available' => false, 'stock' => 0, 'price' => 0],
+                            'full' => ['available' => false, 'stock' => 0, 'price' => 0],
+                        ],
+                    ],
+                ],
+                '5' => [
+                    [
+                        'id' => 20,
+                        'title' => 'Same Game PS5 art',
+                        'image_url' => 'assets/ps5/same.webp',
+                        'types' => [
+                            'primary' => ['available' => true, 'stock' => 2, 'price' => 200],
+                            'secondary' => ['available' => false, 'stock' => 0, 'price' => 0],
+                            'full' => ['available' => false, 'stock' => 0, 'price' => 0],
+                        ],
+                    ],
+                    [
+                        'id' => 40,
+                        'title' => 'PS5 Only',
+                        'image_url' => 'assets/ps5/only.webp',
+                        'types' => [
+                            'primary' => ['available' => true, 'stock' => 1, 'price' => 150],
+                            'secondary' => ['available' => false, 'stock' => 0, 'price' => 0],
+                            'full' => ['available' => false, 'stock' => 0, 'price' => 0],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $tiles = $this->getJson('/api/storefront/v1/digital/games/featured?count=4')
+            ->assertOk()
+            ->json('data.tiles');
+
+        // Unique by game id; PS5 preferred for id 20; total capped at 4 but only 3 unique.
+        $this->assertCount(3, $tiles);
+        $this->assertSame([20, 40, 30], array_column($tiles, 'game_id'));
+        $this->assertSame('5', $tiles[0]['platform']);
+        $this->assertSame('/games/20?platform=5', $tiles[0]['href']);
+
+        $capped = $this->getJson('/api/storefront/v1/digital/games/featured?count=2')
+            ->assertOk()
+            ->json('data.tiles');
+        $this->assertCount(2, $capped);
+        $this->assertSame([20, 40], array_column($capped, 'game_id'));
+    }
+
     public function test_homepage_promo_tiles_use_featured_games(): void
     {
         Http::fake([

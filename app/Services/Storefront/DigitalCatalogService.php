@@ -200,7 +200,7 @@ class DigitalCatalogService
                     '4' => $ps4,
                     '5' => $ps5,
                 ],
-                'tiles' => $this->featuredGamesToPromoTiles($ps5, $ps4),
+                'tiles' => $this->featuredGamesToPromoTiles($ps5, $ps4, $count),
                 'skus' => $skus,
             ],
         ];
@@ -208,11 +208,14 @@ class DigitalCatalogService
 
     /**
      * Homepage promo tiles from featured lists (PS5 first, then PS4).
+     * `$count` is the total number of unique tiles (by game id), not per platform.
      *
      * @return list<array{id: string, image_url: string, href: string, label: string, game_id: int, platform: string}>
      */
     public function featuredPromoTiles(int $businessId, int $count = 4): array
     {
+        $count = max(1, min(50, $count));
+        // Ask Accounts for enough candidates per platform, then take `$count` unique tiles.
         $result = $this->getFeaturedGames($businessId, $count, 'game');
         if (empty($result['success'])) {
             return [];
@@ -248,26 +251,32 @@ class DigitalCatalogService
     }
 
     /**
+     * Build promo tiles: PS5 first, then PS4; one tile per game id; hard-cap to `$limit`.
+     *
      * @param  list<array<string, mixed>>  $ps5
      * @param  list<array<string, mixed>>  $ps4
      * @return list<array{id: string, image_url: string, href: string, label: string, game_id: int, platform: string}>
      */
-    private function featuredGamesToPromoTiles(array $ps5, array $ps4): array
+    private function featuredGamesToPromoTiles(array $ps5, array $ps4, int $limit = 4): array
     {
+        $limit = max(1, min(50, $limit));
         $tiles = [];
+        $seen = [];
+
         foreach ([['5', $ps5], ['4', $ps4]] as [$platform, $games]) {
             foreach ($games as $game) {
                 if (! is_array($game)) {
                     continue;
                 }
                 $id = (int) ($game['id'] ?? 0);
-                if ($id < 1) {
+                if ($id < 1 || isset($seen[$id])) {
                     continue;
                 }
                 $image = trim((string) ($game['image_url'] ?? ''));
                 if ($image === '') {
                     continue;
                 }
+                $seen[$id] = true;
                 $tiles[] = [
                     'id' => 'ps'.$platform.'-'.$id,
                     'image_url' => $image,
@@ -276,6 +285,9 @@ class DigitalCatalogService
                     'game_id' => $id,
                     'platform' => (string) $platform,
                 ];
+                if (count($tiles) >= $limit) {
+                    return $tiles;
+                }
             }
         }
 
