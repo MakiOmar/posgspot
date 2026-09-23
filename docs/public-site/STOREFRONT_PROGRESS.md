@@ -255,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-23 | Promo tiles section heading uses first featured game title (i18n `promoTitle` fallback only). |
 | 2026-09-23 | Promo tiles: `count` = total unique games (dedupe by id, default 4); builder cache-bust `?v=22`. |
 | 2026-09-23 | Homepage `promo_tiles`: Accounts featured digital games (`count` per platform); Shop CTA → `/games/{id}?platform=`; `GET /digital/games/featured`. |
 | 2026-09-22 | k6: smoke/load/stress/soak against `pos.gamesspoteg.com`; stress shows per-IP read throttle + Cloudflare 403 before app/DB limits. |

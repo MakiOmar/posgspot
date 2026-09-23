@@ -21,6 +21,7 @@ function promoRevealDir(index: number): "from-start" | "from-end" | "from-bottom
 /**
  * Promo tile grid after the hero — featured digital games from GET /homepage.
  * Each tile href points at `/games/{id}?platform=4|5` (Shop now CTA).
+ * Section heading uses the first (main) tile label so it stays in sync with featured games.
  * Layout: tall main tile + wide top-right + remaining tiles in the CSS grid.
  */
 export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
@@ -30,13 +31,16 @@ export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
     return null;
   }
 
+  const heading =
+    (tiles[0]?.label ?? "").trim() || tStatic(locale, "home.promoTitle");
+
   return (
     <section class="home-promo-tiles" aria-labelledby="home-promo-heading">
       <div class="home-section__head" data-home-reveal>
         <div>
           <p class="home-promo-tiles__eyebrow">{tStatic(locale, "home.promoEyebrow")}</p>
           <h2 id="home-promo-heading" class="home-section__title">
-            {tStatic(locale, "home.promoTitle")}
+            {heading}
           </h2>
         </div>
       </div>
