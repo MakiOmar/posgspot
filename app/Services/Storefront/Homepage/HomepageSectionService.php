@@ -3,6 +3,7 @@
 namespace App\Services\Storefront\Homepage;
 
 use App\Services\Storefront\CatalogService;
+use App\Services\Storefront\DigitalCatalogService;
 use App\Services\Storefront\StorefrontMediaLibraryService;
 use Illuminate\Support\Str;
 
@@ -17,7 +18,8 @@ class HomepageSectionService
 
     public function __construct(
         private SectionTypeRegistry $registry,
-        private CatalogService $catalog
+        private CatalogService $catalog,
+        private DigitalCatalogService $digitalCatalog
     ) {
     }
 
@@ -76,36 +78,7 @@ class HomepageSectionService
                 'type' => 'promo_tiles',
                 'enabled' => true,
                 'settings' => [
-                    'tiles' => [
-                        [
-                            'id' => 'promo-main',
-                            'image' => null,
-                            'url' => self::WP.'/2026/06/26517668.jpg.webp',
-                            'href' => '/products',
-                            'label' => ['en' => '007 First Light', 'ar' => '007 First Light'],
-                        ],
-                        [
-                            'id' => 'promo-2',
-                            'image' => null,
-                            'url' => self::WP.'/2025/10/IMG_2392.jpeg',
-                            'href' => '/products',
-                            'label' => ['en' => 'Shop now', 'ar' => 'تسوق الآن'],
-                        ],
-                        [
-                            'id' => 'promo-3',
-                            'image' => null,
-                            'url' => self::WP.'/2025/10/IMG_2393-scaled.jpeg',
-                            'href' => '/products',
-                            'label' => ['en' => 'Shop now', 'ar' => 'تسوق الآن'],
-                        ],
-                        [
-                            'id' => 'promo-4',
-                            'image' => null,
-                            'url' => self::WP.'/2026/06/thumb-1920-1397346-1.jpg',
-                            'href' => '/products',
-                            'label' => ['en' => 'Shop now', 'ar' => 'تسوق الآن'],
-                        ],
-                    ],
+                    'count' => 4,
                 ],
             ],
             [
@@ -246,7 +219,7 @@ class HomepageSectionService
                 'slides' => $this->normalizeSlides($settings['slides'] ?? []),
             ],
             'promo_tiles' => [
-                'tiles' => $this->normalizeTiles($settings['tiles'] ?? []),
+                'count' => max(1, min(50, (int) ($settings['count'] ?? 4))),
             ],
             'video' => $this->normalizeVideo($settings),
             'trust_badges' => [
@@ -317,6 +290,14 @@ class HomepageSectionService
                 $settings['shelf'] = $shelf;
             }
 
+            if ($type === 'promo_tiles') {
+                $count = max(1, min(50, (int) ($settings['count'] ?? 4)));
+                $settings['count'] = $count;
+                $settings['tiles'] = $businessId > 0
+                    ? $this->digitalCatalog->featuredPromoTiles($businessId, $count)
+                    : [];
+            }
+
             if ($type === 'promo_banner' && empty($settings['has_content'])) {
                 continue;
             }
@@ -380,7 +361,8 @@ class HomepageSectionService
                 }, $settings['slides'] ?? []);
             }
             if ($type === 'promo_tiles') {
-                $settings['tiles'] = array_map(fn ($t) => $this->withMediaUrl($t), $settings['tiles'] ?? []);
+                $settings['count'] = max(1, min(50, (int) ($settings['count'] ?? 4)));
+                unset($settings['tiles']);
             }
             if ($type === 'trust_badges') {
                 $settings['items'] = array_map(
@@ -523,19 +505,7 @@ class HomepageSectionService
                 }, $settings['slides'] ?? []))),
             ],
             'promo_tiles' => [
-                'tiles' => array_values(array_filter(array_map(function ($tile) use ($locale) {
-                    $imageUrl = $this->mediaPublicUrl($tile['image'] ?? null, $tile['url'] ?? null);
-                    if ($imageUrl === null) {
-                        return null;
-                    }
-
-                    return [
-                        'id' => $tile['id'],
-                        'image_url' => $imageUrl,
-                        'href' => $tile['href'] ?? '/products',
-                        'label' => $this->pickLocale($tile['label'] ?? [], $locale),
-                    ];
-                }, $settings['tiles'] ?? []))),
+                'count' => max(1, min(50, (int) ($settings['count'] ?? 4))),
             ],
             'video' => $this->presentVideo($settings, $locale),
             'trust_badges' => [
@@ -832,42 +802,6 @@ class HomepageSectionService
             'image' => $image !== '' ? $image : null,
             'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
         ];
-    }
-
-    /**
-     * @param  mixed  $tiles
-     * @return array<int, array<string, mixed>>
-     */
-    private function normalizeTiles($tiles): array
-    {
-        if (! is_array($tiles)) {
-            return [];
-        }
-
-        $out = [];
-        foreach (array_slice($tiles, 0, 12) as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            $image = trim((string) ($row['image'] ?? ''));
-            $url = trim((string) ($row['url'] ?? ''));
-            if ($image === '' && $url === '') {
-                continue;
-            }
-            $id = trim((string) ($row['id'] ?? ''));
-            if ($id === '') {
-                $id = 'tile_'.Str::lower(Str::random(6));
-            }
-            $out[] = [
-                'id' => mb_substr($id, 0, 40),
-                'image' => $image !== '' ? $image : null,
-                'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
-                'href' => mb_substr(trim((string) ($row['href'] ?? '/products')), 0, 500) ?: '/products',
-                'label' => $this->localeMap($row['label'] ?? null, 80),
-            ];
-        }
-
-        return $out;
     }
 
     /**

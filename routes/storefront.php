@@ -102,6 +102,7 @@ Route::prefix('storefront/v1')->group(function () {
         ->middleware('throttle:storefront-pii-lookup');
 
     Route::get('/digital/games', [DigitalCatalogController::class, 'games']);
+    Route::get('/digital/games/featured', [DigitalCatalogController::class, 'featuredGames']);
     Route::get('/digital/games/{id}', [DigitalCatalogController::class, 'game'])->whereNumber('id');
     Route::get('/digital/card-categories', [DigitalCatalogController::class, 'cardCategories']);
     Route::post('/digital/check-stock', [DigitalCatalogController::class, 'checkGameStock']);

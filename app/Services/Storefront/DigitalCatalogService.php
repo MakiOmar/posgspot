@@ -144,6 +144,145 @@ class DigitalCatalogService
     }
 
     /**
+     * Featured digital games for both platforms (Accounts GET /api/games/featured).
+     *
+     * @return array{
+     *   success: bool,
+     *   error?: string,
+     *   status?: int,
+     *   data?: array{
+     *     count: int,
+     *     product_type: string,
+     *     games: array{4: list<array<string, mixed>>, 5: list<array<string, mixed>>},
+     *     tiles: list<array<string, mixed>>,
+     *     skus: array
+     *   }
+     * }
+     */
+    public function getFeaturedGames(int $businessId, int $count = 4, string $productType = 'game'): array
+    {
+        $productType = $productType === 'subscription' ? 'subscription' : 'game';
+        $count = max(1, min(50, $count));
+        $skus = $this->posSkuMap($businessId);
+
+        if (! $this->isEnabled($businessId)) {
+            return [
+                'success' => true,
+                'data' => [
+                    'count' => $count,
+                    'product_type' => $productType,
+                    'games' => ['4' => [], '5' => []],
+                    'tiles' => [],
+                    'skus' => $skus,
+                ],
+            ];
+        }
+
+        $result = $this->accounts->getFeaturedGames($count, $productType);
+        if (! $result['success']) {
+            return [
+                'success' => false,
+                'error' => $result['error'] ?? 'Failed to load featured games',
+                'status' => $result['status'] ?: 502,
+            ];
+        }
+
+        $body = is_array($result['body'] ?? null) ? $result['body'] : [];
+        $ps4 = $this->normalizeFeaturedPlatformList($body['4'] ?? []);
+        $ps5 = $this->normalizeFeaturedPlatformList($body['5'] ?? []);
+
+        return [
+            'success' => true,
+            'data' => [
+                'count' => $count,
+                'product_type' => $productType,
+                'games' => [
+                    '4' => $ps4,
+                    '5' => $ps5,
+                ],
+                'tiles' => $this->featuredGamesToPromoTiles($ps5, $ps4),
+                'skus' => $skus,
+            ],
+        ];
+    }
+
+    /**
+     * Homepage promo tiles from featured lists (PS5 first, then PS4).
+     *
+     * @return list<array{id: string, image_url: string, href: string, label: string, game_id: int, platform: string}>
+     */
+    public function featuredPromoTiles(int $businessId, int $count = 4): array
+    {
+        $result = $this->getFeaturedGames($businessId, $count, 'game');
+        if (empty($result['success'])) {
+            return [];
+        }
+
+        $tiles = $result['data']['tiles'] ?? [];
+
+        return is_array($tiles) ? array_values($tiles) : [];
+    }
+
+    /**
+     * @param  mixed  $raw
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeFeaturedPlatformList($raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $game) {
+            if (! is_array($game) && ! is_object($game)) {
+                continue;
+            }
+            $normalized = $this->normalizeGameListItem($game);
+            if ((int) ($normalized['id'] ?? 0) < 1) {
+                continue;
+            }
+            $out[] = $normalized;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $ps5
+     * @param  list<array<string, mixed>>  $ps4
+     * @return list<array{id: string, image_url: string, href: string, label: string, game_id: int, platform: string}>
+     */
+    private function featuredGamesToPromoTiles(array $ps5, array $ps4): array
+    {
+        $tiles = [];
+        foreach ([['5', $ps5], ['4', $ps4]] as [$platform, $games]) {
+            foreach ($games as $game) {
+                if (! is_array($game)) {
+                    continue;
+                }
+                $id = (int) ($game['id'] ?? 0);
+                if ($id < 1) {
+                    continue;
+                }
+                $image = trim((string) ($game['image_url'] ?? ''));
+                if ($image === '') {
+                    continue;
+                }
+                $tiles[] = [
+                    'id' => 'ps'.$platform.'-'.$id,
+                    'image_url' => $image,
+                    'href' => '/games/'.$id.'?platform='.$platform,
+                    'label' => (string) ($game['title'] ?? ''),
+                    'game_id' => $id,
+                    'platform' => (string) $platform,
+                ];
+            }
+        }
+
+        return $tiles;
+    }
+
+    /**
      * Autocomplete / search hits for PS4 + PS5 digital games.
      *
      * @return list<array<string, mixed>>

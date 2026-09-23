@@ -188,6 +188,8 @@ export interface HomepagePromoTile {
   image_url: string;
   href: string;
   label: string;
+  game_id?: number;
+  platform?: "4" | "5" | string;
 }
 
 /** Compositional promo banner from GET /homepage `promo_banner` settings. */

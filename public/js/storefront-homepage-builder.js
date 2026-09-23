@@ -78,7 +78,7 @@
       case "hero_slider":
         return { slides: [] };
       case "promo_tiles":
-        return { tiles: [] };
+        return { count: 4 };
       case "video":
         return { source: "self", url: "", poster: "", title: emptyLocale() };
       case "trust_badges":
@@ -166,6 +166,14 @@
     sections.forEach(function (s) {
       if (!s.layout_width) {
         s.layout_width = "boxed";
+      }
+      if (s.type === "promo_tiles") {
+        if (!s.settings || typeof s.settings !== "object") {
+          s.settings = { count: 4 };
+        }
+        var c = parseInt(s.settings.count, 10);
+        s.settings.count = isNaN(c) || c < 1 ? 4 : Math.min(50, c);
+        delete s.settings.tiles;
       }
       if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
         s.settings.items.forEach(function (item) {
@@ -316,22 +324,6 @@
         },
         removeSlide: function (section, index) {
           section.settings.slides.splice(index, 1);
-        },
-        addTile: function (section) {
-          if (!section.settings.tiles) {
-            section.settings.tiles = [];
-          }
-          section.settings.tiles.push({
-            id: uid("tile"),
-            image: null,
-            url: "",
-            href: "/products",
-            label: emptyLocale(),
-            image_url: null,
-          });
-        },
-        removeTile: function (section, index) {
-          section.settings.tiles.splice(index, 1);
         },
         addTrustBadge: function (section) {
           if (!section.settings.items) {
@@ -741,18 +733,20 @@
                 </template>
 
                 <template v-else-if="section.type === 'promo_tiles'">
-                  <button type="button" class="btn btn-default btn-sm" @click="addTile(section)">Add tile</button>
-                  <div v-for="(tile, ti) in section.settings.tiles" :key="tile.id" class="sf-hp-media-row">
-                    <img v-if="tile.image_url || tile.url" :src="tile.image_url || tile.url" alt="" class="sf-hp-thumb" />
-                    <div class="sf-hp-media-fields">
-                      <input class="form-control input-sm" v-model="tile.url" placeholder="Image URL" :disabled="!!tile.image" />
-                      <input class="form-control input-sm" v-model="tile.href" placeholder="Link path" />
-                      <input class="form-control input-sm" v-model="tile.label.en" placeholder="Label (EN)" />
-                      <input class="form-control input-sm" v-model="tile.label.ar" placeholder="Label (AR)" dir="rtl" />
-                      <button type="button" class="btn btn-default btn-xs" @click="uploadMedia(tile)">Upload image</button>
-                      <button type="button" class="btn btn-default btn-xs" @click="openLibrary(tile, { kind: 'image' })">Library</button>
-                      <button type="button" class="btn btn-danger btn-xs" @click="removeTile(section, ti)">Remove</button>
-                    </div>
+                  <p class="help-block">
+                    Shows featured digital games from Accounts for <strong>PS4 + PS5</strong>
+                    (each platform up to the count below). Shop buttons open the game detail page.
+                    Mark games as featured in the Accounts catalog.
+                  </p>
+                  <div class="form-group">
+                    <label>Count (per platform)</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      min="1"
+                      max="50"
+                      v-model.number="section.settings.count"
+                    />
                   </div>
                 </template>
 

@@ -65,6 +65,29 @@ class DigitalCatalogController extends StorefrontController
         return $this->jsonSuccess($result['data']);
     }
 
+    public function featuredGames(Request $request)
+    {
+        $businessId = $this->businessId($request);
+        if (! $this->catalog->isEnabled($businessId)) {
+            return $this->jsonError('Digital catalog is not available.', 503);
+        }
+
+        $data = $request->validate([
+            'count' => 'nullable|integer|min:1|max:50',
+            'product_type' => 'nullable|in:game,subscription',
+        ]);
+
+        $productType = ($data['product_type'] ?? 'game') === 'subscription' ? 'subscription' : 'game';
+        $count = (int) ($data['count'] ?? 10);
+
+        $result = $this->catalog->getFeaturedGames($businessId, $count, $productType);
+        if (! $result['success']) {
+            return $this->jsonError($result['error'] ?? 'Failed to load featured games', (int) ($result['status'] ?: 502));
+        }
+
+        return $this->jsonSuccess($result['data']);
+    }
+
     public function game(Request $request, int $id)
     {
         $businessId = $this->businessId($request);

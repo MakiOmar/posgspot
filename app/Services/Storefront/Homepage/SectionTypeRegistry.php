@@ -24,7 +24,7 @@ class SectionTypeRegistry
                 'label' => 'Promo tiles',
                 'max_instances' => 1,
                 'default_settings' => [
-                    'tiles' => [],
+                    'count' => 4,
                 ],
             ],
             'video' => [

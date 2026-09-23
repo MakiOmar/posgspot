@@ -155,6 +155,8 @@ export interface HomepagePromoTile {
   image_url: string;
   href: string;
   label?: string;
+  game_id?: number;
+  platform?: "4" | "5" | string;
 }
 
 export interface HomepageCategoryShelf {

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-22 |
+| **Last updated** | 2026-09-23 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -255,6 +255,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-23 | Homepage `promo_tiles`: Accounts featured digital games (`count` per platform); Shop CTA → `/games/{id}?platform=`; `GET /digital/games/featured`. |
+| 2026-09-22 | k6: smoke/load/stress/soak against `pos.gamesspoteg.com`; stress shows per-IP read throttle + Cloudflare 403 before app/DB limits. |
 | 2026-09-21 | WebP bulk: ingest remote homepage media URLs (promo tiles/hero) into library WebP; catalog products/categories/brands/media. |
 | 2026-09-21 | `storefront:convert-images-to-webp` also converts product/category/brand/gallery images (`--only=catalog|storefront|all`). |
 | 2026-09-21 | Upload WebP: auto-convert raster POS/storefront uploads; `storefront:convert-images-to-webp` bulk command. |

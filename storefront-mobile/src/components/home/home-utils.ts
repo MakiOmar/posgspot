@@ -44,7 +44,9 @@ export function asTiles(settings: Record<string, unknown>): HomepagePromoTile[] 
     (t): t is HomepagePromoTile =>
       !!t &&
       typeof t === "object" &&
-      typeof (t as HomepagePromoTile).image_url === "string",
+      typeof (t as HomepagePromoTile).image_url === "string" &&
+      typeof (t as HomepagePromoTile).href === "string" &&
+      (t as HomepagePromoTile).href.length > 0,
   );
 }
 

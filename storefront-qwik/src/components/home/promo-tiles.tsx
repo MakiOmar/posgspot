@@ -19,8 +19,9 @@ function promoRevealDir(index: number): "from-start" | "from-end" | "from-bottom
 }
 
 /**
- * Promo tile grid after the hero (tiles from GET /homepage section settings).
- * Layout: tall main tile + wide top-right + two smaller tiles (CSS grid).
+ * Promo tile grid after the hero — featured digital games from GET /homepage.
+ * Each tile href points at `/games/{id}?platform=4|5` (Shop now CTA).
+ * Layout: tall main tile + wide top-right + remaining tiles in the CSS grid.
  */
 export const PromoTiles = component$<PromoTilesProps>(({ tiles }) => {
   const { locale } = useI18n();

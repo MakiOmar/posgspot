@@ -124,6 +124,22 @@ class AccountsApiClient
         return $this->request('GET', 'api/games/platform/'.$platform, $query, false);
     }
 
+    /**
+     * Featured games for both platforms (PS4 + PS5).
+     *
+     * @return array{success:bool,status:int,body:?array,error:?string}
+     */
+    public function getFeaturedGames(int $count = 10, string $productType = 'game'): array
+    {
+        $count = max(1, min(50, $count));
+        $productType = $productType === 'subscription' ? 'subscription' : 'game';
+
+        return $this->request('GET', 'api/games/featured', [
+            'count' => $count,
+            'product_type' => $productType,
+        ], false);
+    }
+
     public function getGame(int $id): array
     {
         return $this->request('GET', 'api/games/'.$id, null, false);
