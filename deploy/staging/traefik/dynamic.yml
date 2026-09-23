@@ -1,0 +1,4 @@
+# Fallback HTTP routes (useful if Docker provider flaps). Labels remain primary.
+http:
+  routers: {}
+  services: {}

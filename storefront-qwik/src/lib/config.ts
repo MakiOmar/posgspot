@@ -75,5 +75,10 @@ export const POS_WEB_BASE: string = (
   .replace(/\/api\/?$/i, "")
   .replace(/\/$/, "");
 
+/** Accounts origin for legacy console-track deep links (override on staging). */
+export const ACCOUNTS_WEB_BASE: string = (
+  envString("PUBLIC_ACCOUNTS_BASE") || "https://accounts.gamesspoteg.com"
+).replace(/\/$/, "");
+
 /** @deprecated External portal replaced by in-app `/track-console`. */
-export const TRACK_CONSOLE_URL = "https://accounts.gamesspoteg.com/device/track";
+export const TRACK_CONSOLE_URL = `${ACCOUNTS_WEB_BASE}/device/track`;

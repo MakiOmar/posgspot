@@ -8,7 +8,7 @@ How to build and run the public shop (`storefront-qwik/`) against the Laravel PO
 | **Qwik storefront** | Public SSR site — `https://shop.example.com` (this guide) |
 | **Mobile app** | Separate Expo app; same API — see [`MOBILE.md`](./MOBILE.md) |
 
-Related: [API contract](./API.md) · [Progress](./STOREFRONT_PROGRESS.md) · [Configuration](../CONFIGURATION.md) · [Qwik project README](../../storefront-qwik/README.md)
+Related: [API contract](./API.md) · [Progress](./STOREFRONT_PROGRESS.md) · [Configuration](../CONFIGURATION.md) · [Staging VPS](./STAGING_VPS.md) · [Qwik project README](../../storefront-qwik/README.md)
 
 ---
 

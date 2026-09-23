@@ -1,0 +1,22 @@
+# Local / VPS secrets and cloned trees — keep Dockerfiles & scripts in git
+.env
+.vps-secrets.env
+*.log
+pos/.env
+pos/.env.bak
+accounts/.env
+accounts/.env.bak
+pos/**
+!pos/Dockerfile
+!pos/.dockerignore
+!pos/.gitkeep
+accounts/**
+!accounts/Dockerfile
+!accounts/.dockerignore
+!accounts/.gitkeep
+storefront/**
+!storefront/Dockerfile
+!storefront/.dockerignore
+!storefront/.gitkeep
+data/
+*.sql.gz

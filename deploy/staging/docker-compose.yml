@@ -1,0 +1,213 @@
+# Staging compose — POS + Accounts + Qwik storefront on thespotmanagment.io
+# Deploy to: /opt/spot-staging on the VPS (never commit real .env secrets)
+
+name: spot-staging
+
+networks:
+  spot_edge:
+    name: spot_edge
+  spot_internal:
+    name: spot_internal
+
+volumes:
+  mysql_data:
+  redis_data:
+  traefik_letsencrypt:
+
+services:
+  traefik:
+    # v3.3 Docker client is too old for Docker Engine 29+ (min API 1.40)
+    image: traefik:v3.6
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik_letsencrypt:/letsencrypt
+    networks:
+      - spot_edge
+
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - spot_internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - spot_internal
+
+  pos:
+    image: spot-staging/pos:latest
+    build:
+      context: ./pos
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./pos/.env
+    volumes:
+      - ./pos/.env:/var/www/html/.env:ro
+      - ./data/pos_storage:/var/www/html/storage
+      - ./data/pos_uploads:/var/www/html/public/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - spot_edge
+      - spot_internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=spot_edge
+      - traefik.http.routers.pos.rule=Host(`pos.thespotmanagment.io`)
+      - traefik.http.routers.pos.entrypoints=websecure
+      - traefik.http.routers.pos.tls=true
+      - traefik.http.routers.pos.tls.certresolver=le
+      - traefik.http.services.pos.loadbalancer.server.port=8080
+      - traefik.http.routers.pos-http.rule=Host(`pos.thespotmanagment.io`)
+      - traefik.http.routers.pos-http.entrypoints=web
+      - traefik.http.routers.pos-http.service=pos
+
+  pos-queue:
+    image: spot-staging/pos:latest
+    restart: unless-stopped
+    entrypoint:
+      [
+        "php",
+        "artisan",
+        "queue:work",
+        "--sleep=3",
+        "--tries=3",
+        "--max-time=3600",
+      ]
+    env_file:
+      - ./pos/.env
+    volumes:
+      - ./pos/.env:/var/www/html/.env:ro
+      - ./data/pos_storage:/var/www/html/storage
+      - ./data/pos_uploads:/var/www/html/public/uploads
+    depends_on:
+      - pos
+      - mysql
+    networks:
+      - spot_internal
+
+  pos-scheduler:
+    image: spot-staging/pos:latest
+    restart: unless-stopped
+    entrypoint: ["php", "artisan", "schedule:work"]
+    env_file:
+      - ./pos/.env
+    volumes:
+      - ./pos/.env:/var/www/html/.env:ro
+      - ./data/pos_storage:/var/www/html/storage
+      - ./data/pos_uploads:/var/www/html/public/uploads
+    depends_on:
+      - pos
+      - mysql
+    networks:
+      - spot_internal
+
+  accounts:
+    image: spot-staging/accounts:latest
+    build:
+      context: ./accounts
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./accounts/.env
+    volumes:
+      - ./accounts/.env:/var/www/html/.env:ro
+      - ./data/accounts_storage:/var/www/html/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - spot_edge
+      - spot_internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=spot_edge
+      - traefik.http.routers.accounts.rule=Host(`accounts.thespotmanagment.io`)
+      - traefik.http.routers.accounts.entrypoints=websecure
+      - traefik.http.routers.accounts.tls=true
+      - traefik.http.routers.accounts.tls.certresolver=le
+      - traefik.http.services.accounts.loadbalancer.server.port=8080
+      - traefik.http.routers.accounts-http.rule=Host(`accounts.thespotmanagment.io`)
+      - traefik.http.routers.accounts-http.entrypoints=web
+      - traefik.http.routers.accounts-http.service=accounts
+
+  accounts-queue:
+    image: spot-staging/accounts:latest
+    restart: unless-stopped
+    entrypoint: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    env_file:
+      - ./accounts/.env
+    volumes:
+      - ./accounts/.env:/var/www/html/.env:ro
+      - ./data/accounts_storage:/var/www/html/storage
+    depends_on:
+      - accounts
+      - mysql
+    networks:
+      - spot_internal
+
+  storefront:
+    build:
+      context: ./storefront
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ORIGIN: https://thespotmanagment.io
+      PORT: "3000"
+      NODE_ENV: production
+    depends_on:
+      - pos
+    networks:
+      - spot_edge
+      - spot_internal
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=spot_edge
+      - traefik.http.routers.shop.rule=Host(`thespotmanagment.io`)
+      - traefik.http.routers.shop.entrypoints=websecure
+      - traefik.http.routers.shop.tls=true
+      - traefik.http.routers.shop.tls.certresolver=le
+      - traefik.http.services.shop.loadbalancer.server.port=3000
+      - traefik.http.routers.shop-http.rule=Host(`thespotmanagment.io`)
+      - traefik.http.routers.shop-http.entrypoints=web
+      - traefik.http.routers.shop-http.service=shop
+      - traefik.http.routers.shop-www.rule=Host(`www.thespotmanagment.io`)
+      - traefik.http.routers.shop-www.entrypoints=websecure
+      - traefik.http.routers.shop-www.tls=true
+      - traefik.http.routers.shop-www.tls.certresolver=le
+      - traefik.http.middlewares.www-to-apex.redirectregex.regex=^https?://www\\.thespotmanagment\\.io/(.*)
+      - traefik.http.middlewares.www-to-apex.redirectregex.replacement=https://thespotmanagment.io/$${1}
+      - traefik.http.middlewares.www-to-apex.redirectregex.permanent=true
+      - traefik.http.routers.shop-www.middlewares=www-to-apex
+      - traefik.http.routers.shop-www.service=shop
+      - traefik.http.routers.shop-www-http.rule=Host(`www.thespotmanagment.io`)
+      - traefik.http.routers.shop-www-http.entrypoints=web
+      - traefik.http.routers.shop-www-http.middlewares=www-to-apex
+      - traefik.http.routers.shop-www-http.service=shop
