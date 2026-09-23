@@ -99,11 +99,26 @@ docker compose exec -u www-data accounts php artisan config:clear
 
 Key staging values:
 
-- POS: `APP_URL`, `STOREFRONT_URL`, `CORS_ALLOWED_ORIGINS`, `ACCOUNTS_BASE_URL`, `DB_HOST=mysql`, `MAIL_MAILER=log`
-- Accounts: `APP_URL`, `DB_HOST=mysql`, `MAIL_MAILER=log`
+- POS: `APP_URL`, `STOREFRONT_URL`, `CORS_ALLOWED_ORIGINS`, `ACCOUNTS_BASE_URL`, `DB_HOST=mysql`, `CACHE_DRIVER=redis` / `CACHE_STORE=redis`, `REDIS_HOST=redis`, `MAIL_MAILER=log`
+- Accounts: `APP_URL`, `DB_HOST=mysql`, `CACHE_DRIVER=redis`, `REDIS_CACHE_DB=1`, `MAIL_MAILER=log`
 - Storefront image: bake `PUBLIC_API_BASE=https://pos.thespotmanagment.io`, `PUBLIC_ACCOUNTS_BASE=https://accounts.thespotmanagment.io`, run with `ORIGIN=https://thespotmanagment.io`
 
-### Rebuild storefront with staging public URLs
+### Load testing (k6)
+
+From a workstation with [k6](https://k6.io/) installed (see [`load-tests/k6/README.md`](../../load-tests/k6/README.md)):
+
+```powershell
+# Mixed shop HTML + POS API + Accounts (staging defaults)
+k6 run -e SCENARIO=load -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
+  --summary-export load-tests/k6/results/summary-vps-load.json `
+  load-tests/k6/scenarios/vps-mixed.js
+
+k6 run -e SCENARIO=stress -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
+  --summary-export load-tests/k6/results/summary-vps-stress.json `
+  load-tests/k6/scenarios/vps-mixed.js
+```
+
+Staging POS uses Redis cache (`CACHE_DRIVER=redis`, `REDIS_HOST=redis`). For capacity runs, `STOREFRONT_RATE_LIMIT_READ` may be raised temporarily (e.g. 6000) so per-IP throttle does not dominate results.
 
 On a workstation (from `storefront-qwik/`):
 
