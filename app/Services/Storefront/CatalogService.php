@@ -171,6 +171,37 @@ class CatalogService
     }
 
     /**
+     * Category by id for hero CTA resolution (falls back to default-locale fields).
+     *
+     * @return array{id:int,name:string,slug:?string,parent_id:int}|null
+     */
+    public function findCategoryById(int $businessId, int $categoryId, string $locale = StorefrontLocale::DEFAULT): ?array
+    {
+        if ($categoryId < 1 || ! $this->hasSellingLocations($businessId)) {
+            return null;
+        }
+
+        $category = Category::where('business_id', $businessId)
+            ->where('category_type', 'product')
+            ->where('id', $categoryId)
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
+            ->first();
+
+        if (empty($category)) {
+            return null;
+        }
+
+        $fields = $this->presenter->categoryFields($category, $locale);
+        if ($fields === [] && ! StorefrontLocale::isDefault($locale)) {
+            $fields = $this->presenter->categoryFields($category, StorefrontLocale::DEFAULT);
+        }
+
+        return $fields === [] ? null : $fields;
+    }
+
+    /**
      * Brands with at least one sellable product in public selling locations.
      *
      * @return array<int, array{id:int,name:string,slug:string}>

@@ -140,12 +140,24 @@ export interface ProductSummary {
   rating?: { average?: number; count?: number };
 }
 
+export interface HomepageHeroCta {
+  type: "product" | "category" | "game" | "path";
+  id: number | null;
+  slug: string | null;
+  platform: string | null;
+  href: string;
+  label?: string | null;
+}
+
 export interface HomepageHeroSlide {
   id: string;
   image_url: string;
   /** Optional mobile crop; Expo prefers this, else `image_url`. */
   image_mobile_url?: string | null;
-  href: string;
+  /** Structured Shop now target; null/omit hides the button. */
+  cta?: HomepageHeroCta | null;
+  /** @deprecated Prefer `cta` — kept as alias for one release. */
+  href?: string | null;
   kicker?: string;
   title?: string;
 }

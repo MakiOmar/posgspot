@@ -173,12 +173,24 @@ export interface HomepageSection {
   settings: Record<string, unknown>;
 }
 
+export interface HomepageHeroCta {
+  type: "product" | "category" | "game" | "path";
+  id: number | null;
+  slug: string | null;
+  platform: string | null;
+  href: string;
+  label: string | null;
+}
+
 export interface HomepageHeroSlide {
   id: string;
   image_url: string;
   /** Optional mobile crop (≤1023px). Null/empty → use `image_url`. */
   image_mobile_url?: string | null;
-  href: string;
+  /** Structured Shop now target; null/omit hides the button. */
+  cta?: HomepageHeroCta | null;
+  /** @deprecated Prefer `cta.href` — kept as alias for one release. */
+  href?: string | null;
   kicker: string;
   title: string;
 }

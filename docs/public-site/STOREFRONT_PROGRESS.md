@@ -255,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-23 | Hero slide CTA: structured `cta` (product/category/game; legacy path); builder typeahead; Qwik/Expo hide Shop now when unset. |
 | 2026-09-23 | Promo tiles section heading uses first featured game title (i18n `promoTitle` fallback only). |
 | 2026-09-23 | Promo tiles: `count` = total unique games (dedupe by id, default 4); builder cache-bust `?v=22`. |
 | 2026-09-23 | Homepage `promo_tiles`: Accounts featured digital games (`count` per platform); Shop CTA → `/games/{id}?platform=`; `GET /digital/games/featured`. |

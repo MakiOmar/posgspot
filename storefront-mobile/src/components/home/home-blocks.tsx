@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { absoluteMediaUrl, hrefToAppPath } from "../../lib/storefront-href";
+import { absoluteMediaUrl, heroCtaToAppPath, hrefToAppPath } from "../../lib/storefront-href";
 import type {
   HomepageCategoryShelf,
   HomepageHeroSlide,
@@ -46,6 +46,8 @@ export function HeroSlider({ slides }: { slides: HomepageHeroSlide[] }) {
   const image = absoluteMediaUrl(
     (slide.image_mobile_url || "").trim() || slide.image_url,
   );
+  const ctaHref =
+    heroCtaToAppPath(slide.cta) || hrefToAppPath(slide.href);
 
   return (
     <View
@@ -63,11 +65,13 @@ export function HeroSlider({ slides }: { slides: HomepageHeroSlide[] }) {
         {slide.title ? (
           <Text style={styles.heroTitle}>{slide.title}</Text>
         ) : null}
-        <AppLink href={slide.href}>
-          <View style={[styles.heroCta, { backgroundColor: accent }]}>
-            <Text style={styles.heroCtaText}>{t("home.shopNow")}</Text>
-          </View>
-        </AppLink>
+        {ctaHref ? (
+          <AppLink href={ctaHref}>
+            <View style={[styles.heroCta, { backgroundColor: accent }]}>
+              <Text style={styles.heroCtaText}>{t("home.shopNow")}</Text>
+            </View>
+          </AppLink>
+        ) : null}
       </View>
       {slides.length > 1 ? (
         <View style={styles.dots}>

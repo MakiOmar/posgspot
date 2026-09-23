@@ -41,7 +41,7 @@ class HomepageSectionService
                             'id' => 'slide-1',
                             'image' => null,
                             'url' => self::WP.'/2024/03/bg-slider-1.png',
-                            'href' => '/products',
+                            'cta' => ['type' => 'path', 'href' => '/products'],
                             'kicker' => ['en' => 'Witness Play Unleashed™', 'ar' => 'Witness Play Unleashed™'],
                             'title' => [
                                 'en' => 'PS5 Ghost of Yotei Gold Limited Edition Bundle',
@@ -52,7 +52,7 @@ class HomepageSectionService
                             'id' => 'slide-2',
                             'image' => null,
                             'url' => self::WP.'/2024/03/home1-slide2.png',
-                            'href' => '/products',
+                            'cta' => ['type' => 'path', 'href' => '/products'],
                             'kicker' => ['en' => 'wireless controller', 'ar' => 'wireless controller'],
                             'title' => [
                                 'en' => 'DualSense® 007 First Light™',
@@ -63,7 +63,7 @@ class HomepageSectionService
                             'id' => 'slide-3',
                             'image' => null,
                             'url' => self::WP.'/2024/03/home1-slide3.png',
-                            'href' => '/products',
+                            'cta' => ['type' => 'path', 'href' => '/products'],
                             'kicker' => ['en' => 'PULSE™ wireless headset', 'ar' => 'PULSE™ wireless headset'],
                             'title' => [
                                 'en' => 'A new era in gaming audio',
@@ -276,7 +276,7 @@ class HomepageSectionService
                 continue;
             }
 
-            $settings = $this->presentSettings($type, $section['settings'] ?? [], $locale);
+            $settings = $this->presentSettings($type, $section['settings'] ?? [], $locale, $businessId);
 
             if ($type === 'category_shelf') {
                 $categoryId = (int) ($settings['category_id'] ?? 0);
@@ -481,11 +481,11 @@ class HomepageSectionService
      * @param  array<string, mixed>  $settings
      * @return array<string, mixed>
      */
-    private function presentSettings(string $type, array $settings, string $locale): array
+    private function presentSettings(string $type, array $settings, string $locale, int $businessId = 0): array
     {
         return match ($type) {
             'hero_slider' => [
-                'slides' => array_values(array_filter(array_map(function ($slide) use ($locale) {
+                'slides' => array_values(array_filter(array_map(function ($slide) use ($locale, $businessId) {
                     $imageUrl = $this->mediaPublicUrl($slide['image'] ?? null, $slide['url'] ?? null);
                     if ($imageUrl === null) {
                         return null;
@@ -493,12 +493,20 @@ class HomepageSectionService
 
                     $mobile = is_array($slide['mobile'] ?? null) ? $slide['mobile'] : [];
                     $mobileUrl = $this->mediaPublicUrl($mobile['image'] ?? null, $mobile['url'] ?? null);
+                    $cta = $this->presentHeroCta(
+                        is_array($slide['cta'] ?? null) ? $slide['cta'] : null,
+                        $slide['href'] ?? null,
+                        $businessId,
+                        $locale
+                    );
 
                     return [
                         'id' => $slide['id'],
                         'image_url' => $imageUrl,
                         'image_mobile_url' => $mobileUrl,
-                        'href' => $slide['href'] ?? '/products',
+                        'cta' => $cta,
+                        // Alias for one-release BWC; clients should prefer `cta`.
+                        'href' => $cta['href'] ?? null,
                         'kicker' => $this->pickLocale($slide['kicker'] ?? [], $locale),
                         'title' => $this->pickLocale($slide['title'] ?? [], $locale),
                     ];
@@ -773,7 +781,7 @@ class HomepageSectionService
                 'id' => mb_substr($id, 0, 40),
                 'image' => $image !== '' ? $image : null,
                 'url' => $image === '' ? mb_substr($url, 0, 1000) : '',
-                'href' => mb_substr(trim((string) ($row['href'] ?? '/products')), 0, 500) ?: '/products',
+                'cta' => $this->normalizeSlideCta($row),
                 'kicker' => $this->localeMap($row['kicker'] ?? null, 120),
                 'title' => $this->localeMap($row['title'] ?? null, 200),
                 'mobile' => $this->normalizeSlideMobile($row['mobile'] ?? null),
@@ -781,6 +789,164 @@ class HomepageSectionService
         }
 
         return $out;
+    }
+
+    /**
+     * Persist structured CTA; migrate legacy free-text `href` to `type=path`.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>|null
+     */
+    private function normalizeSlideCta(array $row): ?array
+    {
+        $raw = $row['cta'] ?? null;
+        if (is_array($raw) && isset($raw['type'])) {
+            $type = (string) $raw['type'];
+            if (in_array($type, ['product', 'category', 'game'], true)) {
+                $id = (int) ($raw['id'] ?? 0);
+                if ($id < 1) {
+                    return null;
+                }
+                $out = ['type' => $type, 'id' => $id];
+                if ($type === 'game') {
+                    $platform = (int) ($raw['platform'] ?? 5);
+                    $out['platform'] = in_array($platform, [4, 5], true) ? $platform : 5;
+                }
+                $label = trim((string) ($raw['label'] ?? ''));
+                if ($label !== '') {
+                    $out['label'] = mb_substr($label, 0, 200);
+                }
+
+                return $out;
+            }
+            if ($type === 'path') {
+                $href = trim((string) ($raw['href'] ?? ''));
+                if ($href === '') {
+                    return null;
+                }
+
+                return [
+                    'type' => 'path',
+                    'href' => mb_substr($href, 0, 500),
+                ];
+            }
+        }
+
+        $legacyHref = trim((string) ($row['href'] ?? ''));
+        if ($legacyHref !== '') {
+            return [
+                'type' => 'path',
+                'href' => mb_substr($legacyHref, 0, 500),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve stored CTA for public API (null → hide Shop now).
+     *
+     * @param  array<string, mixed>|null  $cta
+     * @return array{type: string, id: int|null, slug: string|null, platform: string|null, href: string, label: string|null}|null
+     */
+    private function presentHeroCta(?array $cta, mixed $legacyHref, int $businessId, string $locale): ?array
+    {
+        if ($cta === null || $cta === []) {
+            $path = trim((string) ($legacyHref ?? ''));
+            if ($path === '') {
+                return null;
+            }
+            $cta = ['type' => 'path', 'href' => $path];
+        }
+
+        $type = (string) ($cta['type'] ?? '');
+
+        if ($type === 'path') {
+            $href = trim((string) ($cta['href'] ?? ''));
+            if ($href === '') {
+                return null;
+            }
+
+            return [
+                'type' => 'path',
+                'id' => null,
+                'slug' => null,
+                'platform' => null,
+                'href' => $href,
+                'label' => null,
+            ];
+        }
+
+        if ($type === 'product') {
+            $id = (int) ($cta['id'] ?? 0);
+            if ($id < 1 || $businessId < 1) {
+                return null;
+            }
+            $product = $this->catalog->findProduct($businessId, (string) $id, null, $locale);
+            if ($product === null) {
+                return null;
+            }
+            $slug = trim((string) ($product['slug'] ?? ''));
+            if ($slug === '') {
+                $slug = (string) $id;
+            }
+
+            return [
+                'type' => 'product',
+                'id' => $id,
+                'slug' => $slug,
+                'platform' => null,
+                'href' => '/products/'.$slug,
+                'label' => (string) ($product['name'] ?? ($cta['label'] ?? null)),
+            ];
+        }
+
+        if ($type === 'category') {
+            $id = (int) ($cta['id'] ?? 0);
+            if ($id < 1 || $businessId < 1) {
+                return null;
+            }
+            $category = $this->catalog->findCategoryById($businessId, $id, $locale);
+            if ($category === null) {
+                return null;
+            }
+            $slug = trim((string) ($category['slug'] ?? ''));
+            if ($slug === '') {
+                return null;
+            }
+
+            return [
+                'type' => 'category',
+                'id' => $id,
+                'slug' => $slug,
+                'platform' => null,
+                'href' => '/category/'.$slug,
+                'label' => (string) ($category['name'] ?? ($cta['label'] ?? null)),
+            ];
+        }
+
+        if ($type === 'game') {
+            $id = (int) ($cta['id'] ?? 0);
+            if ($id < 1) {
+                return null;
+            }
+            $platform = (string) ((int) ($cta['platform'] ?? 5));
+            if (! in_array($platform, ['4', '5'], true)) {
+                $platform = '5';
+            }
+            $label = trim((string) ($cta['label'] ?? ''));
+
+            return [
+                'type' => 'game',
+                'id' => $id,
+                'slug' => null,
+                'platform' => $platform,
+                'href' => '/games/'.$id.'?platform='.$platform,
+                'label' => $label !== '' ? $label : null,
+            ];
+        }
+
+        return null;
     }
 
     /**

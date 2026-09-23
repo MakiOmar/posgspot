@@ -1,4 +1,35 @@
 import { API_BASE } from "./config";
+import type { HomepageHeroCta } from "./types";
+
+/**
+ * Navigate hero Shop now from structured CTA (preferred over parsing href).
+ */
+export function heroCtaToAppPath(cta: HomepageHeroCta | null | undefined): string | null {
+  if (!cta || typeof cta !== "object") {
+    return null;
+  }
+  switch (cta.type) {
+    case "product": {
+      const slug = (cta.slug || "").trim() || (cta.id != null ? String(cta.id) : "");
+      return slug ? `/products/${slug}` : null;
+    }
+    case "category": {
+      const slug = (cta.slug || "").trim();
+      return slug ? `/category/${slug}` : null;
+    }
+    case "game": {
+      if (cta.id == null || cta.id < 1) {
+        return null;
+      }
+      const platform = cta.platform === "4" || cta.platform === "5" ? cta.platform : "5";
+      return `/games/${cta.id}?platform=${platform}`;
+    }
+    case "path":
+      return hrefToAppPath(cta.href);
+    default:
+      return hrefToAppPath(cta.href);
+  }
+}
 
 /**
  * Turn Storefront web paths / absolute URLs into Expo Router hrefs.

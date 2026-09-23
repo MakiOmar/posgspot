@@ -30,8 +30,60 @@
           return item;
         });
       }
+      if (
+        clone.type === "hero_slider" &&
+        clone.settings &&
+        Array.isArray(clone.settings.slides)
+      ) {
+        clone.settings.slides = clone.settings.slides.map(function (slide) {
+          delete slide._ctaQ;
+          delete slide._ctaHits;
+          delete slide._ctaSearching;
+          delete slide.href;
+          if (slide.cta && typeof slide.cta === "object") {
+            var clean = { type: slide.cta.type };
+            if (slide.cta.type === "path") {
+              clean.href = slide.cta.href || "";
+            } else {
+              clean.id = parseInt(slide.cta.id, 10) || 0;
+              if (slide.cta.type === "game") {
+                clean.platform = parseInt(slide.cta.platform, 10) || 5;
+              }
+              if (slide.cta.label) {
+                clean.label = slide.cta.label;
+              }
+            }
+            slide.cta = clean;
+          } else {
+            slide.cta = null;
+          }
+          return slide;
+        });
+      }
       return clone;
     });
+  }
+
+  function hydrateHeroSlide(slide) {
+    if (!slide || typeof slide !== "object") {
+      return;
+    }
+    if (!slide.mobile || typeof slide.mobile !== "object") {
+      slide.mobile = { image: null, url: "", image_url: null };
+    }
+    slide._ctaQ = slide._ctaQ || "";
+    slide._ctaHits = Array.isArray(slide._ctaHits) ? slide._ctaHits : [];
+    slide._ctaSearching = !!slide._ctaSearching;
+    if (slide.cta && typeof slide.cta === "object" && slide.cta.type) {
+      return;
+    }
+    var href = typeof slide.href === "string" ? slide.href.trim() : "";
+    if (href) {
+      slide.cta = { type: "path", href: href, label: href };
+    } else {
+      slide.cta = null;
+    }
+    delete slide.href;
   }
 
   function uid(prefix) {
@@ -175,6 +227,9 @@
         s.settings.count = isNaN(c) || c < 1 ? 4 : Math.min(50, c);
         delete s.settings.tiles;
       }
+      if (s.type === "hero_slider" && s.settings && Array.isArray(s.settings.slides)) {
+        s.settings.slides.forEach(hydrateHeroSlide);
+      }
       if (s.type === "trust_badges" && s.settings && Array.isArray(s.settings.items)) {
         s.settings.items.forEach(function (item) {
           hydrateTrustBadgeItem(item);
@@ -186,6 +241,7 @@
     var uploadUrl = el.getAttribute("data-upload-url") || "";
     var mediaUrl = el.getAttribute("data-media-url") || "";
     var mediaDeleteBase = el.getAttribute("data-media-delete-url") || "";
+    var searchUrl = el.getAttribute("data-search-url") || "";
 
     Vue.createApp({
       data: function () {
@@ -302,16 +358,18 @@
           if (!section.settings.slides) {
             section.settings.slides = [];
           }
-          section.settings.slides.push({
+          var slide = {
             id: uid("slide"),
             image: null,
             url: "",
-            href: "/products",
+            cta: null,
             kicker: emptyLocale(),
             title: emptyLocale(),
             image_url: null,
             mobile: { image: null, url: "", image_url: null },
-          });
+          };
+          hydrateHeroSlide(slide);
+          section.settings.slides.push(slide);
         },
         ensureSlideMobile: function (slide) {
           if (!slide.mobile || typeof slide.mobile !== "object") {
@@ -331,6 +389,151 @@
         },
         clearSlideMobile: function (slide) {
           slide.mobile = { image: null, url: "", image_url: null };
+        },
+        heroCtaType: function (slide) {
+          return (slide.cta && slide.cta.type) || "";
+        },
+        heroCtaLabel: function (slide) {
+          if (!slide.cta || !slide.cta.type) {
+            return "";
+          }
+          if (slide.cta.type === "path") {
+            return slide.cta.href || "";
+          }
+          var parts = [slide.cta.label || ("#" + slide.cta.id)];
+          if (slide.cta.type === "game" && slide.cta.platform) {
+            parts.push("PS" + slide.cta.platform);
+          }
+          return parts.join(" · ");
+        },
+        setHeroCtaType: function (slide, type) {
+          slide._ctaQ = "";
+          slide._ctaHits = [];
+          if (!type) {
+            slide.cta = null;
+            return;
+          }
+          slide.cta = { type: type, id: 0, label: "" };
+          if (type === "game") {
+            slide.cta.platform = 5;
+          }
+        },
+        clearHeroCta: function (slide) {
+          slide.cta = null;
+          slide._ctaQ = "";
+          slide._ctaHits = [];
+        },
+        onHeroCtaSearchInput: function (slide) {
+          var self = this;
+          var type = this.heroCtaType(slide);
+          if (!type || type === "path") {
+            slide._ctaHits = [];
+            return;
+          }
+          var q = (slide._ctaQ || "").trim();
+          if (slide._ctaTimer) {
+            clearTimeout(slide._ctaTimer);
+          }
+          if (q.length < 1) {
+            slide._ctaHits = [];
+            return;
+          }
+          slide._ctaTimer = setTimeout(function () {
+            self.searchHeroCta(slide, q);
+          }, 300);
+        },
+        searchHeroCta: function (slide, q) {
+          var self = this;
+          var type = this.heroCtaType(slide);
+          if (!type || type === "path") {
+            return;
+          }
+          if (type === "category") {
+            var needle = (q || "").toLowerCase();
+            slide._ctaHits = this.categories
+              .filter(function (c) {
+                return (
+                  String(c.name || "")
+                    .toLowerCase()
+                    .indexOf(needle) !== -1 ||
+                  String(c.slug || "")
+                    .toLowerCase()
+                    .indexOf(needle) !== -1
+                );
+              })
+              .slice(0, 8)
+              .map(function (c) {
+                return {
+                  id: c.id,
+                  name: c.name,
+                  slug: c.slug,
+                  kind: "category",
+                };
+              });
+            return;
+          }
+          if (!searchUrl) {
+            self.error = "Missing search URL — refresh the page.";
+            return;
+          }
+          var apiType = type === "game" ? "games" : "products";
+          slide._ctaSearching = true;
+          fetch(
+            searchUrl +
+              "?q=" +
+              encodeURIComponent(q) +
+              "&type=" +
+              encodeURIComponent(apiType) +
+              "&limit=8",
+            {
+              method: "GET",
+              headers: { Accept: "application/json" },
+              credentials: "same-origin",
+            }
+          )
+            .then(function (res) {
+              return res.json();
+            })
+            .then(function (json) {
+              slide._ctaSearching = false;
+              var rows = [];
+              if (json && json.success && Array.isArray(json.data)) {
+                rows = json.data;
+              } else if (json && Array.isArray(json.data)) {
+                rows = json.data;
+              }
+              slide._ctaHits = rows.map(function (hit) {
+                return {
+                  id: hit.id,
+                  name: hit.name || hit.title || "",
+                  slug: hit.slug || null,
+                  platform: hit.platform != null ? String(hit.platform) : null,
+                  kind: hit.kind || type,
+                };
+              });
+            })
+            .catch(function () {
+              slide._ctaSearching = false;
+              slide._ctaHits = [];
+              self.error = "Search failed.";
+            });
+        },
+        pickHeroCtaHit: function (slide, hit) {
+          var type = this.heroCtaType(slide) || hit.kind || "product";
+          if (type === "games") {
+            type = "game";
+          }
+          slide.cta = {
+            type: type,
+            id: parseInt(hit.id, 10) || 0,
+            label: hit.name || "",
+          };
+          if (type === "game") {
+            var p = parseInt(hit.platform, 10);
+            slide.cta.platform = p === 4 || p === 5 ? p : 5;
+          }
+          slide._ctaQ = "";
+          slide._ctaHits = [];
         },
         removeSlide: function (section, index) {
           section.settings.slides.splice(index, 1);
@@ -732,7 +935,47 @@
                           >Clear mobile</button>
                         </div>
                       </div>
-                      <input class="form-control input-sm" v-model="slide.href" placeholder="Link path e.g. /products" />
+                      <label class="sf-hp-field-label">Shop now CTA</label>
+                      <p class="help-block" style="margin-top:0;">
+                        Link each slide to a product, category, or digital game. Leave empty to hide the button.
+                      </p>
+                      <select
+                        class="form-control input-sm"
+                        style="max-width:220px;margin-bottom:6px;"
+                        :value="heroCtaType(slide)"
+                        @change="setHeroCtaType(slide, $event.target.value)"
+                      >
+                        <option value="">None</option>
+                        <option value="product">Product</option>
+                        <option value="category">Category</option>
+                        <option value="game">Digital game</option>
+                        <option v-if="heroCtaType(slide) === 'path'" value="path">Legacy path</option>
+                      </select>
+                      <div v-if="heroCtaType(slide) === 'path'" class="sf-hp-cta-selected">
+                        <span class="text-muted">{{ heroCtaLabel(slide) }}</span>
+                        <button type="button" class="btn btn-default btn-xs" @click="clearHeroCta(slide)">Clear</button>
+                      </div>
+                      <div v-else-if="heroCtaType(slide)" class="sf-hp-cta-picker">
+                        <div v-if="slide.cta && slide.cta.id" class="sf-hp-cta-selected">
+                          <strong>{{ heroCtaLabel(slide) }}</strong>
+                          <button type="button" class="btn btn-default btn-xs" @click="clearHeroCta(slide)">Clear</button>
+                        </div>
+                        <input
+                          class="form-control input-sm"
+                          v-model="slide._ctaQ"
+                          :placeholder="heroCtaType(slide) === 'category' ? 'Filter categories…' : 'Search…'"
+                          @input="onHeroCtaSearchInput(slide)"
+                        />
+                        <p v-if="slide._ctaSearching" class="help-block" style="margin:4px 0 0;">Searching…</p>
+                        <ul v-if="slide._ctaHits && slide._ctaHits.length" class="sf-hp-cta-hits">
+                          <li v-for="hit in slide._ctaHits" :key="hit.kind + '-' + hit.id + '-' + (hit.platform || '')">
+                            <button type="button" class="btn btn-link btn-xs" @click="pickHeroCtaHit(slide, hit)">
+                              {{ hit.name }}
+                              <span v-if="hit.platform" class="text-muted"> · PS{{ hit.platform }}</span>
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
                       <input class="form-control input-sm" v-model="slide.kicker.en" placeholder="Kicker (EN)" />
                       <input class="form-control input-sm" v-model="slide.kicker.ar" placeholder="Kicker (AR)" dir="rtl" />
                       <input class="form-control input-sm" v-model="slide.title.en" placeholder="Title (EN)" />

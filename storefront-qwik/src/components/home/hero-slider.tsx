@@ -42,6 +42,7 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
 
   const activeIndex = index.value;
   const slide = slides[activeIndex] ?? slides[0];
+  const ctaHref = (slide.cta?.href || slide.href || "").trim();
 
   return (
     <section
@@ -83,11 +84,13 @@ export const HeroSlider = component$<HeroSliderProps>(({ slides }) => {
       <div class="home-hero-slider__content">
         <p class="home-hero-slider__kicker">{slide.kicker}</p>
         <h1 class="home-hero-slider__title">{slide.title}</h1>
-        <div class="home-hero-slider__actions">
-          <Link href={localePath(locale, slide.href)} class="btn btn-primary home-hero-slider__btn">
-            {tStatic(locale, "home.shopNow")}
-          </Link>
-        </div>
+        {ctaHref ? (
+          <div class="home-hero-slider__actions">
+            <Link href={localePath(locale, ctaHref)} class="btn btn-primary home-hero-slider__btn">
+              {tStatic(locale, "home.shopNow")}
+            </Link>
+          </div>
+        ) : null}
       </div>
       <div class="home-hero-slider__dots">
         {slides.map((item, i) => (

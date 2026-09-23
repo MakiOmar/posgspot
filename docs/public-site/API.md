@@ -131,7 +131,7 @@ Returns `{ sections: [{ id, type, settings }] }` for **enabled** sections only (
 | type | settings (presented) |
 |------|----------------------|
 | *(all types)* | Section row also has `layout_width`: `boxed` (default) \| `full` (viewport width with side margins) |
-| `hero_slider` | `slides[]` → `{ id, image_url, image_mobile_url, href, kicker, title }` — `image_mobile_url` is null when unset; clients fall back to `image_url` below 1024px |
+| `hero_slider` | `slides[]` → `{ id, image_url, image_mobile_url, cta, href, kicker, title }` — `cta` is `{ type: product\|category\|game\|path, id, slug, platform, href, label }` or `null` (hide Shop now). `href` aliases `cta.href` for one-release BWC. `image_mobile_url` is null when unset; clients fall back to `image_url` below 1024px. POS builder picks product/category/game (no free-text link); legacy path CTAs migrate from old `href`. |
 | `promo_tiles` | `count` (1–50, **total unique tiles**) + presented `tiles[]` → `{ id, image_url, href, label, game_id, platform }` from Accounts featured digital games (PS5 preferred, then PS4; one tile per game id). `href` is `/games/{id}?platform=4\|5`. Empty when digital catalog off or Accounts fails. |
 | `video` | `source` (`self`\|`youtube`\|`vimeo`), `url`, `poster` (self only), `title`, `embed_url` (youtube/vimeo) |
 | `trust_badges` | `items[]` → `{ id, icon_kind (image\|svg), icon_url, icon_color, title, description }` (icons are media URLs only; no inline `svg_markup` in API). Qwik inlines SVG via sanitized fetch + `currentColor` / `icon_color` (`RemoteSvg`); rasters stay `<img>`. |
