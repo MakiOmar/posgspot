@@ -447,7 +447,8 @@ class AccountsApi extends Controller
                 (int) $business_id,
                 $validated['kind'],
                 $validated['items'],
-                $validated['code'] ?? null
+                $validated['code'] ?? null,
+                (bool) ($validated['only_existing'] ?? false)
             );
 
             return response()->json(['success' => true, 'items' => $items]);

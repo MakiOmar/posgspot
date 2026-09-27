@@ -37,9 +37,10 @@ class AccountsCatalogService
 
     /**
      * @param  array<int, array{sku:string,name:string,price:float|int|string,active?:bool}>  $items
+     * @param  bool  $onlyExisting  Update matching SKUs only (used to hide a deleted game's offers).
      * @return list<array{sku:string,product_id:int,variation_id:int,active:bool}>
      */
-    public function upsert(int $businessId, string $kind, array $items, ?string $code = null): array
+    public function upsert(int $businessId, string $kind, array $items, ?string $code = null, bool $onlyExisting = false): array
     {
         $business = Business::with('owner')->findOrFail($businessId);
         $ownerId = (int) ($business->owner->id ?? 0);
@@ -54,6 +55,9 @@ class AccountsCatalogService
         $results = [];
         foreach ($items as $item) {
             $sku = (string) $item['sku'];
+            if ($onlyExisting && ! Product::where('business_id', $businessId)->where('sku', $sku)->exists()) {
+                continue;
+            }
             // Serialise per SKU across workers; the row lock below covers the same DB connection.
             $results[] = Cache::lock('accounts-catalog:'.$businessId.':'.$sku, 30)->block(10, function () use (
                 $businessId, $item, $sku, $ownerId, $unitId, $categoryId, $locationIds, $code

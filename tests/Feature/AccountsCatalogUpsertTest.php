@@ -113,6 +113,24 @@ class AccountsCatalogUpsertTest extends TestCase
         $this->assertSame('Clash Offline PS4 (CLX)', Product::find($result[0]['product_id'])->name);
     }
 
+    public function test_only_existing_updates_linked_products_and_never_creates(): void
+    {
+        $service = app(AccountsCatalogService::class);
+        $linked = $service->upsert(1, 'game', [
+            ['sku' => 'ACCOUNTS-GAME-990006-PS5-PRIMARY', 'name' => 'Deleted Primary PS5', 'price' => 500],
+        ])[0];
+
+        $result = $service->upsert(1, 'game', [
+            ['sku' => 'ACCOUNTS-GAME-990006-PS5-PRIMARY', 'name' => 'Deleted Primary PS5', 'price' => 500, 'active' => false],
+            ['sku' => 'ACCOUNTS-GAME-990006-PS5-SECONDARY', 'name' => 'Deleted Secondary PS5', 'price' => 400, 'active' => false],
+        ], null, true);
+
+        $this->assertCount(1, $result);
+        $this->assertSame($linked['product_id'], $result[0]['product_id']);
+        $this->assertSame(1, (int) Product::find($linked['product_id'])->is_inactive);
+        $this->assertSame(0, Product::where('business_id', 1)->where('sku', 'ACCOUNTS-GAME-990006-PS5-SECONDARY')->count());
+    }
+
     public function test_rejects_non_accounts_sku_and_other_business(): void
     {
         Passport::actingAs($this->owner, [], 'api');

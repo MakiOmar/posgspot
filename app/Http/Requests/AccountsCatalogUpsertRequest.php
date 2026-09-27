@@ -21,6 +21,7 @@ class AccountsCatalogUpsertRequest extends FormRequest
         return [
             'kind' => 'required|in:game,card',
             'code' => 'nullable|string|max:64',
+            'only_existing' => 'sometimes|boolean',
             'items' => 'required|array|min:1|max:32',
             'items.*.sku' => ['required', 'string', 'max:64', 'distinct', 'regex:/^ACCOUNTS-(GAME|CARD)-[A-Z0-9-]+$/'],
             'items.*.name' => 'required|string|max:191',
