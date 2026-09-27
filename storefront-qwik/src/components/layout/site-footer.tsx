@@ -43,12 +43,17 @@ function whatsappHref(raw: string): string {
   return digits ? `https://wa.me/${digits}` : raw;
 }
 
-/** Site footer: brand (logo + slogan + social), then up to 3 editable menu columns. */
+/** Must match StorefrontSettingService::FOOTER_MAX_COLUMNS (and the .footer-grid columns in CSS). */
+const FOOTER_MAX_COLUMNS = 4;
+
+/** Site footer: brand (logo + slogan + social), then up to 4 editable menu columns. */
 export const SiteFooter = component$<SiteFooterProps>(({ settings }) => {
   const year = new Date().getFullYear();
   const { locale } = useI18n();
   const footer = settings.footer;
-  const columns = (footer?.columns ?? []).slice(0, 3);
+  const columns = (footer?.columns ?? [])
+    .filter((col) => col.links.length > 0)
+    .slice(0, FOOTER_MAX_COLUMNS);
   const social = settings.social || {};
   const whatsapp = settings.contact?.whatsapp?.trim() || "";
   const logoUrl = (settings.logo_url || "").trim();

@@ -436,7 +436,7 @@ class SettingsApiService
     }
 
     /**
-     * Public footer menus with locale-resolved titles/labels (max 3 columns).
+     * Public footer menus with locale-resolved titles/labels (max 4 columns).
      *
      * @return array{
      *   contact_title: string,
@@ -445,15 +445,13 @@ class SettingsApiService
      */
     private function footerPayload(array $settings, string $locale): array
     {
-        $footer = $this->storefrontSettings->ensureFaqsQuickLink(
-            $this->storefrontSettings->ensureSellToUsFooterLink(
-                $this->storefrontSettings->ensureCustomBundleFooterLink(
-                    $this->storefrontSettings->ensureDeleteAccountFooterLink(
-                        $this->storefrontSettings->normalizeFooter($settings['footer'] ?? null)
-                    )
-                )
-            )
-        );
+        $sf = $this->storefrontSettings;
+        $footer = $sf->normalizeFooter($settings['footer'] ?? null);
+        $footer = $sf->stripDisabledFeatureFooterLinks($footer);
+        $footer = $sf->ensureDeleteAccountFooterLink($footer);
+        $footer = $sf->ensureCustomBundleFooterLink($footer);
+        $footer = $sf->ensureSellToUsFooterLink($footer);
+        $footer = $sf->ensureFaqsQuickLink($footer);
         $columns = [];
         foreach ($footer['columns'] as $col) {
             if (! is_array($col)) {

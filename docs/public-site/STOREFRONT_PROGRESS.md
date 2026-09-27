@@ -156,8 +156,8 @@
 | Account link / name | ✅ | |
 | Language switcher AR/EN | ✅ | Flag dropdown; `LanguageSwitcher` in header + maintenance page |
 | Wishlist | ✅ | Header heart + badge; guest localStorage; merge on login; PLP/PDP toggle; `/wishlist` page |
-| Footer contact, social, shop links | ✅ | 4-col footer: brand (logo + slogan + social/WhatsApp); 3 editable menus from `settings.footer`; branches on `/stores` |
-| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; Customer menu includes Delete Account → `/delete-account`, Custom Bundle → `/custom-bundle`, Sell to Us → `/sell-to-us` when enabled; newsletter + `payment_icons` in bottom bar |
+| Footer contact, social, shop links | ✅ | Brand col (logo + slogan + social/WhatsApp) + up to 4 editable menus from `settings.footer` (Shop / My Account / Help / Company); branches on `/stores` |
+| Footer policies, newsletter, payment icons | ✅ | Menus editable in Settings → Footer; My Account gets Delete Account, Help gets FAQs, Shop gets Build Your Bundle / Sell to Us when enabled; duplicate URLs dropped; `storefront:reset-footer` reseeds; newsletter + `payment_icons` in bottom bar |
 | Cookie / consent banner | ✅ | Client localStorage; Accept all / Necessary only; privacy link; `cookie-consent-banner.tsx` |
 
 ---
@@ -179,7 +179,7 @@
 | Mobile logo (upload / URL) | ✅ | Settings → Appearance → Mobile logo; public `logo_mobile_url`; header ≤1023px; falls back to desktop logo |
 | Shop menu Physical builder | ✅ | Settings → Shop menu; nestable drag-drop + drag-right/left indent/outdent (max depth 5); public `shop_menu.physical`; Qwik + Expo |
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
-| Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
+| Footer menus (4 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; feature links auto-ensured/stripped; reseed via `php artisan storefront:reset-footer [--business_id=] [--force]` |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
 | Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf` (auto or hand-picked products), bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
@@ -255,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-27 | Footer reorganized: default Shop / My Account / Help / Company (up to 4 menus); URLs deduped across columns; bundle/sell links stripped when disabled; `storefront:reset-footer` reseed command. |
 | 2026-09-27 | `category_shelf`: `product_mode` auto/selected + ordered `product_ids` (max 24) picked in builder from the chosen category; `GET /products?ids=` (keeps order); Qwik/Expo use it. |
 | 2026-09-23 | Hero slide CTA: structured `cta` (product/category/game; legacy path); builder typeahead; Qwik/Expo hide Shop now when unset. |
 | 2026-09-23 | Promo tiles section heading uses first featured game title (i18n `promoTitle` fallback only). |

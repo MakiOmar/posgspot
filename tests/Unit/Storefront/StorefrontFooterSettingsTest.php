@@ -4,6 +4,7 @@ namespace Tests\Unit\Storefront;
 
 use App\Services\Storefront\SettingsApiService;
 use App\Services\Storefront\StorefrontSettingService;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
@@ -12,6 +13,8 @@ use Tests\TestCase;
  */
 class StorefrontFooterSettingsTest extends TestCase
 {
+    use DatabaseTransactions;
+
     protected int $businessId = 1;
 
     private StorefrontSettingService $settings;
@@ -32,7 +35,7 @@ class StorefrontFooterSettingsTest extends TestCase
     public function test_normalize_footer_caps_columns_and_links(): void
     {
         $columns = [];
-        for ($c = 0; $c < 5; $c++) {
+        for ($c = 0; $c < 6; $c++) {
             $links = [];
             for ($l = 0; $l < 15; $l++) {
                 $links[] = [
@@ -53,9 +56,61 @@ class StorefrontFooterSettingsTest extends TestCase
 
         $this->assertSame('Reach us', $normalized['contact_title']['en']);
         $this->assertSame('تواصل', $normalized['contact_title']['ar']);
-        $this->assertCount(3, $normalized['columns']);
-        $this->assertCount(12, $normalized['columns'][0]['links']);
+        $this->assertCount(StorefrontSettingService::FOOTER_MAX_COLUMNS, $normalized['columns']);
+        $this->assertCount(StorefrontSettingService::FOOTER_MAX_LINKS, $normalized['columns'][0]['links']);
         $this->assertSame('L0-0', $normalized['columns'][0]['links'][0]['label']['en']);
+    }
+
+    public function test_normalize_footer_drops_duplicate_urls_across_columns(): void
+    {
+        $normalized = $this->settings->normalizeFooter([
+            'columns' => [
+                [
+                    'title' => ['en' => 'A', 'ar' => ''],
+                    'links' => [
+                        ['label' => ['en' => 'FAQs', 'ar' => ''], 'url' => '/faqs'],
+                        ['label' => ['en' => 'FAQ again', 'ar' => ''], 'url' => '/FAQs/'],
+                    ],
+                ],
+                [
+                    'title' => ['en' => 'B', 'ar' => ''],
+                    'links' => [
+                        ['label' => ['en' => 'FAQ dup', 'ar' => ''], 'url' => '/faqs'],
+                        ['label' => ['en' => 'Contact', 'ar' => ''], 'url' => '/contact'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertCount(1, $normalized['columns'][0]['links']);
+        $this->assertSame('FAQs', $normalized['columns'][0]['links'][0]['label']['en']);
+        $this->assertCount(1, $normalized['columns'][1]['links']);
+        $this->assertSame('/contact', $normalized['columns'][1]['links'][0]['url']);
+    }
+
+    public function test_disabled_feature_links_are_stripped_from_footer(): void
+    {
+        config([
+            'storefront.custom_bundle.enabled' => false,
+            'storefront.sell_to_us.enabled' => false,
+        ]);
+
+        $footer = $this->settings->stripDisabledFeatureFooterLinks([
+            'columns' => [
+                [
+                    'id' => 'col_shop',
+                    'title' => ['en' => 'Shop', 'ar' => ''],
+                    'links' => [
+                        ['id' => 'a', 'label' => ['en' => 'Bundle', 'ar' => ''], 'url' => '/custom-bundle'],
+                        ['id' => 'b', 'label' => ['en' => 'Sell', 'ar' => ''], 'url' => '/sell-to-us'],
+                        ['id' => 'c', 'label' => ['en' => 'Search', 'ar' => ''], 'url' => '/search'],
+                    ],
+                ],
+            ],
+        ]);
+
+        $urls = array_column($footer['columns'][0]['links'], 'url');
+        $this->assertSame(['/search'], $urls);
     }
 
     public function test_public_settings_resolves_footer_locale(): void
@@ -95,11 +150,58 @@ class StorefrontFooterSettingsTest extends TestCase
         $this->assertSame('مركز المساعدة', $ar['footer']['columns'][0]['links'][0]['label']);
     }
 
-    public function test_defaults_include_three_footer_columns(): void
+    public function test_defaults_include_four_footer_columns(): void
     {
         $defaults = $this->settings->defaults();
         $this->assertArrayHasKey('footer', $defaults);
-        $this->assertCount(3, $defaults['footer']['columns']);
-        $this->assertNotEmpty($defaults['footer']['columns'][0]['links']);
+        $this->assertSame(
+            ['col_shop', 'col_account', 'col_help', 'col_company'],
+            array_column($defaults['footer']['columns'], 'id')
+        );
+        foreach ($defaults['footer']['columns'] as $column) {
+            $this->assertNotEmpty($column['links']);
+        }
+    }
+
+    public function test_save_footer_keeps_other_settings(): void
+    {
+        $this->settings->save($this->businessId, ['cod_enabled' => false]);
+        Cache::forget('storefront_settings_'.$this->businessId);
+        $before = $this->settings->get($this->businessId);
+
+        $this->settings->saveFooter($this->businessId, $this->settings->defaultFooter());
+
+        $after = $this->settings->get($this->businessId);
+        $this->assertFalse($after['cod_enabled']);
+        $this->assertSame(
+            ['col_shop', 'col_account', 'col_help', 'col_company'],
+            array_column($after['footer']['columns'], 'id')
+        );
+        unset($before['footer'], $after['footer']);
+        $this->assertSame($before, $after);
+    }
+
+    public function test_reset_footer_command_reseeds_defaults(): void
+    {
+        $this->settings->save($this->businessId, [
+            'footer' => [
+                'columns' => [
+                    [
+                        'id' => 'col_old',
+                        'title' => ['en' => 'Old', 'ar' => ''],
+                        'links' => [['label' => ['en' => 'X', 'ar' => ''], 'url' => '/x']],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->artisan('storefront:reset-footer', [
+            '--business_id' => $this->businessId,
+            '--force' => true,
+        ])->assertSuccessful();
+
+        Cache::forget('storefront_settings_'.$this->businessId);
+        $ids = array_column($this->settings->get($this->businessId)['footer']['columns'], 'id');
+        $this->assertSame(['col_shop', 'col_account', 'col_help', 'col_company'], $ids);
     }
 }

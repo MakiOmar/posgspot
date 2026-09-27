@@ -954,25 +954,27 @@
                 </div>
             </div>
 
-            {{-- Footer: contact column title + 3 editable link menus --}}
+            {{-- Footer: contact column title + editable link menus (FOOTER_MAX_COLUMNS) --}}
             <div class="tab-pane" id="tab_footer">
                 @php
+                    $footerMaxColumns = \App\Services\Storefront\StorefrontSettingService::FOOTER_MAX_COLUMNS;
                     $footerSettings = app(\App\Services\Storefront\StorefrontSettingService::class)
                         ->normalizeFooter($settings['footer'] ?? null);
                     $footerColumns = $footerSettings['columns'] ?? [];
-                    while (count($footerColumns) < 3) {
+                    while (count($footerColumns) < $footerMaxColumns) {
                         $footerColumns[] = [
                             'id' => 'col_'.(count($footerColumns) + 1),
                             'title' => ['en' => '', 'ar' => ''],
                             'links' => [],
                         ];
                     }
-                    $footerColumns = array_slice($footerColumns, 0, 3);
+                    $footerColumns = array_slice($footerColumns, 0, $footerMaxColumns);
                 @endphp
                 <div class="alert alert-info">
-                    Column 1 on the storefront is <strong>business locations</strong> (Storefront display address)
-                    plus social links from the Contact tab. Configure the contact heading and up to
-                    <strong>3 link menus</strong> here. Paths like <code>/account</code> are locale-prefixed automatically.
+                    The first storefront footer column is the <strong>brand</strong> (logo, slogan, social links from the Contact tab).
+                    Configure up to <strong>{{ $footerMaxColumns }} link menus</strong> here; empty menus are hidden.
+                    Paths like <code>/account</code> are locale-prefixed automatically, and a URL repeated in another menu is dropped on save.
+                    Build Your Bundle and Sell to Us are added automatically when those modules are enabled.
                 </div>
                 <div class="row">
                     <div class="col-md-6">

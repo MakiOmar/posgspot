@@ -23,6 +23,11 @@ class StorefrontSettingService
     /** Reject homepage section POST bodies larger than this (library paths are tiny). */
     public const MAX_HOMEPAGE_SECTIONS_POST_BYTES = 512_000;
 
+    /** Footer link menus beside the brand column (POS editor, API, and Qwik grid agree on this). */
+    public const FOOTER_MAX_COLUMNS = 4;
+
+    public const FOOTER_MAX_LINKS = 12;
+
     public function defaults(): array
     {
         return [
@@ -1702,6 +1707,28 @@ class StorefrontSettingService
         return $merged;
     }
 
+    /**
+     * Replace only the footer menus. `save()` merges onto code defaults, so a partial
+     * payload there would reset every other setting; this keeps the stored blob intact.
+     *
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function saveFooter(int $businessId, array $footer): array
+    {
+        $normalized = $this->normalizeFooter($footer);
+        $stored = $this->getRaw($businessId);
+        $stored['footer'] = $normalized;
+
+        $payload = json_encode($stored, JSON_UNESCAPED_UNICODE);
+        if (! is_string($payload)) {
+            throw new \RuntimeException('Could not encode storefront settings.');
+        }
+        $this->writeValueJsonString($businessId, $payload);
+        Cache::forget(self::CACHE_KEY.$businessId);
+
+        return $normalized;
+    }
+
     private function getRaw(int $businessId): array
     {
         // Intentionally bypasses cache so secret-merge paths see the latest DB row.
@@ -1725,37 +1752,42 @@ class StorefrontSettingService
                 'en' => 'Contact Info',
                 'ar' => 'معلومات التواصل',
             ],
+            // Feature-gated links (/custom-bundle, /sell-to-us) are injected into Shop at present time.
             'columns' => [
                 [
-                    'id' => 'col_customer',
-                    'title' => ['en' => 'Customer', 'ar' => 'العملاء'],
+                    'id' => 'col_shop',
+                    'title' => ['en' => 'Shop', 'ar' => 'تسوق'],
+                    'links' => [
+                        ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
+                        ['id' => 'lnk_search', 'label' => ['en' => 'Search', 'ar' => 'بحث'], 'url' => '/search'],
+                    ],
+                ],
+                [
+                    'id' => 'col_account',
+                    'title' => ['en' => 'My Account', 'ar' => 'حسابي'],
                     'links' => [
                         ['id' => 'lnk_account', 'label' => ['en' => 'My Account', 'ar' => 'حسابي'], 'url' => '/account'],
-                        ['id' => 'lnk_orders', 'label' => ['en' => 'Track My Order', 'ar' => 'تتبع طلبي'], 'url' => '/account/orders'],
-                        ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
+                        ['id' => 'lnk_orders', 'label' => ['en' => 'My Orders', 'ar' => 'طلباتي'], 'url' => '/account/orders'],
+                        ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/wishlist'],
                         ['id' => 'lnk_delete_account', 'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'], 'url' => '/delete-account'],
-                        ['id' => 'lnk_custom_bundle', 'label' => ['en' => 'Build Your Bundle', 'ar' => 'اصنع باقتك'], 'url' => '/custom-bundle'],
-                        ['id' => 'lnk_sell_to_us', 'label' => ['en' => 'Sell to Us', 'ar' => 'بع لنا'], 'url' => '/sell-to-us'],
-                        ['id' => 'lnk_gifts', 'label' => ['en' => 'Gift Cards', 'ar' => 'بطاقات الهدايا'], 'url' => '/gift-cards'],
-                        ['id' => 'lnk_wishlist', 'label' => ['en' => 'Wish List', 'ar' => 'المفضلة'], 'url' => '/account/wishlist'],
-                        ['id' => 'lnk_newsletter', 'label' => ['en' => 'Newsletter', 'ar' => 'النشرة البريدية'], 'url' => '/#newsletter'],
                     ],
                 ],
                 [
-                    'id' => 'col_about',
-                    'title' => ['en' => 'About Us', 'ar' => 'من نحن'],
-                    'links' => [
-                        ['id' => 'lnk_company', 'label' => ['en' => 'Company Info', 'ar' => 'عن الشركة'], 'url' => '/about'],
-                        ['id' => 'lnk_stores', 'label' => ['en' => 'Our Stores', 'ar' => 'فروعنا'], 'url' => '/stores'],
-                        ['id' => 'lnk_reviews', 'label' => ['en' => 'Reviews', 'ar' => 'التقييمات'], 'url' => '/products'],
-                    ],
-                ],
-                [
-                    'id' => 'col_quick',
-                    'title' => ['en' => 'Quick Links', 'ar' => 'روابط سريعة'],
+                    'id' => 'col_help',
+                    'title' => ['en' => 'Help', 'ar' => 'المساعدة'],
                     'links' => [
                         ['id' => 'lnk_faq', 'label' => ['en' => 'FAQs', 'ar' => 'الأسئلة الشائعة'], 'url' => '/faq'],
-                        ['id' => 'lnk_search', 'label' => ['en' => 'Search', 'ar' => 'بحث'], 'url' => '/search'],
+                        ['id' => 'lnk_contact', 'label' => ['en' => 'Contact Us', 'ar' => 'اتصل بنا'], 'url' => '/contact'],
+                        ['id' => 'lnk_track_order', 'label' => ['en' => 'Track Order', 'ar' => 'تتبع الطلب'], 'url' => '/track-order'],
+                        ['id' => 'lnk_returns', 'label' => ['en' => 'Return Policy', 'ar' => 'سياسة الإرجاع'], 'url' => '/return-policy'],
+                    ],
+                ],
+                [
+                    'id' => 'col_company',
+                    'title' => ['en' => 'Company', 'ar' => 'الشركة'],
+                    'links' => [
+                        ['id' => 'lnk_company', 'label' => ['en' => 'About Us', 'ar' => 'من نحن'], 'url' => '/about'],
+                        ['id' => 'lnk_stores', 'label' => ['en' => 'Our Stores', 'ar' => 'فروعنا'], 'url' => '/stores'],
                         ['id' => 'lnk_terms', 'label' => ['en' => 'Terms of Service', 'ar' => 'الشروط والأحكام'], 'url' => '/terms-and-conditions'],
                         ['id' => 'lnk_privacy', 'label' => ['en' => 'Privacy Policy', 'ar' => 'سياسة الخصوصية'], 'url' => '/privacy-policy'],
                     ],
@@ -1765,7 +1797,7 @@ class StorefrontSettingService
     }
 
     /**
-     * Ensure Customer column exposes /delete-account (App Store / privacy compliance).
+     * Ensure the account column exposes /delete-account (App Store / privacy compliance).
      * No-op when the link already exists by id or URL.
      *
      * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
@@ -1773,58 +1805,17 @@ class StorefrontSettingService
      */
     public function ensureDeleteAccountFooterLink(array $footer): array
     {
-        $linkId = 'lnk_delete_account';
-        $url = '/delete-account';
-        $newLink = [
-            'id' => $linkId,
-            'label' => ['en' => 'Delete Account', 'ar' => 'حذف الحساب'],
-            'url' => $url,
-        ];
-
-        foreach ($footer['columns'] as $col) {
-            if (! is_array($col)) {
-                continue;
-            }
-            foreach ($col['links'] ?? [] as $link) {
-                if (! is_array($link)) {
-                    continue;
-                }
-                $existingId = (string) ($link['id'] ?? '');
-                $existingUrl = trim((string) ($link['url'] ?? ''));
-                if ($existingId === $linkId || $existingUrl === $url) {
-                    return $footer;
-                }
-            }
-        }
-
-        $targetIndex = 0;
-        foreach ($footer['columns'] as $i => $col) {
-            if (is_array($col) && ($col['id'] ?? '') === 'col_customer') {
-                $targetIndex = $i;
-                break;
-            }
-        }
-
-        if (! isset($footer['columns'][$targetIndex]) || ! is_array($footer['columns'][$targetIndex])) {
-            return $footer;
-        }
-
-        $links = array_values($footer['columns'][$targetIndex]['links'] ?? []);
-        if (! is_array($links)) {
-            $links = [];
-        }
-        // Keep within normalizeFooter's 12-link cap.
-        if (count($links) >= 12) {
-            array_pop($links);
-        }
-        $links[] = $newLink;
-        $footer['columns'][$targetIndex]['links'] = $links;
-
-        return $footer;
+        return $this->ensureFooterLinkInColumn(
+            $footer,
+            'lnk_delete_account',
+            '/delete-account',
+            ['en' => 'Delete Account', 'ar' => 'حذف الحساب'],
+            ['col_account', 'col_customer']
+        );
     }
 
     /**
-     * Ensure Customer column exposes /custom-bundle when the feature is enabled.
+     * Ensure the Shop column exposes /custom-bundle when the feature is enabled.
      *
      * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
      * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
@@ -1835,16 +1826,17 @@ class StorefrontSettingService
             return $footer;
         }
 
-        return $this->ensureFooterCustomerLink(
+        return $this->ensureFooterLinkInColumn(
             $footer,
             'lnk_custom_bundle',
             '/custom-bundle',
-            ['en' => 'Build Your Bundle', 'ar' => 'اصنع باقتك']
+            ['en' => 'Build Your Bundle', 'ar' => 'اصنع باقتك'],
+            ['col_shop', 'col_customer']
         );
     }
 
     /**
-     * Ensure Customer column exposes /sell-to-us when trade-in is enabled.
+     * Ensure the Shop column exposes /sell-to-us when trade-in is enabled.
      *
      * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
      * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
@@ -1855,127 +1847,140 @@ class StorefrontSettingService
             return $footer;
         }
 
-        return $this->ensureFooterCustomerLink(
+        return $this->ensureFooterLinkInColumn(
             $footer,
             'lnk_sell_to_us',
             '/sell-to-us',
-            ['en' => 'Sell to Us', 'ar' => 'بع لنا']
+            ['en' => 'Sell to Us', 'ar' => 'بع لنا'],
+            ['col_shop', 'col_customer']
         );
     }
 
     /**
-     * Ensure Quick Links column exposes FAQs (moved out of main nav).
+     * Ensure the Help column exposes FAQs (moved out of main nav).
      *
      * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
      * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
      */
     public function ensureFaqsQuickLink(array $footer): array
     {
-        $linkId = 'lnk_faq';
-        $url = '/faq';
-        $newLink = [
-            'id' => $linkId,
-            'label' => ['en' => 'FAQs', 'ar' => 'الأسئلة الشائعة'],
-            'url' => $url,
-        ];
+        return $this->ensureFooterLinkInColumn(
+            $footer,
+            'lnk_faq',
+            '/faq',
+            ['en' => 'FAQs', 'ar' => 'الأسئلة الشائعة'],
+            ['col_help', 'col_quick'],
+            true
+        );
+    }
 
-        $targetIndex = null;
-        foreach ($footer['columns'] as $i => $col) {
-            if (is_array($col) && ($col['id'] ?? '') === 'col_quick') {
-                $targetIndex = $i;
-                break;
-            }
+    /**
+     * Drop links to feature-gated pages whose module is off (avoids footer 404s).
+     *
+     * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
+     * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
+     */
+    public function stripDisabledFeatureFooterLinks(array $footer): array
+    {
+        $disabled = [];
+        if (! config('storefront.custom_bundle.enabled')) {
+            $disabled[] = '/custom-bundle';
         }
-        if ($targetIndex === null) {
-            $targetIndex = max(0, count($footer['columns']) - 1);
+        if (! config('storefront.sell_to_us.enabled')) {
+            $disabled[] = '/sell-to-us';
         }
-
-        if (! isset($footer['columns'][$targetIndex]) || ! is_array($footer['columns'][$targetIndex])) {
+        if ($disabled === []) {
             return $footer;
         }
 
-        foreach ($footer['columns'][$targetIndex]['links'] ?? [] as $link) {
-            if (! is_array($link)) {
+        foreach ($footer['columns'] as $i => $col) {
+            if (! is_array($col)) {
                 continue;
             }
-            $existingId = (string) ($link['id'] ?? '');
-            $existingUrl = trim((string) ($link['url'] ?? ''));
-            if ($existingId === $linkId || $existingUrl === $url) {
-                return $footer;
-            }
+            $footer['columns'][$i]['links'] = array_values(array_filter(
+                $col['links'] ?? [],
+                fn ($link) => ! is_array($link)
+                    || ! in_array($this->footerUrlKey((string) ($link['url'] ?? '')), $disabled, true)
+            ));
         }
-
-        $links = array_values($footer['columns'][$targetIndex]['links'] ?? []);
-        if (! is_array($links)) {
-            $links = [];
-        }
-        if (count($links) >= 12) {
-            array_pop($links);
-        }
-        array_unshift($links, $newLink);
-        $footer['columns'][$targetIndex]['links'] = $links;
 
         return $footer;
     }
 
     /**
-     * Append a Customer-column footer link when missing (by id or URL).
+     * Add a footer link when missing anywhere (by id or URL). Targets the first existing
+     * column id in `$columnIds` (new ids first, legacy ids as fallback), else the last column.
      *
      * @param  array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}  $footer
      * @param  array{en: string, ar: string}  $label
+     * @param  list<string>  $columnIds
      * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
      */
-    private function ensureFooterCustomerLink(array $footer, string $linkId, string $url, array $label): array
-    {
-        $newLink = [
-            'id' => $linkId,
-            'label' => $label,
-            'url' => $url,
-        ];
-
+    private function ensureFooterLinkInColumn(
+        array $footer,
+        string $linkId,
+        string $url,
+        array $label,
+        array $columnIds,
+        bool $prepend = false
+    ): array {
+        $urlKey = $this->footerUrlKey($url);
         foreach ($footer['columns'] as $col) {
-            if (! is_array($col)) {
-                continue;
-            }
-            foreach ($col['links'] ?? [] as $link) {
+            foreach (is_array($col) ? ($col['links'] ?? []) : [] as $link) {
                 if (! is_array($link)) {
                     continue;
                 }
-                $existingId = (string) ($link['id'] ?? '');
-                $existingUrl = trim((string) ($link['url'] ?? ''));
-                if ($existingId === $linkId || $existingUrl === $url) {
+                if ((string) ($link['id'] ?? '') === $linkId
+                    || $this->footerUrlKey((string) ($link['url'] ?? '')) === $urlKey) {
                     return $footer;
                 }
             }
         }
 
-        $targetIndex = 0;
-        foreach ($footer['columns'] as $i => $col) {
-            if (is_array($col) && ($col['id'] ?? '') === 'col_customer') {
-                $targetIndex = $i;
-                break;
+        $targetIndex = null;
+        foreach ($columnIds as $wanted) {
+            foreach ($footer['columns'] as $i => $col) {
+                if (is_array($col) && ($col['id'] ?? '') === $wanted) {
+                    $targetIndex = $i;
+                    break 2;
+                }
             }
         }
+        $targetIndex ??= count($footer['columns']) - 1;
 
-        if (! isset($footer['columns'][$targetIndex]) || ! is_array($footer['columns'][$targetIndex])) {
+        if ($targetIndex < 0 || ! is_array($footer['columns'][$targetIndex] ?? null)) {
             return $footer;
         }
 
         $links = array_values($footer['columns'][$targetIndex]['links'] ?? []);
-        if (! is_array($links)) {
-            $links = [];
-        }
-        if (count($links) >= 12) {
+        // Keep within normalizeFooter's per-column cap.
+        if (count($links) >= self::FOOTER_MAX_LINKS) {
             array_pop($links);
         }
-        $links[] = $newLink;
+        $newLink = ['id' => $linkId, 'label' => $label, 'url' => $url];
+        if ($prepend) {
+            array_unshift($links, $newLink);
+        } else {
+            $links[] = $newLink;
+        }
         $footer['columns'][$targetIndex]['links'] = $links;
 
         return $footer;
     }
 
     /**
-     * Normalize footer menus for persistence (max 3 columns, 12 links each).
+     * Comparable form of a footer URL (case/trailing-slash insensitive) for dedupe.
+     */
+    private function footerUrlKey(string $url): string
+    {
+        $key = strtolower(trim($url));
+
+        return $key === '/' ? $key : rtrim($key, '/');
+    }
+
+    /**
+     * Normalize footer menus for persistence (max 4 columns, 12 links each).
+     * Links repeating an earlier URL anywhere in the footer are dropped.
      *
      * @param  mixed  $footer
      * @return array{contact_title: array{en: string, ar: string}, columns: list<array<string, mixed>>}
@@ -2001,7 +2006,8 @@ class StorefrontSettingService
         }
 
         $columns = [];
-        foreach (array_slice(array_values($columnsIn), 0, 3) as $col) {
+        $seenUrls = [];
+        foreach (array_slice(array_values($columnsIn), 0, self::FOOTER_MAX_COLUMNS) as $col) {
             if (! is_array($col)) {
                 continue;
             }
@@ -2021,7 +2027,7 @@ class StorefrontSettingService
             }
 
             $links = [];
-            foreach (array_slice(array_values($linksIn), 0, 12) as $link) {
+            foreach (array_slice(array_values($linksIn), 0, self::FOOTER_MAX_LINKS) as $link) {
                 if (! is_array($link)) {
                     continue;
                 }
@@ -2041,6 +2047,11 @@ class StorefrontSettingService
                 if ($url === '') {
                     continue;
                 }
+                $urlKey = $this->footerUrlKey($url);
+                if (isset($seenUrls[$urlKey])) {
+                    continue;
+                }
+                $seenUrls[$urlKey] = true;
                 $linkId = trim((string) ($link['id'] ?? ''));
                 if ($linkId === '' || strlen($linkId) > 40) {
                     $linkId = 'lnk_'.substr(md5($labelEn.'|'.$url.uniqid('', true)), 0, 12);
