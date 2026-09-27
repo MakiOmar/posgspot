@@ -335,9 +335,26 @@ export default component$(() => {
                 {order.lines.map((line, idx) => (
                   <tr key={idx}>
                     <td data-label={tStatic(locale, "account.item")}>
-                      {line.product_name ||
-                        tStatic(locale, "account.productFallback", { id: line.product_id })}
-                      {line.variation_name ? ` — ${line.variation_name}` : ""}
+                      <div class="order-line-item">
+                        {line.image_url ? (
+                          <img
+                            src={line.image_url}
+                            alt=""
+                            class="order-line-item__img"
+                            width={56}
+                            height={56}
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        ) : (
+                          <span class="order-line-item__img order-line-item__img--empty" aria-hidden="true" />
+                        )}
+                        <span>
+                          {line.product_name ||
+                            tStatic(locale, "account.productFallback", { id: line.product_id })}
+                          {line.variation_name ? ` — ${line.variation_name}` : ""}
+                        </span>
+                      </div>
                     </td>
                     <td data-label={tStatic(locale, "account.qty")}>{line.quantity}</td>
                     <td data-label={tStatic(locale, "account.unitPrice")}>

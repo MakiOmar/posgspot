@@ -4243,6 +4243,15 @@ html[dir="rtl"] .header-search-type {
   gap: 1rem;
 }
 
+/* Single-field forms (e.g. promo code) — keep the input and button compact. */
+.account-form--narrow {
+  max-width: 26rem;
+}
+
+.account-form--narrow .btn {
+  align-self: flex-start;
+}
+
 .account-form .btn-primary,
 .form-actions .btn-primary {
   box-shadow: 0 2px 14px color-mix(in srgb, var(--gs-accent) 32%, transparent);
@@ -4948,6 +4957,26 @@ html[dir="rtl"] .header-search-type {
 .account-table th {
   color: var(--gs-muted);
   font-weight: 600;
+}
+
+.order-line-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.order-line-item__img {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--gs-radius);
+  border: 1px solid var(--gs-border);
+  background: #0a0a0a;
+}
+
+.order-line-item__img--empty {
+  display: inline-block;
 }
 
 .status-pill {

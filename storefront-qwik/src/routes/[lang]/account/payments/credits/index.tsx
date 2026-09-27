@@ -121,7 +121,7 @@ export default component$(() => {
       ) : null}
 
       {couponSub.value === "add" ? (
-        <form class="account-form" preventdefault:submit onSubmit$={saveCoupon$}>
+        <form class="account-form account-form--narrow" preventdefault:submit onSubmit$={saveCoupon$}>
           <label for="wallet_code">{tStatic(locale, "account.couponCode")}</label>
           <input
             id="wallet_code"
