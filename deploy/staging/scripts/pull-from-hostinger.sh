@@ -53,7 +53,7 @@ sshpass -e scp -P "$HOSTINGER_PORT" -o StrictHostKeyChecking=no -o UserKnownHost
 
 echo "==> Rsync POS code"
 rsync -az --delete \
-  --exclude vendor --exclude node_modules --exclude .git \
+  --exclude /vendor --exclude /node_modules --exclude .git \
   --exclude public/uploads --exclude storage \
   --exclude Dockerfile --exclude .dockerignore --exclude .env \
   -e "$RSYNC_RSH" \
@@ -68,7 +68,7 @@ rsync -az -e "$RSYNC_RSH" \
 
 echo "==> Rsync Accounts code"
 rsync -az --delete \
-  --exclude vendor --exclude node_modules --exclude .git --exclude storage \
+  --exclude /vendor --exclude /node_modules --exclude .git --exclude storage \
   --exclude Dockerfile --exclude .dockerignore --exclude .env \
   -e "$RSYNC_RSH" \
   "${HOSTINGER_USER}@${HOSTINGER_HOST}:${ACC_REMOTE}/" "$STAGING_ROOT/accounts/"

@@ -30,6 +30,7 @@ cp -a "$ACC_ENV" "$ACC_ENV.bak"
 
 # POS
 rewrite_kv "$POS_ENV" APP_URL "https://pos.thespotmanagment.io"
+rewrite_kv "$POS_ENV" ASSET_URL "https://pos.thespotmanagment.io"
 rewrite_kv "$POS_ENV" APP_ENV "staging"
 rewrite_kv "$POS_ENV" APP_DEBUG "true"
 rewrite_kv "$POS_ENV" STOREFRONT_URL "https://thespotmanagment.io"
@@ -48,6 +49,7 @@ rewrite_kv "$POS_ENV" CACHE_DRIVER "redis"
 rewrite_kv "$POS_ENV" CACHE_STORE "redis"
 rewrite_kv "$POS_ENV" QUEUE_CONNECTION "database"
 rewrite_kv "$POS_ENV" SESSION_DRIVER "file"
+rewrite_kv "$POS_ENV" SESSION_SECURE_COOKIE "true"
 # Sandbox / disable live side effects
 rewrite_kv "$POS_ENV" MAIL_MAILER "log"
 rewrite_kv "$POS_ENV" MAIL_HOST "localhost"
@@ -65,6 +67,7 @@ done
 
 # Accounts
 rewrite_kv "$ACC_ENV" APP_URL "https://accounts.thespotmanagment.io"
+rewrite_kv "$ACC_ENV" ASSET_URL "https://accounts.thespotmanagment.io"
 rewrite_kv "$ACC_ENV" APP_ENV "staging"
 rewrite_kv "$ACC_ENV" APP_DEBUG "true"
 rewrite_kv "$ACC_ENV" DB_HOST "mysql"
@@ -79,6 +82,7 @@ rewrite_kv "$ACC_ENV" REDIS_CACHE_DB "1"
 rewrite_kv "$ACC_ENV" CACHE_DRIVER "redis"
 rewrite_kv "$ACC_ENV" CACHE_STORE "redis"
 rewrite_kv "$ACC_ENV" QUEUE_CONNECTION "database"
+rewrite_kv "$ACC_ENV" SESSION_SECURE_COOKIE "true"
 rewrite_kv "$ACC_ENV" MAIL_MAILER "log"
 
 echo "Staging env remapped. Backups: *.env.bak"

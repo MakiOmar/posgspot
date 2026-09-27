@@ -120,6 +120,24 @@ k6 run -e SCENARIO=stress -e BASE_URL=https://pos.thespotmanagment.io/api/storef
 
 Staging POS uses Redis cache (`CACHE_DRIVER=redis`, `REDIS_HOST=redis`). For capacity runs, `STOREFRONT_RATE_LIMIT_READ` may be raised temporarily (e.g. 6000) so per-IP throttle does not dominate results.
 
+### POS API capacity (PHP-FPM)
+
+Default `serversideup/php` FPM `max_children` is **20** — that saturates under k6 stress before RAM does. Staging compose sets:
+
+- `PHP_FPM_PM_MAX_CHILDREN=40` (+ start/spare servers)
+- Redis cache already on
+- Optional: `docker compose up -d --scale pos=2 --scale pos-queue=2`
+
+Re-apply / verify on the VPS:
+
+```bash
+cd /opt/spot-staging
+docker compose up -d --scale pos=2 --scale pos-queue=2
+docker compose exec pos sh -c 'grep -E "^(pm |pm\.)" /usr/local/etc/php-fpm.d/*.conf | head'
+```
+
+From a workstation: `python deploy/staging/scripts/_apply_pos_capacity.py`
+
 On a workstation (from `storefront-qwik/`):
 
 ```bash
@@ -155,7 +173,22 @@ After DNS + ACME:
 
 ---
 
-## Security notes
+## FTP / file access
+
+Dedicated user **`spotftp`** is chrooted to `/opt/spot-staging` with read/write/delete on the staging tree (POS, Accounts, storefront, `data/`).
+
+| | |
+|--|--|
+| Host | `82.29.178.160` (or `thespotmanagment.io`) |
+| User | `spotftp` |
+| Password | in local `deploy/staging/.vps-secrets.env` → `FTP_PASSWORD` (never commit) |
+| Port | `21` (explicit FTPS supported; passive `40000–40100`) |
+
+Dotfiles (`.env`, `.gitignore`, etc.) are listed (`force_dot_files=YES`). In FileZilla also enable **Server → Force showing hidden files** if they still do not appear.
+
+**Note:** App code under `pos/` / `accounts/` / `storefront/` is baked into Docker images at build time. FTP edits there apply after `docker compose up -d --build …`. Live media/logs live under `data/` (bind-mounted) and take effect immediately.
+
+To recreate the account: `python deploy/staging/scripts/_create_ftp_user.py` (from a machine that can SSH as root).
 
 - Never commit `/opt/spot-staging/.env`, app `.env`, SQL dumps, or `acme.json`.
 - VPS root password was rotated after bootstrap; value is only in local `deploy/staging/.vps-secrets.env` (gitignored). Prefer SSH keys going forward.

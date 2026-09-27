@@ -63,6 +63,16 @@ services:
     restart: unless-stopped
     env_file:
       - ./pos/.env
+    # PHP-FPM capacity (serversideup/php). Default max_children=20 saturates under k6 stress.
+    # On 4-core staging: ~40 children; scale replicas with: docker compose up -d --scale pos=2
+    environment:
+      PHP_FPM_PM_CONTROL: dynamic
+      PHP_FPM_PM_MAX_CHILDREN: "40"
+      PHP_FPM_PM_START_SERVERS: "8"
+      PHP_FPM_PM_MIN_SPARE_SERVERS: "4"
+      PHP_FPM_PM_MAX_SPARE_SERVERS: "12"
+      PHP_MEMORY_LIMIT: 256M
+      PHP_OPCACHE_ENABLE: "1"
     volumes:
       - ./pos/.env:/var/www/html/.env:ro
       - ./data/pos_storage:/var/www/html/storage
@@ -83,8 +93,12 @@ services:
       - traefik.http.routers.pos.tls=true
       - traefik.http.routers.pos.tls.certresolver=le
       - traefik.http.services.pos.loadbalancer.server.port=8080
+      # Shared HTTP → HTTPS redirect (ACME still works on /.well-known)
+      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
       - traefik.http.routers.pos-http.rule=Host(`pos.thespotmanagment.io`)
       - traefik.http.routers.pos-http.entrypoints=web
+      - traefik.http.routers.pos-http.middlewares=https-redirect
       - traefik.http.routers.pos-http.service=pos
 
   pos-queue:
@@ -156,6 +170,7 @@ services:
       - traefik.http.services.accounts.loadbalancer.server.port=8080
       - traefik.http.routers.accounts-http.rule=Host(`accounts.thespotmanagment.io`)
       - traefik.http.routers.accounts-http.entrypoints=web
+      - traefik.http.routers.accounts-http.middlewares=https-redirect
       - traefik.http.routers.accounts-http.service=accounts
 
   accounts-queue:
@@ -197,6 +212,7 @@ services:
       - traefik.http.services.shop.loadbalancer.server.port=3000
       - traefik.http.routers.shop-http.rule=Host(`thespotmanagment.io`)
       - traefik.http.routers.shop-http.entrypoints=web
+      - traefik.http.routers.shop-http.middlewares=https-redirect
       - traefik.http.routers.shop-http.service=shop
       - traefik.http.routers.shop-www.rule=Host(`www.thespotmanagment.io`)
       - traefik.http.routers.shop-www.entrypoints=websecure

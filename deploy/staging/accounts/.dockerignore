@@ -1,5 +1,5 @@
-vendor/
-node_modules/
+/vendor/
+/node_modules/
 .git/
 storage/logs/*
 storage/framework/cache/*
@@ -8,3 +8,8 @@ storage/framework/views/*
 bootstrap/cache/*.php
 .env
 .phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+public/uploads
