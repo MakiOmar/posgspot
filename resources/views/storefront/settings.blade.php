@@ -1560,7 +1560,7 @@
 <link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=8">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=24"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=25"></script>
 <script src="{{ asset('js/storefront-shop-menu-builder.js') }}?v=3"></script>
 <style>
 .sf-shop-menu-tree > .sf-shop-menu-item { margin-bottom: 10px; }

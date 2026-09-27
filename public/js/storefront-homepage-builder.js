@@ -620,6 +620,26 @@
           slide._ctaQ = "";
           slide._ctaHits = [];
         },
+        /** Keep picker labels/search results from the pre-save section so the open editor stays usable. */
+        carryOverShelfPickerState: function (freshSection) {
+          var prev = this.sections.find(function (s) {
+            return s.id === freshSection.id && s.type === "category_shelf";
+          });
+          var next = freshSection.settings;
+          if (!prev || !prev.settings || prev.settings.category_id !== next.category_id) {
+            this.refreshShelfPickedLabels(next);
+            return;
+          }
+          var labels = {};
+          (prev.settings._picked || []).forEach(function (p) {
+            labels[p.id] = p;
+          });
+          next._picked = next.product_ids.map(function (id) {
+            return labels[id] || { id: id, name: "#" + id, image_url: null };
+          });
+          next._pickQ = prev.settings._pickQ || "";
+          next._pickHits = (prev.settings._pickHits || []).slice();
+        },
         shelfCategorySlug: function (settings) {
           var id = parseInt(settings && settings.category_id, 10) || 0;
           var cat = this.categories.find(function (c) {
@@ -1040,6 +1060,13 @@
                   }
                   if (!s.layout_width) {
                     s.layout_width = "boxed";
+                  }
+                  if (s.type === "category_shelf") {
+                    if (!s.settings || typeof s.settings !== "object") {
+                      s.settings = {};
+                    }
+                    hydrateCategoryShelf(s.settings);
+                    self.carryOverShelfPickerState(s);
                   }
                 });
                 self.sections = json.sections;
