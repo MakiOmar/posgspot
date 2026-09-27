@@ -50,7 +50,7 @@ class BackupManagementTest extends TestCase
         $service = app(BackupScheduleService::class);
 
         $this->assertSame(
-            ['enabled' => true, 'interval' => 'hourly', 'scope' => 'full', 'keep_count' => 24],
+            ['enabled' => true, 'interval' => 'hourly', 'scope' => 'full'],
             $service->settings()
         );
         $this->assertSame('0 * * * *', $service->cronExpression());
@@ -60,7 +60,7 @@ class BackupManagementTest extends TestCase
     public function test_disabled_schedule_has_no_next_run_and_command_skips(): void
     {
         $service = app(BackupScheduleService::class);
-        $service->saveSettings(['enabled' => false, 'interval' => 'daily', 'scope' => 'db', 'keep_count' => 3]);
+        $service->saveSettings(['enabled' => false, 'interval' => 'daily', 'scope' => 'db']);
 
         $this->assertNull($service->nextRunAt());
         $this->artisan('backup:auto')
@@ -80,18 +80,16 @@ class BackupManagementTest extends TestCase
         $this->assertNull($service->pathFor('notes.txt'));
     }
 
-    public function test_cleanup_keeps_configured_number_of_newest_archives(): void
+    public function test_cleanup_never_deletes_older_archives(): void
     {
-        app(BackupScheduleService::class)
-            ->saveSettings(['enabled' => true, 'interval' => 'hourly', 'scope' => 'full', 'keep_count' => 2]);
-        $this->putArchive('2026-09-27-07-00-00.zip', 180);
+        $this->putArchive('2025-01-01-07-00-00.zip', 60 * 24 * 400);
         $this->putArchive('2026-09-27-08-00-00.zip', 120);
         $this->putArchive('2026-09-27-09-00-00.zip', 60);
 
         $this->artisan('backup:clean', ['--disable-notifications' => true])->assertSuccessful();
 
         $this->assertSame(
-            ['2026-09-27-09-00-00.zip', '2026-09-27-08-00-00.zip'],
+            ['2026-09-27-09-00-00.zip', '2026-09-27-08-00-00.zip', '2025-01-01-07-00-00.zip'],
             array_column(app(BackupScheduleService::class)->listBackups(), 'file_name')
         );
     }
@@ -104,6 +102,8 @@ class BackupManagementTest extends TestCase
             ->get('/backup')
             ->assertOk()
             ->assertSee('2026-09-27-09-00-00.zip')
+            ->assertSee(__('backup.kept_forever_help'))
+            ->assertDontSee('name="keep_count"', false)
             ->assertSee(route('backup.settings.update'), false);
     }
 
@@ -112,18 +112,18 @@ class BackupManagementTest extends TestCase
         $admin = $this->admin();
 
         $this->actingAs($admin)
-            ->put('/backup/settings', ['enabled' => '1', 'interval' => 'every_6_hours', 'scope' => 'db', 'keep_count' => 10])
+            ->put('/backup/settings', ['enabled' => '1', 'interval' => 'every_6_hours', 'scope' => 'db'])
             ->assertRedirect(route('backup.index'))
             ->assertSessionHas('status.success', 1);
 
         $this->assertSame(
-            ['enabled' => true, 'interval' => 'every_6_hours', 'scope' => 'db', 'keep_count' => 10],
+            ['enabled' => true, 'interval' => 'every_6_hours', 'scope' => 'db'],
             app(BackupScheduleService::class)->settings()
         );
 
         $this->actingAs($admin)
-            ->put('/backup/settings', ['interval' => 'every_second', 'scope' => 'db', 'keep_count' => 0])
-            ->assertSessionHasErrors(['interval', 'keep_count']);
+            ->put('/backup/settings', ['interval' => 'every_second', 'scope' => 'everything'])
+            ->assertSessionHasErrors(['interval', 'scope']);
     }
 
     public function test_download_and_delete_archive(): void
@@ -151,7 +151,7 @@ class BackupManagementTest extends TestCase
 
         $this->actingAs($user)->get('/backup')->assertForbidden();
         $this->actingAs($user)
-            ->put('/backup/settings', ['interval' => 'hourly', 'scope' => 'db', 'keep_count' => 5])
+            ->put('/backup/settings', ['interval' => 'hourly', 'scope' => 'db'])
             ->assertForbidden();
     }
 }

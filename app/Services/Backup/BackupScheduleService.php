@@ -29,44 +29,51 @@ class BackupScheduleService
         'enabled' => true,
         'interval' => 'hourly',
         'scope' => 'full',
-        'keep_count' => 24,
     ];
-
-    public const KEEP_COUNT_MIN = 1;
-
-    public const KEEP_COUNT_MAX = 500;
 
     private const KEY_PREFIX = 'backup_auto_';
 
     /**
-     * @return array{enabled: bool, interval: string, scope: string, keep_count: int}
+     * @return array{enabled: bool, interval: string, scope: string}
      */
     public function settings(): array
     {
-        $stored = System::getProperties($this->keys(['enabled', 'interval', 'scope', 'keep_count']), true);
+        $stored = System::getProperties($this->keys(['enabled', 'interval', 'scope']), true);
         $get = fn (string $name) => $stored[self::KEY_PREFIX.$name] ?? null;
 
         $interval = (string) $get('interval');
         $scope = (string) $get('scope');
-        $keep = (int) $get('keep_count');
 
         return [
             'enabled' => $get('enabled') === null ? self::DEFAULTS['enabled'] : $get('enabled') === '1',
             'interval' => array_key_exists($interval, self::INTERVALS) ? $interval : self::DEFAULTS['interval'],
             'scope' => in_array($scope, self::SCOPES, true) ? $scope : self::DEFAULTS['scope'],
-            'keep_count' => $keep >= self::KEEP_COUNT_MIN ? min($keep, self::KEEP_COUNT_MAX) : self::DEFAULTS['keep_count'],
         ];
     }
 
     /**
-     * @param  array{enabled: bool, interval: string, scope: string, keep_count: int}  $settings
+     * @param  array{enabled: bool, interval: string, scope: string}  $settings
      */
     public function saveSettings(array $settings): void
     {
         System::addProperty(self::KEY_PREFIX.'enabled', $settings['enabled'] ? '1' : '0');
         System::addProperty(self::KEY_PREFIX.'interval', $settings['interval']);
         System::addProperty(self::KEY_PREFIX.'scope', $settings['scope']);
-        System::addProperty(self::KEY_PREFIX.'keep_count', (string) $settings['keep_count']);
+    }
+
+    /**
+     * Free bytes on the volume holding backups; null for remote disks (S3, Dropbox…).
+     */
+    public function freeDiskSpace(): ?int
+    {
+        $disk = $this->disk();
+        if (! method_exists($disk, 'path')) {
+            return null;
+        }
+        $root = $disk->path('');
+        $free = is_dir($root) ? @disk_free_space($root) : false;
+
+        return $free === false ? null : (int) $free;
     }
 
     public function cronExpression(?string $interval = null): string

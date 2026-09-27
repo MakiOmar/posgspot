@@ -23,8 +23,12 @@ class BackUpController extends Controller
     {
         $this->authorizeBackup();
 
+        $backups = $this->backups->listBackups();
+
         return view('backup.index', [
-            'backups' => $this->backups->listBackups(),
+            'backups' => $backups,
+            'total_size' => array_sum(array_column($backups, 'file_size')),
+            'free_space' => $this->backups->freeDiskSpace(),
             'settings' => $this->backups->settings(),
             'intervals' => array_keys(BackupScheduleService::INTERVALS),
             'scopes' => BackupScheduleService::SCOPES,

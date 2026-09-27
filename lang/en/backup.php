@@ -13,8 +13,10 @@ return [
     'enabled' => 'Enable automatic backups',
     'interval' => 'Backup every',
     'scope' => 'What to back up',
-    'keep_count' => 'Keep the latest',
-    'keep_count_help' => 'Older backups are deleted after each run.',
+    'kept_forever_help' => 'Older backups are kept; they are only removed when you delete them below.',
+    'storage_used' => 'Backups size',
+    'storage_used_value' => ':size in :count backup(s)',
+    'free_space' => 'Free disk space',
     'intervals' => [
         'every_30_minutes' => '30 minutes',
         'hourly' => 'Hour',

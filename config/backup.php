@@ -251,7 +251,7 @@ return [
          * No matter how you configure it the default strategy will never
          * delete the newest backup.
          */
-        'strategy' => \App\Backup\Cleanup\KeepLatestBackups::class,
+        'strategy' => \App\Backup\Cleanup\KeepAllBackups::class,
 
         'default_strategy' => [
 

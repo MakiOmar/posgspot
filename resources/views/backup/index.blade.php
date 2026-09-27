@@ -64,15 +64,7 @@
                         @error('scope')<span class="text-danger">{{ $message }}</span>@enderror
                     </div>
 
-                    <div class="form-group">
-                        <label for="backup-keep-count">@lang('backup.keep_count')</label>
-                        <input type="number" name="keep_count" id="backup-keep-count" class="form-control"
-                               min="{{ \App\Services\Backup\BackupScheduleService::KEEP_COUNT_MIN }}"
-                               max="{{ \App\Services\Backup\BackupScheduleService::KEEP_COUNT_MAX }}"
-                               value="{{ old('keep_count', $settings['keep_count']) }}" required>
-                        <p class="help-block">@lang('backup.keep_count_help')</p>
-                        @error('keep_count')<span class="text-danger">{{ $message }}</span>@enderror
-                    </div>
+                    <p class="help-block">@lang('backup.kept_forever_help')</p>
 
                     <button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-text-white">@lang('messages.save')</button>
                 </form>
@@ -99,6 +91,13 @@
                     </dd>
                     <dt>@lang('backup.next_run')</dt>
                     <dd>{{ $next_run ? $next_run->toDateTimeString() : __('backup.disabled') }}</dd>
+                    {{-- Storage: backups are never auto-deleted, so show growth --}}
+                    <dt>@lang('backup.storage_used')</dt>
+                    <dd>{{ __('backup.storage_used_value', ['size' => humanFilesize($total_size), 'count' => count($backups)]) }}</dd>
+                    @if ($free_space !== null)
+                        <dt>@lang('backup.free_space')</dt>
+                        <dd>{{ humanFilesize($free_space) }}</dd>
+                    @endif
                 </dl>
                 @if ($cron_job_command)
                     <p class="tw-mt-3 tw-mb-1"><strong>@lang('backup.cron_required')</strong></p>

@@ -19,17 +19,11 @@ class UpdateBackupSettingsRequest extends FormRequest
             'enabled' => ['nullable', 'boolean'],
             'interval' => ['required', Rule::in(array_keys(BackupScheduleService::INTERVALS))],
             'scope' => ['required', Rule::in(BackupScheduleService::SCOPES)],
-            'keep_count' => [
-                'required',
-                'integer',
-                'min:'.BackupScheduleService::KEEP_COUNT_MIN,
-                'max:'.BackupScheduleService::KEEP_COUNT_MAX,
-            ],
         ];
     }
 
     /**
-     * @return array{enabled: bool, interval: string, scope: string, keep_count: int}
+     * @return array{enabled: bool, interval: string, scope: string}
      */
     public function settings(): array
     {
@@ -37,7 +31,6 @@ class UpdateBackupSettingsRequest extends FormRequest
             'enabled' => $this->boolean('enabled'),
             'interval' => (string) $this->validated('interval'),
             'scope' => (string) $this->validated('scope'),
-            'keep_count' => (int) $this->validated('keep_count'),
         ];
     }
 }

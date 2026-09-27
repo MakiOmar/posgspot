@@ -115,9 +115,11 @@ Config: `config/storefront.php` → `request_product.enabled`.
 | Enabled | on | on / off |
 | Interval | hourly | 30 min, 1 / 2 / 6 / 12 h, daily 01:30, weekly Sunday 01:30 |
 | Scope | database + uploads + `.env` | or database only |
-| Keep latest | 24 | 1–500 archives; older ones are deleted after each run (`App\Backup\Cleanup\KeepLatestBackups`) |
 
-The scheduler runs `php artisan backup:auto` (backup with the page's scope, then `backup:clean`) on the chosen interval in every environment except `demo`. It needs the Laravel scheduler cron on the server (shown on the page):
+
+**Retention:** backups are never deleted automatically — only via Delete on the page. `backup:clean` is a no-op (`App\Backup\Cleanup\KeepAllBackups`). The page shows total backup size and free disk space; hourly full backups grow by roughly 24 archives/day, so watch disk usage or switch to database-only / a longer interval.
+
+The scheduler runs `php artisan backup:auto` (backup with the page's scope) on the chosen interval in every environment except `demo`. It needs the Laravel scheduler cron on the server (shown on the page):
 
 ```
 * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1

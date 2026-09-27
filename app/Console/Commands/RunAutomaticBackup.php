@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Backup + retention cleanup using the settings on the POS Backup page.
+ * Backup using the scope on the POS Backup page. Older archives are kept (no cleanup).
  */
 class RunAutomaticBackup extends Command
 {
     protected $signature = 'backup:auto
         {--force : Run even when automatic backups are disabled (used by "Backup now")}';
 
-    protected $description = 'Run a backup with the Backup page settings (scope + retention), then clean old archives';
+    protected $description = 'Run a backup with the Backup page settings (scope); older archives are kept';
 
     public function handle(BackupScheduleService $schedule): int
     {
@@ -38,9 +38,6 @@ class RunAutomaticBackup extends Command
             if ($exitCode !== self::SUCCESS) {
                 return $this->reportFailure($schedule, $output);
             }
-
-            Artisan::call('backup:clean');
-            $output .= "\n".Artisan::output();
         } catch (Throwable $e) {
             return $this->reportFailure($schedule, $e->getMessage());
         }
