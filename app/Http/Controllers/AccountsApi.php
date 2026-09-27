@@ -21,6 +21,8 @@ use App\Utils\Util;
 use App\VariationLocationDetails;
 use App\Utils\CommonUtil;
 use App\Events\ContactCreatedOrModified;
+use App\Http\Requests\AccountsCatalogUpsertRequest;
+use App\Services\AccountsCatalogService;
 use Illuminate\Support\Facades\Http;
 
 class AccountsApi extends Controller
@@ -433,6 +435,38 @@ class AccountsApi extends Controller
 
         return $new_sell_data;
     }
+    /**
+     * Create or update the hidden POS products that mirror Accounts game offers / card categories.
+     */
+    public function catalogUpsert(AccountsCatalogUpsertRequest $request, AccountsCatalogService $catalog, $business_id)
+    {
+        $validated = $request->validated();
+
+        try {
+            $items = $catalog->upsert(
+                (int) $business_id,
+                $validated['kind'],
+                $validated['items'],
+                $validated['code'] ?? null
+            );
+
+            return response()->json(['success' => true, 'items' => $items]);
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            return response()->json(['success' => false, 'message' => 'Catalog item is busy, retry.'], 409);
+        } catch (\Throwable $e) {
+            Log::error('AccountsApi::catalogUpsert failed', [
+                'business_id' => $business_id,
+                'skus' => array_column($validated['items'], 'sku'),
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => config('app.debug') ? $e->getMessage() : 'Catalog sync failed.',
+            ], 500);
+        }
+    }
+
     public function createContact(Request $request)
     {
         $data = $request->validate([
