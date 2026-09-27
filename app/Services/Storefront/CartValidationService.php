@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Product;
 use App\Contact;
+use App\Services\AccountsCatalogService;
 use App\Services\Storefront\Shipping\ShippingQuoteService;
 use App\Utils\ProductUtil;
 use App\Variation;
@@ -67,13 +68,13 @@ class CartValidationService
             }
 
             $product = $variation->product;
-            if ($product->is_inactive || $product->not_for_selling) {
+            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
+            if ($this->isUnavailableForStorefront($product, $digital)) {
                 throw ValidationException::withMessages(["items.$index.variation_id" => ['Product is not available.']]);
             }
 
             $pricing = $this->storefrontPricing->resolve($variation);
             $unitPrice = $pricing['price'];
-            $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
             if ($digital && ! empty($digital['kind'])) {
                 $unitPrice = $this->resolveDigitalUnitPrice($businessId, $item, $unitPrice);
                 if ($unitPrice <= 0) {
@@ -248,6 +249,25 @@ class CartValidationService
         return $fallback > 0 ? $fallback : 0.0;
     }
 
+    /**
+     * Accounts offer products are hidden from POS (`not_for_selling`) but sellable online as the
+     * digital line they were synced for; any other hidden or inactive product stays blocked.
+     *
+     * @param  array<string, mixed>|null  $digital
+     */
+    private function isUnavailableForStorefront(Product $product, ?array $digital): bool
+    {
+        if ($product->is_inactive) {
+            return true;
+        }
+
+        if (AccountsCatalogService::isAccountsSku($product->sku)) {
+            return empty($digital['kind']) || AccountsCatalogService::skuForDigital($digital) !== $product->sku;
+        }
+
+        return (bool) $product->not_for_selling;
+    }
+
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
     {
         if (! $product->enable_stock) {
@@ -327,7 +347,7 @@ class CartValidationService
             $status['variation_name'] = $variation->name;
             $status['unit_price'] = $unitPrice;
 
-            if ($product->is_inactive || $product->not_for_selling) {
+            if ($this->isUnavailableForStorefront($product, $digital)) {
                 $lineStatus[] = $status;
 
                 continue;

@@ -5,7 +5,7 @@ import {
   checkDigitalCardStock,
   fetchCardCategories,
 } from "../../src/lib/api";
-import type { DigitalSkus } from "../../src/lib/types";
+import type { DigitalPosSku, DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { RemoteImage } from "../../src/components/RemoteImage";
@@ -23,6 +23,8 @@ type CardCategory = {
   title?: string;
   price?: number | string;
   poster_image?: string | null;
+  /** Synced per-category POS product; falls back to `skus.gift_card`. */
+  pos_sku?: DigitalPosSku | null;
 };
 
 export default function GiftCardsScreen() {
@@ -103,7 +105,7 @@ export default function GiftCardsScreen() {
                 disabled={pendingId !== null}
                 onPress={() => {
                   void (async () => {
-                    const sku = skus?.gift_card;
+                    const sku = item.pos_sku ?? skus?.gift_card;
                     if (!sku) {
                       toast.error(t("digital.skuMissing"));
                       return;

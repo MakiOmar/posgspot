@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-21 |
+| **Last updated** | 2026-09-27 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Nav parity (Community live when enabled); contact FAB; Track Order; Custom Bundle + Sell to us; Community Featured/registration; digital + auth-gated repair/console |
 
@@ -89,6 +89,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-27 | Game PDP and gift cards add the synced per-offer / per-category POS product (`pos_offers`, `pos_sku`), falling back to shared `skus`; reorder keeps `digital` meta. |
 | 2026-09-21 | Digital parity: fixed PDP `setReviewPhone` crash; offer row + stock pills; prefetch live stock; list stock line; PS Plus stack title; review profile link + ProductReviews avatars. |
 | 2026-09-19 | List perf: horizontal FlatList product rails; memo ProductCard + shared AvailabilityModal; PLP FlatList window tuning; Wave 3 hygiene (gitignore play SA, expo-crypto guest UUID, iOS screen-capture, lazy invoice PDF). |
 | 2026-09-19 | Shop Physical menu: removed hardcoded Shop all / All consoles prepend (builder tree only). |

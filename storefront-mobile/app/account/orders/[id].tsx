@@ -270,6 +270,7 @@ export default function OrderDetailScreen() {
                     imageUrl: line.image_url,
                     unitPrice: Number(line.unit_price_inc_tax || 0),
                     quantity: line.quantity,
+                    ...(line.digital ? { digital: line.digital } : {}),
                   });
                 }
                 toast.success(t("account.reorderSuccess"));

@@ -479,6 +479,8 @@ export interface AccountOrderLine {
   quantity: number;
   unit_price_inc_tax?: number;
   line_total?: number;
+  /** Present for Accounts-synced digital products so buy-again keeps fulfillment meta. */
+  digital?: CartItemDigital | null;
 }
 
 export interface AccountOrderDetail extends AccountOrder {
@@ -503,6 +505,11 @@ export interface DigitalPosSku {
   variation_id: number;
   image_url?: string | null;
 }
+
+/** Synced per-offer POS products keyed by platform digit, then offer. */
+export type DigitalPosOffers = Partial<
+  Record<"4" | "5", Partial<Record<"primary" | "secondary" | "full", DigitalPosSku>>>
+>;
 
 export interface DigitalSkus {
   primary?: DigitalPosSku | null;
@@ -529,6 +536,7 @@ export interface DigitalGameSummary {
   total_full_stock?: number | string | null;
   rating_average?: number;
   rating_count?: number;
+  pos_offers?: DigitalPosOffers;
 }
 
 export interface StoreLocation {

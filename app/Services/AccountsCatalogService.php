@@ -241,4 +241,65 @@ class AccountsCatalogService
 
         return false;
     }
+
+    /**
+     * Synced SKU a storefront digital line maps to (same format Accounts pushes), or null when incomplete.
+     *
+     * @param  array<string, mixed>  $digital
+     */
+    public static function skuForDigital(array $digital): ?string
+    {
+        $kind = (string) ($digital['kind'] ?? '');
+        if ($kind === 'card') {
+            $categoryId = (int) ($digital['card_category_id'] ?? 0);
+
+            return $categoryId > 0 ? 'ACCOUNTS-CARD-'.$categoryId : null;
+        }
+
+        $gameId = (int) ($digital['game_id'] ?? 0);
+        $platform = (string) ($digital['platform'] ?? '');
+        $offer = strtolower((string) ($digital['type'] ?? ''));
+        if ($kind !== 'game' || $gameId <= 0 || ! in_array($platform, ['4', '5'], true)
+            || ! in_array($offer, ['primary', 'secondary', 'offline', 'full'], true)) {
+            return null;
+        }
+
+        return 'ACCOUNTS-GAME-'.$gameId.'-PS'.$platform.'-'.strtoupper($offer);
+    }
+
+    /**
+     * Storefront digital line (same shape the PDP / gift-card page add to cart) for a synced SKU,
+     * so past orders can be re-added; null for non-Accounts SKUs and offline (not sold online).
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function digitalFromSku(?string $sku, ?string $title, float $price): ?array
+    {
+        $sku = (string) $sku;
+        if (preg_match('/^ACCOUNTS-GAME-(\d+)-PS([45])-(PRIMARY|SECONDARY|FULL)$/', $sku, $m)) {
+            $offer = strtolower($m[3]);
+
+            return [
+                'kind' => 'game',
+                'game_id' => (int) $m[1],
+                'type' => $offer,
+                'platform' => $m[2],
+                'line_key' => 'ps'.$m[2].'_'.$offer.'_stock|game:'.$m[1],
+                'title' => $title,
+                'price' => $price,
+            ];
+        }
+
+        if (preg_match('/^ACCOUNTS-CARD-(\d+)$/', $sku, $m)) {
+            return [
+                'kind' => 'card',
+                'card_category_id' => (int) $m[1],
+                'line_key' => 'card|category:'.$m[1],
+                'title' => $title,
+                'price' => $price,
+            ];
+        }
+
+        return null;
+    }
 }

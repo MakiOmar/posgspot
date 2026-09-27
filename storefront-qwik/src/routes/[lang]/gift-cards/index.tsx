@@ -24,6 +24,7 @@ export const useGiftCards = routeLoader$(async ({ params, redirect }) => {
       name: String(row.name ?? ""),
       price: row.price,
       poster_image: row.poster_image ?? null,
+      pos_sku: row.pos_sku ?? null,
     }));
     return {
       categories,
@@ -55,7 +56,8 @@ export default component$(() => {
   const pendingId = useSignal<number | null>(null);
 
   const addCard$ = $(async (categoryId: number, name: string, priceRaw: number | string, posterImage: string | null) => {
-    const sku = list.value.skus.gift_card;
+    const synced = list.value.categories.find((category) => category.id === categoryId)?.pos_sku;
+    const sku = synced ?? list.value.skus.gift_card;
     if (!sku) {
       await toastError(tStatic(lang, "digital.skuMissing"));
       return;

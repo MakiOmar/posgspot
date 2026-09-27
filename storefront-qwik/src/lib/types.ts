@@ -697,13 +697,21 @@ export interface DigitalGameSummary {
   total_full_stock?: number | string | null;
   rating_average?: number;
   rating_count?: number;
+  pos_offers?: DigitalPosOffers;
 }
+
+/** Synced per-offer POS products keyed by platform digit, then offer. */
+export type DigitalPosOffers = Partial<
+  Record<"4" | "5", Partial<Record<"primary" | "secondary" | "full", DigitalPosSku>>>
+>;
 
 export interface DigitalCardCategory {
   id: number;
   name: string;
   price: number | string;
   poster_image?: string | null;
+  /** Synced POS product for this category; null falls back to `skus.gift_card`. */
+  pos_sku?: DigitalPosSku | null;
 }
 
 export interface AuthContact {
@@ -820,6 +828,8 @@ export interface AccountOrderLine {
   quantity: number;
   unit_price_inc_tax: number;
   line_total: number;
+  /** Present for Accounts-synced digital products so buy-again keeps fulfillment meta. */
+  digital?: CartItemDigital | null;
 }
 
 export interface OrderShippingAddress {

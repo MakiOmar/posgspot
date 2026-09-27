@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Contact;
+use App\Services\AccountsCatalogService;
 use App\Transaction;
 use App\Services\Storefront\Payment\PaymentGatewayManager;
 use App\Coupon;
@@ -562,6 +563,11 @@ class CheckoutService
                 'quantity' => (float) $line->quantity,
                 'unit_price_inc_tax' => (float) $line->unit_price_inc_tax,
                 'line_total' => (float) $line->quantity * (float) $line->unit_price_inc_tax,
+                'digital' => AccountsCatalogService::digitalFromSku(
+                    $product?->sku,
+                    $line->sell_line_note ?: $product?->name,
+                    (float) $line->unit_price_inc_tax
+                ),
             ];
         })->values()->all();
         try {

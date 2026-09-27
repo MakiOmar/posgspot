@@ -19,7 +19,7 @@ import {
   submitDigitalReview,
 } from "../../src/lib/api";
 import { absoluteMediaUrl } from "../../src/lib/storefront-href";
-import type { DigitalGameSummary, DigitalSkus } from "../../src/lib/types";
+import type { DigitalGameSummary, DigitalPosOffers, DigitalSkus } from "../../src/lib/types";
 import { useApp } from "../../src/contexts/AppContext";
 import { useCart } from "../../src/contexts/CartContext";
 import { RemoteImage } from "../../src/components/RemoteImage";
@@ -252,7 +252,9 @@ export default function GameDetailScreen() {
 
   const addSelected = async () => {
     const offer = activeOffer;
-    const sku = offer === "secondary" ? skus?.secondary : skus?.primary;
+    // Prefer the per-offer POS product synced from Accounts; shared placeholders otherwise.
+    const synced = (game.pos_offers as DigitalPosOffers | undefined)?.[platform]?.[offer];
+    const sku = synced ?? (offer === "secondary" ? skus?.secondary : skus?.primary);
     if (!sku) {
       toast.error(t("digital.skuMissing"));
       return;

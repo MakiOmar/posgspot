@@ -27,6 +27,7 @@ function orderLinesToCartItems(order: AccountOrderDetail): CartItem[] {
       price: line.unit_price_inc_tax,
       quantity: line.quantity,
       imageUrl: line.image_url ?? null,
+      ...(line.digital ? { digital: line.digital } : {}),
     }));
 }
 

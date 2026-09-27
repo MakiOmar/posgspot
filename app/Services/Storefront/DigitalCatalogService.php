@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Product;
+use App\Services\AccountsCatalogService;
 use App\Services\Storefront\Accounts\AccountsApiClient;
 use App\Variation;
 use Illuminate\Support\Facades\Cache;
@@ -12,6 +13,9 @@ use Illuminate\Support\Facades\Cache;
  */
 class DigitalCatalogService
 {
+    /** Offers the storefront sells that Accounts syncs as their own POS product. */
+    private const SYNCED_OFFERS = ['primary', 'secondary', 'full'];
+
     public function __construct(
         private AccountsApiClient $accounts,
         private StorefrontSettingService $settings,
@@ -71,7 +75,11 @@ class DigitalCatalogService
         }
 
         $games = $result['success']
-            ? array_map(fn ($game) => $this->normalizeGameListItem($game), $rawGames)
+            ? $this->withPosOffers(
+                $businessId,
+                array_map(fn ($game) => $this->normalizeGameListItem($game), $rawGames),
+                $platform
+            )
             : [];
 
         if ($term !== '') {
@@ -188,8 +196,8 @@ class DigitalCatalogService
         }
 
         $body = is_array($result['body'] ?? null) ? $result['body'] : [];
-        $ps4 = $this->normalizeFeaturedPlatformList($body['4'] ?? []);
-        $ps5 = $this->normalizeFeaturedPlatformList($body['5'] ?? []);
+        $ps4 = $this->withPosOffers($businessId, $this->normalizeFeaturedPlatformList($body['4'] ?? []), '4');
+        $ps5 = $this->withPosOffers($businessId, $this->normalizeFeaturedPlatformList($body['5'] ?? []), '5');
 
         return [
             'success' => true,
@@ -450,6 +458,7 @@ class DigitalCatalogService
         $game['product_type'] = $productType;
         $game['gallery'] = $this->normalizeGallery($game['gallery'] ?? null);
         $game['reviews'] = $this->normalizeReviews($game['reviews'] ?? null);
+        $game['pos_offers'] = $this->gamePosOffers($businessId, [$gameId])[$gameId] ?? (object) [];
 
         return [
             'success' => true,
@@ -573,6 +582,12 @@ class DigitalCatalogService
             ];
         }
 
+        $posSkus = $this->cardPosSkus($businessId, array_column($normalized, 'id'));
+        foreach ($normalized as &$row) {
+            $row['pos_sku'] = $posSkus[$row['id']] ?? null;
+        }
+        unset($row);
+
         return [
             'success' => true,
             'data' => [
@@ -644,6 +659,103 @@ class DigitalCatalogService
             'name' => (string) $product->name,
             'image_url' => $product->image_url ?? null,
         ];
+    }
+
+    /**
+     * Active synced POS products per offer, read from POS by SKU so clients never add a
+     * product Accounts linked but POS has since deactivated.
+     *
+     * @param  list<int>  $gameIds
+     * @return array<int, array<string, array<string, array{product_id:int,variation_id:int,name:string,image_url:?string}>>>
+     */
+    public function gamePosOffers(int $businessId, array $gameIds, ?string $platform = null): array
+    {
+        $platforms = $platform !== null ? [$platform] : ['4', '5'];
+        $keys = [];
+        foreach (array_unique(array_filter($gameIds, fn ($id) => $id > 0)) as $gameId) {
+            foreach ($platforms as $plat) {
+                foreach (self::SYNCED_OFFERS as $offer) {
+                    $sku = AccountsCatalogService::skuForDigital([
+                        'kind' => 'game', 'game_id' => $gameId, 'platform' => $plat, 'type' => $offer,
+                    ]);
+                    $keys[$sku] = [$gameId, $plat, $offer];
+                }
+            }
+        }
+
+        $out = [];
+        foreach ($this->activeProductsBySku($businessId, array_keys($keys)) as $sku => $row) {
+            [$gameId, $plat, $offer] = $keys[$sku];
+            $out[$gameId][$plat][$offer] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<int>  $categoryIds
+     * @return array<int, array{product_id:int,variation_id:int,name:string,image_url:?string}>
+     */
+    public function cardPosSkus(int $businessId, array $categoryIds): array
+    {
+        $keys = [];
+        foreach (array_unique(array_filter($categoryIds, fn ($id) => $id > 0)) as $categoryId) {
+            $keys[AccountsCatalogService::skuForDigital(['kind' => 'card', 'card_category_id' => $categoryId])] = $categoryId;
+        }
+
+        $out = [];
+        foreach ($this->activeProductsBySku($businessId, array_keys($keys)) as $sku => $row) {
+            $out[$keys[$sku]] = $row;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>  $skus
+     * @return array<string, array{product_id:int,variation_id:int,name:string,image_url:?string}>
+     */
+    private function activeProductsBySku(int $businessId, array $skus): array
+    {
+        if ($skus === []) {
+            return [];
+        }
+
+        $out = [];
+        Product::where('business_id', $businessId)
+            ->whereIn('sku', $skus)
+            ->where('is_inactive', 0)
+            ->with(['variations' => fn ($q) => $q->orderBy('id')])
+            ->get()
+            ->each(function (Product $product) use (&$out) {
+                $variation = $product->variations->first();
+                if (! $variation || isset($out[$product->sku])) {
+                    return;
+                }
+                $out[$product->sku] = [
+                    'product_id' => (int) $product->id,
+                    'variation_id' => (int) $variation->id,
+                    'name' => (string) $product->name,
+                    'image_url' => $product->image_url ?? null,
+                ];
+            });
+
+        return $out;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $games
+     * @return list<array<string, mixed>>
+     */
+    private function withPosOffers(int $businessId, array $games, ?string $platform = null): array
+    {
+        $offers = $this->gamePosOffers($businessId, array_map(fn ($g) => (int) ($g['id'] ?? 0), $games), $platform);
+
+        return array_map(function (array $game) use ($offers) {
+            $game['pos_offers'] = $offers[(int) ($game['id'] ?? 0)] ?? (object) [];
+
+            return $game;
+        }, $games);
     }
 
     /**

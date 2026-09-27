@@ -7,6 +7,7 @@ use App\Category;
 use App\CategoryTranslation;
 use App\Product;
 use App\ProductTranslation;
+use App\Services\AccountsCatalogService;
 use App\Support\StorefrontLocale;
 use App\Variation;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -1038,8 +1039,14 @@ class CatalogService
             ];
         };
 
+        // Accounts-synced digital products are sold through the digital pages, never as a category.
+        $hiddenSlugs = [AccountsCatalogService::GAME_CATEGORY_SLUG, AccountsCatalogService::CARD_CATEGORY_SLUG];
+
         $out = [];
         foreach ($tree as $parent) {
+            if (in_array($parent['slug'] ?? null, $hiddenSlugs, true)) {
+                continue;
+            }
             $node = $slimNode($parent);
             $node['sub_categories'] = array_map(
                 $slimNode,

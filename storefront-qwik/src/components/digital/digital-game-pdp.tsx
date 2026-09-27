@@ -31,6 +31,7 @@ import { toastError, toastSuccess } from "~/lib/notify";
 import type {
   CartItemDigital,
   DigitalGameSummary,
+  DigitalPosOffers,
   DigitalPosSku,
   DigitalSkus,
   StoreSettings,
@@ -62,8 +63,20 @@ function offerI18nKey(offer: DigitalOfferType): string {
   return "digital.primary";
 }
 
-/** Full shares the Primary POS variation; Accounts allocates with type=full. */
-function posSkuForOffer(skus: DigitalSkus, offer: DigitalOfferType): DigitalPosSku | null {
+/**
+ * Prefer the per-offer POS product Accounts synced for this game; otherwise the shared
+ * placeholder (Full shares Primary, Accounts allocates with type=full).
+ */
+function posSkuForOffer(
+  game: Record<string, unknown>,
+  skus: DigitalSkus,
+  platform: DigitalPlatform,
+  offer: DigitalOfferType,
+): DigitalPosSku | null {
+  const synced = (game.pos_offers as DigitalPosOffers | undefined)?.[platform]?.[offer];
+  if (synced) {
+    return synced;
+  }
   return offer === "secondary" ? skus.secondary : skus.primary;
 }
 
@@ -168,7 +181,7 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
     if (!available.includes(offer) && available.length > 0) {
       offer = available[0];
     }
-    const sku = posSkuForOffer(props.skus, offer);
+    const sku = posSkuForOffer(gameData, props.skus, plat, offer);
     if (!sku) {
       await toastError(tStatic(lang, "digital.skuMissing"));
       return;

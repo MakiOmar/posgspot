@@ -52,7 +52,7 @@
 | Repair status lookup API | ✅ | `POST /repair/status`; `GET /account/repairs` (auth, contact id + phone match); settings `repair.*`; mobile match with/without country code |
 | Device / console track API | ✅ | `POST /device/track` + `GET /account/device-services` (proxy Accounts Device Track; needs `ACCOUNTS_BASE_URL`) |
 | Track order API | ✅ | `POST /track-order` (invoice + phone/email); Qwik `/track-order`; `TrackOrderTest` |
-| Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + auth `POST /digital/reviews` (phone from contact); platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer |
+| Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + auth `POST /digital/reviews` (phone from contact); platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer; per-offer / per-category synced POS products (`pos_offers`, card `pos_sku`) with placeholder fallback; buy-again keeps `digital` |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
 | Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
@@ -238,6 +238,7 @@
 | Brand slug generation | ✅ | `BrandSlugGenerationTest`; POS `BrandController` create/update |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Homepage API | ✅ | `HomepageApiTest` |
+| Accounts catalog sync + synced digital checkout | ✅ | `AccountsCatalogUpsertTest`, `AccountsSyncedDigitalTest` |
 | Frontend (Qwik) tests | ⬜ |
 
 ---
@@ -255,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-27 | Per-offer POS products: Accounts upserts `ACCOUNTS-GAME-*` / `ACCOUNTS-CARD-*` hidden products (`POST /api/accounts/catalog/upsert/{business_id}`); digital lists/PDP expose `pos_offers`, cards `pos_sku` (Qwik + Expo prefer them, shared SKUs fallback); cart accepts them only as the matching digital line; categories hidden; order lines return `digital` for buy-again. |
 | 2026-09-27 | Footer reorganized: default Shop / My Account / Help / Company (up to 4 menus); URLs deduped across columns; bundle/sell links stripped when disabled; `storefront:reset-footer` reseed command. |
 | 2026-09-27 | `category_shelf`: `product_mode` auto/selected + ordered `product_ids` (max 24) picked in builder from the chosen category; `GET /products?ids=` (keeps order); Qwik/Expo use it. |
 | 2026-09-23 | Hero slide CTA: structured `cta` (product/category/game; legacy path); builder typeahead; Qwik/Expo hide Shop now when unset. |
