@@ -5,6 +5,8 @@ import { setActiveContentLocale } from "~/lib/api";
 import { FONT_FAMILY, ROBOTS_DISALLOW_ALL } from "~/lib/config";
 import {
   PLAYFAIR_GOOGLE_CSS,
+  ASYNC_STYLESHEET_ATTR,
+  ASYNC_STYLESHEET_BOOTSTRAP,
   asyncStylesheetLinkProps,
 } from "~/lib/fonts/async-stylesheet";
 import {
@@ -71,14 +73,14 @@ export const RouterHead = component$(() => {
 
       {loadPlayfair ? <link rel="preconnect" href="https://fonts.googleapis.com" /> : null}
 
-      {/* Non-blocking font CSS (print → all). */}
+      {/* Non-blocking font CSS (print → all via nonce'd script, not inline onload). */}
       {playfairProps ? (
         <>
           <link
             rel={playfairProps.rel}
             href={playfairProps.href}
             media={playfairProps.media}
-            {...{ onload: playfairProps.onload }}
+            {...{ [ASYNC_STYLESHEET_ATTR]: playfairProps[ASYNC_STYLESHEET_ATTR] }}
           />
           <noscript>
             <link rel="stylesheet" href={playfairProps.href} />
@@ -92,12 +94,16 @@ export const RouterHead = component$(() => {
             rel={arabicProps.rel}
             href={arabicProps.href}
             media={arabicProps.media}
-            {...{ onload: arabicProps.onload }}
+            {...{ [ASYNC_STYLESHEET_ATTR]: arabicProps[ASYNC_STYLESHEET_ATTR] }}
           />
           <noscript>
             <link rel="stylesheet" href={arabicProps.href} />
           </noscript>
         </>
+      ) : null}
+
+      {nonce && (playfairProps || arabicProps) ? (
+        <script nonce={nonce} dangerouslySetInnerHTML={ASYNC_STYLESHEET_BOOTSTRAP} />
       ) : null}
 
       {meta.map((m) => (
