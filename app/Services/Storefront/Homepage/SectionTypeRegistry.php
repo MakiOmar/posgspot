@@ -124,6 +124,9 @@ class SectionTypeRegistry
                 'default_settings' => [
                     'category_id' => null,
                     'products_per_shelf' => 6,
+                    // auto = first N category products; selected = hand-picked product_ids (ordered).
+                    'product_mode' => 'auto',
+                    'product_ids' => [],
                 ],
             ],
             'brand_slider' => [

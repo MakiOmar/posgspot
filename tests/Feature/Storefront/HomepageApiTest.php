@@ -266,6 +266,78 @@ class HomepageApiTest extends TestCase
         $this->assertContains('bestsellers', $types);
     }
 
+    public function test_category_shelf_normalizes_selected_product_ids(): void
+    {
+        $settings = app(HomepageSectionService::class)->normalizeSettings('category_shelf', [
+            'category_id' => '7',
+            'product_mode' => 'SELECTED',
+            'product_ids' => ['9', 3, 9, 0, -2, 'x', 3, 12],
+        ]);
+
+        $this->assertSame(7, $settings['category_id']);
+        $this->assertSame('selected', $settings['product_mode']);
+        $this->assertSame([9, 3, 12], $settings['product_ids']);
+
+        $fallback = app(HomepageSectionService::class)->normalizeSettings('category_shelf', [
+            'category_id' => 7,
+            'product_mode' => 'random',
+        ]);
+        $this->assertSame('auto', $fallback['product_mode']);
+        $this->assertSame([], $fallback['product_ids']);
+    }
+
+    public function test_category_shelf_presents_selected_ids_and_degrades_empty_selection_to_auto(): void
+    {
+        $category = \App\Category::where('business_id', $this->businessId)
+            ->where('category_type', 'product')
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->first();
+        if (empty($category)) {
+            $this->markTestSkipped('No product category with slug.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [1],
+            'homepage_sections' => [
+                [
+                    'id' => 'sec_pick',
+                    'type' => 'category_shelf',
+                    'enabled' => true,
+                    'settings' => [
+                        'category_id' => $category->id,
+                        'products_per_shelf' => 6,
+                        'product_mode' => 'selected',
+                        'product_ids' => [42, 17],
+                    ],
+                ],
+                [
+                    'id' => 'sec_empty_pick',
+                    'type' => 'category_shelf',
+                    'enabled' => true,
+                    'settings' => [
+                        'category_id' => $category->id,
+                        'product_mode' => 'selected',
+                        'product_ids' => [],
+                    ],
+                ],
+            ],
+        ]);
+        Cache::flush();
+
+        $response = $this->getJson('/api/storefront/v1/homepage');
+        $response->assertOk();
+        $byId = collect($response->json('data.sections'))->keyBy('id');
+        if (! $byId->has('sec_pick')) {
+            $this->markTestSkipped('Category not presentable for the default locale.');
+        }
+
+        $this->assertSame('selected', $byId['sec_pick']['settings']['product_mode']);
+        $this->assertSame([42, 17], $byId['sec_pick']['settings']['product_ids']);
+        $this->assertSame('auto', $byId['sec_empty_pick']['settings']['product_mode']);
+        $this->assertSame([], $byId['sec_empty_pick']['settings']['product_ids']);
+    }
+
     public function test_promo_banner_section_without_content_is_omitted(): void
     {
         app(StorefrontSettingService::class)->save($this->businessId, [

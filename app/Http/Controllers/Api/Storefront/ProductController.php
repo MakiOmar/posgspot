@@ -23,6 +23,7 @@ class ProductController extends StorefrontController
             'sort' => $request->query('sort', 'default'),
             'in_stock_only' => $request->boolean('in_stock_only'),
             'featured' => $request->boolean('featured'),
+            'ids' => $this->parseIds($request->query('ids')),
         ];
 
         $perPage = min(50, max(1, (int) $request->query('per_page', 20)));
@@ -47,5 +48,28 @@ class ProductController extends StorefrontController
         }
 
         return $this->jsonSuccess($product);
+    }
+
+    /**
+     * `ids=12,5,9` (or `ids[]=12`) → ordered unique ints, max 50 (matches per_page cap).
+     *
+     * @return list<int>
+     */
+    private function parseIds(mixed $raw): array
+    {
+        if ($raw === null || $raw === '') {
+            return [];
+        }
+        $parts = is_array($raw) ? $raw : explode(',', (string) $raw);
+
+        $ids = [];
+        foreach ($parts as $part) {
+            $id = (int) trim((string) $part);
+            if ($id > 0 && ! in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_slice($ids, 0, 50);
     }
 }

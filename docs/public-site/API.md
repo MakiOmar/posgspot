@@ -140,7 +140,7 @@ Returns `{ sections: [{ id, type, settings }] }` for **enabled** sections only (
 | `featured_products` | `per_page` → client calls `GET /products?featured=1` |
 | `top_categories` | `limit` |
 | `category_shelves` | `limit`, `products_per_shelf` → `GET /categories/homepage-shelves` (legacy flag-based) |
-| `category_shelf` | `category_id`, `products_per_shelf`, resolved `shelf` (same shape as homepage-shelves item). Insert multiple for multiple categories. |
+| `category_shelf` | `category_id`, `products_per_shelf`, `product_mode` (`auto` \| `selected`), `product_ids` (ordered, max 24; empty in `auto`), resolved `shelf` (same shape as homepage-shelves item). `selected` → client calls `GET /products?category_slug=…&ids=…&per_page={count}`; `auto` → first `products_per_shelf` in the category. `selected` with no ids is presented as `auto`. Insert multiple for multiple categories. |
 | `brand_slider` | `limit` |
 | `bestsellers` | `per_page`, `in_stock_only`, `style` (`grid` \| `horizontal`) |
 | `recently_viewed` | `limit` (client localStorage) |
@@ -221,7 +221,7 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown); includes `image_url` |
 | GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
 | GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |
-| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
+| GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`), `ids=3,9,12` (comma list or array, max 50; with `sort=default` results keep the given order; only invalid ids → empty list); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
 | GET | `/custom-bundle/meta` | Bundle builder meta (platforms, tabs, min/max). Requires `STOREFRONT_CUSTOM_BUNDLE`. See Custom Bundle section. |
 | GET | `/custom-bundle/products` | Physical in-stock products for bundle builder (`platform`, `tab`, `q`). See Custom Bundle section. |
 | GET | `/sell-to-us/meta` | Trade-in form options. Requires `STOREFRONT_SELL_TO_US`. See Sell to us section. |

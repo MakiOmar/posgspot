@@ -239,10 +239,7 @@ class HomepageSectionService
                 'limit' => max(1, min(12, (int) ($settings['limit'] ?? 6))),
                 'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
             ],
-            'category_shelf' => [
-                'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
-                'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
-            ],
+            'category_shelf' => $this->normalizeCategoryShelf($settings),
             'brand_slider' => [
                 'limit' => max(1, min(48, (int) ($settings['limit'] ?? 24))),
             ],
@@ -540,10 +537,7 @@ class HomepageSectionService
                     ];
                 }, $settings['items'] ?? []))),
             ],
-            'category_shelf' => [
-                'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
-                'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
-            ],
+            'category_shelf' => $this->presentCategoryShelf($settings),
             'promo_banner' => $this->presentPromoBanner($settings, $locale),
             default => $settings,
         };
@@ -1061,6 +1055,66 @@ class HomepageSectionService
         $style = strtolower(trim((string) $style));
 
         return in_array($style, ['grid', 'horizontal'], true) ? $style : 'grid';
+    }
+
+    /**
+     * @param  array<string, mixed>  $settings
+     * @return array{category_id: ?int, products_per_shelf: int, product_mode: string, product_ids: list<int>}
+     */
+    private function normalizeCategoryShelf(array $settings): array
+    {
+        $mode = strtolower(trim((string) ($settings['product_mode'] ?? 'auto')));
+
+        return [
+            'category_id' => max(0, (int) ($settings['category_id'] ?? 0)) ?: null,
+            'products_per_shelf' => max(1, min(24, (int) ($settings['products_per_shelf'] ?? 6))),
+            'product_mode' => $mode === 'selected' ? 'selected' : 'auto',
+            'product_ids' => $this->normalizeProductIds($settings['product_ids'] ?? []),
+        ];
+    }
+
+    /**
+     * Public shape: `selected` with no ids degrades to `auto` so the shelf never renders empty by mistake.
+     *
+     * @param  array<string, mixed>  $settings
+     * @return array{category_id: ?int, products_per_shelf: int, product_mode: string, product_ids: list<int>}
+     */
+    private function presentCategoryShelf(array $settings): array
+    {
+        $shelf = $this->normalizeCategoryShelf($settings);
+        if ($shelf['product_mode'] === 'selected' && $shelf['product_ids'] === []) {
+            $shelf['product_mode'] = 'auto';
+        }
+        if ($shelf['product_mode'] === 'auto') {
+            $shelf['product_ids'] = [];
+        }
+
+        return $shelf;
+    }
+
+    /**
+     * Unique positive ints in saved order, capped at 24 (same ceiling as products_per_shelf).
+     *
+     * @return list<int>
+     */
+    private function normalizeProductIds(mixed $ids): array
+    {
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && ! in_array($id, $out, true)) {
+                $out[] = $id;
+            }
+            if (count($out) >= 24) {
+                break;
+            }
+        }
+
+        return $out;
     }
 
     /**

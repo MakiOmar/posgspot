@@ -350,8 +350,23 @@ class CatalogService
             $query->where('products.is_storefront_featured', 1);
         }
 
+        $productIds = [];
+        if (! empty($filters['ids']) && is_array($filters['ids'])) {
+            $productIds = array_values(array_unique(array_filter(array_map('intval', $filters['ids']), fn (int $id) => $id > 0)));
+            if ($productIds === []) {
+                return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
+            }
+            $query->whereIn('products.id', $productIds);
+        }
+
         $sort = $filters['sort'] ?? 'default';
+        if ($productIds !== [] && $sort === 'default') {
+            // Preserve hand-picked order; FIELD() has no query-builder equivalent. Ids are int-cast above.
+            $query->orderByRaw('FIELD(products.id, '.implode(',', $productIds).')');
+            $sort = 'none';
+        }
         match ($sort) {
+            'none' => null,
             'name' => $this->applyNameSort($query, $locale),
             'price_asc' => $query->orderBy('variations.sell_price_inc_tax', 'asc'),
             'price_desc' => $query->orderBy('variations.sell_price_inc_tax', 'desc'),

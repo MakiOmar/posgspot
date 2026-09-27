@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-23 |
+| **Last updated** | 2026-09-27 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -181,7 +181,7 @@
 | Footer payment icons (upload / URL) | ✅ | `/storefront/settings` → `payment_icons`; public `GET /settings` |
 | Footer menus (3 columns) | ✅ | Settings → Footer: contact title + link columns; public `footer` on `GET /settings`; delete-account link auto-ensured on Customer column |
 | Promotional banners (home / category) | ✅ | `/storefront/settings` → Banners tab; `banners[]` on settings; Qwik home + category |
-| Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf`, bestsellers `style`, video sources; legacy shelves/banners |
+| Homepage section builder | ✅ | Settings → Homepage tab; media library picker (checksum-deduped); `trust_badges`, `promo_banner`, `category_shelf` (auto or hand-picked products), bestsellers `style`, video sources; legacy shelves/banners |
 | Homepage category shelves | ✅ | POS category edit (enable + banner/copy/CTA); `GET /categories/homepage-shelves`; Qwik shelf shows all category products (incl. OOS) |
 | Storefront featured products | ✅ | `products.is_storefront_featured` + POS checkbox; `GET /products?featured=1` |
 | Category / brand thumbnails | ✅ | `categories.image` / `brands.image`; POS upload; brands list logo column + edit; `image_url` on storefront API |
@@ -255,6 +255,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-27 | `category_shelf`: `product_mode` auto/selected + ordered `product_ids` (max 24) picked in builder from the chosen category; `GET /products?ids=` (keeps order); Qwik/Expo use it. |
 | 2026-09-23 | Hero slide CTA: structured `cta` (product/category/game; legacy path); builder typeahead; Qwik/Expo hide Shop now when unset. |
 | 2026-09-23 | Promo tiles section heading uses first featured game title (i18n `promoTitle` fallback only). |
 | 2026-09-23 | Promo tiles: `count` = total unique games (dedupe by id, default 4); builder cache-bust `?v=22`. |

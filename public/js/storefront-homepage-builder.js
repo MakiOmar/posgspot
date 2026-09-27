@@ -60,7 +60,42 @@
           return slide;
         });
       }
+      if (clone.type === "category_shelf" && clone.settings) {
+        delete clone.settings._pickQ;
+        delete clone.settings._pickHits;
+        delete clone.settings._pickLoading;
+        delete clone.settings._picked;
+        delete clone.settings._pickTimer;
+        delete clone.settings.shelf;
+        clone.settings.product_mode = clone.settings.product_mode === "selected" ? "selected" : "auto";
+        clone.settings.product_ids = Array.isArray(clone.settings.product_ids)
+          ? clone.settings.product_ids
+          : [];
+      }
       return clone;
+    });
+  }
+
+  /** Transient picker state for category_shelf (stripped on save). */
+  function hydrateCategoryShelf(settings) {
+    if (!settings || typeof settings !== "object") {
+      return;
+    }
+    settings.product_mode = settings.product_mode === "selected" ? "selected" : "auto";
+    settings.product_ids = Array.isArray(settings.product_ids)
+      ? settings.product_ids
+          .map(function (id) {
+            return parseInt(id, 10) || 0;
+          })
+          .filter(function (id) {
+            return id > 0;
+          })
+      : [];
+    settings._pickQ = "";
+    settings._pickHits = [];
+    settings._pickLoading = false;
+    settings._picked = settings.product_ids.map(function (id) {
+      return { id: id, name: "#" + id, image_url: null };
     });
   }
 
@@ -146,7 +181,16 @@
       case "category_shelves":
         return { limit: 6, products_per_shelf: 6 };
       case "category_shelf":
-        return { category_id: null, products_per_shelf: 6 };
+        return {
+          category_id: null,
+          products_per_shelf: 6,
+          product_mode: "auto",
+          product_ids: [],
+          _pickQ: "",
+          _pickHits: [],
+          _pickLoading: false,
+          _picked: [],
+        };
       case "brand_slider":
         return { limit: 24 };
       case "bestsellers":
@@ -235,6 +279,12 @@
           hydrateTrustBadgeItem(item);
         });
       }
+      if (s.type === "category_shelf") {
+        if (!s.settings || typeof s.settings !== "object") {
+          s.settings = {};
+        }
+        hydrateCategoryShelf(s.settings);
+      }
     });
 
     var saveUrl = el.getAttribute("data-save-url") || "";
@@ -242,6 +292,24 @@
     var mediaUrl = el.getAttribute("data-media-url") || "";
     var mediaDeleteBase = el.getAttribute("data-media-delete-url") || "";
     var searchUrl = el.getAttribute("data-search-url") || "";
+    var productsUrl = el.getAttribute("data-products-url") || "";
+
+    function fetchStorefrontProducts(params) {
+      if (!productsUrl) {
+        return Promise.reject(new Error("Missing products URL"));
+      }
+      return fetch(productsUrl + "?" + params.toString(), {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      })
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (json) {
+          return json && Array.isArray(json.data) ? json.data : [];
+        });
+    }
 
     Vue.createApp({
       data: function () {
@@ -288,6 +356,11 @@
       },
       mounted: function () {
         var self = this;
+        this.sections.forEach(function (s) {
+          if (s.type === "category_shelf") {
+            self.refreshShelfPickedLabels(s.settings);
+          }
+        });
         // Builder sits inside #storefront_settings_form — block Enter from submitting that form.
         this.$el.addEventListener("keydown", function (e) {
           if (e.key === "Enter" && e.target && e.target.tagName === "INPUT") {
@@ -353,6 +426,18 @@
         },
         toggleOpen: function (id) {
           this.openId = this.openId === id ? null : id;
+          var opened = this.sections.find(function (s) {
+            return s.id === id;
+          });
+          if (
+            this.openId === id &&
+            opened &&
+            opened.type === "category_shelf" &&
+            opened.settings.product_mode === "selected" &&
+            opened.settings._pickHits.length === 0
+          ) {
+            this.searchShelfProducts(opened.settings);
+          }
         },
         addSlide: function (section) {
           if (!section.settings.slides) {
@@ -534,6 +619,123 @@
           }
           slide._ctaQ = "";
           slide._ctaHits = [];
+        },
+        shelfCategorySlug: function (settings) {
+          var id = parseInt(settings && settings.category_id, 10) || 0;
+          var cat = this.categories.find(function (c) {
+            return c.id === id;
+          });
+          return cat ? cat.slug : "";
+        },
+        /** Replace "#id" placeholders with real names/images (products outside the category drop out). */
+        refreshShelfPickedLabels: function (settings) {
+          if (!settings || !Array.isArray(settings.product_ids) || settings.product_ids.length === 0) {
+            return;
+          }
+          var params = new URLSearchParams();
+          params.set("ids", settings.product_ids.join(","));
+          params.set("per_page", "50");
+          fetchStorefrontProducts(params)
+            .then(function (rows) {
+              var byId = {};
+              rows.forEach(function (p) {
+                byId[p.id] = p;
+              });
+              settings._picked = settings.product_ids.map(function (id) {
+                var p = byId[id];
+                return p
+                  ? { id: id, name: p.name || "#" + id, image_url: p.image_url || null }
+                  : { id: id, name: "#" + id + " (not available on storefront)", image_url: null };
+              });
+            })
+            .catch(function () {
+              // Keep "#id" placeholders; saving still preserves ids.
+            });
+        },
+        onShelfCategoryChange: function (settings) {
+          if (settings.product_ids.length > 0) {
+            settings.product_ids = [];
+            settings._picked = [];
+            if (typeof toastr !== "undefined") {
+              toastr.info("Category changed — hand-picked products were cleared.");
+            }
+          }
+          settings._pickHits = [];
+          settings._pickQ = "";
+          if (settings.product_mode === "selected") {
+            this.searchShelfProducts(settings);
+          }
+        },
+        setShelfProductMode: function (settings, mode) {
+          settings.product_mode = mode === "selected" ? "selected" : "auto";
+          if (settings.product_mode === "selected" && settings._pickHits.length === 0) {
+            this.searchShelfProducts(settings);
+          }
+        },
+        onShelfPickInput: function (settings) {
+          var self = this;
+          if (settings._pickTimer) {
+            clearTimeout(settings._pickTimer);
+          }
+          settings._pickTimer = setTimeout(function () {
+            self.searchShelfProducts(settings);
+          }, 300);
+        },
+        searchShelfProducts: function (settings) {
+          var self = this;
+          var slug = this.shelfCategorySlug(settings);
+          if (!slug) {
+            settings._pickHits = [];
+            return;
+          }
+          var params = new URLSearchParams();
+          params.set("category_slug", slug);
+          params.set("per_page", "50");
+          var q = (settings._pickQ || "").trim();
+          if (q) {
+            params.set("q", q);
+          }
+          settings._pickLoading = true;
+          fetchStorefrontProducts(params)
+            .then(function (rows) {
+              settings._pickLoading = false;
+              settings._pickHits = rows.map(function (p) {
+                return { id: p.id, name: p.name || "#" + p.id, image_url: p.image_url || null };
+              });
+            })
+            .catch(function () {
+              settings._pickLoading = false;
+              settings._pickHits = [];
+              self.error = "Could not load category products.";
+            });
+        },
+        isShelfProductPicked: function (settings, id) {
+          return settings.product_ids.indexOf(id) !== -1;
+        },
+        addShelfProduct: function (settings, hit) {
+          if (this.isShelfProductPicked(settings, hit.id)) {
+            return;
+          }
+          if (settings.product_ids.length >= 24) {
+            this.error = "Maximum of 24 products per shelf.";
+            return;
+          }
+          settings.product_ids.push(hit.id);
+          settings._picked.push({ id: hit.id, name: hit.name, image_url: hit.image_url });
+        },
+        removeShelfProduct: function (settings, index) {
+          settings.product_ids.splice(index, 1);
+          settings._picked.splice(index, 1);
+        },
+        moveShelfProduct: function (settings, index, delta) {
+          var to = index + delta;
+          if (to < 0 || to >= settings.product_ids.length) {
+            return;
+          }
+          [settings.product_ids, settings._picked].forEach(function (list) {
+            var item = list.splice(index, 1)[0];
+            list.splice(to, 0, item);
+          });
         },
         removeSlide: function (section, index) {
           section.settings.slides.splice(index, 1);
@@ -1261,16 +1463,67 @@
                 <template v-else-if="section.type === 'category_shelf'">
                   <div class="form-group">
                     <label>Category</label>
-                    <select class="form-control" v-model.number="section.settings.category_id">
+                    <select class="form-control" v-model.number="section.settings.category_id" @change="onShelfCategoryChange(section.settings)">
                       <option :value="null">— Select category —</option>
                       <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                         {{ cat.parent_id ? '— ' : '' }}{{ cat.name }}
                       </option>
                     </select>
                   </div>
+                  <!-- Product source: auto (first N) or hand-picked from this category -->
                   <div class="form-group">
+                    <label>Products to show</label>
+                    <select
+                      class="form-control"
+                      :value="section.settings.product_mode"
+                      :disabled="!section.settings.category_id"
+                      @change="setShelfProductMode(section.settings, $event.target.value)"
+                    >
+                      <option value="auto">Automatic — first products in category</option>
+                      <option value="selected">Hand-picked — choose products below</option>
+                    </select>
+                  </div>
+                  <div class="form-group" v-if="section.settings.product_mode !== 'selected'">
                     <label>Products per shelf</label>
                     <input type="number" min="1" max="24" class="form-control" v-model.number="section.settings.products_per_shelf" />
+                  </div>
+                  <!-- Hand-picked products picker -->
+                  <div v-else class="sf-hp-shelf-picker">
+                    <label>Selected products ({{ section.settings.product_ids.length }}/24) — shown in this order</label>
+                    <p v-if="section.settings._picked.length === 0" class="help-block">
+                      No products picked yet. Until you pick at least one, the shelf falls back to automatic.
+                    </p>
+                    <ul v-else class="list-group" style="margin-bottom:10px;">
+                      <li v-for="(p, pi) in section.settings._picked" :key="p.id" class="list-group-item" style="display:flex;align-items:center;gap:8px;">
+                        <img v-if="p.image_url" :src="p.image_url" alt="" style="width:36px;height:36px;object-fit:cover;border-radius:4px;" />
+                        <span style="flex:1;">{{ p.name }}</span>
+                        <button type="button" class="btn btn-xs btn-default" :disabled="pi === 0" title="Move up" @click="moveShelfProduct(section.settings, pi, -1)">&uarr;</button>
+                        <button type="button" class="btn btn-xs btn-default" :disabled="pi === section.settings._picked.length - 1" title="Move down" @click="moveShelfProduct(section.settings, pi, 1)">&darr;</button>
+                        <button type="button" class="btn btn-xs btn-danger" title="Remove" @click="removeShelfProduct(section.settings, pi)">&times;</button>
+                      </li>
+                    </ul>
+                    <input
+                      type="search"
+                      class="form-control"
+                      placeholder="Search products in this category…"
+                      v-model="section.settings._pickQ"
+                      @input="onShelfPickInput(section.settings)"
+                    />
+                    <p v-if="section.settings._pickLoading" class="help-block"><i class="fa fa-spinner fa-spin"></i> Loading products…</p>
+                    <p v-else-if="section.settings._pickHits.length === 0" class="help-block">No storefront products found in this category.</p>
+                    <ul v-else class="list-group" style="max-height:260px;overflow-y:auto;margin-top:6px;">
+                      <li v-for="hit in section.settings._pickHits" :key="hit.id" class="list-group-item" style="display:flex;align-items:center;gap:8px;">
+                        <img v-if="hit.image_url" :src="hit.image_url" alt="" style="width:32px;height:32px;object-fit:cover;border-radius:4px;" />
+                        <span style="flex:1;">{{ hit.name }}</span>
+                        <button
+                          type="button"
+                          class="btn btn-xs"
+                          :class="isShelfProductPicked(section.settings, hit.id) ? 'btn-default' : 'btn-primary'"
+                          :disabled="isShelfProductPicked(section.settings, hit.id)"
+                          @click="addShelfProduct(section.settings, hit)"
+                        >{{ isShelfProductPicked(section.settings, hit.id) ? 'Added' : 'Add' }}</button>
+                      </li>
+                    </ul>
                   </div>
                   <p class="help-block">Renders like a category shelf (banner fields from the category + product grid). Insert multiple sections for multiple categories.</p>
                 </template>

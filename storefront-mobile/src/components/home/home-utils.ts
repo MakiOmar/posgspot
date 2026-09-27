@@ -68,6 +68,16 @@ export function settingNumber(
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** Hand-picked product ids for a category shelf; empty when the shelf is in automatic mode. */
+export function shelfPickedIds(settings: Record<string, unknown>): number[] {
+  if (settings.product_mode !== "selected" || !Array.isArray(settings.product_ids)) {
+    return [];
+  }
+  return settings.product_ids
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+}
+
 /** Screen width for home layout; prefer over module-level Dimensions.get. */
 export function useHomeScreenWidth(): number {
   const { width } = useWindowDimensions();

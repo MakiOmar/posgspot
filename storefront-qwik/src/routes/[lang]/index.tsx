@@ -48,6 +48,14 @@ function sectionSettingNumber(settings: Record<string, unknown>, key: string, fa
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
+/** Hand-picked product ids for a category shelf; empty when the shelf is in automatic mode. */
+function categoryShelfPickedIds(settings: Record<string, unknown>): number[] {
+  if (settings.product_mode !== "selected" || !Array.isArray(settings.product_ids)) {
+    return [];
+  }
+  return settings.product_ids.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0);
+}
+
 function sectionSettingBool(settings: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const raw = settings[key];
   if (typeof raw === "boolean") {
@@ -159,12 +167,15 @@ export const useHomepageCatalog = routeLoader$(
           categoryShelfSecs.map(async (sec) => {
             const shelf = sec.settings.shelf as HomepageCategoryShelf | undefined;
             const perPage = sectionSettingNumber(sec.settings, "products_per_shelf", 6);
+            const pickedIds = categoryShelfPickedIds(sec.settings);
             if (!shelf?.slug) {
               return [sec.id, [] as ProductSummary[]] as const;
             }
             try {
               const page = await fetchProductsPage(
-                { category_slug: shelf.slug, per_page: perPage },
+                pickedIds.length > 0
+                  ? { category_slug: shelf.slug, ids: pickedIds.join(","), per_page: pickedIds.length }
+                  : { category_slug: shelf.slug, per_page: perPage },
                 locale,
               );
               return [sec.id, page.data] as const;

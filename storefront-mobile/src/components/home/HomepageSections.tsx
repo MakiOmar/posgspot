@@ -32,6 +32,7 @@ import {
   asTrustBadges,
   mapPool,
   settingNumber,
+  shelfPickedIds,
 } from "./home-utils";
 
 export function HomepageSections({
@@ -176,12 +177,19 @@ export function HomepageSections({
         .map((sec) => {
           const shelf = (sec.settings.shelf || {}) as HomepageCategoryShelf;
           const slug = shelf.slug;
-          const per = settingNumber(sec.settings, "products_per_shelf", 6);
+          const ids = shelfPickedIds(sec.settings);
+          const per =
+            ids.length > 0
+              ? ids.length
+              : settingNumber(sec.settings, "products_per_shelf", 6);
           const key = String(sec.id);
           if (!slug) return null;
-          return { key, slug, per };
+          return { key, slug, per, ids: ids.join(",") };
         })
-        .filter((j): j is { key: string; slug: string; per: number } => !!j);
+        .filter(
+          (j): j is { key: string; slug: string; per: number; ids: string } =>
+            !!j,
+        );
 
       if (shelfJobs.length) {
         tasks.push(
@@ -189,7 +197,11 @@ export function HomepageSections({
             const pairs = await mapPool(shelfJobs, 3, async (job) => {
               try {
                 const page = await fetchProducts(
-                  { category_slug: job.slug, per_page: job.per },
+                  {
+                    category_slug: job.slug,
+                    per_page: job.per,
+                    ids: job.ids || undefined,
+                  },
                   locale,
                 );
                 return [job.key, page.data || []] as const;

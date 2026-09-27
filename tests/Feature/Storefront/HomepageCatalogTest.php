@@ -91,6 +91,41 @@ class HomepageCatalogTest extends TestCase
         $this->assertIsArray($response->json('data'));
     }
 
+    public function test_ids_filter_returns_only_listed_products_in_given_order(): void
+    {
+        $location = BusinessLocation::where('business_id', $this->businessId)->where('is_active', 1)->first();
+        if (empty($location)) {
+            $this->markTestSkipped('No active business location.');
+        }
+
+        app(StorefrontSettingService::class)->save($this->businessId, [
+            'selling_location_ids' => [$location->id],
+            'default_fulfillment_location_id' => $location->id,
+        ]);
+        Cache::flush();
+
+        $listed = collect($this->getJson('/api/storefront/v1/products?per_page=10')->json('data'))
+            ->pluck('id')
+            ->values();
+        if ($listed->count() < 2) {
+            $this->markTestSkipped('Need at least two storefront products.');
+        }
+
+        // Reverse of catalog order proves FIELD() ordering, not default id sort.
+        $picked = [$listed[1], $listed[0]];
+        $response = $this->getJson('/api/storefront/v1/products?ids='.implode(',', $picked).'&per_page=10');
+        $response->assertOk()->assertJsonPath('success', true);
+
+        $this->assertSame($picked, collect($response->json('data'))->pluck('id')->all());
+    }
+
+    public function test_ids_filter_with_only_invalid_ids_returns_empty(): void
+    {
+        $response = $this->getJson('/api/storefront/v1/products?ids=0,-3,abc');
+        $response->assertOk()->assertJsonPath('success', true);
+        $this->assertIsArray($response->json('data'));
+    }
+
     public function test_homepage_shelves_endpoint(): void
     {
         $response = $this->getJson('/api/storefront/v1/categories/homepage-shelves');

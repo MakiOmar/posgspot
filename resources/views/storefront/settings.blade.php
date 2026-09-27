@@ -781,6 +781,7 @@
                     data-save-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'updateHomepageSections']) }}"
                     data-upload-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'uploadHomepageMedia']) }}"
                     data-search-url="{{ url('/api/storefront/v1/search') }}"
+                    data-products-url="{{ url('/api/storefront/v1/products') }}"
                     data-media-url="{{ action([\App\Http\Controllers\StorefrontSettingController::class, 'listMedia']) }}"
                     data-media-delete-url="{{ url('/storefront/media') }}"
                 >
@@ -1559,7 +1560,7 @@
 <link rel="stylesheet" href="{{ asset('css/storefront-homepage-builder.css') }}?v=8">
 <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
-<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=23"></script>
+<script src="{{ asset('js/storefront-homepage-builder.js') }}?v=24"></script>
 <script src="{{ asset('js/storefront-shop-menu-builder.js') }}?v=3"></script>
 <style>
 .sf-shop-menu-tree > .sf-shop-menu-item { margin-bottom: 10px; }
