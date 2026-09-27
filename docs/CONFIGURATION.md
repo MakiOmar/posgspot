@@ -106,6 +106,30 @@ Notify inbox: **Storefront Settings → Request a product notify email** (`setti
 
 Config: `config/storefront.php` → `request_product.enabled`.
 
+## POS backups
+
+**POS → Backup** (`/backup`, administrator usernames only) lists archives, runs **Backup now**, and sets the automatic schedule. Schedule settings live in the `system` table (`backup_auto_*`), not `.env`:
+
+| Setting | Default | Options |
+|---------|---------|---------|
+| Enabled | on | on / off |
+| Interval | hourly | 30 min, 1 / 2 / 6 / 12 h, daily 01:30, weekly Sunday 01:30 |
+| Scope | database + uploads + `.env` | or database only |
+| Keep latest | 24 | 1–500 archives; older ones are deleted after each run (`App\Backup\Cleanup\KeepLatestBackups`) |
+
+The scheduler runs `php artisan backup:auto` (backup with the page's scope, then `backup:clean`) on the chosen interval in every environment except `demo`. It needs the Laravel scheduler cron on the server (shown on the page):
+
+```
+* * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
+```
+
+| Variable | Purpose |
+|----------|---------|
+| `BACKUP_DISK` | Filesystem disk for archives (default `backups` → `storage/app/backups`). `local` is **redirected** to `backups`, because the `local` disk is `public/uploads` (web-accessible). |
+| `BACKUP_ARCHIVE_PASSWORD` | Optional AES-256 zip password |
+
+MySQL dumps use `--single-transaction` (`config/database.php` → `mysql.dump`) so backups don't lock tables; all tables are InnoDB. Only failure notifications are mailed (`config/backup.php`). If older archives exist in `public/uploads/UltimatePOS/`, move them to `storage/app/backups/UltimatePOS/` and delete the public copies.
+
 ## Upload images to WebP
 
 When PHP GD has `imagewebp()`, raster uploads (JPEG/PNG/GIF/BMP) are converted to WebP after store. SVG, ICO, animated GIF, and existing WebP are left unchanged. Applies to POS `Util::uploadFile(..., 'image')` (products, brands, business logo, storefront Appearance uploads, etc.), the storefront media library, customer avatars, and sell-to-us photos.

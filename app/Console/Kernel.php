@@ -2,8 +2,10 @@
 
 namespace App\Console;
 
+use App\Services\Backup\BackupScheduleService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+use Illuminate\Support\Facades\Log;
 
 class Kernel extends ConsoleKernel
 {
@@ -18,13 +20,11 @@ class Kernel extends ConsoleKernel
         $env = config('app.env');
         $email = config('mail.username');
 
+        if ($env !== 'demo') {
+            $this->scheduleAutomaticBackup($schedule);
+        }
+
         if ($env === 'live') {
-            //Scheduling backup, specify the time when the backup will get cleaned & time when it will run.
-            
-            $schedule->command('backup:clean')->daily()->at('01:00');
-            $schedule->command('backup:run')->daily()->at('01:30');
-
-
             //Schedule to create recurring invoices
             $schedule->command('pos:generateSubscriptionInvoices')->dailyAt('23:30');
             $schedule->command('pos:updateRewardPoints')->dailyAt('23:45');
@@ -40,6 +40,30 @@ class Kernel extends ConsoleKernel
                     //->everyThirtyMinutes()
                     ->emailOutputTo($email);
         }
+    }
+
+    /**
+     * Interval comes from the POS Backup page (system table), default hourly.
+     */
+    private function scheduleAutomaticBackup(Schedule $schedule): void
+    {
+        try {
+            $backups = app(BackupScheduleService::class);
+            if (! $backups->settings()['enabled']) {
+                return;
+            }
+            $cron = $backups->cronExpression();
+        } catch (\Throwable $e) {
+            // DB unavailable (install, maintenance) must not break every artisan command.
+            Log::warning('Automatic backup not scheduled: '.$e->getMessage());
+
+            return;
+        }
+
+        $schedule->command('backup:auto')
+            ->cron($cron)
+            ->withoutOverlapping(180)
+            ->runInBackground();
     }
 
     /**

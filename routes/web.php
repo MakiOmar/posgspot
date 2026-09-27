@@ -440,9 +440,11 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::get('/sell-return/add/{id}', [SellReturnController::class, 'add']);
 
     //Backup
-    Route::get('backup/download/{file_name}', [BackUpController::class, 'download']);
-    Route::get('backup/{id}/delete', [BackUpController::class, 'delete'])->name('delete_backup');
-    Route::resource('backup', BackUpController::class)->only('index', 'create', 'store');
+    Route::get('backup', [BackUpController::class, 'index'])->name('backup.index');
+    Route::post('backup', [BackUpController::class, 'store'])->name('backup.store');
+    Route::put('backup/settings', [BackUpController::class, 'updateSettings'])->name('backup.settings.update');
+    Route::get('backup/download/{file_name}', [BackUpController::class, 'download'])->name('backup.download');
+    Route::delete('backup/{file_name}', [BackUpController::class, 'destroy'])->name('backup.destroy');
 
     Route::get('selling-price-group/activate-deactivate/{id}', [SellingPriceGroupController::class, 'activateDeactivate']);
     Route::get('update-product-price', [SellingPriceGroupController::class, 'updateProductPrice'])->name('update-product-price');

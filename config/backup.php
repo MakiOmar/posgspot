@@ -6,6 +6,12 @@ if (file_exists(base_path('custom_views'))) {
     $include[] = base_path('custom_views');
 }
 
+// The "local" disk is public/uploads (web-accessible), so archives are redirected to the private backups disk.
+$backupDisk = env('BACKUP_DISK', 'backups');
+if ($backupDisk === 'local') {
+    $backupDisk = 'backups';
+}
+
 return [
 
     'backup' => [
@@ -120,7 +126,7 @@ return [
              * The disk names on which the backups will be stored.
              */
             'disks' => [
-                env('BACKUP_DISK', 'local'),
+                $backupDisk,
             ],
         ],
 
@@ -158,9 +164,10 @@ return [
             \Spatie\Backup\Notifications\Notifications\BackupHasFailedNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\UnhealthyBackupWasFoundNotification::class => ['mail'],
             \Spatie\Backup\Notifications\Notifications\CleanupHasFailedNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification::class => ['mail'],
-            \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification::class => ['mail'],
+            // Success mails are off: with hourly backups they would send 48+ emails a day.
+            \Spatie\Backup\Notifications\Notifications\BackupWasSuccessfulNotification::class => [],
+            \Spatie\Backup\Notifications\Notifications\HealthyBackupWasFoundNotification::class => [],
+            \Spatie\Backup\Notifications\Notifications\CleanupWasSuccessfulNotification::class => [],
         ],
 
         /*
@@ -215,7 +222,7 @@ return [
     'monitor_backups' => [
         [
             'name' => env('APP_NAME', 'laravel-backup'),
-            'disks' => env('BACKUP_DISK', 'local'),
+            'disks' => $backupDisk,
             'health_checks' => [
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays::class => 1,
                 \Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes::class => 5000,

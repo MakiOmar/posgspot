@@ -1,27 +1,22 @@
 <?php
-// app/Backup/Cleanup/KeepLatestBackups.php
 
 namespace App\Backup\Cleanup;
 
-use Spatie\Backup\Tasks\Cleanup\CleanupStrategy;
+use App\Services\Backup\BackupScheduleService;
 use Spatie\Backup\BackupDestination\BackupCollection;
-use Spatie\Backup\BackupDestination\BackupDestination;
+use Spatie\Backup\Tasks\Cleanup\CleanupStrategy;
 
+/**
+ * Keep the newest N archives, N = "Keep backups" on the POS Backup page.
+ */
 class KeepLatestBackups extends CleanupStrategy
 {
     public function deleteOldBackups(BackupCollection $backups)
     {
-        // Sort the backups by date in descending order
-        $backups = $backups->sortByDesc('date');
+        $keep = app(BackupScheduleService::class)->settings()['keep_count'];
 
-        // Keep only the latest 5 backups
-        $backupsToKeep = $backups->slice(0, 5);
-
-        // Delete old backups except those to keep
-        foreach ($backups as $backup) {
-            if (!$backupsToKeep->contains($backup)) {
-                $backup->delete();
-            }
-        }
+        $backups->sortByDesc(fn ($backup) => $backup->date())
+            ->slice($keep)
+            ->each(fn ($backup) => $backup->delete());
     }
 }

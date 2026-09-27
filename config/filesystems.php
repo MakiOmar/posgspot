@@ -36,6 +36,13 @@ return [
             'throw' => false,
         ],
 
+        // Backup archives contain the DB dump + .env: never under public/.
+        'backups' => [
+            'driver' => 'local',
+            'root' => storage_path('app/backups'),
+            'throw' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

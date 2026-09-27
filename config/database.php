@@ -61,8 +61,11 @@ return [
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
-            //'dump' => [ 'dump_binary_path' => 'D:\laragon\bin\mysql\mysql-8.0.30-winx64\bin'] 
-            // Uncomment above line for windows & provide path to mysql dump binary for backup to work
+            // Consistent InnoDB snapshot without table locks, so hourly backups don't block POS writes.
+            // On Windows without mysqldump on PATH, add 'dump_binary_path' => 'C:\path\to\mysql\bin'.
+            'dump' => [
+                'useSingleTransaction' => true,
+            ],
         ],
 
         'pgsql' => [
