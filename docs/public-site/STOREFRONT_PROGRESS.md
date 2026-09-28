@@ -96,7 +96,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
-| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); "In stock only" toggle (`?in_stock_only=1`, filtered by Accounts before pagination); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-28 | Digital games "In stock only" filter: `GET /digital/games?in_stock_only=1` (Accounts `in_stock_only` filters sellable offers before pagination); Qwik `/games` toggle + in-stock empty state; `DigitalGamesInStockFilterTest`. Expo not changed. |
 | 2026-09-28 | Synced Accounts products use existing POS category `digital-games` and brand `games-spot` (slugs from `ACCOUNTS_CATALOG_*` env); dedicated `accounts-*` categories and their `/categories` filter removed. |
 | 2026-09-27 | Per-offer POS products: Accounts upserts `ACCOUNTS-GAME-*` / `ACCOUNTS-CARD-*` hidden products (`POST /api/accounts/catalog/upsert/{business_id}`); digital lists/PDP expose `pos_offers`, cards `pos_sku` (Qwik + Expo prefer them, shared SKUs fallback); cart accepts them only as the matching digital line; categories hidden; order lines return `digital` for buy-again. |
 | 2026-09-27 | Footer reorganized: default Shop / My Account / Help / Company (up to 4 menus); URLs deduped across columns; bundle/sell links stripped when disabled; `storefront:reset-footer` reseed command. |

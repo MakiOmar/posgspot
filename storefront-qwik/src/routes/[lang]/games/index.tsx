@@ -40,7 +40,8 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
     query.get("product_type") === "subscription" ? "subscription" : "game";
   const page = Math.max(1, Number(query.get("page") || 1) || 1);
   const q = (query.get("q") || "").trim();
-  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&product_type=${productType}&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const inStockOnly = query.get("in_stock_only") === "1";
+  const storefrontRequestUrl = `${API_BASE}/api/storefront/v1/digital/games?platform=${platform}&product_type=${productType}&page=${page}${q ? `&q=${encodeURIComponent(q)}` : ""}${inStockOnly ? "&in_stock_only=1" : ""}`;
 
   try {
     const { data } = await fetchDigitalGames(
@@ -49,6 +50,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       locale,
       q || undefined,
       productType,
+      inStockOnly,
     );
     const games = (data.games ?? []) as DigitalGameSummary[];
     const debug = {
@@ -62,6 +64,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       productType,
       page,
       q,
+      inStockOnly,
       games,
       meta: data.meta,
       skus: data.skus as DigitalSkus,
@@ -79,6 +82,7 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       productType,
       page,
       q,
+      inStockOnly,
       games: [] as DigitalGameSummary[],
       meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
       skus: { primary: null, secondary: null, gift_card: null } as DigitalSkus,
@@ -103,7 +107,7 @@ export default component$(() => {
   const listPath = loc.url.pathname || localePath(lang, "/games");
   const isPlus = list.value.productType === "subscription";
 
-  const buildUrl = (platform: string, page = 1) => {
+  const buildUrl = (platform: string, page = 1, inStockOnly = list.value.inStockOnly) => {
     const params = new URLSearchParams();
     if (platform !== "4") {
       params.set("platform", platform);
@@ -114,6 +118,9 @@ export default component$(() => {
     if (list.value.q) {
       params.set("q", list.value.q);
     }
+    if (inStockOnly) {
+      params.set("in_stock_only", "1");
+    }
     if (page > 1) {
       params.set("page", String(page));
     }
@@ -122,7 +129,7 @@ export default component$(() => {
   };
 
   const debug = list.value.debug;
-  const showDebug = list.value.games.length === 0;
+  const showDebug = list.value.games.length === 0 && !list.value.inStockOnly;
 
   return (
     <section class="digital-catalog">
@@ -148,22 +155,37 @@ export default component$(() => {
             : tStatic(lang, "digital.gamesLead")}
         </p>
 
-        <div class="digital-catalog__platforms" role="tablist" aria-label={tStatic(lang, "digital.platformFilter")}>
+        {/* Filters: platform tabs + in-stock toggle (both live in the URL so SSR and sharing keep them) */}
+        <div class="digital-catalog__filters">
+          <div class="digital-catalog__platforms" role="tablist" aria-label={tStatic(lang, "digital.platformFilter")}>
+            <Link
+              href={buildUrl("4")}
+              role="tab"
+              aria-selected={list.value.platform === "4"}
+              class={`digital-catalog__platform${list.value.platform === "4" ? " is-active" : ""}`}
+            >
+              PS4
+            </Link>
+            <Link
+              href={buildUrl("5")}
+              role="tab"
+              aria-selected={list.value.platform === "5"}
+              class={`digital-catalog__platform${list.value.platform === "5" ? " is-active" : ""}`}
+            >
+              PS5
+            </Link>
+          </div>
+
+          {/* In-stock toggle: resets to page 1 because the filtered result set has different pages */}
           <Link
-            href={buildUrl("4")}
-            role="tab"
-            aria-selected={list.value.platform === "4"}
-            class={`digital-catalog__platform${list.value.platform === "4" ? " is-active" : ""}`}
+            href={buildUrl(list.value.platform, 1, !list.value.inStockOnly)}
+            class={`btn btn-secondary product-list-toolbar__stock digital-catalog__stock${list.value.inStockOnly ? " is-active" : ""}`}
+            aria-pressed={list.value.inStockOnly}
+            rel="nofollow"
           >
-            PS4
-          </Link>
-          <Link
-            href={buildUrl("5")}
-            role="tab"
-            aria-selected={list.value.platform === "5"}
-            class={`digital-catalog__platform${list.value.platform === "5" ? " is-active" : ""}`}
-          >
-            PS5
+            {list.value.inStockOnly
+              ? tStatic(lang, "catalog.inStockActive")
+              : tStatic(lang, "catalog.inStockOnly")}
           </Link>
         </div>
 
@@ -179,7 +201,23 @@ export default component$(() => {
 
       {list.value.games.length === 0 ? (
         <div class="empty-state">
-          {isPlus ? tStatic(lang, "digital.noPsPlus") : tStatic(lang, "digital.noGames")}
+          {/* Filtered empty state offers a way back to the full list */}
+          {list.value.inStockOnly ? (
+            <>
+              <p>
+                {isPlus
+                  ? tStatic(lang, "digital.noInStockPsPlus")
+                  : tStatic(lang, "digital.noInStockGames")}
+              </p>
+              <Link href={buildUrl(list.value.platform, 1, false)} class="link-accent">
+                {tStatic(lang, "digital.showAll")}
+              </Link>
+            </>
+          ) : isPlus ? (
+            tStatic(lang, "digital.noPsPlus")
+          ) : (
+            tStatic(lang, "digital.noGames")
+          )}
         </div>
       ) : (
         <div class="product-grid digital-catalog__grid">

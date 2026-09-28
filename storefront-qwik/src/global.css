@@ -2823,11 +2823,23 @@ html[dir="rtl"] .header-search-type {
   line-height: 1.45;
 }
 
+.digital-catalog__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.85rem;
+}
+
+.digital-catalog__stock {
+  font-size: 0.875rem;
+}
+
 .digital-catalog__platforms {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  margin: 0 0 0.85rem;
+  margin: 0;
   padding: 0.25rem;
   background: var(--gs-surface);
   border: 1px solid var(--gs-border);

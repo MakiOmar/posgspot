@@ -1172,6 +1172,7 @@ export function fetchDigitalGames(
   locale?: string,
   q?: string,
   productType: "game" | "subscription" = "game",
+  inStockOnly = false,
 ) {
   const params = new URLSearchParams({
     platform,
@@ -1181,6 +1182,9 @@ export function fetchDigitalGames(
   const term = q?.trim();
   if (term) {
     params.set("q", term);
+  }
+  if (inStockOnly) {
+    params.set("in_stock_only", "1");
   }
   return storefrontFetch<{
     platform: string;
