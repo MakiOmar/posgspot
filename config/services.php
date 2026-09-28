@@ -38,6 +38,10 @@ return [
         'base' => env('ACCOUNTS_BASE_URL'),
         'phone' => env('ACCOUNTS_AUTH_PHONE'),
         'password' => env('ACCOUNTS_AUTH_PASSWORD'),
+        // Existing POS category / brand that per-offer products synced from Accounts are filed under.
+        'catalog_category_slug' => env('ACCOUNTS_CATALOG_CATEGORY_SLUG', 'digital-games'),
+        'catalog_card_category_slug' => env('ACCOUNTS_CATALOG_CARD_CATEGORY_SLUG'),
+        'catalog_brand_slug' => env('ACCOUNTS_CATALOG_BRAND_SLUG', 'games-spot'),
     ],
 
     /*

@@ -136,20 +136,18 @@ class AccountsSyncedDigitalTest extends TestCase
         $this->assertSame($card['product_id'], $catalog->cardPosSkus($this->businessId, [980006])[980006]['product_id']);
     }
 
-    public function test_accounts_categories_are_hidden_from_storefront_category_tree(): void
+    public function test_synced_products_stay_out_of_their_category_product_grid(): void
     {
-        $this->syncOffer('ACCOUNTS-GAME-980008-PS4-PRIMARY');
-        $this->syncOffer('ACCOUNTS-CARD-980009');
+        $offer = $this->syncOffer('ACCOUNTS-GAME-980008-PS4-PRIMARY');
+        $categoryId = (int) Product::find($offer['product_id'])->category_id;
         Cache::flush();
 
-        $this->assertContains(
-            AccountsCatalogService::GAME_CATEGORY_SLUG,
-            array_column(\App\Category::catAndSubCategories($this->businessId), 'slug')
-        );
-        $slugs = array_column(app(CatalogService::class)->getCategories($this->businessId), 'slug');
+        $ids = collect(app(CatalogService::class)->listProducts($this->businessId, ['category_id' => $categoryId], 100)->items())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
-        $this->assertNotContains(AccountsCatalogService::GAME_CATEGORY_SLUG, $slugs);
-        $this->assertNotContains(AccountsCatalogService::CARD_CATEGORY_SLUG, $slugs);
+        $this->assertNotContains($offer['product_id'], $ids);
     }
 
     public function test_buy_again_rebuilds_digital_meta_from_synced_sku(): void

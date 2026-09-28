@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Brands;
 use App\Business;
 use App\Category;
 use App\Product;
@@ -74,7 +75,7 @@ class AccountsCatalogUpsertTest extends TestCase
         $this->assertSame(1, (int) $product->not_for_selling);
         $this->assertSame(0, (int) $product->is_inactive);
         $this->assertSame(
-            AccountsCatalogService::GAME_CATEGORY_SLUG,
+            AccountsCatalogService::categorySlug('game'),
             Category::find($product->category_id)?->slug
         );
         $this->assertEqualsWithDelta(800, (float) Variation::find($variationId)->sell_price_inc_tax, 0.001);
@@ -89,6 +90,37 @@ class AccountsCatalogUpsertTest extends TestCase
         $this->assertSame(1, Product::where('business_id', 1)->where('sku', $sku)->count());
         $this->assertSame(1, (int) Product::find($productId)->is_inactive);
         $this->assertEqualsWithDelta(750, (float) Variation::find($variationId)->sell_price_inc_tax, 0.001);
+    }
+
+    public function test_products_link_to_configured_category_and_brand_slugs(): void
+    {
+        $category = Category::create([
+            'name' => 'Cfg Digital', 'business_id' => 1, 'parent_id' => 0, 'category_type' => 'product',
+            'created_by' => $this->owner->id, 'slug' => 'cfg-digital-'.uniqid(),
+        ]);
+        $brand = Brands::create([
+            'name' => 'Cfg Brand', 'business_id' => 1, 'created_by' => $this->owner->id, 'slug' => 'cfg-brand-'.uniqid(),
+        ]);
+        config([
+            'services.accounts.catalog_category_slug' => $category->slug,
+            'services.accounts.catalog_card_category_slug' => null,
+            'services.accounts.catalog_brand_slug' => $brand->slug,
+        ]);
+
+        $service = app(AccountsCatalogService::class);
+        $game = $service->upsert(1, 'game', [['sku' => 'ACCOUNTS-GAME-990010-PS5-FULL', 'name' => 'Cfg Full PS5', 'price' => 10]])[0];
+        $card = $service->upsert(1, 'card', [['sku' => 'ACCOUNTS-CARD-990011', 'name' => 'Cfg Card', 'price' => 10]])[0];
+
+        foreach ([$game, $card] as $row) {
+            $product = Product::find($row['product_id']);
+            $this->assertSame($category->id, (int) $product->category_id);
+            $this->assertSame($brand->id, (int) $product->brand_id);
+        }
+
+        // Unknown brand slug keeps the existing brand instead of clearing it.
+        config(['services.accounts.catalog_brand_slug' => 'missing-brand-'.uniqid()]);
+        $service->upsert(1, 'game', [['sku' => 'ACCOUNTS-GAME-990010-PS5-FULL', 'name' => 'Cfg Full PS5', 'price' => 12]]);
+        $this->assertSame($brand->id, (int) Product::find($game['product_id'])->brand_id);
     }
 
     public function test_repeated_upserts_for_same_sku_leave_one_row(): void

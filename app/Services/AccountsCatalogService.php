@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Brands;
 use App\Business;
 use App\BusinessLocation;
 use App\Category;
@@ -12,6 +13,7 @@ use App\Utils\ProductUtil;
 use App\Variation;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -23,10 +25,6 @@ use RuntimeException;
  */
 class AccountsCatalogService
 {
-    public const GAME_CATEGORY_SLUG = 'accounts-digital-games';
-
-    public const CARD_CATEGORY_SLUG = 'accounts-gift-cards';
-
     public const SKU_PREFIXES = ['ACCOUNTS-GAME-', 'ACCOUNTS-CARD-'];
 
     private const NAME_MAX = 191;
@@ -49,7 +47,10 @@ class AccountsCatalogService
         }
 
         $unitId = $this->resolveUnitId($business);
-        $categoryId = $this->resolveCategoryId($businessId, $ownerId, $kind);
+        $links = [
+            'category_id' => $this->resolveCategoryId($businessId, $ownerId, $kind),
+            'brand_id' => $this->resolveBrandId($businessId),
+        ];
         $locationIds = BusinessLocation::where('business_id', $businessId)->pluck('id')->all();
 
         $results = [];
@@ -60,10 +61,10 @@ class AccountsCatalogService
             }
             // Serialise per SKU across workers; the row lock below covers the same DB connection.
             $results[] = Cache::lock('accounts-catalog:'.$businessId.':'.$sku, 30)->block(10, function () use (
-                $businessId, $item, $sku, $ownerId, $unitId, $categoryId, $locationIds, $code
+                $businessId, $item, $sku, $ownerId, $unitId, $links, $locationIds, $code
             ) {
                 return DB::transaction(fn () => $this->upsertOne(
-                    $businessId, $item, $sku, $ownerId, $unitId, $categoryId, $locationIds, $code
+                    $businessId, $item, $sku, $ownerId, $unitId, $links, $locationIds, $code
                 ));
             });
         }
@@ -73,6 +74,7 @@ class AccountsCatalogService
 
     /**
      * @param  array{sku:string,name:string,price:float|int|string,active?:bool}  $item
+     * @param  array{category_id:int,brand_id:?int}  $links
      * @param  list<int>  $locationIds
      * @return array{sku:string,product_id:int,variation_id:int,active:bool}
      */
@@ -82,7 +84,7 @@ class AccountsCatalogService
         string $sku,
         int $ownerId,
         int $unitId,
-        int $categoryId,
+        array $links,
         array $locationIds,
         ?string $code
     ): array {
@@ -96,6 +98,8 @@ class AccountsCatalogService
             ->first();
 
         $name = $this->uniqueName($businessId, (string) $item['name'], $sku, $code);
+        // A missing brand must not clear one an operator set by hand.
+        $linkColumns = array_filter($links, fn ($id) => $id !== null);
 
         if (! $product) {
             $product = Product::create(array_merge([
@@ -103,7 +107,6 @@ class AccountsCatalogService
                 'business_id' => $businessId,
                 'type' => 'single',
                 'unit_id' => $unitId,
-                'category_id' => $categoryId,
                 'tax' => null,
                 'tax_type' => 'exclusive',
                 'enable_stock' => 0,
@@ -113,17 +116,16 @@ class AccountsCatalogService
                 'created_by' => $ownerId,
                 'is_inactive' => $active ? 0 : 1,
                 'not_for_selling' => 1,
-            ], $this->wooSyncColumn()));
+            ], $linkColumns, $this->wooSyncColumn()));
 
             $this->productUtil->createSingleProductVariation($product, $sku, $price, $price, 0, $price, $price);
         } else {
             $product->fill(array_merge([
                 'name' => $name,
-                'category_id' => $categoryId,
                 'enable_stock' => 0,
                 'not_for_selling' => 1,
                 'is_inactive' => $active ? 0 : 1,
-            ], $this->wooSyncColumn()));
+            ], $linkColumns, $this->wooSyncColumn()));
             $product->save();
         }
 
@@ -192,9 +194,49 @@ class AccountsCatalogService
         return $fallback;
     }
 
+    public static function categorySlug(string $kind): string
+    {
+        $gameSlug = trim((string) config('services.accounts.catalog_category_slug')) ?: 'digital-games';
+        if ($kind !== 'card') {
+            return $gameSlug;
+        }
+
+        return trim((string) config('services.accounts.catalog_card_category_slug')) ?: $gameSlug;
+    }
+
+    public static function brandSlug(): ?string
+    {
+        $slug = trim((string) config('services.accounts.catalog_brand_slug'));
+
+        return $slug !== '' ? $slug : null;
+    }
+
+    private function resolveBrandId(int $businessId): ?int
+    {
+        $slug = self::brandSlug();
+        if ($slug === null) {
+            return null;
+        }
+
+        $brandId = Brands::where('business_id', $businessId)->where('slug', $slug)->value('id');
+        if (! $brandId) {
+            Log::warning('Accounts catalog brand not found; products synced without a brand.', [
+                'business_id' => $businessId,
+                'brand_slug' => $slug,
+            ]);
+
+            return null;
+        }
+
+        return (int) $brandId;
+    }
+
+    /**
+     * Uses the configured existing category; creates it only when the slug does not exist yet.
+     */
     private function resolveCategoryId(int $businessId, int $ownerId, string $kind): int
     {
-        $slug = $kind === 'card' ? self::CARD_CATEGORY_SLUG : self::GAME_CATEGORY_SLUG;
+        $slug = self::categorySlug($kind);
         $existing = Category::where('business_id', $businessId)
             ->where('category_type', 'product')
             ->where('slug', $slug)

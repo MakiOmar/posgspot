@@ -106,6 +106,18 @@ Notify inbox: **Storefront Settings → Request a product notify email** (`setti
 
 Config: `config/storefront.php` → `request_product.enabled`.
 
+## Accounts catalog sync (per-offer products)
+
+Accounts pushes one hidden POS product per game offer / card category through `POST /api/accounts/catalog/upsert/{business_id}`. Those products are filed under an existing POS category and brand looked up by slug:
+
+| Variable | Purpose |
+|----------|---------|
+| `ACCOUNTS_CATALOG_CATEGORY_SLUG` | Category for synced game offers (default `digital-games`; created only if the slug does not exist) |
+| `ACCOUNTS_CATALOG_CARD_CATEGORY_SLUG` | Category for synced gift cards (default: same as the game category) |
+| `ACCOUNTS_CATALOG_BRAND_SLUG` | Brand for all synced products (default `games-spot`; a missing brand is logged and leaves the product's brand unchanged) |
+
+Config: `config/services.php` → `accounts.catalog_*`. Changes apply on the next sync of each product (`php artisan pos:sync-catalog` in Accounts); run `php artisan config:clear` after editing `.env`.
+
 ## POS backups
 
 **POS → Backup** (`/backup`, administrator usernames only) lists archives, runs **Backup now**, and sets the automatic schedule. Schedule settings live in the `system` table (`backup_auto_*`), not `.env`:

@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-27 |
+| **Last updated** | 2026-09-28 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-28 | Synced Accounts products use existing POS category `digital-games` and brand `games-spot` (slugs from `ACCOUNTS_CATALOG_*` env); dedicated `accounts-*` categories and their `/categories` filter removed. |
 | 2026-09-27 | Per-offer POS products: Accounts upserts `ACCOUNTS-GAME-*` / `ACCOUNTS-CARD-*` hidden products (`POST /api/accounts/catalog/upsert/{business_id}`); digital lists/PDP expose `pos_offers`, cards `pos_sku` (Qwik + Expo prefer them, shared SKUs fallback); cart accepts them only as the matching digital line; categories hidden; order lines return `digital` for buy-again. |
 | 2026-09-27 | Footer reorganized: default Shop / My Account / Help / Company (up to 4 menus); URLs deduped across columns; bundle/sell links stripped when disabled; `storefront:reset-footer` reseed command. |
 | 2026-09-27 | `category_shelf`: `product_mode` auto/selected + ordered `product_ids` (max 24) picked in builder from the chosen category; `GET /products?ids=` (keeps order); Qwik/Expo use it. |
