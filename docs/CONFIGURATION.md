@@ -119,6 +119,8 @@ Accounts pushes one hidden POS product per game offer / card category through `P
 
 Config: `config/services.php` → `accounts.catalog_*`. Changes apply on the next sync of each product (`php artisan pos:sync-catalog` in Accounts); run `php artisan config:clear` after editing `.env`.
 
+**Catalog diagnostics:** `GET /api/storefront/v1/digital/games` adds a `debug` object (Accounts host, request URL, item counts, and a reason such as games with no synced POS product) only when `APP_DEBUG=true`. Keep `APP_DEBUG=false` in production so internal hosts are never exposed; the storefront shows its debug panel only when the API sends this object.
+
 ## POS backups
 
 **POS → Backup** (`/backup`, administrator usernames only) lists archives, runs **Backup now**, and sets the automatic schedule. Schedule settings live in the `system` table (`backup_auto_*`), not `.env`:

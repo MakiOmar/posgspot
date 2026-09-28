@@ -53,10 +53,11 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       inStockOnly,
     );
     const games = (data.games ?? []) as DigitalGameSummary[];
-    const debug = {
-      ...((data as { debug?: GamesListDebug }).debug ?? {}),
-      storefront_request_url: storefrontRequestUrl,
-    } as GamesListDebug;
+    // The API only sends diagnostics when POS runs with APP_DEBUG on.
+    const apiDebug = (data as { debug?: GamesListDebug }).debug;
+    const debug: GamesListDebug | null = apiDebug
+      ? { ...apiDebug, storefront_request_url: storefrontRequestUrl }
+      : null;
 
     return {
       enabled: true,
@@ -86,15 +87,18 @@ export const useGamesList = routeLoader$(async ({ query, params, redirect }) => 
       games: [] as DigitalGameSummary[],
       meta: { current_page: 1, last_page: 1, per_page: 20, total: 0 },
       skus: { primary: null, secondary: null, gift_card: null } as DigitalSkus,
-      debug: {
-        storefront_request_url: storefrontRequestUrl,
-        platform,
-        page,
-        http_status: status,
-        accounts_ok: false,
-        client_error: message,
-        reason: `Storefront API request failed (HTTP ${status || "?"}): ${message}`,
-      } as GamesListDebug,
+      // Client-side failure details stay out of production HTML.
+      debug: import.meta.env.DEV
+        ? ({
+            storefront_request_url: storefrontRequestUrl,
+            platform,
+            page,
+            http_status: status,
+            accounts_ok: false,
+            client_error: message,
+            reason: `Storefront API request failed (HTTP ${status || "?"}): ${message}`,
+          } as GamesListDebug)
+        : null,
     };
   }
 });
@@ -129,7 +133,7 @@ export default component$(() => {
   };
 
   const debug = list.value.debug;
-  const showDebug = list.value.games.length === 0 && !list.value.inStockOnly;
+  const showDebug = debug !== null && list.value.games.length === 0 && !list.value.inStockOnly;
 
   return (
     <section class="digital-catalog">

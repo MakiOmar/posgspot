@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-09-28 | Digital games list `debug` diagnostics only returned when `APP_DEBUG=true`; Qwik debug panel shown only when the API sends it; unsynced-games reason replaces the stale "product IDs not configured" warning; `DigitalGamesDebugPayloadTest`. |
 | 2026-09-28 | Digital games "In stock only" filter: `GET /digital/games?in_stock_only=1` (Accounts `in_stock_only` filters sellable offers before pagination); Qwik `/games` toggle + in-stock empty state; `DigitalGamesInStockFilterTest`. Expo not changed. |
 | 2026-09-28 | Synced Accounts products use existing POS category `digital-games` and brand `games-spot` (slugs from `ACCOUNTS_CATALOG_*` env); dedicated `accounts-*` categories and their `/categories` filter removed. |
 | 2026-09-27 | Per-offer POS products: Accounts upserts `ACCOUNTS-GAME-*` / `ACCOUNTS-CARD-*` hidden products (`POST /api/accounts/catalog/upsert/{business_id}`); digital lists/PDP expose `pos_offers`, cards `pos_sku` (Qwik + Expo prefer them, shared SKUs fallback); cart accepts them only as the matching digital line; categories hidden; order lines return `digital` for buy-again. |

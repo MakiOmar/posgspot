@@ -102,17 +102,7 @@ class DigitalCatalogService
             $games = array_values(array_filter($games, fn ($game) => $this->isListGameSellable($game)));
         }
 
-        $reason = $this->emptyGamesReason(
-            $accountsBase,
-            $result['success'],
-            (int) ($result['status'] ?? 0),
-            $result['error'] ?? null,
-            count($rawGames),
-            count($games),
-            $skus
-        );
-
-        $debug = [
+        $debug = $this->catalogDebugEnabled() ? [
             'accounts_base' => $accountsBase !== '' ? $accountsBase : '(empty — set ACCOUNTS_BASE_URL)',
             'request_method' => 'GET',
             'request_path' => $path,
@@ -132,16 +122,24 @@ class DigitalCatalogService
                 'primary' => $skus['primary']['variation_id'] ?? null,
                 'secondary' => $skus['secondary']['variation_id'] ?? null,
             ],
-            'reason' => $reason,
-        ];
+            'reason' => $this->emptyGamesReason(
+                $accountsBase,
+                $result['success'],
+                (int) ($result['status'] ?? 0),
+                $result['error'] ?? null,
+                count($rawGames),
+                $games,
+                $skus
+            ),
+        ] : null;
+        $debugPayload = $debug !== null ? ['debug' => $debug] : [];
 
         if (! $result['success']) {
             return [
                 'success' => false,
                 'error' => $result['error'] ?? 'Failed to load games',
                 'status' => $result['status'] ?: 502,
-                'debug' => $debug,
-            ];
+            ] + $debugPayload;
         }
 
         return [
@@ -157,9 +155,16 @@ class DigitalCatalogService
                     'per_page' => $body['per_page'] ?? 20,
                     'total' => $body['total'] ?? count($games),
                 ],
-                'debug' => $debug,
-            ],
+            ] + $debugPayload,
         ];
+    }
+
+    /**
+     * Diagnostics expose internal hosts and request URLs, so they are only returned when APP_DEBUG is on.
+     */
+    public function catalogDebugEnabled(): bool
+    {
+        return (bool) config('app.debug');
     }
 
     /**
@@ -402,7 +407,7 @@ class DigitalCatalogService
         int $httpStatus,
         ?string $error,
         int $rawCount,
-        int $normalizedCount,
+        array $games,
         array $skus
     ): string {
         if ($accountsBase === '') {
@@ -414,11 +419,14 @@ class DigitalCatalogService
         if ($rawCount === 0) {
             return 'Accounts returned an empty list for this platform/page (no stocked games, or wrong Accounts base URL).';
         }
-        if ($normalizedCount === 0) {
+        if ($games === []) {
             return 'Accounts returned items but none could be normalized for the storefront.';
         }
         if (empty($skus['primary']) && empty($skus['secondary'])) {
-            return 'Games listed, but POS digital product IDs are not configured (add-to-cart will fail).';
+            $unsynced = count(array_filter($games, fn (array $game) => (array) ($game['pos_offers'] ?? []) === []));
+            if ($unsynced > 0) {
+                return $unsynced.' of '.count($games).' listed games have no synced POS product and no shared SKU is configured (add-to-cart fails for them; run pos:sync-catalog in Accounts).';
+            }
         }
 
         return 'ok';

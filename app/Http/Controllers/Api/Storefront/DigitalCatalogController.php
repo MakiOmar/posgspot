@@ -42,8 +42,15 @@ class DigitalCatalogController extends StorefrontController
         );
 
         if (! $result['success']) {
-            // Soft-fail with empty list + debug so the Qwik page can explain why.
+            // Soft-fail with an empty list; diagnostics only when APP_DEBUG is on.
             $skus = $this->catalog->posSkuMap($businessId);
+            $debug = $this->catalog->catalogDebugEnabled()
+                ? ['debug' => $result['debug'] ?? [
+                    'reason' => $result['error'] ?? 'Failed to load games',
+                    'http_status' => (int) ($result['status'] ?: 502),
+                    'accounts_ok' => false,
+                ]]
+                : [];
 
             return $this->jsonSuccess([
                 'platform' => (string) $data['platform'],
@@ -56,12 +63,7 @@ class DigitalCatalogController extends StorefrontController
                     'per_page' => 20,
                     'total' => 0,
                 ],
-                'debug' => $result['debug'] ?? [
-                    'reason' => $result['error'] ?? 'Failed to load games',
-                    'http_status' => (int) ($result['status'] ?: 502),
-                    'accounts_ok' => false,
-                ],
-            ]);
+            ] + $debug);
         }
 
         return $this->jsonSuccess($result['data']);
