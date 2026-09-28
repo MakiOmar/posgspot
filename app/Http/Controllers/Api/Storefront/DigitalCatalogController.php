@@ -27,6 +27,7 @@ class DigitalCatalogController extends StorefrontController
             'page' => 'nullable|integer|min:1',
             'q' => 'nullable|string|max:120',
             'product_type' => 'nullable|in:game,subscription',
+            'in_stock_only' => 'nullable|boolean',
         ]);
 
         $productType = ($data['product_type'] ?? 'game') === 'subscription' ? 'subscription' : 'game';
@@ -36,7 +37,8 @@ class DigitalCatalogController extends StorefrontController
             (string) $data['platform'],
             (int) ($data['page'] ?? 1),
             isset($data['q']) ? (string) $data['q'] : null,
-            $productType
+            $productType,
+            $request->boolean('in_stock_only')
         );
 
         if (! $result['success']) {

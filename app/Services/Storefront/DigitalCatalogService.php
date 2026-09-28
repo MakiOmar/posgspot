@@ -49,7 +49,8 @@ class DigitalCatalogService
         string $platform,
         int $page = 1,
         ?string $q = null,
-        string $productType = 'game'
+        string $productType = 'game',
+        bool $inStockOnly = false
     ): array {
         $productType = $productType === 'subscription' ? 'subscription' : 'game';
         $term = trim((string) $q);
@@ -60,13 +61,17 @@ class DigitalCatalogService
         if ($term !== '') {
             $requestUrl .= '&q='.rawurlencode($term);
         }
+        if ($inStockOnly) {
+            $requestUrl .= '&in_stock_only=1';
+        }
         $skus = $this->posSkuMap($businessId);
 
         $result = $this->accounts->getGamesByPlatform(
             $platform,
             $page,
             $term !== '' ? $term : null,
-            $productType
+            $productType,
+            $inStockOnly
         );
         $body = is_array($result['body'] ?? null) ? $result['body'] : [];
         $rawGames = $body['data'] ?? [];
@@ -92,6 +97,11 @@ class DigitalCatalogService
             ));
         }
 
+        // Accounts filters before pagination; this re-check only guards an older Accounts that ignores the param.
+        if ($inStockOnly) {
+            $games = array_values(array_filter($games, fn ($game) => $this->isListGameSellable($game)));
+        }
+
         $reason = $this->emptyGamesReason(
             $accountsBase,
             $result['success'],
@@ -110,6 +120,7 @@ class DigitalCatalogService
             'platform' => $platform,
             'product_type' => $productType,
             'page' => $page,
+            'in_stock_only' => $inStockOnly,
             'http_status' => (int) ($result['status'] ?? 0),
             'accounts_ok' => (bool) $result['success'],
             'error' => $result['error'] ?? null,
@@ -902,6 +913,18 @@ class DigitalCatalogService
             : (bool) $fallbackStatus;
 
         return [$available && $stock > 0, $stock];
+    }
+
+    /**
+     * Same rule as the Qwik `digitalListGameInStock()` badge: any offer available with stock.
+     *
+     * @param  array<string, mixed>  $game
+     */
+    private function isListGameSellable(array $game): bool
+    {
+        return ! empty($game['primary_status'])
+            || ! empty($game['secondary_status'])
+            || ! empty($game['full_status']);
     }
 
     /**

@@ -109,11 +109,15 @@ class AccountsApiClient
         string $platform,
         int $page = 1,
         ?string $q = null,
-        string $productType = 'game'
+        string $productType = 'game',
+        bool $inStockOnly = false
     ): array {
         $query = ['page' => $page];
         $productType = $productType === 'subscription' ? 'subscription' : 'game';
         $query['product_type'] = $productType;
+        if ($inStockOnly) {
+            $query['in_stock_only'] = 1;
+        }
         $term = trim((string) $q);
         if ($term !== '') {
             // Accounts may honor either key; ignored params are harmless.
