@@ -115,6 +115,7 @@ Accounts pushes one hidden POS product per game offer / card category through `P
 | `ACCOUNTS_CATALOG_CATEGORY_SLUG` | Category for synced game offers (default `digital-games`; created only if the slug does not exist) |
 | `ACCOUNTS_CATALOG_CARD_CATEGORY_SLUG` | Category for synced gift cards (default: same as the game category) |
 | `ACCOUNTS_CATALOG_BRAND_SLUG` | Brand for all synced products (default `games-spot`; a missing brand is logged and leaves the product's brand unchanged) |
+| `ACCOUNTS_CATALOG_RATE_LIMIT_PER_MINUTE` | Requests per minute per API user on `POST /api/accounts/catalog/upsert/{business_id}` (default `300`). Replaces the general 60/min `api` limit on that route so an Accounts `pos:sync-catalog` backfill is not cut off at 60 games |
 
 Config: `config/services.php` → `accounts.catalog_*`. Changes apply on the next sync of each product (`php artisan pos:sync-catalog` in Accounts); run `php artisan config:clear` after editing `.env`.
 

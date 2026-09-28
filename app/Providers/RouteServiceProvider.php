@@ -61,6 +61,12 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('accounts-catalog', function (Request $request) {
+            $perMinute = (int) config('services.accounts.catalog_rate_limit_per_minute', 300);
+
+            return Limit::perMinute(max(1, $perMinute))->by('accounts-catalog|'.($request->user()?->id ?: $request->ip()));
+        });
+
         RateLimiter::for('storefront', function (Request $request) {
             // Safe methods: shell loaders (settings/categories) + catalog reads from SSR.
             // Mutations (auth, checkout, contact) stay on the stricter write budget.

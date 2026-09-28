@@ -89,7 +89,9 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:api')->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
-Route::middleware('auth:api')->post('/accounts/catalog/upsert/{business_id}', [AccountsApi::class, 'catalogUpsert'])
+Route::middleware(['auth:api', 'throttle:accounts-catalog'])
+    ->withoutMiddleware('throttle:api')
+    ->post('/accounts/catalog/upsert/{business_id}', [AccountsApi::class, 'catalogUpsert'])
     ->whereNumber('business_id');
 Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
 Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone

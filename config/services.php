@@ -42,6 +42,8 @@ return [
         'catalog_category_slug' => env('ACCOUNTS_CATALOG_CATEGORY_SLUG', 'digital-games'),
         'catalog_card_category_slug' => env('ACCOUNTS_CATALOG_CARD_CATEGORY_SLUG'),
         'catalog_brand_slug' => env('ACCOUNTS_CATALOG_BRAND_SLUG', 'games-spot'),
+        // Per API user; replaces the default 60/min api limit on the catalog upsert route (Accounts backfill).
+        'catalog_rate_limit_per_minute' => (int) env('ACCOUNTS_CATALOG_RATE_LIMIT_PER_MINUTE', 300),
     ],
 
     /*
