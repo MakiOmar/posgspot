@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-28 |
+| **Last updated** | 2026-10-01 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-01 | Digital games search: `/games` search box (`?q=`, keeps platform / PS Plus / in-stock, noindex on results, "no matches" + clear); Accounts filters title/code before pagination and lists newest first; POS no longer re-filters the current page only. |
 | 2026-09-28 | Digital games list `debug` diagnostics only returned when `APP_DEBUG=true`; Qwik debug panel shown only when the API sends it; unsynced-games reason replaces the stale "product IDs not configured" warning; `DigitalGamesDebugPayloadTest`. |
 | 2026-09-28 | Digital games "In stock only" filter: `GET /digital/games?in_stock_only=1` (Accounts `in_stock_only` filters sellable offers before pagination); Qwik `/games` toggle + in-stock empty state; `DigitalGamesInStockFilterTest`. Expo not changed. |
 | 2026-09-28 | Synced Accounts products use existing POS category `digital-games` and brand `games-spot` (slugs from `ACCOUNTS_CATALOG_*` env); dedicated `accounts-*` categories and their `/categories` filter removed. |

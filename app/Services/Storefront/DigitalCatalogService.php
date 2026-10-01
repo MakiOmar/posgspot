@@ -87,16 +87,6 @@ class DigitalCatalogService
             )
             : [];
 
-        if ($term !== '') {
-            $games = array_values(array_filter(
-                $games,
-                fn ($game) => $this->matchesSearchTerm(
-                    [(string) ($game['title'] ?? ''), (string) ($game['code'] ?? '')],
-                    $term
-                )
-            ));
-        }
-
         // Accounts filters before pagination; this re-check only guards an older Accounts that ignores the param.
         if ($inStockOnly) {
             $games = array_values(array_filter($games, fn ($game) => $this->isListGameSellable($game)));

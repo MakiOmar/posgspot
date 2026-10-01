@@ -84,6 +84,20 @@ class DigitalGamesInStockFilterTest extends TestCase
             && ! array_key_exists('in_stock_only', $request->data()));
     }
 
+    public function test_search_is_forwarded_and_accounts_results_are_not_refiltered_per_page(): void
+    {
+        $this->fakeAccountsList();
+
+        // Accounts matched on code, so titles need not contain the term.
+        $this->getJson('/api/storefront/v1/digital/games?platform=4&q=GAME-70&in_stock_only=1')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 45)
+            ->assertJsonCount(1, 'data.games');
+
+        Http::assertSent(fn (Request $request) => ($request->data()['q'] ?? null) === 'GAME-70'
+            && ($request->data()['in_stock_only'] ?? null) == 1);
+    }
+
     public function test_rejects_non_boolean_in_stock_only(): void
     {
         $this->getJson('/api/storefront/v1/digital/games?platform=5&in_stock_only=maybe')

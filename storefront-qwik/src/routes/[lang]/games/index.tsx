@@ -111,7 +111,12 @@ export default component$(() => {
   const listPath = loc.url.pathname || localePath(lang, "/games");
   const isPlus = list.value.productType === "subscription";
 
-  const buildUrl = (platform: string, page = 1, inStockOnly = list.value.inStockOnly) => {
+  const buildUrl = (
+    platform: string,
+    page = 1,
+    inStockOnly = list.value.inStockOnly,
+    q = list.value.q,
+  ) => {
     const params = new URLSearchParams();
     if (platform !== "4") {
       params.set("platform", platform);
@@ -119,8 +124,8 @@ export default component$(() => {
     if (isPlus) {
       params.set("product_type", "subscription");
     }
-    if (list.value.q) {
-      params.set("q", list.value.q);
+    if (q) {
+      params.set("q", q);
     }
     if (inStockOnly) {
       params.set("in_stock_only", "1");
@@ -193,6 +198,45 @@ export default component$(() => {
           </Link>
         </div>
 
+        {/* Search: plain GET form (works before JS loads); keeps platform, PS Plus and in-stock filters and restarts at page 1 */}
+        <form
+          method="get"
+          action={listPath}
+          role="search"
+          class="digital-catalog__search"
+          aria-label={tStatic(lang, "digital.searchLabel")}
+        >
+          {list.value.platform !== "4" ? (
+            <input type="hidden" name="platform" value={list.value.platform} />
+          ) : null}
+          {isPlus ? <input type="hidden" name="product_type" value="subscription" /> : null}
+          {list.value.inStockOnly ? <input type="hidden" name="in_stock_only" value="1" /> : null}
+          <label class="sr-only" for="digital-games-search">
+            {tStatic(lang, "digital.searchLabel")}
+          </label>
+          <input
+            id="digital-games-search"
+            class="digital-catalog__search-input"
+            type="search"
+            name="q"
+            value={list.value.q}
+            maxLength={120}
+            placeholder={tStatic(lang, "digital.searchPlaceholder")}
+            autoComplete="off"
+          />
+          <button type="submit" class="btn btn-primary digital-catalog__search-submit">
+            {tStatic(lang, "digital.searchSubmit")}
+          </button>
+          {list.value.q ? (
+            <Link
+              href={buildUrl(list.value.platform, 1, list.value.inStockOnly, "")}
+              class="link-accent digital-catalog__search-clear"
+            >
+              {tStatic(lang, "digital.clearSearch")}
+            </Link>
+          ) : null}
+        </form>
+
         {list.value.games.length > 0 ? (
           <p class="footer-muted digital-catalog__count">
             {tStatic(lang, "digital.gamesCount", {
@@ -205,8 +249,18 @@ export default component$(() => {
 
       {list.value.games.length === 0 ? (
         <div class="empty-state">
-          {/* Filtered empty state offers a way back to the full list */}
-          {list.value.inStockOnly ? (
+          {/* Filtered empty states offer a way back to the full list */}
+          {list.value.q ? (
+            <>
+              <p>{tStatic(lang, "digital.noSearchResults", { q: list.value.q })}</p>
+              <Link
+                href={buildUrl(list.value.platform, 1, list.value.inStockOnly, "")}
+                class="link-accent"
+              >
+                {tStatic(lang, "digital.clearSearch")}
+              </Link>
+            </>
+          ) : list.value.inStockOnly ? (
             <>
               <p>
                 {isPlus
@@ -395,6 +449,8 @@ export const head: DocumentHead = ({ resolveValue, url }) => {
             { businessName: settings.business_name },
           ),
         },
+        // Search result pages stay out of the index; canonical still points at the plain listing.
+        ...(list.q ? [{ name: "robots", content: "noindex, follow" }] : []),
       ],
       links: publicSeoLinks(url.origin, "/games", lang),
     },
