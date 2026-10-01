@@ -96,7 +96,7 @@
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
-| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); "In stock only" toggle (`?in_stock_only=1`, filtered by Accounts before pagination); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
+| `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); "In stock only" toggle (`?in_stock_only=1`, filtered by Accounts before pagination); list + homepage featured sorted by Accounts game **Display Order** (lower first, unset = newest first); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
 | 2026-10-01 | Digital games search: `/games` search box (`?q=`, keeps platform / PS Plus / in-stock, noindex on results, "no matches" + clear); Accounts filters title/code before pagination and lists newest first; POS no longer re-filters the current page only. |
 | 2026-09-28 | Digital games list `debug` diagnostics only returned when `APP_DEBUG=true`; Qwik debug panel shown only when the API sends it; unsynced-games reason replaces the stale "product IDs not configured" warning; `DigitalGamesDebugPayloadTest`. |
 | 2026-09-28 | Digital games "In stock only" filter: `GET /digital/games?in_stock_only=1` (Accounts `in_stock_only` filters sellable offers before pagination); Qwik `/games` toggle + in-stock empty state; `DigitalGamesInStockFilterTest`. Expo not changed. |
