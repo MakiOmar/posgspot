@@ -337,7 +337,7 @@ class Transaction extends Model
 
         if (in_array($this->type, ['sell_transfer'])) {
             $properties = ['status'];
-        } elseif (in_array($this->type, ['sell'])) {
+        } elseif (in_array($this->type, ['sell', 'sales_order'])) {
             $properties = ['type', 'status', 'sub_status', 'shipping_status', 'payment_status', 'final_total'];
         } elseif (in_array($this->type, ['purchase'])) {
             $properties = ['type', 'status', 'payment_status', 'final_total'];
