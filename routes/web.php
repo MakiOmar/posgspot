@@ -279,6 +279,10 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::resource('purchases', PurchaseController::class)->except(['show']);
 
     Route::resource('sells', SellController::class)->except(['show']);
+    Route::delete('/sells/{transaction_id}/documents/legacy', [\App\Http\Controllers\SellDocumentController::class, 'destroyLegacy'])
+        ->whereNumber('transaction_id')->name('sells.documents.destroy-legacy');
+    Route::delete('/sells/{transaction_id}/documents/{media_id}', [\App\Http\Controllers\SellDocumentController::class, 'destroy'])
+        ->whereNumber(['transaction_id', 'media_id'])->name('sells.documents.destroy');
 
     Route::get('/import-sales', [ImportSalesController::class, 'index']);
     Route::post('/import-sales/preview', [ImportSalesController::class, 'preview']);
