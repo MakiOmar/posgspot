@@ -5,6 +5,7 @@ import { useAuth } from "~/lib/auth-context";
 import { addCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
+import { shippingStatusLabel } from "~/lib/shipping-status";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { confirmAction, toastError, toastSuccess } from "~/lib/notify";
@@ -198,7 +199,7 @@ export default component$(() => {
           <div class="order-meta">
             <span>
               <strong>{tStatic(locale, "account.statusLabel")}</strong>{" "}
-              {order.shipping_status || order.status}
+              {order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}
             </span>
             <span>
               <strong>{tStatic(locale, "account.paymentLabel")}</strong> {order.payment_status}

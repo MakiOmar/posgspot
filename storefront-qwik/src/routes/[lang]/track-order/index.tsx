@@ -15,6 +15,7 @@ import { localePath } from "~/lib/i18n/paths";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { usePendingState } from "~/lib/pending-context";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
+import { shippingStatusLabel } from "~/lib/shipping-status";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { AccountOrder, TrackedOrder } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
@@ -41,7 +42,7 @@ const TrackedOrderCard = component$<{ order: TrackedOrder }>(({ order }) => {
       <header class="repair-status-card__head">
         <h2>{order.invoice_no || order.storefront_order_id || `#${order.id}`}</h2>
         {order.shipping_status || order.status ? (
-          <span class="status-pill">{order.shipping_status || order.status}</span>
+          <span class="status-pill">{order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}</span>
         ) : null}
       </header>
 
@@ -51,7 +52,7 @@ const TrackedOrderCard = component$<{ order: TrackedOrder }>(({ order }) => {
         <dt>{tStatic(locale, "trackOrder.payment")}</dt>
         <dd>{order.payment_status || "—"}</dd>
         <dt>{tStatic(locale, "trackOrder.shipping")}</dt>
-        <dd>{order.shipping_status || "—"}</dd>
+        <dd>{shippingStatusLabel(locale, order.shipping_status) || "—"}</dd>
         {order.shipping_carrier ? (
           <>
             <dt>{tStatic(locale, "trackOrder.carrier")}</dt>
@@ -206,7 +207,7 @@ export default component$(() => {
                       <td>{order.invoice_no || order.storefront_order_id}</td>
                       <td>{formatDate(order.transaction_date, locale)}</td>
                       <td>
-                        <span class="status-pill">{order.shipping_status || order.status}</span>
+                        <span class="status-pill">{order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}</span>
                       </td>
                       <td>
                         {formatPrice(order.final_total, settings.value.currency, locale)}

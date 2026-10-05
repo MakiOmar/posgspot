@@ -6,6 +6,7 @@ import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
+import { shippingStatusLabel } from "~/lib/shipping-status";
 import type { AccountOrder } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
@@ -69,7 +70,7 @@ export default component$(() => {
                     {formatDate(order.transaction_date, locale)}
                   </td>
                   <td data-label={tStatic(locale, "account.status")}>
-                    <span class="status-pill">{order.shipping_status || order.status}</span>
+                    <span class="status-pill">{order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}</span>
                   </td>
                   <td data-label={tStatic(locale, "account.payment")}>{order.payment_status}</td>
                   <td data-label={tStatic(locale, "account.total")}>

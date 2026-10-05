@@ -153,6 +153,14 @@
     "total": "Total",
     "placed": "Placed"
   },
+  "shippingStatus": {
+    "ordered": "Ordered",
+    "preparing": "Preparing",
+    "packed": "Packed",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
   "community": {
     "tournamentsTitle": "Tournaments",
     "tournamentsLead": "Compete and follow Games Spot tournaments.",
