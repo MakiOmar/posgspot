@@ -69,6 +69,24 @@
               &nbsp;{{ __('purchase.download_document') }}
           </a>
         @endif
+        {{-- Multiple attached documents (sell_document media) --}}
+        @php
+          $sell_document_medias = app(\App\Services\SellDocumentService::class)->documentsFor($sell);
+        @endphp
+        @if($sell_document_medias->isNotEmpty())
+          <div class="clearfix"></div>
+          <br>
+          <strong>@lang('lang_v1.attach_documents'):</strong>
+          <ul class="list-unstyled">
+            @foreach($sell_document_medias as $sell_document_media)
+              <li>
+                <a href="{{ $sell_document_media->display_url }}" download="{{ $sell_document_media->display_name }}">
+                  <i class="fa fa-download"></i> {{ $sell_document_media->display_name }}
+                </a>
+              </li>
+            @endforeach
+          </ul>
+        @endif
       </div>
       <div class="@if(!empty($export_custom_fields)) col-sm-3 @else col-sm-4 @endif">
         @if(!empty($sell->contact->supplier_business_name))

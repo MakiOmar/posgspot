@@ -38,6 +38,7 @@ use App\InvoiceLayout;
 use App\InvoiceScheme;
 use App\Media;
 use App\Product;
+use App\Services\SellDocumentService;
 use App\SellingPriceGroup;
 use App\TaxRate;
 use App\Transaction;
@@ -319,6 +320,8 @@ class SellPosController extends Controller
             return redirect()->action([\App\Http\Controllers\CashRegisterController::class, 'create']);
         }
 
+        app(SellDocumentService::class)->validateUploads($request);
+
         try {
             $input = $request->except('_token');
 
@@ -529,6 +532,8 @@ class SellPosController extends Controller
 
                 //Upload Shipping documents
                 Media::uploadMedia($business_id, $transaction, $request, 'shipping_documents', false, 'shipping_document');
+
+                app(SellDocumentService::class)->storeUploads($business_id, $transaction, $request);
 
                 $this->transactionUtil->createOrUpdateSellLines($transaction, $input['products'], $input['location_id']);
 
@@ -1170,6 +1175,8 @@ class SellPosController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
+        app(SellDocumentService::class)->validateUploads($request);
+
         try {
             $input = $request->except('_token');
 
@@ -1436,6 +1443,8 @@ class SellPosController extends Controller
                 }
 
                 Media::uploadMedia($business_id, $transaction, $request, 'shipping_documents', false, 'shipping_document');
+
+                app(SellDocumentService::class)->storeUploads($business_id, $transaction, $request);
 
                 if ($transaction->type == 'sell') {
 

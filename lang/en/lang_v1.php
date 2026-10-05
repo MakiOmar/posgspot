@@ -1629,5 +1629,9 @@ return [
     'in_stock' => 'in stock',
     'cogs' => 'COGS:',
     'cogs_help_text' => 'Cost of Goods Sold = Starting inventory(opening stock) + purchases − ending inventory(closing stock)',
-    'overall_summary' => 'Overall Summary'
+    'overall_summary' => 'Overall Summary',
+    'attach_documents' => 'Attach Documents',
+    'add_files' => 'Add files',
+    'sell_document_too_large' => 'File is larger than :size MB.',
+    'sell_document_max_files' => 'You can attach up to :count files at a time.',
 ];

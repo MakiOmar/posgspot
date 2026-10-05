@@ -1419,4 +1419,8 @@ return [
     'coupon_first_order_only_help' => 'للعملاء بدون طلبات متجر مكتملة سابقاً فقط. يتطلب تسجيل الدخول.',
     'coupon_exclude_sale_help' => 'البنود بسعر تخفيض المتجر تُستبعد من المجموع المؤهل.',
     'coupon_stack_reward_points_help' => 'عند إلغاء التحديد، لا يمكن استبدال نقاط المكافآت في نفس الطلب مع هذا الرمز.',
+    'attach_documents' => 'إرفاق مستندات',
+    'add_files' => 'إضافة ملفات',
+    'sell_document_too_large' => 'حجم الملف أكبر من :size ميجابايت.',
+    'sell_document_max_files' => 'يمكنك إرفاق حتى :count ملفات في المرة الواحدة.',
 ];

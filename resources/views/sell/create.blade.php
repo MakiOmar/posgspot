@@ -330,15 +330,9 @@
 				        </div>
 				    </div>
 		        @endif
-		        <div class="col-sm-3">
-	                <div class="form-group">
-	                    {!! Form::label('upload_document', __('purchase.attach_document') . ':') !!}
-	                    {!! Form::file('sell_document', ['id' => 'upload_document', 'accept' => implode(',', array_keys(config('constants.document_upload_mimes_types')))]); !!}
-	                    <p class="help-block">
-	                    	@lang('purchase.max_file_size', ['size' => (config('constants.document_size_limit') / 1000000)])
-	                    	@includeIf('components.document_help_text')
-	                    </p>
-	                </div>
+		        {{-- Multiple attach documents (add / remove before saving) --}}
+		        <div class="col-sm-4">
+	                @include('sell.partials.sell_documents_field', ['transaction' => null])
 	            </div>
 		        <div class="clearfix"></div>
 
@@ -534,6 +528,13 @@
 			    	<div class="form-group">
 						{!! Form::label('sell_note',__('sale.sell_note')) !!}
 						{!! Form::textarea('sale_note', null, ['class' => 'form-control', 'rows' => 3]); !!}
+					</div>
+			    </div>
+				{{-- Internal note: never printed on invoices or shown to the customer --}}
+			    <div class="col-md-12">
+			    	<div class="form-group">
+						{!! Form::label('staff_note', __('sale.staff_note')) !!}
+						{!! Form::textarea('staff_note', null, ['class' => 'form-control', 'rows' => 3]); !!}
 					</div>
 			    </div>
 				<input type="hidden" name="is_direct_sale" value="1">
@@ -924,6 +925,7 @@
 
 @section('javascript')
 	<script src="{{ asset('js/pos.js?v=' . $asset_v) }}"></script>
+	<script src="{{ asset('js/sell-documents.js?v=' . $asset_v) }}"></script>
 	<script src="{{ asset('js/product.js?v=' . $asset_v) }}"></script>
 	<script src="{{ asset('js/opening_stock.js?v=' . $asset_v) }}"></script>
 
