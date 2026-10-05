@@ -71,6 +71,66 @@
         <tr><td colspan="2">{{$update_note}}</td></tr>
     @endif
 @endif
+
+{{-- Header fields changed on edit (customer, date, discount, shipping, notes) --}}
+@php
+    $field_changes = $activity->getExtraProperty('field_changes');
+    $line_changes = $activity->getExtraProperty('line_changes');
+@endphp
+@if(is_array($field_changes))
+    @foreach($field_changes as $field_change)
+        <tr>
+            <th class="width-50">{{ __($field_change['label'] ?? '') }}: </th>
+            <td class="width-50 text-left">
+                @foreach(['from', 'to'] as $side)
+                    @php $field_value = $field_change[$side] ?? null; @endphp
+                    @if($side === 'to') --> @endif
+                    <span class="label {{ $side === 'from' ? 'bg-gray' : 'bg-info' }}">
+                        @if($field_value === null || $field_value === '')
+                            —
+                        @elseif(in_array($field_change['type'] ?? '', ['money', 'discount']) && !str_ends_with((string) $field_value, '%'))
+                            @format_currency($field_value)
+                        @else
+                            {{ \Illuminate\Support\Str::limit((string) $field_value, 120) }}
+                        @endif
+                    </span>
+                @endforeach
+            </td>
+        </tr>
+    @endforeach
+@endif
+
+{{-- Product lines added / removed / changed (quantity or unit price) --}}
+@if(is_array($line_changes) && count($line_changes) > 0)
+    <tr>
+        <td colspan="2">
+            <strong>@lang('sale.products'):</strong>
+            <ul class="list-unstyled mb-0">
+                @foreach($line_changes as $line_change)
+                    @php $line_kind = $line_change['change'] ?? ''; @endphp
+                    <li>
+                        <span class="label {{ $line_kind === 'added' ? 'bg-green' : ($line_kind === 'removed' ? 'bg-red' : 'bg-yellow') }}">
+                            @lang('lang_v1.activity_line_' . $line_kind)
+                        </span>
+                        {{ $line_change['product'] ?? '' }}
+                        @if($line_kind === 'added')
+                            × @format_quantity($line_change['qty_to'] ?? 0) @ @format_currency($line_change['price_to'] ?? 0)
+                        @elseif($line_kind === 'removed')
+                            × @format_quantity($line_change['qty_from'] ?? 0)
+                        @else
+                            @if(($line_change['qty_from'] ?? null) != ($line_change['qty_to'] ?? null))
+                                — @lang('lang_v1.quantity'): @format_quantity($line_change['qty_from'] ?? 0) --> @format_quantity($line_change['qty_to'] ?? 0)
+                            @endif
+                            @if(($line_change['price_from'] ?? null) != ($line_change['price_to'] ?? null))
+                                — @lang('sale.unit_price'): @format_currency($line_change['price_from'] ?? 0) --> @format_currency($line_change['price_to'] ?? 0)
+                            @endif
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </td>
+    </tr>
+@endif
 @if(!empty($activity->getExtraProperty('from')) && !empty($activity->getExtraProperty('to')))
     <tr>
         <td colspan="2">

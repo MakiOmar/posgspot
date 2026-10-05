@@ -38,6 +38,7 @@ use App\InvoiceLayout;
 use App\InvoiceScheme;
 use App\Media;
 use App\Product;
+use App\Services\SellActivityChangesService;
 use App\Services\SellDocumentService;
 use App\SellingPriceGroup;
 use App\TaxRate;
@@ -649,7 +650,7 @@ class SellPosController extends Controller
 
                 Media::uploadMedia($business_id, $transaction, $request, 'documents');
 
-                $this->transactionUtil->activityLog($transaction, 'added');
+                $this->transactionUtil->activityLog($transaction, 'added', null, app(SellActivityChangesService::class)->addedProperties((int) $transaction->id));
 
                 DB::commit();
 
@@ -1199,6 +1200,7 @@ class SellPosController extends Controller
             if (!empty($input['products'])) {
                 //Get transaction value before updating.
                 $transaction_before = Transaction::find($id);
+                $sell_lines_before = app(SellActivityChangesService::class)->snapshotLines((int) $id);
                 $status_before = $transaction_before->status;
                 $rp_earned_before = $transaction_before->rp_earned;
                 $rp_redeemed_before = $transaction_before->rp_redeemed;
@@ -1488,7 +1490,7 @@ class SellPosController extends Controller
 
                 Media::uploadMedia($business_id, $transaction, $request, 'documents');
 
-                $this->transactionUtil->activityLog($transaction, 'edited', $transaction_before);
+                $this->transactionUtil->activityLog($transaction, 'edited', $transaction_before, app(SellActivityChangesService::class)->editedProperties($transaction_before, $sell_lines_before, $transaction));
 
                 SellCreatedOrModified::dispatch($transaction);
 

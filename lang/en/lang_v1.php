@@ -1634,4 +1634,7 @@ return [
     'add_files' => 'Add files',
     'sell_document_too_large' => 'File is larger than :size MB.',
     'sell_document_max_files' => 'You can attach up to :count files at a time.',
+    'activity_line_added' => 'Added',
+    'activity_line_removed' => 'Removed',
+    'activity_line_updated' => 'Changed',
 ];

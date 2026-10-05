@@ -1423,4 +1423,7 @@ return [
     'add_files' => 'إضافة ملفات',
     'sell_document_too_large' => 'حجم الملف أكبر من :size ميجابايت.',
     'sell_document_max_files' => 'يمكنك إرفاق حتى :count ملفات في المرة الواحدة.',
+    'activity_line_added' => 'أضيف',
+    'activity_line_removed' => 'حُذف',
+    'activity_line_updated' => 'تغيّر',
 ];
