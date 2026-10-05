@@ -786,6 +786,7 @@ return [
     'search_settings' => 'إعدادات البحث',
     'custom_labels' => 'التسميات المخصصة',
     'labels_for_custom_payments' => 'تسميات المدفوعات المخصصة',
+    'preparing' => 'قيد التجهيز',
     'packed' => 'معباه',
     'shipped' => 'شحنت',
     'delivered' => 'تم التوصيل',

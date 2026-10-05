@@ -846,6 +846,7 @@ return [
     'types_of_service_module_settings' => 'Types of service module settings',
     'product_business_location_tooltip' => 'Product will be available only in this business locations',
     'product_not_assigned_to_any_location' => 'Product not assigned to any locations',
+    'preparing' => 'Preparing',
     'packed' => 'Packed',
     'shipped' => 'Shipped',
     'delivered' => 'Delivered',

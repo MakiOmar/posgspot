@@ -153,6 +153,14 @@
     "total": "الإجمالي",
     "placed": "تاريخ الطلب"
   },
+  "shippingStatus": {
+    "ordered": "تم الطلب",
+    "preparing": "قيد التجهيز",
+    "packed": "تم التغليف",
+    "shipped": "تم الشحن",
+    "delivered": "تم التوصيل",
+    "cancelled": "ملغي"
+  },
   "community": {
     "tournamentsTitle": "البطولات",
     "tournamentsLead": "تابع بطولات Games Spot وشارك فيها.",

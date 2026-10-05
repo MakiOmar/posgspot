@@ -636,6 +636,7 @@ class RepairController extends Controller
         $shipping_statuses = $this->transactionUtil->shipping_statuses();
         $shipping_status_colors = [
             'ordered' => 'bg-yellow',
+            'preparing' => 'bg-orange',
             'packed' => 'bg-info',
             'shipped' => 'bg-navy',
             'delivered' => 'bg-green',

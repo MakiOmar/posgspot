@@ -61,6 +61,7 @@ class SellController extends Controller
 
         $this->shipping_status_colors = [
             'ordered' => 'bg-yellow',
+            'preparing' => 'bg-orange',
             'packed' => 'bg-info',
             'shipped' => 'bg-navy',
             'delivered' => 'bg-green',
