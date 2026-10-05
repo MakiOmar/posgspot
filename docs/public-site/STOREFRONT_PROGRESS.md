@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-01 |
+| **Last updated** | 2026-10-05 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -45,7 +45,7 @@
 | Courier adapters (Bosta) | ✅ | Bulk create + zoning districts + COD; checkout collects `district_id`; POS create on mark shipped |
 | Payment webhook + return + session | ✅ | `PaymentGatewayManager`, `FawryPaymentGateway`, `GeideaPaymentGateway`, `/payments/{fawry\|geidea}/*`; Fawry + Geidea re-confirm paid via remote status before markPaid |
 | Sanctum auth (Contact) | ✅ | Register, login, logout, forgot/reset via **6-digit email OTP**; **Google/Facebook Socialite** (web exchange code + mobile token); Connect/Disconnect on Login & Security; Turnstile on login when configured; inactive contacts rejected |
-| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger; Qwik Login & Security has delete-account request |
+| Account profile, address, orders | ✅ | Invoice print URL for paid orders; profile `avatar_url` + upload/delete; orders `?payment_status=`; order detail tolerates missing product/location/digital ledger; shipping status shown as translated label (`shippingStatus.*`, incl. `preparing`); Qwik Login & Security has delete-account request |
 | Reward points API | ✅ | Balance + validate redeem |
 | Coupon wallet | ✅ | `GET/POST /account/coupons`, `GET /account/coupons/used` (`storefront_saved_coupons`) |
 | Contact form API | ✅ | Emails business inbox; system Mailgun or per-business SMTP |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |
 | 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
 | 2026-10-01 | Digital games search: `/games` search box (`?q=`, keeps platform / PS Plus / in-stock, noindex on results, "no matches" + clear); Accounts filters title/code before pagination and lists newest first; POS no longer re-filters the current page only. |
 | 2026-09-28 | Digital games list `debug` diagnostics only returned when `APP_DEBUG=true`; Qwik debug panel shown only when the API sends it; unsynced-games reason replaces the stale "product IDs not configured" warning; `DigitalGamesDebugPayloadTest`. |
