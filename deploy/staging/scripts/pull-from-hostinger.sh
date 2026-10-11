@@ -64,11 +64,11 @@ pull() { rsync -az --delete -e "$RSYNC_RSH" "$@"; }
 
 echo "==> Rsync POS uploads + storage"
 pull "$REMOTE:${POS_REMOTE}/public/uploads/" "$D/pos_uploads/"
-pull --exclude logs --exclude framework/cache --exclude framework/views \
+pull --exclude logs --exclude framework/cache --exclude framework/views --exclude framework/down --exclude framework/maintenance.php \
   "$REMOTE:${POS_REMOTE}/storage/" "$D/pos_storage/"
 
 echo "==> Rsync Accounts storage + manager uploads + logos"
-pull --exclude logs --exclude framework/cache --exclude framework/views \
+pull --exclude logs --exclude framework/cache --exclude framework/views --exclude framework/down --exclude framework/maintenance.php \
   "$REMOTE:${ACC_REMOTE}/storage/" "$D/accounts_storage/"
 for sub in uploads ps4 ps5; do
   pull "$REMOTE:${ACC_REMOTE}/public/assets/${sub}/" "$D/accounts_assets/${sub}/"
