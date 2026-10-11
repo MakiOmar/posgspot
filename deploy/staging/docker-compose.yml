@@ -217,3 +217,13 @@ services:
       - traefik.http.middlewares.www-to-apex.redirectregex.permanent=true
       - traefik.http.routers.shop-www.middlewares=www-to-apex
       - traefik.http.routers.shop-www.service=shop
+      # Old shop host (new.<domain>) → apex, so bookmarks and in-flight payment returns keep working
+      - traefik.http.routers.shop-legacy.rule=Host(`new.${SHOP_DOMAIN:-gamesspoteg.com}`)
+      - traefik.http.routers.shop-legacy.entrypoints=websecure
+      - traefik.http.routers.shop-legacy.tls=true
+      - traefik.http.routers.shop-legacy.tls.certresolver=le
+      - traefik.http.middlewares.legacy-to-apex.redirectregex.regex=^https?://new[.]([^/]+)/(.*)
+      - traefik.http.middlewares.legacy-to-apex.redirectregex.replacement=https://$${1}/$${2}
+      - traefik.http.middlewares.legacy-to-apex.redirectregex.permanent=true
+      - traefik.http.routers.shop-legacy.middlewares=legacy-to-apex
+      - traefik.http.routers.shop-legacy.service=shop
