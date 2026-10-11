@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-05 |
+| **Last updated** | 2026-10-12 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | Storefront served at `gamesspoteg.com` (was `new.gamesspoteg.com`) from the VPS behind Cloudflare with POS/Accounts; `TRUSTED_PROXIES` keeps per-visitor rate limits; runbook in `STAGING_VPS.md`. |
 | 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |
 | 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
 | 2026-10-01 | Digital games search: `/games` search box (`?q=`, keeps platform / PS Plus / in-stock, noindex on results, "no matches" + clear); Accounts filters title/code before pagination and lists newest first; POS no longer re-filters the current page only. |
