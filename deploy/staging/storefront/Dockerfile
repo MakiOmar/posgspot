@@ -11,7 +11,7 @@ COPY server ./server
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV ORIGIN=https://thespotmanagment.io
+ENV ORIGIN=https://gamesspoteg.com
 
 EXPOSE 3000
 CMD ["node", "server/entry.express"]

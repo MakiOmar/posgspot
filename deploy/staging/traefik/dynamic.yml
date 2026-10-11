@@ -1,4 +1,2 @@
-# Fallback HTTP routes (useful if Docker provider flaps). Labels remain primary.
-http:
-  routers: {}
-  services: {}
+# File-provider routes (optional). Docker labels are the primary routing source.
+# Empty `routers: {}` maps are rejected by Traefik v3, so keep this file comment-only unless needed.

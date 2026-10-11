@@ -86,29 +86,22 @@ Stress uses soft thresholds so the run completes and you can see where latency/e
 ## Safety
 
 - Default target for `browse.js` is the live POS API.
-- **`vps-mixed.js`** targets staging (`thespotmanagment.io` + `pos.thespotmanagment.io`) — prefer that for VPS capacity tests.
+- **`vps-mixed.js`** has no default target; the VPS now serves production (`gamesspoteg.com`), so run it only with operator approval and explicit `SHOP_URL` / `ACCOUNTS_URL` / `BASE_URL`.
 - **Per-IP Laravel throttle:** reads ~`STOREFRONT_RATE_LIMIT_READ` (default **600/min**), writes ~`STOREFRONT_RATE_LIMIT` (default **120/min**). Staging may raise these temporarily for capacity runs.
 - Prefer **smoke** / **soak** for health; use **stress** only when you intend to probe the protective ceiling (and expect temporary 403/429 from WAF or throttle).
 - Never include checkout/payment endpoints in these scripts.
 - To measure real app capacity: temporarily raise `STOREFRONT_RATE_LIMIT_READ` on POS (or whitelist the test IP), then re-run `stress` / a higher `load`.
 
-## Staging VPS (Redis cache)
+## Production VPS (Redis cache)
 
 ```powershell
-# API-only load against staging POS (Redis-backed cache)
-k6 run -e SCENARIO=load -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
-  --summary-export load-tests/k6/results/summary-staging-load.json `
-  load-tests/k6/scenarios/browse.js
-
-# Mixed: Qwik shop HTML + POS API + occasional Accounts
-k6 run -e SCENARIO=load -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
-  -e SHOP_URL=https://thespotmanagment.io `
-  --summary-export load-tests/k6/results/summary-vps-load.json `
-  load-tests/k6/scenarios/vps-mixed.js
-
-k6 run -e SCENARIO=stress -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
-  --summary-export load-tests/k6/results/summary-vps-stress.json `
+# Mixed: Qwik shop HTML + POS API + occasional Accounts (production — get approval first)
+k6 run -e SCENARIO=smoke -e BASE_URL=https://pos.gamesspoteg.com/api/storefront/v1 `
+  -e SHOP_URL=https://gamesspoteg.com -e ACCOUNTS_URL=https://accounts.gamesspoteg.com `
+  --summary-export load-tests/k6/results/summary-vps-smoke.json `
   load-tests/k6/scenarios/vps-mixed.js
 ```
+
+Behind Cloudflare, sustained load from one IP may be challenged or blocked by the WAF before it reaches the VPS.
 
 See also [`docs/public-site/STAGING_VPS.md`](../../docs/public-site/STAGING_VPS.md).

@@ -4,7 +4,11 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 **Deploy the public Qwik storefront** (Node Express SSR, env, CORS, reverse proxy): [`docs/public-site/DEPLOY.md`](public-site/DEPLOY.md).
 
-**Parallel VPS staging** (Docker Compose on `thespotmanagment.io`): [`docs/public-site/STAGING_VPS.md`](public-site/STAGING_VPS.md).
+**Production VPS** (Docker Compose behind Cloudflare on `gamesspoteg.com`): [`docs/public-site/STAGING_VPS.md`](public-site/STAGING_VPS.md).
+
+## Trusted proxies (`TRUSTED_PROXIES`)
+
+`config/trustedproxy.php` reads `TRUSTED_PROXIES`, a comma-separated list of IPs/CIDRs whose `X-Forwarded-*` headers are trusted. Behind Cloudflare and Traefik every hop must be listed (Docker private ranges plus Cloudflare's published ranges). Otherwise `$request->ip()` returns a Cloudflare edge address, and the per-IP storefront rate limiters throttle all visitors together. Empty keeps the legacy behaviour of trusting only the immediate caller. Accounts reads the same key.
 
 ## Storefront social login (Google + Facebook)
 

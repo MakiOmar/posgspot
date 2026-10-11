@@ -383,7 +383,7 @@ location ~* ^/uploads/storefront_(homepage|library)/ {
 }
 ```
 
-  Verify: `curl -sI -H "Origin: https://new.gamesspoteg.com" "https://YOUR-POS/uploads/storefront_homepage/….svg"` must show `Access-Control-Allow-Origin`.
+  Verify: `curl -sI -H "Origin: https://gamesspoteg.com" "https://YOUR-POS/uploads/storefront_homepage/….svg"` must show `Access-Control-Allow-Origin`.
 - Storefront site URL for reset emails: `STOREFRONT_URL` in `.env` (defaults to `APP_URL`, then `http://localhost:5173`)
 - **Transactional mail (system-wide Mailgun API):** set `MAIL_MAILER=mailgun`, `MAILGUN_DOMAIN`, `MAILGUN_SECRET`, optional `MAILGUN_ENDPOINT` (`api.mailgun.net` or `api.eu.mailgun.net`), plus `MAIL_FROM_*`. Requires `symfony/mailgun-mailer` + `symfony/http-client`. Businesses that enable **Use superadmin email settings** send via this transport (From name/address can still come from business settings). Otherwise per-business SMTP in Business Settings is used. See root `.env.example`. Smoke test: `php artisan tinker` then `Mail::raw('…', fn ($m) => $m->to('you@example.com')->subject('Test'));` (authorize sandbox recipients in the Mailgun dashboard). Sync verification OTP (prints SENT/FAILED + mailer table): `php artisan storefront:send-verification you@example.com` (`--force`, `--show-code`, `--business_id=`). **Auth emails** (verification OTP + password reset) use `Mail::sendNow` so they do not depend on queue workers; other storefront mail may still be queued.
 - Digital allocate when a sell becomes **paid** (any POS path via `updatePaymentStatus`): Accounts `receiveOrder`, credentials on Staff note + sell line. Retry: `php artisan storefront:fulfill-digital` (optional `--transaction=ID`)

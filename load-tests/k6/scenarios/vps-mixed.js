@@ -1,11 +1,12 @@
 /**
  * Mixed VPS load: Storefront HTML (Qwik) + POS Storefront API.
  *
- * Targets staging by default:
- *   SHOP_URL=https://thespotmanagment.io
- *   BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1
+ * No default target: the VPS is production now, so pass hosts explicitly:
+ *   SHOP_URL=https://gamesspoteg.com
+ *   ACCOUNTS_URL=https://accounts.gamesspoteg.com
+ *   BASE_URL=https://pos.gamesspoteg.com/api/storefront/v1
  *
- *   k6 run -e SCENARIO=load load-tests/k6/scenarios/vps-mixed.js
+ *   k6 run -e SCENARIO=load -e SHOP_URL=… -e ACCOUNTS_URL=… -e BASE_URL=… load-tests/k6/scenarios/vps-mixed.js
  *   k6 run -e SCENARIO=stress --summary-export load-tests/k6/results/summary-vps-stress.json load-tests/k6/scenarios/vps-mixed.js
  */
 import http from 'k6/http';
@@ -21,11 +22,11 @@ import {
 } from '../lib/catalog.js';
 
 const scenario = (__ENV.SCENARIO || 'load').toLowerCase();
-const shopBase = (__ENV.SHOP_URL || 'https://thespotmanagment.io').replace(/\/+$/, '');
-const accountsBase = (__ENV.ACCOUNTS_URL || 'https://accounts.thespotmanagment.io').replace(
-  /\/+$/,
-  ''
-);
+if (!__ENV.SHOP_URL || !__ENV.ACCOUNTS_URL) {
+  throw new Error('Set SHOP_URL and ACCOUNTS_URL explicitly (the VPS is production).');
+}
+const shopBase = __ENV.SHOP_URL.replace(/\/+$/, '');
+const accountsBase = __ENV.ACCOUNTS_URL.replace(/\/+$/, '');
 
 const loadOptions = {
   stages: [

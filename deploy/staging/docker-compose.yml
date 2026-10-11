@@ -1,5 +1,7 @@
-# Staging compose — POS + Accounts + Qwik storefront on thespotmanagment.io
+# Production compose — POS + Accounts + Qwik storefront on gamesspoteg.com (behind Cloudflare)
 # Deploy to: /opt/spot-staging on the VPS (never commit real .env secrets)
+# Hosts come from the compose .env: SHOP_DOMAIN, POS_DOMAIN, ACCOUNTS_DOMAIN.
+# HTTP → HTTPS is an entrypoint redirect in traefik/traefik.yml; routers below are HTTPS only.
 
 name: spot-staging
 
@@ -22,6 +24,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      # Cloudflare DNS-01 challenge (token scoped to Zone DNS Edit on the shop zone)
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:?Set CF_DNS_API_TOKEN in /opt/spot-staging/.env}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -64,7 +69,7 @@ services:
     env_file:
       - ./pos/.env
     # PHP-FPM capacity (serversideup/php). Default max_children=20 saturates under k6 stress.
-    # On 4-core staging: ~40 children; scale replicas with: docker compose up -d --scale pos=2
+    # On 4-core VPS: ~40 children; scale replicas with: docker compose up -d --scale pos=2
     environment:
       PHP_FPM_PM_CONTROL: dynamic
       PHP_FPM_PM_MAX_CHILDREN: "40"
@@ -88,18 +93,11 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=spot_edge
-      - traefik.http.routers.pos.rule=Host(`pos.thespotmanagment.io`)
+      - traefik.http.routers.pos.rule=Host(`${POS_DOMAIN:-pos.gamesspoteg.com}`)
       - traefik.http.routers.pos.entrypoints=websecure
       - traefik.http.routers.pos.tls=true
       - traefik.http.routers.pos.tls.certresolver=le
       - traefik.http.services.pos.loadbalancer.server.port=8080
-      # Shared HTTP → HTTPS redirect (ACME still works on /.well-known)
-      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
-      - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
-      - traefik.http.routers.pos-http.rule=Host(`pos.thespotmanagment.io`)
-      - traefik.http.routers.pos-http.entrypoints=web
-      - traefik.http.routers.pos-http.middlewares=https-redirect
-      - traefik.http.routers.pos-http.service=pos
 
   pos-queue:
     image: spot-staging/pos:latest
@@ -149,9 +147,14 @@ services:
     restart: unless-stopped
     env_file:
       - ./accounts/.env
-    volumes:
+    volumes: &accounts_volumes
       - ./accounts/.env:/var/www/html/.env:ro
       - ./data/accounts_storage:/var/www/html/storage
+      # Manager uploads (gitignored) must survive image rebuilds
+      - ./data/accounts_assets/uploads:/var/www/html/public/assets/uploads
+      - ./data/accounts_assets/ps4:/var/www/html/public/assets/ps4
+      - ./data/accounts_assets/ps5:/var/www/html/public/assets/ps5
+      - ./data/accounts_logos:/var/www/html/public/logos
     depends_on:
       mysql:
         condition: service_healthy
@@ -163,15 +166,11 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=spot_edge
-      - traefik.http.routers.accounts.rule=Host(`accounts.thespotmanagment.io`)
+      - traefik.http.routers.accounts.rule=Host(`${ACCOUNTS_DOMAIN:-accounts.gamesspoteg.com}`)
       - traefik.http.routers.accounts.entrypoints=websecure
       - traefik.http.routers.accounts.tls=true
       - traefik.http.routers.accounts.tls.certresolver=le
       - traefik.http.services.accounts.loadbalancer.server.port=8080
-      - traefik.http.routers.accounts-http.rule=Host(`accounts.thespotmanagment.io`)
-      - traefik.http.routers.accounts-http.entrypoints=web
-      - traefik.http.routers.accounts-http.middlewares=https-redirect
-      - traefik.http.routers.accounts-http.service=accounts
 
   accounts-queue:
     image: spot-staging/accounts:latest
@@ -179,9 +178,7 @@ services:
     entrypoint: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
     env_file:
       - ./accounts/.env
-    volumes:
-      - ./accounts/.env:/var/www/html/.env:ro
-      - ./data/accounts_storage:/var/www/html/storage
+    volumes: *accounts_volumes
     depends_on:
       - accounts
       - mysql
@@ -194,7 +191,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      ORIGIN: https://thespotmanagment.io
+      ORIGIN: https://${SHOP_DOMAIN:-gamesspoteg.com}
       PORT: "3000"
       NODE_ENV: production
     depends_on:
@@ -205,25 +202,18 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=spot_edge
-      - traefik.http.routers.shop.rule=Host(`thespotmanagment.io`)
+      - traefik.http.routers.shop.rule=Host(`${SHOP_DOMAIN:-gamesspoteg.com}`)
       - traefik.http.routers.shop.entrypoints=websecure
       - traefik.http.routers.shop.tls=true
       - traefik.http.routers.shop.tls.certresolver=le
       - traefik.http.services.shop.loadbalancer.server.port=3000
-      - traefik.http.routers.shop-http.rule=Host(`thespotmanagment.io`)
-      - traefik.http.routers.shop-http.entrypoints=web
-      - traefik.http.routers.shop-http.middlewares=https-redirect
-      - traefik.http.routers.shop-http.service=shop
-      - traefik.http.routers.shop-www.rule=Host(`www.thespotmanagment.io`)
+      - traefik.http.routers.shop-www.rule=Host(`www.${SHOP_DOMAIN:-gamesspoteg.com}`)
       - traefik.http.routers.shop-www.entrypoints=websecure
       - traefik.http.routers.shop-www.tls=true
       - traefik.http.routers.shop-www.tls.certresolver=le
-      - traefik.http.middlewares.www-to-apex.redirectregex.regex=^https?://www\\.thespotmanagment\\.io/(.*)
-      - traefik.http.middlewares.www-to-apex.redirectregex.replacement=https://thespotmanagment.io/$${1}
+      # www → apex, domain-agnostic
+      - traefik.http.middlewares.www-to-apex.redirectregex.regex=^https?://www[.]([^/]+)/(.*)
+      - traefik.http.middlewares.www-to-apex.redirectregex.replacement=https://$${1}/$${2}
       - traefik.http.middlewares.www-to-apex.redirectregex.permanent=true
       - traefik.http.routers.shop-www.middlewares=www-to-apex
       - traefik.http.routers.shop-www.service=shop
-      - traefik.http.routers.shop-www-http.rule=Host(`www.thespotmanagment.io`)
-      - traefik.http.routers.shop-www-http.entrypoints=web
-      - traefik.http.routers.shop-www-http.middlewares=www-to-apex
-      - traefik.http.routers.shop-www-http.service=shop

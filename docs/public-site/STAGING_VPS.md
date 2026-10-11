@@ -1,8 +1,8 @@
-# Staging VPS (Docker Compose)
+# Production VPS (Docker Compose)
 
-Isolated full clone of POS, Accounts, and the Qwik storefront on Ubuntu VPS **`82.29.178.160`**, under **`thespotmanagment.io`**. Live Hostinger (`*.gamesspoteg.com`) stays untouched.
+POS, Accounts and the Qwik storefront run on Ubuntu VPS **`82.29.178.160`** behind **Cloudflare**, under **`gamesspoteg.com`**. Hostinger is kept in maintenance mode as a rollback for 1–2 weeks after cutover.
 
-Compose skeleton + scripts live in the repo at [`deploy/staging/`](../../deploy/staging/). On the VPS the working tree is **`/opt/spot-staging/`**.
+Compose skeleton and scripts live in the repo at [`deploy/staging/`](../../deploy/staging/) (the folder and compose project keep the historical `staging` name). On the VPS the working tree is **`/opt/spot-staging/`**, where `pos/` and `accounts/` are git checkouts of `master`.
 
 Related: [Storefront deploy](./DEPLOY.md) · [API](./API.md) · [Configuration](../CONFIGURATION.md)
 
@@ -10,203 +10,112 @@ Related: [Storefront deploy](./DEPLOY.md) · [API](./API.md) · [Configuration](
 
 ## Domain map
 
-| Live (Hostinger — do not change DNS yet) | Staging (VPS) |
-| ---------------------------------------- | ------------- |
-| `pos.gamesspoteg.com` | `pos.thespotmanagment.io` |
-| `accounts.gamesspoteg.com` | `accounts.thespotmanagment.io` |
-| `new.gamesspoteg.com` (Qwik) | `thespotmanagment.io` (+ `www` → apex) |
+| Host | Service |
+| ---- | ------- |
+| `gamesspoteg.com` (+ `www` → apex) | Qwik storefront (`storefront:3000`) |
+| `pos.gamesspoteg.com` | POS (`pos:8080`) |
+| `accounts.gamesspoteg.com` | Accounts (`accounts:8080`) |
 
-**DNS prerequisite:** A records for `thespotmanagment.io`, `www`, `pos`, `accounts` → `82.29.178.160`. Until that is true, Traefik cannot finish Let's Encrypt; smoke-test with `Host:` headers over HTTP/IP.
+Hosts come from `/opt/spot-staging/.env` (`SHOP_DOMAIN`, `POS_DOMAIN`, `ACCOUNTS_DOMAIN`). WordPress and `thespotmanagment.io` are retired. Other subdomains (`itq`, `smk`, `ulsp`, `staging`, `api`, wildcard, mail) stay on Hostinger.
+
+---
+
+## Cloudflare
+
+- `@`, `www`, `pos`, `accounts` are **proxied** A records to the VPS; SSL/TLS mode **Full (strict)**.
+- Traefik gets Let's Encrypt certificates through the **DNS-01** challenge (`dnsChallenge.provider: cloudflare`), using `CF_DNS_API_TOKEN` (Zone DNS Edit + Zone Read on `gamesspoteg.com`) from the compose `.env`. Works while records are proxied; keep the token valid or renewals fail.
+- Traefik entrypoints trust `X-Forwarded-*` only from Cloudflare ranges; both apps set `TRUSTED_PROXIES` (Docker ranges + Cloudflare ranges, written by `configure-production-env.sh`) so `$request->ip()` is the visitor.
+- Rollback = point the four records back to Hostinger (`93.127.205.20`) and `php artisan up` there. Proxied records switch in seconds.
+- After a deploy that changes static assets, purge the Cloudflare cache.
 
 ---
 
 ## Architecture
 
 ```
-Internet → Traefik (80/443, ACME)
-             ├─ Host(pos.thespotmanagment.io)      → pos:8080
-             ├─ Host(accounts.thespotmanagment.io) → accounts:8080
-             └─ Host(thespotmanagment.io|www)      → storefront:3000
+Visitor → Cloudflare (proxy, TLS) → Traefik (80/443, DNS-01 certs)
+             ├─ Host(pos.gamesspoteg.com)      → pos:8080 (×2)
+             ├─ Host(accounts.gamesspoteg.com) → accounts:8080
+             └─ Host(gamesspoteg.com|www)      → storefront:3000
 
 pos / accounts → mysql (pos_stg, accounts_stg) + redis
-pos-queue, pos-scheduler, accounts-queue (same images)
+pos-queue (×2), pos-scheduler, accounts-queue (same images)
 ```
 
 Persistent host binds (survive image rebuilds):
 
-- `/opt/spot-staging/data/pos_uploads` → POS `public/uploads`
-- `/opt/spot-staging/data/pos_storage` → POS `storage`
-- `/opt/spot-staging/data/accounts_storage` → Accounts `storage`
+- `data/pos_uploads` → POS `public/uploads`; `data/pos_storage` → POS `storage`
+- `data/accounts_storage` → Accounts `storage`
+- `data/accounts_assets/{uploads,ps4,ps5}` → Accounts `public/assets/...`; `data/accounts_logos` → Accounts `public/logos`
 - Named volumes: `mysql_data`, `redis_data`, `traefik_letsencrypt`
 
----
-
-## Services
-
-| Service | Role |
-| ------- | ---- |
-| `traefik` | TLS edge + HTTP for ACME / Host-header smoke (`traefik:v3.6+`; older tags break on Docker Engine 29+ API) |
-| `mysql` | MySQL 8 — DBs `pos_stg`, `accounts_stg`; user `spot_stg` |
-| `redis` | Redis 7 |
-| `pos` | Laravel POS (serversideup PHP 8.3 FPM+Nginx) |
-| `pos-queue` / `pos-scheduler` | `queue:work` / `schedule:work` |
-| `accounts` | Laravel Accounts |
-| `accounts-queue` | Accounts queue worker |
-| `storefront` | Node 20 — `node server/entry.express` |
-
-Compose secrets (not app `.env`): `/opt/spot-staging/.env` — see [`deploy/staging/.env.example`](../../deploy/staging/.env.example).
+Compose secrets: `/opt/spot-staging/.env` (mode 600) — see [`deploy/staging/.env.example`](../../deploy/staging/.env.example).
 
 ---
 
 ## Day-2 operations
 
-SSH: `root@82.29.178.160` (prefer SSH keys; rotate any password shared in chat).
-
 ```bash
 cd /opt/spot-staging
-
-# Status / logs
 docker compose ps
 docker compose logs -f --tail=100 pos accounts storefront traefik
 
-# Rebuild after code or Dockerfile changes
-docker compose up -d --build pos accounts storefront
-
-# Restart workers after POS/Accounts image rebuild
-docker compose up -d --build pos-queue pos-scheduler accounts-queue
+# Deploy new code
+git -C pos pull && git -C accounts pull
+docker compose up -d --build pos accounts
+docker compose up -d pos-queue pos-scheduler accounts-queue
+docker compose exec -u www-data pos php artisan migrate --force
+docker compose exec -u www-data accounts php artisan migrate --force
 ```
 
-### Refresh DB from live (read-only on Hostinger)
+Storefront: build on a workstation (`storefront-qwik/`, `npm run build` with `.env.production`), upload `dist/ server/ package.json package-lock.json` to `/opt/spot-staging/storefront/`, then `docker compose up -d --build storefront`.
 
-```bash
-export HOSTINGER_SSH_PASS='…'   # Hostinger SSH password
-bash scripts/pull-from-hostinger.sh   # or re-dump only via orchestrator
-export MYSQL_ROOT_PASSWORD='…' MYSQL_APP_PASSWORD='…'
-# drop/recreate then:
-bash scripts/import-db.sh
-```
+---
 
-Prefer a controlled dump+import over sharing the live DB. Staging must never write to Hostinger MySQL.
+## Cutover from Hostinger (runbook)
 
-### Remap Laravel `.env` after a fresh pull
+Scripts run on the VPS as root from `/opt/spot-staging`:
 
-```bash
-export MYSQL_APP_PASSWORD='…'
-bash scripts/configure-staging-env.sh
-docker compose exec -u www-data pos php artisan config:clear
-docker compose exec -u www-data accounts php artisan config:clear
-```
+1. `HOSTINGER_SSH_PASS=… bash scripts/pull-from-hostinger.sh` — DB dumps, POS uploads/storage, Accounts storage/assets/logos, live `.env` files into `data/live-env/` (mode 600). Incremental; re-run during the window.
+2. `bash scripts/configure-production-env.sh` — writes `pos/.env` and `accounts/.env` from the live files (keeps `APP_KEY`, mail, payments) and rewires hosts, DB, Redis, `TRUSTED_PROXIES`.
+3. `bash scripts/import-db.sh` — drops and re-imports `pos_stg` / `accounts_stg`.
+4. `migrate --force` + `optimize:clear` on both apps; restart workers.
 
-Key staging values:
+The live databases hold no `new.gamesspoteg.com` or WordPress URLs (checked at cutover), so no content rewrite is needed; `.env` hosts are rewritten in step 2.
 
-- POS: `APP_URL`, `STOREFRONT_URL`, `CORS_ALLOWED_ORIGINS`, `ACCOUNTS_BASE_URL`, `DB_HOST=mysql`, `CACHE_DRIVER=redis` / `CACHE_STORE=redis`, `REDIS_HOST=redis`, `MAIL_MAILER=log`
-- Accounts: `APP_URL`, `DB_HOST=mysql`, `CACHE_DRIVER=redis`, `REDIS_CACHE_DB=1`, `MAIL_MAILER=log`
-- Storefront image: bake `PUBLIC_API_BASE=https://pos.thespotmanagment.io`, `PUBLIC_ACCOUNTS_BASE=https://accounts.thespotmanagment.io`, run with `ORIGIN=https://thespotmanagment.io`
+Maintenance window order: Hostinger `php artisan down` + cron off → steps 1–4 → DNS switch in Cloudflare → SSL Full (strict) → purge cache → smoke tests.
 
-### Load testing (k6)
-
-From a workstation with [k6](https://k6.io/) installed (see [`load-tests/k6/README.md`](../../load-tests/k6/README.md)):
-
-```powershell
-# Mixed shop HTML + POS API + Accounts (staging defaults)
-k6 run -e SCENARIO=load -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
-  --summary-export load-tests/k6/results/summary-vps-load.json `
-  load-tests/k6/scenarios/vps-mixed.js
-
-k6 run -e SCENARIO=stress -e BASE_URL=https://pos.thespotmanagment.io/api/storefront/v1 `
-  --summary-export load-tests/k6/results/summary-vps-stress.json `
-  load-tests/k6/scenarios/vps-mixed.js
-```
-
-Staging POS uses Redis cache (`CACHE_DRIVER=redis`, `REDIS_HOST=redis`). For capacity runs, `STOREFRONT_RATE_LIMIT_READ` may be raised temporarily (e.g. 6000) so per-IP throttle does not dominate results.
-
-### POS API capacity (PHP-FPM)
-
-Default `serversideup/php` FPM `max_children` is **20** — that saturates under k6 stress before RAM does. Staging compose sets:
-
-- `PHP_FPM_PM_MAX_CHILDREN=40` (+ start/spare servers)
-- Redis cache already on
-- Optional: `docker compose up -d --scale pos=2 --scale pos-queue=2`
-
-Re-apply / verify on the VPS:
-
-```bash
-cd /opt/spot-staging
-docker compose up -d --scale pos=2 --scale pos-queue=2
-docker compose exec pos sh -c 'grep -E "^(pm |pm\.)" /usr/local/etc/php-fpm.d/*.conf | head'
-```
-
-From a workstation: `python deploy/staging/scripts/_apply_pos_capacity.py`
-
-On a workstation (from `storefront-qwik/`):
-
-```bash
-# temporarily set staging PUBLIC_* in .env.production, then:
-npm run build
-# pack dist/ + server/ + package.json + package-lock.json into /opt/spot-staging/storefront/
-# restore live .env.production afterwards
-cd /opt/spot-staging && docker compose up -d --build storefront
-```
+DNS switch detail: `pos` and `accounts` are CNAMEs to the apex, and so are Hostinger-only hosts (`itq`, `smk`, `ulsp`, `staging`). Pin those to Hostinger's IP **before** moving the apex A record, delete the apex AAAA records (they pointed at Hostinger), and point `www` at the VPS.
 
 ---
 
 ## Smoke checklist
 
-Until DNS points at the VPS, use the VPS IP and Host headers:
+Before DNS points at the VPS, test through Traefik with Host headers (HTTP redirects to HTTPS; certificates already exist via DNS-01):
 
 ```bash
 IP=82.29.178.160
-curl -sI -H 'Host: pos.thespotmanagment.io' "http://$IP/" | head
-curl -s -H 'Host: pos.thespotmanagment.io' "http://$IP/api/storefront/v1/settings" | head -c 400
-curl -sI -H 'Host: accounts.thespotmanagment.io' "http://$IP/" | head
-curl -sI -H 'Host: thespotmanagment.io' "http://$IP/" | head
+curl -sk --resolve pos.gamesspoteg.com:443:$IP https://pos.gamesspoteg.com/api/storefront/v1/settings | head -c 300
+curl -skI --resolve accounts.gamesspoteg.com:443:$IP https://accounts.gamesspoteg.com/manager/login
+curl -skI --resolve gamesspoteg.com:443:$IP https://gamesspoteg.com/en/
 ```
 
-After DNS + ACME:
-
-1. HTTPS certs valid on all three hosts.
-2. POS admin login on `https://pos.thespotmanagment.io`.
-3. Shop EN/AR loads; browser network calls go to staging POS (CORS OK).
-4. Accounts reachable; device track / digital proxy from POS still works.
-5. `docker compose logs pos-queue` shows a worker heartbeat / test job.
-6. Confirm no writes to live Hostinger DBs (staging `DB_HOST=mysql` only).
+After the switch: valid HTTPS on all hosts, POS login + test sale, Accounts login + Send to POS, shop EN/AR + checkout to the payment page, track order, queue/scheduler logs healthy, `robots.txt` still blocks indexing, activity log shows real visitor IPs.
 
 ---
 
 ## FTP / file access
 
-Dedicated user **`spotftp`** is chrooted to `/opt/spot-staging` with read/write/delete on the staging tree (POS, Accounts, storefront, `data/`).
+User **`spotftp`** is chrooted to `/opt/spot-staging` (port 21, explicit FTPS, passive `40000–40100`; password in local `deploy/staging/.vps-secrets.env` → `FTP_PASSWORD`). Code under `pos/` / `accounts/` / `storefront/` is baked into images; edits apply after `docker compose up -d --build …`. Media and logs under `data/` apply immediately.
 
-| | |
-|--|--|
-| Host | `82.29.178.160` (or `thespotmanagment.io`) |
-| User | `spotftp` |
-| Password | in local `deploy/staging/.vps-secrets.env` → `FTP_PASSWORD` (never commit) |
-| Port | `21` (explicit FTPS supported; passive `40000–40100`) |
-
-Dotfiles (`.env`, `.gitignore`, etc.) are listed (`force_dot_files=YES`). In FileZilla also enable **Server → Force showing hidden files** if they still do not appear.
-
-**Note:** App code under `pos/` / `accounts/` / `storefront/` is baked into Docker images at build time. FTP edits there apply after `docker compose up -d --build …`. Live media/logs live under `data/` (bind-mounted) and take effect immediately.
-
-To recreate the account: `python deploy/staging/scripts/_create_ftp_user.py` (from a machine that can SSH as root).
-
-- Never commit `/opt/spot-staging/.env`, app `.env`, SQL dumps, or `acme.json`.
-- VPS root password was rotated after bootstrap; value is only in local `deploy/staging/.vps-secrets.env` (gitignored). Prefer SSH keys going forward.
-- Rotate the Hostinger SSH password that was used for the one-time clone (out of band on Hostinger).
-- Staging uses `MAIL_MAILER=log` and payment keys stubbed where remapped — do not put live gateway secrets in staging.
-- Keep `APP_KEY` from the live clone if encrypted columns exist.
-- PHP images install `gd` + `git`/`unzip`; `composer install --no-scripts` (package discover runs after containers are up with MySQL).
-- POS/Accounts queue + scheduler share `image: spot-staging/pos:latest` / `spot-staging/accounts:latest` with the web containers (do not build separate stale images).
+- Never commit `/opt/spot-staging/.env`, app `.env`, `data/live-env/`, SQL dumps, or `acme.json`.
+- VPS root password lives only in local `deploy/staging/.vps-secrets.env` (gitignored). Prefer SSH keys.
 
 ---
 
-## Future cutover (documented only — not this phase)
+## Load testing (k6)
 
-1. Point `pos.gamesspoteg.com`, `accounts.gamesspoteg.com`, and shop DNS at the VPS (or reverse-proxy).
-2. Swap staging payment/mail credentials for live keys; set `APP_ENV=production`, `APP_DEBUG=false`.
-3. Rebuild storefront with live `PUBLIC_API_BASE` / `PUBLIC_ACCOUNTS_BASE`.
-4. Keep Hostinger as rollback until traffic and queues are confirmed.
-5. Do **not** share one database between live and staging during cutover rehearsal.
+See [`load-tests/k6/README.md`](../../load-tests/k6/README.md). Point `BASE_URL` at `https://pos.gamesspoteg.com/api/storefront/v1` only with operator approval — it is production now.
 
 ---
 
@@ -218,12 +127,10 @@ deploy/staging/
   .env.example
   traefik/traefik.yml
   mysql/init/01-databases.sql
-  pos/Dockerfile
-  accounts/Dockerfile
-  storefront/Dockerfile
+  pos/Dockerfile  accounts/Dockerfile  storefront/Dockerfile
   scripts/
     pull-from-hostinger.sh
-    configure-staging-env.sh
+    configure-production-env.sh
     import-db.sh
-    bootstrap-vps.py          # initial Docker + tree sync
+    bootstrap-vps.py
 ```
