@@ -33,7 +33,7 @@ class TrustProxies extends Middleware
      */
     public function proxies()
     {
-        // Trust all proxies - adjust this based on your server setup
-        return '*';
+        // Chained proxies (Cloudflare -> Traefik) need every hop listed so the visitor IP survives.
+        return config('trustedproxy.proxies') ?: '*';
     }
 }
