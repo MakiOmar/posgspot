@@ -15,7 +15,26 @@ import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useLangParam } from "~/routes/[lang]/layout";
+import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
+
+/** Decorative floating bubbles behind the landing card (pure CSS animation). */
+const BUBBLE_COUNT = 12;
+
+const LandingBubbles = component$(() => (
+  <div class="landing-bubbles" aria-hidden="true">
+    {Array.from({ length: BUBBLE_COUNT }, (_, i) => (
+      <span key={i} class={`landing-bubble landing-bubble--${i + 1}`} />
+    ))}
+  </div>
+));
+
+const LandingLogo = component$<{ logoUrl: string | null; businessName: string }>(({ logoUrl, businessName }) =>
+  logoUrl ? (
+    <img class="landing-logo" src={logoUrl} alt={businessName} width={566} height={170} decoding="async" />
+  ) : (
+    <p class="landing-logo landing-logo--text">{businessName}</p>
+  ),
+);
 
 export const usePhoneCountries = routeLoader$(async () => {
   try {
@@ -37,6 +56,9 @@ export const useGeoCountries = routeLoader$(async () => {
 
 export default component$(() => {
   const { locale } = useI18n();
+  const settings = useSiteSettings();
+  const logoUrl = settings.value.logo_url;
+  const businessName = settings.value.business_name;
   const phoneCountries = usePhoneCountries();
   const geoCountries = useGeoCountries();
   const pending = usePendingState();
@@ -137,7 +159,9 @@ export default component$(() => {
   if (succeeded.value) {
     return (
       <section class="landing-page landing-page--add-customer">
+        <LandingBubbles />
         <div class="landing-card">
+          <LandingLogo logoUrl={logoUrl} businessName={businessName} />
           <div class="landing-success">
             <div class="landing-success__icon" aria-hidden="true">
               ✓
@@ -169,8 +193,10 @@ export default component$(() => {
 
   return (
     <section class="landing-page landing-page--add-customer">
+      <LandingBubbles />
       <div class="landing-card">
         <header class="landing-card__header">
+          <LandingLogo logoUrl={logoUrl} businessName={businessName} />
           <h1 class="landing-title">{tStatic(locale, "addCustomer.joinUs")}</h1>
           <p class="landing-subtitle">{tStatic(locale, "addCustomer.subtitle")}</p>
         </header>
