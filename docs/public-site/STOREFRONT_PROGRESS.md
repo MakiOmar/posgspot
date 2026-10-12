@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | Call-center sales orders sell synced Accounts products (still `not_for_selling`, hidden from storefront; offline blocked); per-line "Fetch account now" or allocate on full payment (`so-{id}` ledger rows, excluded from storefront fulfil cron); sells/sales-order Contents filter (accounts / mixed / POS). See `docs/CONFIGURATION.md`. |
 | 2026-10-12 | Add-customer landing: two fields per row on desktop, shop logo, animated bubble background (static when reduced motion). |
 | 2026-10-12 | Contact page: two columns (map beside email, hotline + form); branch list removed (branches live on `/stores`). |
 | 2026-10-12 | Cookie consent bar sits above the mobile bottom nav (buttons visible/tappable); storefront image now builds from git on the VPS. |
