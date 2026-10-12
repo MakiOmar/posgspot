@@ -187,8 +187,9 @@ services:
 
   storefront:
     build:
-      context: ./storefront
-      dockerfile: Dockerfile
+      # Built from the POS git checkout (npm ci + npm run build inside Docker)
+      context: ./pos/storefront-qwik
+      dockerfile: ../../storefront/Dockerfile
     restart: unless-stopped
     environment:
       ORIGIN: https://${SHOP_DOMAIN:-gamesspoteg.com}

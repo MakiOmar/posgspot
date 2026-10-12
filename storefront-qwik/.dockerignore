@@ -1,0 +1,9 @@
+node_modules/
+dist/
+server/
+tmp/
+*.log
+.env
+.env.local
+.env.*.bak
+.env.ssr
