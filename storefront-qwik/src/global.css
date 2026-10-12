@@ -6898,22 +6898,120 @@ body.is-globally-pending {
 
 /* ÃÂ¢Ãâ¬ÃâÃÂ¢Ãâ¬Ãâ Landing pages (no site header/footer) ÃÂ¢Ãâ¬ÃâÃÂ¢Ãâ¬Ãâ */
 .landing-page {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: var(--gs-bg);
+  background:
+    radial-gradient(ellipse at 15% 10%, color-mix(in srgb, var(--gs-accent) 16%, transparent), transparent 55%),
+    radial-gradient(ellipse at 85% 90%, color-mix(in srgb, var(--gs-accent) 10%, transparent), transparent 55%),
+    var(--gs-bg);
 }
 
 .landing-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 720px;
-  background: var(--gs-surface);
+  max-width: 760px;
+  background: color-mix(in srgb, var(--gs-surface) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--gs-border);
   border-radius: calc(var(--gs-radius) + 4px);
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
   padding: 2rem;
+}
+
+.landing-logo {
+  display: block;
+  width: auto;
+  height: 3rem;
+  max-width: 70%;
+  margin: 0 auto 1.25rem;
+  object-fit: contain;
+}
+
+.landing-logo--text {
+  height: auto;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gs-accent);
+  text-align: center;
+}
+
+/* Two fields per row on wider screens (wrapper carries both classes). */
+.landing-form .form-grid.two-col {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .landing-form .form-grid.two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Floating bubbles behind the landing card */
+.landing-bubbles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.landing-bubble {
+  position: absolute;
+  bottom: -12rem;
+  left: var(--x, 50%);
+  width: var(--size, 6rem);
+  height: var(--size, 6rem);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    color-mix(in srgb, #fff 35%, transparent),
+    color-mix(in srgb, var(--gs-accent) 35%, transparent) 45%,
+    color-mix(in srgb, var(--gs-accent) 8%, transparent) 70%
+  );
+  border: 1px solid color-mix(in srgb, var(--gs-accent) 30%, transparent);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--gs-accent) 25%, transparent);
+  opacity: var(--alpha, 0.45);
+  animation: landing-bubble-rise var(--dur, 18s) linear var(--delay, 0s) infinite;
+}
+
+.landing-bubble--1 { --x: 4%; --size: 7rem; --dur: 22s; --delay: -2s; }
+.landing-bubble--2 { --x: 14%; --size: 3.5rem; --dur: 16s; --delay: -9s; --alpha: 0.6; }
+.landing-bubble--3 { --x: 24%; --size: 10rem; --dur: 28s; --delay: -14s; --alpha: 0.3; }
+.landing-bubble--4 { --x: 36%; --size: 2.5rem; --dur: 14s; --delay: -5s; --alpha: 0.65; }
+.landing-bubble--5 { --x: 46%; --size: 5rem; --dur: 20s; --delay: -17s; }
+.landing-bubble--6 { --x: 56%; --size: 8rem; --dur: 25s; --delay: -7s; --alpha: 0.35; }
+.landing-bubble--7 { --x: 66%; --size: 3rem; --dur: 15s; --delay: -12s; --alpha: 0.6; }
+.landing-bubble--8 { --x: 74%; --size: 11rem; --dur: 30s; --delay: -20s; --alpha: 0.28; }
+.landing-bubble--9 { --x: 84%; --size: 4.5rem; --dur: 18s; --delay: -3s; }
+.landing-bubble--10 { --x: 92%; --size: 6.5rem; --dur: 23s; --delay: -11s; --alpha: 0.4; }
+.landing-bubble--11 { --x: 30%; --size: 2rem; --dur: 12s; --delay: -6s; --alpha: 0.7; }
+.landing-bubble--12 { --x: 62%; --size: 2.25rem; --dur: 13s; --delay: -1s; --alpha: 0.7; }
+
+@keyframes landing-bubble-rise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.9);
+  }
+  50% {
+    transform: translate3d(2.5rem, -60vh, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-1.5rem, calc(-100vh - 24rem), 0) scale(1.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-bubble {
+    animation: none;
+    bottom: auto;
+    top: calc(var(--x) * 0.9);
+  }
 }
 
 .landing-card__header {
