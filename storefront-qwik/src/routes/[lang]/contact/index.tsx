@@ -1,6 +1,6 @@
 import { $, component$, useSignal, useStore } from "@builder.io/qwik";
-import { Link, routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
-import { MapPinIcon, PhoneIcon } from "~/components/icons";
+import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
+import { PhoneIcon } from "~/components/icons";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
@@ -11,7 +11,6 @@ import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import { tStatic, useI18n } from "~/lib/i18n/context";
-import { localePath } from "~/lib/i18n/paths";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { pickDefaultStore, storeMapEmbedUrl } from "~/lib/maps";
 import type { StoreLocation } from "~/lib/types";
@@ -108,6 +107,7 @@ export default component$(() => {
         crumbs={[{ label: tStatic(locale, "contact.title") }]}
       />
     <article class="content-page contact-page">
+      {/* Map column */}
       <div class="contact-map-wrap">
         <iframe
           title={tStatic(locale, "contact.mapTitle")}
@@ -118,138 +118,103 @@ export default component$(() => {
         />
       </div>
 
-      <div class="contact-cards">
-        {emailEncoded ? (
-          <div class="contact-card">
-            <p class="contact-card-label">{tStatic(locale, "contact.emailAddress")}</p>
-            <ProtectedEmailLink emailEncoded={emailEncoded} />
-          </div>
-        ) : null}
-
-        {phone ? (
-          <div class="contact-card">
-            <p class="contact-card-label">{tStatic(locale, "contact.hotline")}</p>
-            <p class="contact-card-value footer-contact">
-              <PhoneIcon size={18} />
-              <a href={`tel:${phoneHref}`}>{phone}</a>
-            </p>
-          </div>
-        ) : null}
-
-        <div class="contact-card contact-card--wide">
-          <p class="contact-card-label">{tStatic(locale, "contact.ourBranches")}</p>
-          {locations.value.length > 0 ? (
-            <>
-              <ul class="contact-branches">
-                {locations.value.map((loc) => (
-                  <li key={loc.id}>
-                    <strong>{loc.name}</strong>
-                    {loc.address ? (
-                      <span class="footer-contact">
-                        <MapPinIcon size={16} />
-                        {loc.maps_url ? (
-                          <a href={loc.maps_url} target="_blank" rel="noopener noreferrer">
-                            {loc.address}
-                          </a>
-                        ) : (
-                          <span>{loc.address}</span>
-                        )}
-                      </span>
-                    ) : null}
-                    {loc.phone ? (
-                      <span class="footer-contact">
-                        <PhoneIcon size={16} />
-                        <a href={`tel:${loc.phone.replace(/[^\d+]/g, "")}`}>{loc.phone}</a>
-                      </span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-              <p class="contact-stores-link">
-                <Link href={localePath(locale, "/stores")}>{tStatic(locale, "contact.viewStoreLocator")}</Link>
-              </p>
-            </>
-          ) : (
-            <p class="footer-muted">{tStatic(locale, "contact.noBranches")}</p>
-          )}
-        </div>
-      </div>
-
-      <section class="contact-form-section">
-        <h2 class="content-section-title">
-          <span class="text-accent">{tStatic(locale, "contact.leaveUs")}</span> {tStatic(locale, "contact.aMessage")}
-        </h2>
-
-        <form class="contact-form" preventdefault:submit onSubmit$={submit$}>
-          <div class="form-field form-field--left">
-            <label for="contact-name">
-              {tStatic(locale, "forms.name")} <span class="form-required" aria-hidden="true">*</span>
-            </label>
-            <input
-              id="contact-name"
-              type="text"
-              name="name"
-              required
-              placeholder={tStatic(locale, "contact.namePlaceholder")}
-              value={form.name}
-              onInput$={(_, el) => (form.name = el.value)}
-            />
-          </div>
-          <div class="form-field form-field--right">
-            <label for="contact-email">
-              {tStatic(locale, "forms.email")} <span class="form-required" aria-hidden="true">*</span>
-            </label>
-            <input
-              id="contact-email"
-              type="email"
-              name="email"
-              required
-              placeholder={tStatic(locale, "contact.emailPlaceholder")}
-              value={form.email}
-              onInput$={(_, el) => (form.email = el.value)}
-            />
-          </div>
-          <div class="form-field form-field--left">
-            <label for="contact-phone">
-              {tStatic(locale, "forms.phone")} <span class="form-required" aria-hidden="true">*</span>
-            </label>
-            <PhoneInputWithDialCode
-              id="contact-phone"
-              countries={phoneCountries.value}
-              dialCode={form.dialCode}
-              nationalNumber={form.nationalNumber}
-              required
-              onChange$={(value) => {
-                form.dialCode = value.dialCode;
-                form.nationalNumber = value.nationalNumber;
-                form.phone = value.fullPhone;
-              }}
-            />
-          </div>
-          <div class="form-field form-field--right contact-form-message">
-            <label for="contact-message">
-              {tStatic(locale, "forms.yourMessage")} <span class="form-required" aria-hidden="true">*</span>
-            </label>
-            <textarea
-              id="contact-message"
-              name="message"
-              rows={5}
-              required
-              placeholder={tStatic(locale, "contact.messagePlaceholder")}
-              value={form.message}
-              onInput$={(_, el) => (form.message = el.value)}
-            />
-          </div>
-          {turnstileEnabled && turnstile.site_key ? (
-            <TurnstileWidget siteKey={turnstile.site_key} token={turnstileToken} resetKey={turnstileResetKey.value} />
+      {/* Details column: email, hotline, then the message form */}
+      <div class="contact-details">
+        <div class="contact-cards">
+          {emailEncoded ? (
+            <div class="contact-card">
+              <p class="contact-card-label">{tStatic(locale, "contact.emailAddress")}</p>
+              <ProtectedEmailLink emailEncoded={emailEncoded} />
+            </div>
           ) : null}
-          <div class="form-actions form-actions--left">
-            <button type="submit" class="btn btn-primary" disabled={submitting.value}>
-              {submitting.value ? tStatic(locale, "contact.sending") : tStatic(locale, "contact.sendMessage")}
-            </button>
-          </div>
-        </form>
-      </section>
+
+          {phone ? (
+            <div class="contact-card">
+              <p class="contact-card-label">{tStatic(locale, "contact.hotline")}</p>
+              <p class="contact-card-value footer-contact">
+                <PhoneIcon size={18} />
+                <a href={`tel:${phoneHref}`}>{phone}</a>
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        <section class="contact-form-section">
+          <h2 class="content-section-title">
+            <span class="text-accent">{tStatic(locale, "contact.leaveUs")}</span> {tStatic(locale, "contact.aMessage")}
+          </h2>
+
+          <form class="contact-form" preventdefault:submit onSubmit$={submit$}>
+            <div class="form-field form-field--left">
+              <label for="contact-name">
+                {tStatic(locale, "forms.name")} <span class="form-required" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="contact-name"
+                type="text"
+                name="name"
+                required
+                placeholder={tStatic(locale, "contact.namePlaceholder")}
+                value={form.name}
+                onInput$={(_, el) => (form.name = el.value)}
+              />
+            </div>
+            <div class="form-field form-field--right">
+              <label for="contact-email">
+                {tStatic(locale, "forms.email")} <span class="form-required" aria-hidden="true">*</span>
+              </label>
+              <input
+                id="contact-email"
+                type="email"
+                name="email"
+                required
+                placeholder={tStatic(locale, "contact.emailPlaceholder")}
+                value={form.email}
+                onInput$={(_, el) => (form.email = el.value)}
+              />
+            </div>
+            <div class="form-field form-field--left">
+              <label for="contact-phone">
+                {tStatic(locale, "forms.phone")} <span class="form-required" aria-hidden="true">*</span>
+              </label>
+              <PhoneInputWithDialCode
+                id="contact-phone"
+                countries={phoneCountries.value}
+                dialCode={form.dialCode}
+                nationalNumber={form.nationalNumber}
+                required
+                onChange$={(value) => {
+                  form.dialCode = value.dialCode;
+                  form.nationalNumber = value.nationalNumber;
+                  form.phone = value.fullPhone;
+                }}
+              />
+            </div>
+            <div class="form-field form-field--right contact-form-message">
+              <label for="contact-message">
+                {tStatic(locale, "forms.yourMessage")} <span class="form-required" aria-hidden="true">*</span>
+              </label>
+              <textarea
+                id="contact-message"
+                name="message"
+                rows={5}
+                required
+                placeholder={tStatic(locale, "contact.messagePlaceholder")}
+                value={form.message}
+                onInput$={(_, el) => (form.message = el.value)}
+              />
+            </div>
+            {turnstileEnabled && turnstile.site_key ? (
+              <TurnstileWidget siteKey={turnstile.site_key} token={turnstileToken} resetKey={turnstileResetKey.value} />
+            ) : null}
+            <div class="form-actions form-actions--left">
+              <button type="submit" class="btn btn-primary" disabled={submitting.value}>
+                {submitting.value ? tStatic(locale, "contact.sending") : tStatic(locale, "contact.sendMessage")}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </article>
     </div>
   );
