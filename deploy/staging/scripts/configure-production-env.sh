@@ -58,6 +58,8 @@ wire_common() {
 
 install -m 640 data/live-env/pos.env pos/.env
 install -m 640 data/live-env/accounts.env accounts/.env
+# Live files may lack a trailing newline; appended keys would otherwise glue onto the last line
+for f in pos/.env accounts/.env; do [ -n "$(tail -c1 "$f")" ] && echo >> "$f"; done
 
 wire_common pos/.env pos_stg 0 "https://${POS}"
 set_kv pos/.env STOREFRONT_URL "https://${SHOP}"
@@ -68,6 +70,7 @@ wire_common accounts/.env accounts_stg 1 "https://${ACC}"
 # WordPress is retired; nothing to notify
 set_kv accounts/.env WORDPRESS_WEBHOOK_URL ""
 
-# Containers read .env as www-data
+# Containers read .env as www-data; the spotftp FTP user owns it so operators can edit via FTPS
+if id spotftp >/dev/null 2>&1; then chown spotftp pos/.env accounts/.env; fi
 chgrp 33 pos/.env accounts/.env
 echo "Production env written: pos/.env, accounts/.env (TRUSTED_PROXIES has $(echo "$TRUSTED" | tr ',' '\n' | wc -l) ranges)"
