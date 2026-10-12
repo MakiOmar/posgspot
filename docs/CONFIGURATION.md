@@ -123,6 +123,23 @@ Accounts pushes one hidden POS product per game offer / card category through `P
 
 Config: `config/services.php` → `accounts.catalog_*`. Changes apply on the next sync of each product (`php artisan pos:sync-catalog` in Accounts); run `php artisan config:clear` after editing `.env`.
 
+#### Call-center sales orders with Accounts products
+
+Synced Accounts products stay `not_for_selling` (hidden on the storefront and the plain POS screen). On the **sales order** form only, product search also returns them (never `-OFFLINE` offers). On save, POS rejects offline offers on sales orders, rejects new Accounts lines on plain sells, and rejects removing / reducing a line whose account was already allocated.
+
+- Lines with **Fetch account now** ticked are allocated from Accounts when the sales order is saved (even unpaid); the rest when the order becomes fully paid. Credentials go to the staff note (and the line note when the storefront "expose credentials" setting is on), and are copied onto the converted invoice.
+- One ledger row per unit in `storefront_digital_fulfillments` with `storefront_order_id = so-{sales order id}`; Accounts dedupes on that id + line key, and the Accounts order is stamped `pos_order_id` (Send to POS skips it).
+- Failures are noted on the staff note and retried by `php artisan accounts:fulfill-sales-orders` (scheduled every 5 minutes, up to 5 attempts).
+
+| Variable | Purpose |
+|----------|---------|
+| `ACCOUNTS_SALES_ORDER_FULFILLMENT` | `true` (default) / `false` — turn sales-order allocation on or off |
+| `ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID` | Accounts store profile credited for these orders; empty = storefront `digital.accounts_store_profile_id` (default 17) |
+| `ACCOUNTS_LEGACY_POS_SKUS` | Comma list of pre-sync Accounts placeholder SKUs counted as account lines by the **Contents** filter (default `0139,0140,0141,0142,0143`) |
+| `ACCOUNTS_LEGACY_PRODUCT_IDS` | Comma list of old manually created game product ids counted as account lines |
+
+**Contents filter:** `transactions.content_kind` (`accounts_only` / `mixed` / `pos_only`) is refreshed whenever sell lines are written and shown as a filter + badge on the sells and sales-order lists. Backfill after deploy or after changing the legacy lists: `php artisan sales:classify-content` (a `--recent` run is scheduled nightly).
+
 **Catalog diagnostics:** `GET /api/storefront/v1/digital/games` adds a `debug` object (Accounts host, request URL, item counts, and a reason such as games with no synced POS product) only when `APP_DEBUG=true`. Keep `APP_DEBUG=false` in production so internal hosts are never exposed; the storefront shows its debug panel only when the API sends this object.
 
 ## POS backups

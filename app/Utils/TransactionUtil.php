@@ -484,6 +484,9 @@ class TransactionUtil extends Util
             $transaction->sell_lines()->saveMany($modifiers_formatted);
         }
 
+        // Every sell / sales-order line write funnels through here: keep the Accounts content tag current.
+        app(\App\Services\TransactionContentKindService::class)->refresh((int) $transaction->id);
+
         if ($return_deleted) {
             return $deleted_lines;
         }
@@ -3119,6 +3122,13 @@ class TransactionUtil extends Util
                     if (! $tx) {
                         return;
                     }
+                    if ($tx->type === 'sales_order') {
+                        // Call-center sales orders: allocate remaining Accounts lines once fully paid.
+                        app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class)
+                            ->handlePaid($tx);
+
+                        return;
+                    }
                     app(\App\Services\Storefront\DigitalFulfillmentService::class)
                         ->handleStorefrontBecamePaid($tx);
                 } catch (\Throwable $e) {
@@ -4492,6 +4502,7 @@ class TransactionUtil extends Util
         }
 
         $recurring_invoice->sell_lines()->createMany($recurring_sell_lines);
+        app(\App\Services\TransactionContentKindService::class)->refresh((int) $recurring_invoice->id);
 
         return $recurring_invoice;
     }

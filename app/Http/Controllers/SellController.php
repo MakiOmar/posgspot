@@ -232,6 +232,13 @@ class SellController extends Controller
                 }
             }
 
+            // Accounts content tag (accounts_only | mixed | pos_only), see TransactionContentKindService.
+            $sells->addSelect('transactions.content_kind');
+            $content_kind = request()->input('content_kind');
+            if (in_array($content_kind, \App\Services\TransactionContentKindService::KINDS, true)) {
+                $sells->where('transactions.content_kind', $content_kind);
+            }
+
             if ($is_crm) {
                 $sells->addSelect('transactions.crm_is_order_request');
 
@@ -587,6 +594,12 @@ class SellController extends Controller
 
                     if ($is_crm && ! empty($row->crm_is_order_request)) {
                         $invoice_no .= ' &nbsp;<small class="label bg-yellow label-round no-print" title="'.__('crm::lang.order_request').'"><i class="fas fa-tasks"></i></small>';
+                    }
+
+                    if ($row->content_kind === \App\Services\TransactionContentKindService::ACCOUNTS_ONLY) {
+                        $invoice_no .= '</br><small class="label bg-purple no-print">'.e(__('lang_v1.content_kind_badge_accounts')).'</small>';
+                    } elseif ($row->content_kind === \App\Services\TransactionContentKindService::MIXED) {
+                        $invoice_no .= '</br><small class="label bg-orange no-print">'.e(__('lang_v1.content_kind_badge_mixed')).'</small>';
                     }
 
                     return $invoice_no;
@@ -1269,8 +1282,13 @@ class SellController extends Controller
         //Added check because $users is of no use if enable_contact_assign if false
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+        // Sales-order lines with an Accounts account already fetched are locked in the form.
+        $allocated_units = $transaction->type == 'sales_order'
+            ? app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class)->allocatedUnitsBySellLine((int) $transaction->id)
+            : [];
+
         return view('sell.edit')
-            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users'));
+            ->with(compact('business_details', 'taxes', 'sell_details', 'transaction', 'commission_agent', 'types', 'customer_groups', 'pos_settings', 'waiters', 'invoice_schemes', 'default_invoice_schemes', 'redeem_details', 'edit_discount', 'edit_price', 'shipping_statuses', 'warranties', 'statuses', 'sales_orders', 'payment_types', 'accounts', 'payment_lines', 'change_return', 'is_order_request_enabled', 'customer_due', 'users', 'allocated_units'));
     }
 
     /**
@@ -1589,6 +1607,7 @@ class SellController extends Controller
             }
 
             $duplicate_transaction->sell_lines()->createMany($duplicate_sell_lines_data);
+            app(\App\Services\TransactionContentKindService::class)->refresh((int) $duplicate_transaction->id);
 
             DB::commit();
 

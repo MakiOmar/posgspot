@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Business;
 use App\AccountTransaction;
 use App\Product;
+use App\Services\Accounts\SalesOrderDigitalFulfillmentService;
 use App\Transaction;
 use App\TransactionPayment;
 use App\Variation;
@@ -63,6 +64,13 @@ class SalesOrderInvoiceService
                 'msg' => __('lang_v1.so_invoice_not_paid'),
             ];
         }
+
+        // Allocate Accounts lines first so credentials are in the notes copied onto the invoice
+        // (idempotent; inside an open DB transaction the paid hook runs after commit instead).
+        if (DB::transactionLevel() === 0) {
+            app(SalesOrderDigitalFulfillmentService::class)->handlePaid($so);
+        }
+        $so->refresh();
 
         $products = $this->buildProductsPayload($so);
         if ($products === []) {
@@ -256,7 +264,6 @@ class SalesOrderInvoiceService
         $so->save();
 
         $this->transactionUtil->updateSalesOrderStatus([$so->id]);
-
         $this->transactionUtil->activityLog($sell, 'added');
 
         return $sell->fresh(['payment_lines', 'sell_lines']);

@@ -22,6 +22,16 @@ class Kernel extends ConsoleKernel
 
         if ($env !== 'demo') {
             $this->scheduleAutomaticBackup($schedule);
+
+            // Call-center sales orders: retry failed Accounts allocations.
+            $schedule->command('accounts:fulfill-sales-orders')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(30);
+
+            // Safety net for sells created by paths that don't refresh content_kind.
+            $schedule->command('sales:classify-content --recent')
+                ->dailyAt('03:30')
+                ->withoutOverlapping(60);
         }
 
         if ($env === 'live') {
