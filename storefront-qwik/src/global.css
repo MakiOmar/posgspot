@@ -4440,6 +4440,21 @@ html[dir="rtl"] .header-search-type {
     display: flex;
   }
 
+  /* Sit above the bottom nav and the support-chat launcher so the consent buttons stay tappable. */
+  .cookie-consent {
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 230;
+    padding-bottom: 0.85rem;
+  }
+
+  .cookie-consent__actions {
+    width: 100%;
+  }
+
+  .cookie-consent__btn {
+    flex: 1 1 0;
+  }
+
   /* Cart / wishlist / account live in the bottom bar — drop header duplicates. */
   .header-actions .action-wishlist,
   .header-actions .action-account,
