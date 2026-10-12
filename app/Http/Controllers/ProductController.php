@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 use App\Events\ProductsCreatedOrModified;
 use App\TransactionSellLine;
+use App\Services\ProductDeletionGuard;
 use App\Services\Storefront\StorefrontMediaLibraryService;
 
 class ProductController extends Controller
@@ -996,22 +997,10 @@ class ProductController extends Controller
                                 ->with('variations')
                                 ->first();
 
-                // check for enable stock = 0 product
-                if($product->enable_stock == 0){
-                    $t_count = TransactionSellLine::join(
-                        'transactions as T',
-                        'transaction_sell_lines.transaction_id',
-                        '=',
-                        'T.id'
-                    )
-                        ->where('T.business_id', $business_id)
-                        ->where('transaction_sell_lines.product_id', $id)
-                        ->count();
-
-                    if ($t_count > 0) {
-                        $can_be_deleted = false;
-                        $error_msg = "can't delete product exit in sell";
-                    }
+                // Any sale blocks deletion (stock-tracked or not): sell lines cascade with the product.
+                if ($can_be_deleted && app(ProductDeletionGuard::class)->hasSales((int) $business_id, (int) $id)) {
+                    $can_be_deleted = false;
+                    $error_msg = __('lang_v1.product_has_sales_deactivate');
                 }
 
                 //Check if product is added as an ingredient of any recipe
@@ -1647,6 +1636,7 @@ class ProductController extends Controller
         }
         try {
             $purchase_exist = false;
+            $has_sales = false;
 
             if (! empty($request->input('selected_rows'))) {
                 $business_id = $request->session()->get('user.business_id');
@@ -1661,9 +1651,18 @@ class ProductController extends Controller
 
                 $is_mfg_installed = $this->moduleUtil->isModuleInstalled('Manufacturing');
 
+                $sold_product_ids = app(ProductDeletionGuard::class)
+                    ->productIdsWithSales((int) $business_id, $products->pluck('id')->all());
+
                 DB::beginTransaction();
 
                 foreach ($products as $product) {
+                    if (in_array((int) $product->id, $sold_product_ids, true)) {
+                        $has_sales = true;
+
+                        continue;
+                    }
+
                     $can_be_deleted = true;
                     //Check if product is added as an ingredient of any recipe
                     if ($is_mfg_installed) {
@@ -1689,7 +1688,11 @@ class ProductController extends Controller
                 DB::commit();
             }
 
-            if (! $purchase_exist) {
+            if ($has_sales) {
+                $output = ['success' => 0,
+                    'msg' => __('lang_v1.products_with_sales_not_deleted'),
+                ];
+            } elseif (! $purchase_exist) {
                 $output = ['success' => 1,
                     'msg' => __('lang_v1.deleted_success'),
                 ];
