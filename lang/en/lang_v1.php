@@ -685,6 +685,8 @@ return [
     'click_to_print' => 'Click to print',
     'deactivated_success' => 'Deactivated successfully',
     'products_could_not_be_deleted' => "Some products couldn't be deleted because it has transactions related to it.",
+    'product_has_sales_deactivate' => "This product can't be deleted because it appears in sales. Deactivate it instead to hide it from selling while keeping sales history.",
+    'products_with_sales_not_deleted' => "Some products weren't deleted because they appear in sales. Deactivate them instead to keep sales history.",
     'price' => 'Price',
     'auto_backup_instruction' => 'To enable auto backup and backup clean you must setup a cron job with this command',
     'gross_profit' => 'Gross Profit',
