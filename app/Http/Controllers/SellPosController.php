@@ -38,6 +38,8 @@ use App\InvoiceLayout;
 use App\InvoiceScheme;
 use App\Media;
 use App\Product;
+use App\Services\Accounts\SalesOrderAccountsGuard;
+use App\Services\Accounts\SalesOrderDigitalFulfillmentService;
 use App\Services\SellActivityChangesService;
 use App\Services\SellDocumentService;
 use App\SellingPriceGroup;
@@ -364,6 +366,17 @@ class SellPosController extends Controller
             if (!empty($input['products'])) {
                 $business_id = $request->session()->get('user.business_id');
 
+                $accounts_guard_response = $this->accountsGuardResponse(
+                    $business_id,
+                    $input['products'],
+                    ! empty($input['type']) && $input['type'] == 'sales_order',
+                    null,
+                    $is_direct_sale
+                );
+                if ($accounts_guard_response !== null) {
+                    return $accounts_guard_response;
+                }
+
                 if (! empty($input['type']) && $input['type'] == 'sales_order') {
                     $business_details = $this->businessUtil->getDetails($business_id);
                     $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
@@ -656,6 +669,8 @@ class SellPosController extends Controller
 
                 SellCreatedOrModified::dispatch($transaction);
 
+                $accounts_fetch_msg = $this->fetchCheckedAccountLines($transaction, $input['products']);
+
                 // Fully paid SO deposit → auto-create final invoice after commit.
                 $soConvertMsg = null;
                 if (! empty($input['type']) && $input['type'] == 'sales_order'
@@ -704,6 +719,10 @@ class SellPosController extends Controller
 
                 if ($print_invoice) {
                     $receipt = $this->receiptContent($business_id, $input['location_id'], $transaction->id, null, false, true, $invoice_layout_id);
+                }
+
+                if (! empty($accounts_fetch_msg)) {
+                    $msg .= ' '.$accounts_fetch_msg;
                 }
 
                 $output = ['success' => 1, 'msg' => $msg, 'receipt' => $receipt];
@@ -1244,6 +1263,18 @@ class SellPosController extends Controller
                 $user_id = $request->session()->get('user.id');
                 $commsn_agnt_setting = $request->session()->get('business.sales_cmsn_agnt');
 
+                $is_sales_order_before = $transaction_before->type == 'sales_order';
+                $accounts_guard_response = $this->accountsGuardResponse(
+                    $business_id,
+                    $input['products'],
+                    $is_sales_order_before,
+                    $is_sales_order_before ? (int) $transaction_before->id : null,
+                    $is_direct_sale
+                );
+                if ($accounts_guard_response !== null) {
+                    return $accounts_guard_response;
+                }
+
                 $discount = ['discount_type' => $input['discount_type'],
                     'discount_amount' => $input['discount_amount'],
                 ];
@@ -1497,6 +1528,8 @@ class SellPosController extends Controller
                 DB::commit();
                 $this->fulfillStorefrontDigitalIfPaid((int) $transaction->id);
 
+                $accounts_fetch_msg = $this->fetchCheckedAccountLines($transaction, $input['products']);
+
                 // Fully paid SO after edit → auto-create final invoice.
                 $soConvertMsg = null;
                 if ($transaction->type == 'sales_order' && ($transaction->payment_status ?? null) === 'paid') {
@@ -1539,6 +1572,10 @@ class SellPosController extends Controller
                     } else {
                         $receipt = '';
                     }
+                }
+
+                if (! empty($accounts_fetch_msg)) {
+                    $msg .= ' '.$accounts_fetch_msg;
                 }
 
                 $output = ['success' => 1, 'msg' => $msg, 'receipt' => $receipt];
@@ -1625,6 +1662,79 @@ class SellPosController extends Controller
         }
 
         $this->transactionUtil->activityLog($transaction, 'payment_edited', $transaction_before);
+    }
+
+    /**
+     * Accounts products: sales orders only, never offline, allocated lines can't shrink.
+     *
+     * @return mixed null when the save may continue, otherwise the error response
+     */
+    private function accountsGuardResponse(int $business_id, array $products, bool $is_sales_order, ?int $sales_order_id, bool $is_direct_sale)
+    {
+        $error = app(SalesOrderAccountsGuard::class)->check(
+            $business_id,
+            $products,
+            $is_sales_order,
+            $sales_order_id,
+            fn ($value) => $this->transactionUtil->num_uf($value)
+        );
+        if ($error === null) {
+            return null;
+        }
+
+        $output = ['success' => 0, 'msg' => $error];
+        if (! $is_direct_sale) {
+            return $output;
+        }
+
+        return redirect()->back()->with('status', $output);
+    }
+
+    /**
+     * Allocate the account lines the agent ticked "Fetch account now" on (sales orders only).
+     *
+     * @return string|null feedback appended to the save message
+     */
+    private function fetchCheckedAccountLines(Transaction $transaction, array $products): ?string
+    {
+        if ($transaction->type !== 'sales_order') {
+            return null;
+        }
+
+        $line_ids = [];
+        $variation_ids = [];
+        foreach ($products as $row) {
+            if (empty($row['fetch_account'])) {
+                continue;
+            }
+            if (! empty($row['transaction_sell_lines_id'])) {
+                $line_ids[] = (int) $row['transaction_sell_lines_id'];
+            } elseif (! empty($row['variation_id'])) {
+                // New rows have no id yet; same product twice counts as checked for both.
+                $variation_ids[] = (int) $row['variation_id'];
+            }
+        }
+        if (! empty($variation_ids)) {
+            $line_ids = array_merge($line_ids, TransactionSellLine::where('transaction_id', $transaction->id)
+                ->whereNull('parent_sell_line_id')
+                ->whereIn('variation_id', $variation_ids)
+                ->pluck('id')
+                ->all());
+        }
+        if (empty($line_ids)) {
+            return null;
+        }
+
+        $result = app(SalesOrderDigitalFulfillmentService::class)->fulfilLines($transaction, $line_ids);
+        $parts = [];
+        if ($result['allocated'] > 0) {
+            $parts[] = __('lang_v1.accounts_fetched', ['count' => $result['allocated']]);
+        }
+        if (! empty($result['errors'])) {
+            $parts[] = implode(' ', array_unique($result['errors']));
+        }
+
+        return empty($parts) ? null : implode(' ', $parts);
     }
 
     /**
@@ -2120,7 +2230,14 @@ class SellPosController extends Controller
                 ->where('p.business_id', $business_id)
                 ->where('p.type', '!=', 'modifier')
                 ->where('p.is_inactive', 0)
-                ->where('p.not_for_selling', 0)
+                ->where(function ($q) use ($request) {
+                    if ($request->boolean('include_accounts')) {
+                        // Sales orders may also offer synced Accounts products (not offline).
+                        \App\Services\AccountsCatalogService::whereSellableOrAccounts($q, 'p');
+                    } else {
+                        $q->where('p.not_for_selling', 0);
+                    }
+                })
             //Hide products not available in the selected location
                 ->where(function ($q) use ($location_id) {
                     $q->where('pl.location_id', $location_id);

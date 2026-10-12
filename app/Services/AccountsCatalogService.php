@@ -284,6 +284,38 @@ class AccountsCatalogService
         return false;
     }
 
+    public static function isOfflineSku(?string $sku): bool
+    {
+        return (bool) preg_match('/^ACCOUNTS-GAME-\d+-PS[45]-OFFLINE$/', (string) $sku);
+    }
+
+    /**
+     * Accounts offers staff may add to a sales order: every synced SKU except offline slots,
+     * which Accounts cannot allocate through the API.
+     */
+    public static function isSellableAccountsSku(?string $sku): bool
+    {
+        return self::isAccountsSku($sku) && ! self::isOfflineSku($sku);
+    }
+
+    /**
+     * Widens a `not_for_selling = 0` product filter so sales orders can also find synced
+     * Accounts offers (still hidden from the storefront and plain POS search).
+     *
+     * @param  \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder  $query
+     */
+    public static function whereSellableOrAccounts($query, string $column = 'products'): void
+    {
+        $query->where(function ($q) use ($column) {
+            $q->where($column.'.not_for_selling', 0)
+                ->orWhere($column.'.sku', 'like', 'ACCOUNTS-CARD-%')
+                ->orWhere(function ($g) use ($column) {
+                    $g->where($column.'.sku', 'like', 'ACCOUNTS-GAME-%')
+                        ->where($column.'.sku', 'not like', '%-OFFLINE');
+                });
+        });
+    }
+
     /**
      * Synced SKU a storefront digital line maps to (same format Accounts pushes), or null when incomplete.
      *

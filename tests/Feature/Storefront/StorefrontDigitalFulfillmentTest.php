@@ -69,6 +69,10 @@ class StorefrontDigitalFulfillmentTest extends TestCase
                 ],
                 'error' => null,
             ]);
+        $accounts->shouldReceive('stampPosOrder')
+            ->atLeast()->once()
+            ->with($transaction->storefront_order_id, (int) $transaction->id, 9001)
+            ->andReturn(['success' => true]);
         $this->app->instance(AccountsApiClient::class, $accounts);
 
         app(DigitalFulfillmentService::class)->fulfillPaidTransaction($transaction->fresh(['contact', 'sell_lines']));

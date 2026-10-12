@@ -2,8 +2,7 @@
 
 namespace App\Services\Storefront;
 
-use App\Contact;
-use App\Services\Storefront\Accounts\AccountsApiClient;
+use App\Services\Accounts\AccountsAllocationService;
 use App\StorefrontDigitalFulfillment;
 use App\Transaction;
 use App\TransactionSellLine;
@@ -16,7 +15,7 @@ use Illuminate\Support\Facades\Schema;
 class DigitalFulfillmentService
 {
     public function __construct(
-        private AccountsApiClient $accounts,
+        private AccountsAllocationService $allocator,
         private StorefrontSettingService $settings
     ) {
     }
@@ -167,6 +166,7 @@ class DigitalFulfillmentService
         }
 
         $rows = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
+            ->where('storefront_order_id', (string) $transaction->storefront_order_id)
             ->whereIn('status', ['pending', 'failed'])
             ->get();
 
@@ -194,11 +194,17 @@ class DigitalFulfillmentService
     {
         $transaction->refresh();
 
+        // Call-center sales orders use the same ledger (so-*) but must never get storefront mail.
+        if (trim((string) $transaction->storefront_order_id) === '') {
+            return;
+        }
+
         if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
             return;
         }
 
         $hasPending = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
+            ->where('storefront_order_id', (string) $transaction->storefront_order_id)
             ->whereIn('status', ['pending', 'failed'])
             ->exists();
         if (! $hasPending) {
@@ -274,83 +280,24 @@ class DigitalFulfillmentService
 
     private function allocateOne(Transaction $transaction, StorefrontDigitalFulfillment $row): void
     {
-        $meta = $row->request_meta ?? [];
-        $settings = $this->settings->get((int) $transaction->business_id);
-        $digital = $settings['digital'] ?? [];
+        $digital = $this->settings->get((int) $transaction->business_id)['digital'] ?? [];
         $storeProfileId = (int) ($digital['accounts_store_profile_id'] ?? 17);
 
-        $contact = $transaction->contact;
-        $buyerName = trim((string) ($contact->name ?? (($contact->first_name ?? '').' '.($contact->last_name ?? ''))));
-        if ($buyerName === '') {
-            $buyerName = 'Customer';
-        }
-        $buyerPhone = (string) ($contact->mobile ?? $contact->landline ?? '');
-        $buyerEmail = (string) ($contact->email ?? 'noreply@gamesspoteg.com');
-
-        $payload = [
-            'store_profile_id' => $storeProfileId,
-            'buyer_phone' => $buyerPhone !== '' ? $buyerPhone : '00000000000',
-            'buyer_name' => $buyerName,
-            'buyer_email' => $buyerEmail,
-            'price' => (float) ($meta['price'] ?? $transaction->final_total),
-            'storefront_order_id' => $transaction->storefront_order_id,
-            'pos_transaction_id' => $transaction->id,
-            // Accounts legacy field (still required on some deploys); use POS transaction id.
-            'wc_order_id' => (int) $transaction->id,
-            'storefront_line_key' => $row->line_key,
-        ];
-
-        if ($row->kind === 'card') {
-            $payload['card_category_id'] = (int) ($meta['card_category_id'] ?? 0);
-        } else {
-            $payload['game_id'] = (int) ($meta['game_id'] ?? 0);
-            $payload['type'] = (string) ($meta['type'] ?? 'primary');
-            $payload['platform'] = (string) ($meta['platform'] ?? '4');
-        }
-
-        $row->attempts = (int) $row->attempts + 1;
-        $row->save();
-
-        $response = $this->accounts->receiveOrder($payload);
-        if (! $response['success']) {
-            $row->status = 'failed';
-            $row->last_error = $response['error'] ?? 'Accounts allocate failed';
-            $row->save();
-            Log::warning('Digital fulfillment allocate failed', [
-                'transaction_id' => $transaction->id,
-                'line_key' => $row->line_key,
-                'error' => $row->last_error,
-            ]);
-
+        $secrets = $this->allocator->allocate($transaction, $row, $storeProfileId);
+        if ($secrets === null) {
             return;
         }
 
-        $body = $response['body'] ?? [];
-        $secrets = [];
-        if ($row->kind === 'card') {
-            $code = $body['code'] ?? ($body['card_details']['code'] ?? null);
-            $secrets = ['code' => $code];
-        } else {
-            $secrets = [
-                'email' => $body['account_details']['email'] ?? null,
-                'password' => $body['account_details']['password'] ?? null,
-            ];
-        }
-
-        $row->accounts_order_id = $body['order_id'] ?? $row->accounts_order_id;
-        $row->storeSecrets($secrets);
-        $row->status = 'allocated';
-        $row->last_error = null;
-        $row->allocated_at = now();
-        $row->save();
-
         // Sale line note can print on customer invoices when "show sale description" is on.
         if ($this->exposeCredentialsToCustomer((int) $transaction->business_id)) {
-            $this->appendSecretsToSellLineNote($row, $secrets);
+            $this->allocator->appendSecretsToSellLineNote($row->sell_line_id, $secrets);
         }
         // Staff note is always updated (Accounts / POS operators only).
-        $this->appendSecretsToStaffNote($transaction, $row, $secrets);
-        $accountsOrderId = isset($body['order_id']) ? (int) $body['order_id'] : (int) ($row->accounts_order_id ?? 0);
+        $staff = $this->allocator->appendSecretsToStaffNote((int) $transaction->id, $row, $secrets);
+        if ($staff !== null) {
+            $transaction->staff_note = $staff;
+        }
+        $accountsOrderId = (int) ($row->accounts_order_id ?? 0);
         $this->stampAccountsOrderAsSentToPos(
             $transaction,
             $accountsOrderId > 0 ? $accountsOrderId : null
@@ -380,90 +327,7 @@ class DigitalFulfillmentService
             return false;
         }
 
-        $response = $this->accounts->stampPosOrder(
-            $storefrontOrderId,
-            (int) $transaction->id,
-            $accountsOrderId
-        );
-
-        return ! empty($response['success']);
-    }
-
-    /**
-     * @param  array<string, mixed>  $secrets
-     */
-    private function appendSecretsToSellLineNote(StorefrontDigitalFulfillment $row, array $secrets): void
-    {
-        if (empty($row->sell_line_id)) {
-            return;
-        }
-        $line = TransactionSellLine::find($row->sell_line_id);
-        if (! $line) {
-            return;
-        }
-        $parts = [];
-        if (! empty($secrets['email'])) {
-            $parts[] = 'Account: '.$secrets['email'];
-        }
-        if (! empty($secrets['password'])) {
-            $parts[] = 'Password: '.$secrets['password'];
-        }
-        if (! empty($secrets['code'])) {
-            $parts[] = 'Code: '.$secrets['code'];
-        }
-        if ($parts === []) {
-            return;
-        }
-        $note = trim((string) ($line->sell_line_note ?? ''));
-        $addition = implode(' | ', $parts);
-        $line->sell_line_note = $note === '' ? $addition : $note."\n".$addition;
-        $line->save();
-    }
-
-    /**
-     * Fill invoice Staff note like Accounts send-to-POS (game title + live credentials).
-     *
-     * @param  array<string, mixed>  $secrets
-     */
-    private function appendSecretsToStaffNote(Transaction $transaction, StorefrontDigitalFulfillment $row, array $secrets): void
-    {
-        $meta = is_array($row->request_meta) ? $row->request_meta : [];
-        $title = (string) ($meta['title'] ?? 'N/A');
-        $type = (string) ($meta['type'] ?? ($row->kind === 'card' ? 'card' : 'N/A'));
-        $account = (string) ($secrets['email'] ?? ($secrets['code'] ?? 'N/A'));
-        $password = (string) ($secrets['password'] ?? 'N/A');
-        if ($row->kind === 'card' && ! empty($secrets['code'])) {
-            $account = (string) $secrets['code'];
-            $password = 'N/A';
-        }
-
-        // Always reload — sell edit may have a stale in-memory staff_note.
-        $tx = Transaction::find($transaction->id);
-        if (! $tx) {
-            return;
-        }
-        $staff = (string) ($tx->staff_note ?? '');
-        $filledBlock = 'Game Title: '.$title."\nType: ".$type."\nAccount: ".$account."\nPassword: ".$password.'<br>----------------------<br>';
-
-        $count = 0;
-        // Replace the first pending credential pair (tolerate \r\n and optional <br>).
-        $updated = preg_replace(
-            '/Account:\s*N\/A\s*\r?\nPassword:\s*N\/A(?:<br\s*\/?>)?/u',
-            'Account: '.$account."\nPassword: ".$password,
-            $staff,
-            1,
-            $count
-        );
-
-        if ($count > 0 && is_string($updated)) {
-            $staff = $updated;
-        } elseif ($staff === '' || ! str_contains($staff, 'Account: '.$account)) {
-            $staff = trim($staff) === '' ? $filledBlock : rtrim($staff)."\n".$filledBlock;
-        }
-
-        $tx->staff_note = $staff;
-        $tx->save();
-        $transaction->staff_note = $staff;
+        return $this->allocator->stampPosOrder($storefrontOrderId, (int) $transaction->id, $accountsOrderId);
     }
 
     /**
@@ -483,8 +347,7 @@ class DigitalFulfillmentService
                 continue;
             }
             $before = (string) (Transaction::where('id', $transaction->id)->value('staff_note') ?? '');
-            $this->appendSecretsToStaffNote($transaction, $row, $secrets);
-            $after = (string) (Transaction::where('id', $transaction->id)->value('staff_note') ?? '');
+            $after = (string) ($this->allocator->appendSecretsToStaffNote((int) $transaction->id, $row, $secrets) ?? $before);
             if ($after !== $before) {
                 $updated++;
             }

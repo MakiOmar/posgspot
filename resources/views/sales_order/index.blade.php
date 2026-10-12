@@ -56,6 +56,7 @@
                 {!! Form::text('sell_list_filter_date_range', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'readonly']); !!}
             </div>
         </div>
+        @include('sell.partials.content_kind_filter')
     @endcomponent
     @component('components.widget', ['class' => 'box-primary'])
         @can('so.create')
@@ -153,6 +154,9 @@ $(document).ready( function(){
                 if($('#created_by').length) {
                     d.created_by = $('#created_by').val();
                 }
+
+                // Accounts content filter (accounts_only | mixed | pos_only)
+                d.content_kind = $('#sell_list_filter_content_kind').val();
             }
         },
         columnDefs: [ {
@@ -175,7 +179,7 @@ $(document).ready( function(){
             { data: 'added_by', name: 'u.first_name'},
         ]
     });
-    $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_status, #so_list_payment_line_status',  function() {
+    $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_status, #so_list_payment_line_status, #sell_list_filter_content_kind',  function() {
         sell_table.ajax.reload();
     });
 });

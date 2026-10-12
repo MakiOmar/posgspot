@@ -44,6 +44,14 @@ return [
         'catalog_brand_slug' => env('ACCOUNTS_CATALOG_BRAND_SLUG', 'games-spot'),
         // Per API user; replaces the default 60/min api limit on the catalog upsert route (Accounts backfill).
         'catalog_rate_limit_per_minute' => (int) env('ACCOUNTS_CATALOG_RATE_LIMIT_PER_MINUTE', 300),
+        // Call-center sales orders: allocate Accounts game accounts / cards from POS automatically.
+        'sales_order_fulfillment' => filter_var(env('ACCOUNTS_SALES_ORDER_FULFILLMENT', true), FILTER_VALIDATE_BOOLEAN),
+        // Accounts store profile credited for sales-order allocations; empty = storefront digital setting.
+        'sales_order_store_profile_id' => env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== null && env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== ''
+            ? (int) env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') : null,
+        // Pre-sync placeholder products Accounts used for "Send to POS" (classify old sales as accounts).
+        'legacy_pos_skus' => array_values(array_filter(array_map('trim', explode(',', (string) env('ACCOUNTS_LEGACY_POS_SKUS', '0139,0140,0141,0142,0143'))))),
+        'legacy_product_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('ACCOUNTS_LEGACY_PRODUCT_IDS', ''))))),
     ],
 
     /*

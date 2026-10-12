@@ -39,6 +39,7 @@
                     </div>
                 </div>
             @endif
+            @include('sell.partials.content_kind_filter')
         @endcomponent
         @component('components.widget', ['class' => 'box-primary', 'title' => __('lang_v1.all_sales')])
             @can('direct_sell.access')
@@ -186,6 +187,9 @@
                         if ($('#payment_method').length) {
                             d.payment_method = $('#payment_method').val();
                         }
+
+                        // Accounts content filter (accounts_only | mixed | pos_only)
+                        d.content_kind = $('#sell_list_filter_content_kind').val();
 
                         d = __datatable_ajax_callback(d);
                     }
@@ -364,7 +368,7 @@
             });
 
             $(document).on('change',
-                '#sell_list_filter_location_id, #sell_list_filter_customer_id, #sell_list_filter_payment_status, #created_by, #sales_cmsn_agnt, #service_staffs, #shipping_status, #sell_list_filter_source, #payment_method',
+                '#sell_list_filter_location_id, #sell_list_filter_customer_id, #sell_list_filter_payment_status, #created_by, #sales_cmsn_agnt, #service_staffs, #shipping_status, #sell_list_filter_source, #payment_method, #sell_list_filter_content_kind',
                 function() {
                     sell_table.ajax.reload();
                 });

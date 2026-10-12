@@ -1727,7 +1727,7 @@ class ProductUtil extends Util
      * @param  string  $search_type (like or exact)
      * @return object
      */
-    public function filterProduct($business_id, $search_term, $location_id = null, $not_for_selling = null, $price_group_id = null, $product_types = [], $search_fields = [], $check_qty = false, $search_type = 'like')
+    public function filterProduct($business_id, $search_term, $location_id = null, $not_for_selling = null, $price_group_id = null, $product_types = [], $search_fields = [], $check_qty = false, $search_type = 'like', bool $include_accounts = false)
     {
         $query = Product::join('variations', 'products.id', '=', 'variations.product_id')
                 ->active()
@@ -1750,7 +1750,10 @@ class ProductUtil extends Util
                     }
                 );
 
-        if (! is_null($not_for_selling)) {
+        if ($include_accounts && (string) $not_for_selling === '0') {
+            // Sales orders only: synced Accounts offers stay not_for_selling (hidden on the storefront).
+            \App\Services\AccountsCatalogService::whereSellableOrAccounts($query, 'products');
+        } elseif (! is_null($not_for_selling)) {
             $query->where('products.not_for_selling', $not_for_selling);
         }
 

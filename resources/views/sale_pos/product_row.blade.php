@@ -3,6 +3,12 @@
 	$multiplier = 1;
 
 	$action = !empty($action) ? $action : '';
+
+	// Accounts offers on sales orders: per-line "Fetch account now" + lock once allocated.
+	$is_accounts_line = !empty($is_sales_order) && \App\Services\AccountsCatalogService::isSellableAccountsSku($product->sub_sku ?? null);
+	$allocated_line_units = (!empty($product->transaction_sell_lines_id) && !empty($allocated_units[$product->transaction_sell_lines_id]))
+		? (int) $allocated_units[$product->transaction_sell_lines_id] : 0;
+	$is_allocated_line = $is_accounts_line && $allocated_line_units > 0;
 @endphp
 
 @foreach($sub_units as $key => $value)
@@ -197,6 +203,21 @@
   		<textarea class="form-control" name="products[{{$row_count}}][sell_line_note]" rows="2">{{$sell_line_note}}</textarea>
   		<p class="help-block"><small>@lang('lang_v1.sell_line_description_help')</small></p>
 	@endif
+	{{-- Accounts offer on a sales order: allocate on save, or show it is already allocated --}}
+	@if($is_accounts_line)
+		@if($is_allocated_line)
+			<span class="label bg-green"><i class="fa fa-check"></i> @lang('lang_v1.account_allocated') ({{$allocated_line_units}})</span>
+		@endif
+		@if($allocated_line_units < max(1, (int) round((float) ($product->quantity_ordered ?? 1))))
+			<div class="checkbox">
+				<label>
+					<input type="checkbox" name="products[{{$row_count}}][fetch_account]" value="1" class="fetch_account_checkbox">
+					@lang('lang_v1.fetch_account_now')
+				</label>
+				@show_tooltip(__('lang_v1.fetch_account_now_help'))
+			</div>
+		@endif
+	@endif
 	</td>
 
 	<td>
@@ -243,8 +264,9 @@
         	@endif
         @endforeach
 		<div class="input-group input-number">
-			<span class="input-group-btn"><button type="button" class="btn btn-default btn-flat quantity-down"><i class="fa fa-minus text-danger"></i></button></span>
-		<input type="text" data-min="1" 
+			{{-- Allocated Accounts lines: quantity locked (add a new row to sell more) --}}
+			<span class="input-group-btn"><button type="button" class="btn btn-default btn-flat quantity-down" @if($is_allocated_line) disabled @endif><i class="fa fa-minus text-danger"></i></button></span>
+		<input type="text" data-min="1" @if($is_allocated_line) readonly @endif
 			class="form-control pos_quantity input_number mousetrap input_quantity" 
 			value="{{@format_quantity($product->quantity_ordered)}}" name="products[{{$row_count}}][quantity]" data-allow-overselling="@if(empty($pos_settings['allow_overselling'])){{'false'}}@else{{'true'}}@endif" 
 			@if($allow_decimal) 
@@ -261,7 +283,7 @@
 				data-msg_max_default="@lang('validation.custom-messages.quantity_not_available', ['qty'=> $product->formatted_qty_available, 'unit' => $product->unit  ])" 
 			@endif 
 		>
-		<span class="input-group-btn"><button type="button" class="btn btn-default btn-flat quantity-up"><i class="fa fa-plus text-success"></i></button></span>
+		<span class="input-group-btn"><button type="button" class="btn btn-default btn-flat quantity-up" @if($is_allocated_line) disabled @endif><i class="fa fa-plus text-success"></i></button></span>
 		</div>
 		
 		<input type="hidden" name="products[{{$row_count}}][product_unit_id]" value="{{$product->unit_id}}">
@@ -438,6 +460,11 @@
 		<span class="display_currency pos_line_total_text @if(!empty($pos_settings['is_pos_subtotal_editable'])) hide @endif" data-currency_symbol="true">{{$product->quantity_ordered*$unit_price_inc_tax}}</span>
 	</td>
 	<td class="text-center v-center">
-		<i class="fa fa-times text-danger pos_remove_row cursor-pointer" aria-hidden="true"></i>
+		{{-- Lines with an allocated Accounts account can't be removed (server enforces it too) --}}
+		@if($is_allocated_line)
+			<i class="fa fa-lock text-muted" title="@lang('lang_v1.allocated_account_line_locked')" aria-hidden="true"></i>
+		@else
+			<i class="fa fa-times text-danger pos_remove_row cursor-pointer" aria-hidden="true"></i>
+		@endif
 	</td>
 </tr>

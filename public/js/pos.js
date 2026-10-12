@@ -176,6 +176,7 @@ $(document).ready(function() {
                             location_id: $('input#location_id').val(),
                             term: request.term,
                             not_for_selling: 0,
+                            include_accounts: is_sales_order_form() ? 1 : 0,
                             search_fields: search_fields
                         },
                         response
@@ -1527,6 +1528,11 @@ function get_featured_products() {
     }
 }
 
+// Synced Accounts products are searchable on sales orders only.
+function is_sales_order_form() {
+    return $('#sale_type').length > 0 && $('#sale_type').val() == 'sales_order';
+}
+
 function get_product_suggestion_list(category_id, brand_id, location_id, url = null, is_enabled_stock = null, repair_model_id = null) {
     if($('div#product_list_body').length == 0) {
         return false;
@@ -1553,7 +1559,8 @@ function get_product_suggestion_list(category_id, brand_id, location_id, url = n
             location_id: location_id,
             page: page,
             is_enabled_stock: is_enabled_stock,
-            repair_model_id: repair_model_id
+            repair_model_id: repair_model_id,
+            include_accounts: is_sales_order_form() ? 1 : 0
         },
         dataType: 'html',
         success: function(result) {

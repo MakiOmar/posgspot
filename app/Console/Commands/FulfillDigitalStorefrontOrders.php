@@ -19,8 +19,10 @@ class FulfillDigitalStorefrontOrders extends Command
     public function handle(DigitalFulfillmentService $fulfillment): int
     {
         $txId = $this->option('transaction');
+        // so-* rows belong to call-center sales orders (accounts:fulfill-sales-orders).
         $query = StorefrontDigitalFulfillment::query()
             ->whereIn('status', ['pending', 'failed'])
+            ->where('storefront_order_id', 'not like', 'so-%')
             ->orderBy('id');
         if ($txId !== null && $txId !== '') {
             $query->where('transaction_id', (int) $txId);
@@ -48,6 +50,7 @@ class FulfillDigitalStorefrontOrders extends Command
         // Also refresh Staff note from secrets (covers allocated rows that still show N/A).
         $syncQuery = StorefrontDigitalFulfillment::query()
             ->where('status', 'allocated')
+            ->where('storefront_order_id', 'not like', 'so-%')
             ->orderBy('id');
         if ($txId !== null && $txId !== '') {
             $syncQuery->where('transaction_id', (int) $txId);
