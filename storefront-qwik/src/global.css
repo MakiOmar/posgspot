@@ -6929,8 +6929,9 @@ body.is-globally-pending {
 .landing-logo {
   display: block;
   width: auto;
-  height: 3rem;
-  max-width: 70%;
+  height: auto;
+  max-width: min(220px, 70%);
+  max-height: 64px;
   margin: 0 auto 1.25rem;
   object-fit: contain;
 }
