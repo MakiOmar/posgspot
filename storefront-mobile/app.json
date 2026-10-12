@@ -14,9 +14,9 @@
       "deploymentTarget": "16.6",
       "associatedDomains": [
         "applinks:shop.gamesspoteg.com",
-        "applinks:new.gamesspoteg.com",
+        "applinks:gamesspoteg.com",
         "applinks:shop.gamesspoteg.com",
-        "applinks:new.gamesspoteg.com"
+        "applinks:gamesspoteg.com"
       ],
       "infoPlist": {
         "UIBackgroundModes": [
@@ -58,12 +58,12 @@
             },
             {
               "scheme": "https",
-              "host": "new.gamesspoteg.com",
+              "host": "gamesspoteg.com",
               "pathPrefix": "/en/reset-password"
             },
             {
               "scheme": "https",
-              "host": "new.gamesspoteg.com",
+              "host": "gamesspoteg.com",
               "pathPrefix": "/ar/reset-password"
             },
             {
