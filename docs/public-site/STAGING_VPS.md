@@ -60,15 +60,16 @@ cd /opt/spot-staging
 docker compose ps
 docker compose logs -f --tail=100 pos accounts storefront traefik
 
-# Deploy new code
+# Deploy new code (only after it is committed and pushed — never edit code on the VPS)
 git -C pos pull && git -C accounts pull
-docker compose up -d --build pos accounts
-docker compose up -d pos-queue pos-scheduler accounts-queue
+cp pos/deploy/staging/docker-compose.yml . && cp -r pos/deploy/staging/traefik pos/deploy/staging/storefront .   # when infra changed
+docker compose up -d --build pos accounts storefront
+docker compose up -d --force-recreate --scale pos=2 --scale pos-queue=2 pos-queue pos-scheduler accounts-queue
 docker compose exec -u www-data pos php artisan migrate --force
 docker compose exec -u www-data accounts php artisan migrate --force
 ```
 
-Storefront: build on a workstation (`storefront-qwik/`, `npm run build` with `.env.production`), upload `dist/ server/ package.json package-lock.json` to `/opt/spot-staging/storefront/`, then `docker compose up -d --build storefront`.
+Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
 ---
 
