@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | Add-customer landing: two fields per row on desktop, shop logo, animated bubble background (static when reduced motion). |
 | 2026-10-12 | Contact page: two columns (map beside email, hotline + form); branch list removed (branches live on `/stores`). |
 | 2026-10-12 | Cookie consent bar sits above the mobile bottom nav (buttons visible/tappable); storefront image now builds from git on the VPS. |
 | 2026-10-12 | Storefront served at `gamesspoteg.com` (was `new.gamesspoteg.com`) from the VPS behind Cloudflare with POS/Accounts; `TRUSTED_PROXIES` keeps per-visitor rate limits; runbook in `STAGING_VPS.md`. |
