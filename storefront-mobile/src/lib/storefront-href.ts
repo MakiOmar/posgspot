@@ -54,7 +54,7 @@ export function hrefToAppPath(href: string | null | undefined): string | null {
         }
       })();
       const knownHosts = new Set(
-        [apiHost, "shop.gamesspoteg.com", "new.gamesspoteg.com", "posstaging.gamesspoteg.com"].filter(
+        [apiHost, "shop.gamesspoteg.com", "gamesspoteg.com", "posstaging.gamesspoteg.com"].filter(
           Boolean,
         ),
       );
