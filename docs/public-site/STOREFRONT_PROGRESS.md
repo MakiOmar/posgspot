@@ -17,7 +17,6 @@
 
 | Area | Status |
 |------|--------|
-| 2026-10-12 | Cookie consent bar sits above the mobile bottom nav (buttons visible/tappable); storefront image now builds from git on the VPS. |
 | Storefront API (`routes/storefront.php`) | ✅ | Includes coupons validate + cart/checkout coupon totals |
 | Qwik shop (catalog → checkout → account) | 🟡 End-to-end COD + Fawry/Geidea works |
 | Header / footer spec | ✅ | Main nav: Home / Shop / Services / Build Your Bundle / Our Stores / Community (Tournaments / Events / Gaming News & Guides when enabled) / Sell to Us; FAQs in Quick Links; floating contact FAB; footer brand col = logo + slogan + social (locations on `/stores`) |
@@ -257,7 +256,6 @@
 
 | Date | Change |
 |------|--------|
-| 2026-10-12 | Cookie consent bar sits above the mobile bottom nav (buttons visible/tappable); storefront image now builds from git on the VPS. |
 | 2026-10-12 | Storefront served at `gamesspoteg.com` (was `new.gamesspoteg.com`) from the VPS behind Cloudflare with POS/Accounts; `TRUSTED_PROXIES` keeps per-visitor rate limits; runbook in `STAGING_VPS.md`. |
 | 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |
 | 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
