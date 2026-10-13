@@ -298,9 +298,25 @@ class AccountsCatalogService
         return self::isAccountsSku($sku) && ! self::isOfflineSku($sku);
     }
 
+    /** POS / direct sells may also sell synced Accounts offers (sales orders always can). */
+    public static function posSellEnabled(): bool
+    {
+        return (bool) config('services.accounts.pos_sell', true);
+    }
+
     /**
-     * Widens a `not_for_selling = 0` product filter so sales orders can also find synced
-     * Accounts offers (still hidden from the storefront and plain POS search).
+     * Product search on a sell form: include Accounts offers on sales orders, and on
+     * POS / direct sells when that is enabled.
+     */
+    public static function includeInSellSearch(\Illuminate\Http\Request $request): bool
+    {
+        return $request->boolean('include_accounts')
+            && ($request->boolean('accounts_for_sales_order') || self::posSellEnabled());
+    }
+
+    /**
+     * Widens a `not_for_selling = 0` product filter so sell forms can also find synced
+     * Accounts offers (still hidden from the storefront).
      *
      * @param  \Illuminate\Database\Query\Builder|\Illuminate\Database\Eloquent\Builder  $query
      */

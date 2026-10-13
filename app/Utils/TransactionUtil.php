@@ -3122,10 +3122,10 @@ class TransactionUtil extends Util
                     if (! $tx) {
                         return;
                     }
-                    if ($tx->type === 'sales_order') {
-                        // Call-center sales orders: allocate remaining Accounts lines once fully paid.
-                        app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class)
-                            ->handlePaid($tx);
+                    $accountsFulfilment = app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class);
+                    if ($tx->type === 'sales_order' || $accountsFulfilment->isEligible($tx)) {
+                        // Call-center sales orders and POS sells: allocate remaining Accounts lines once fully paid.
+                        $accountsFulfilment->handlePaid($tx);
 
                         return;
                     }

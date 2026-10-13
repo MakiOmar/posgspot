@@ -176,7 +176,8 @@ $(document).ready(function() {
                             location_id: $('input#location_id').val(),
                             term: request.term,
                             not_for_selling: 0,
-                            include_accounts: is_sales_order_form() ? 1 : 0,
+                            include_accounts: 1,
+                            accounts_for_sales_order: is_sales_order_form() ? 1 : 0,
                             search_fields: search_fields
                         },
                         response
@@ -582,6 +583,7 @@ $(document).ready(function() {
                     if (result.receipt.is_enabled) {
                         pos_print(result.receipt);
                     }
+                    show_accounts_delivery(result);
                 } else {
                     toastr.error(result.msg);
                 }
@@ -841,6 +843,7 @@ $(document).ready(function() {
                             if (result.receipt.is_enabled) {
                                 pos_print(result.receipt);
                             }
+                            show_accounts_delivery(result);
                         } else {
                             toastr.error(result.msg);
                         }
@@ -1528,7 +1531,42 @@ function get_featured_products() {
     }
 }
 
-// Synced Accounts products are searchable on sales orders only.
+// Credentials Accounts allocated for this POS sale, shown once so the cashier can hand them over
+// (they are also kept in the sale's staff note). Built with text nodes so values are never parsed as HTML.
+function show_accounts_delivery(result) {
+    if (!result.accounts_delivery || !result.accounts_delivery.length) {
+        return;
+    }
+    var list = document.createElement('div');
+    list.style.textAlign = 'left';
+    result.accounts_delivery.forEach(function(delivery) {
+        var lines = [delivery.title || ''];
+        if (delivery.account_email) {
+            lines.push('Account: ' + delivery.account_email);
+        }
+        if (delivery.account_password) {
+            lines.push('Password: ' + delivery.account_password);
+        }
+        if (delivery.code) {
+            lines.push('Code: ' + delivery.code);
+        }
+        var block = document.createElement('p');
+        lines.forEach(function(text, index) {
+            if (index > 0) {
+                block.appendChild(document.createElement('br'));
+            }
+            block.appendChild(document.createTextNode(text));
+        });
+        list.appendChild(block);
+    });
+    swal({
+        title: result.accounts_delivery_title || '',
+        content: list,
+        icon: 'info',
+    });
+}
+
+// Synced Accounts products: always on sales orders; on POS / direct sells when the server allows it.
 function is_sales_order_form() {
     return $('#sale_type').length > 0 && $('#sale_type').val() == 'sales_order';
 }
@@ -1560,7 +1598,8 @@ function get_product_suggestion_list(category_id, brand_id, location_id, url = n
             page: page,
             is_enabled_stock: is_enabled_stock,
             repair_model_id: repair_model_id,
-            include_accounts: is_sales_order_form() ? 1 : 0
+            include_accounts: 1,
+            accounts_for_sales_order: is_sales_order_form() ? 1 : 0
         },
         dataType: 'html',
         success: function(result) {

@@ -1266,7 +1266,7 @@ class ProductController extends Controller
                 $search_fields[] = 'sub_sku';
             }
 
-            $include_accounts = (bool) request()->input('include_accounts', false);
+            $include_accounts = \App\Services\AccountsCatalogService::includeInSellSearch(request());
 
             $result = $this->productUtil->filterProduct($business_id, $search_term, $location_id, $not_for_selling, $price_group_id, $product_types, $search_fields, $check_qty, 'like', $include_accounts);
 
