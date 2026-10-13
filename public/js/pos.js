@@ -2356,7 +2356,8 @@ $('div#product_list_body').on('scroll', function() {
     if (product_suggestion_xhr || $('div#product_list_body').find('input#no_products_found').length > 0) {
         return;
     }
-    if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+    // Margin: with zoom / high-DPI screens scrollTop is fractional and never reaches the exact bottom.
+    if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight - 60) {
         var page = parseInt($('#suggestion_page').val());
         page += 1;
         $('#suggestion_page').val(page);
