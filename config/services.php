@@ -50,7 +50,8 @@ return [
         'sales_order_store_profile_id' => env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== null && env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== ''
             ? (int) env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') : null,
         // Pre-sync placeholder products Accounts used for "Send to POS" (classify old sales as accounts).
-        'legacy_pos_skus' => array_values(array_filter(array_map('trim', explode(',', (string) env('ACCOUNTS_LEGACY_POS_SKUS', '0139,0140,0141,0142,0143'))))),
+        // No default: plain numeric SKUs collide with physical products (e.g. 0143 is a real item on live).
+        'legacy_pos_skus' => array_values(array_filter(array_map('trim', explode(',', (string) env('ACCOUNTS_LEGACY_POS_SKUS', ''))))),
         'legacy_product_ids' => array_values(array_filter(array_map('intval', explode(',', (string) env('ACCOUNTS_LEGACY_PRODUCT_IDS', ''))))),
     ],
 
