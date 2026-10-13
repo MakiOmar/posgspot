@@ -2337,6 +2337,8 @@ class SellPosController extends Controller
             )
                 ->with(['media', 'group_prices'])
                 ->orderBy('p.name', 'asc')
+                // Tie-breaker keeps pages stable when names repeat.
+                ->orderBy('variations.id', 'asc')
                 ->paginate(50);
 
             $price_groups = SellingPriceGroup::where('business_id', $business_id)->active()->pluck('name', 'id');

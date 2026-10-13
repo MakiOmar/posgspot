@@ -1571,6 +1571,9 @@ function is_sales_order_form() {
     return $('#sale_type').length > 0 && $('#sale_type').val() == 'sales_order';
 }
 
+// In-flight product grid page request (null when idle).
+var product_suggestion_xhr = null;
+
 function get_product_suggestion_list(category_id, brand_id, location_id, url = null, is_enabled_stock = null, repair_model_id = null) {
     if($('div#product_list_body').length == 0) {
         return false;
@@ -1579,16 +1582,22 @@ function get_product_suggestion_list(category_id, brand_id, location_id, url = n
     if (url == null) {
         url = '/sells/pos/get-product-suggestion';
     }
-    $('#suggestion_page_loader').fadeIn(700);
     var page = $('input#suggestion_page').val();
     if (page == 1) {
+        // A new location / category / brand list replaces any page still loading for the old one.
+        if (product_suggestion_xhr) {
+            product_suggestion_xhr.abort();
+            product_suggestion_xhr = null;
+        }
         $('div#product_list_body').html('');
-    }
-    if ($('div#product_list_body').find('input#no_products_found').length > 0) {
-        $('#suggestion_page_loader').fadeOut(700);
+    } else if (product_suggestion_xhr) {
         return false;
     }
-    $.ajax({
+    if ($('div#product_list_body').find('input#no_products_found').length > 0) {
+        return false;
+    }
+    $('#suggestion_page_loader').fadeIn(700);
+    var request = $.ajax({
         method: 'GET',
         url: url,
         data: {
@@ -1604,9 +1613,21 @@ function get_product_suggestion_list(category_id, brand_id, location_id, url = n
         dataType: 'html',
         success: function(result) {
             $('div#product_list_body').append(result);
-            $('#suggestion_page_loader').fadeOut(700);
+        },
+        error: function(xhr, status) {
+            // Roll back so scrolling retries this page.
+            if (status !== 'abort' && page > 1) {
+                $('input#suggestion_page').val(page - 1);
+            }
+        },
+        complete: function() {
+            if (product_suggestion_xhr === request) {
+                product_suggestion_xhr = null;
+                $('#suggestion_page_loader').fadeOut(700);
+            }
         },
     });
+    product_suggestion_xhr = request;
 }
 
 //Get recent transactions
@@ -2331,6 +2352,10 @@ $('table#pos_table tbody').on('change', 'input.pos_line_total', function() {
 $('div#product_list_body').on('scroll', function() {
 
 
+    // One page at a time: scroll fires repeatedly at the bottom and would skip pages.
+    if (product_suggestion_xhr || $('div#product_list_body').find('input#no_products_found').length > 0) {
+        return;
+    }
     if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
         var page = parseInt($('#suggestion_page').val());
         page += 1;
