@@ -13,15 +13,18 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Allocates Accounts game accounts / cards for call-center sales orders.
+ * Allocates Accounts game accounts / cards for call-center sales orders and, when
+ * ACCOUNTS_POS_SELL is on, final POS / direct sells.
  *
- * Lines the agent ticks "Fetch account now" are allocated on save; everything else when the
- * order becomes fully paid. One ledger row per unit (`so-{id}` + per-line keys) keeps every
- * trigger idempotent, and Accounts itself dedupes on (storefront_order_id, line_key).
+ * Lines staff tick "Fetch account now" are allocated on save; everything else when the
+ * sale becomes fully paid. One ledger row per unit (`so-{id}` / `pos-{id}` + per-line keys)
+ * keeps every trigger idempotent, and Accounts itself dedupes on (storefront_order_id, line_key).
  */
 class SalesOrderDigitalFulfillmentService
 {
     public const ORDER_PREFIX = 'so-';
+
+    public const POS_SELL_PREFIX = 'pos-';
 
     /** A row stuck in "processing" this long is assumed abandoned (crashed request). */
     private const STALE_PROCESSING_MINUTES = 10;
@@ -39,6 +42,21 @@ class SalesOrderDigitalFulfillmentService
         return self::ORDER_PREFIX.$salesOrderId;
     }
 
+    /** Ledger order id: `so-{id}` for sales orders, `pos-{id}` for POS / direct sells. */
+    public static function refFor(Transaction $transaction): string
+    {
+        return ($transaction->type === 'sales_order' ? self::ORDER_PREFIX : self::POS_SELL_PREFIX).$transaction->id;
+    }
+
+    /** @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder  $query */
+    private static function whereOwnPrefix($query): void
+    {
+        $query->where(function ($q) {
+            $q->where('storefront_order_id', 'like', self::ORDER_PREFIX.'%')
+                ->orWhere('storefront_order_id', 'like', self::POS_SELL_PREFIX.'%');
+        });
+    }
+
     public function isEnabled(): bool
     {
         return (bool) config('services.accounts.sales_order_fulfillment', true)
@@ -48,9 +66,18 @@ class SalesOrderDigitalFulfillmentService
     /** Storefront and Accounts-originated orders already have their own fulfilment path. */
     public function isEligible(Transaction $transaction): bool
     {
-        return $transaction->type === 'sales_order'
-            && $transaction->custom_field_1 !== 'account_order'
-            && $transaction->source !== 'storefront';
+        if ($transaction->custom_field_1 === 'account_order' || $transaction->source === 'storefront') {
+            return false;
+        }
+        if ($transaction->type === 'sales_order') {
+            return true;
+        }
+
+        // Drafts, quotations and suspended sales wait until they are finalised.
+        return $transaction->type === 'sell'
+            && $transaction->status === 'final'
+            && empty($transaction->is_suspend)
+            && AccountsCatalogService::posSellEnabled();
     }
 
     /**
@@ -117,7 +144,7 @@ class SalesOrderDigitalFulfillmentService
         }
 
         $query = StorefrontDigitalFulfillment::query()
-            ->where('storefront_order_id', 'like', self::ORDER_PREFIX.'%')
+            ->tap(fn ($q) => self::whereOwnPrefix($q))
             ->where('attempts', '<', self::MAX_ATTEMPTS)
             ->where(function ($q) {
                 $q->whereIn('status', ['pending', 'failed'])
@@ -147,18 +174,48 @@ class SalesOrderDigitalFulfillmentService
     }
 
     /**
-     * Allocated units per sales-order sell line (locks qty / remove on edit).
+     * What the cashier hands over after a POS sell: allocated credentials plus how many
+     * units are still waiting (failed / unpaid, picked up by the retry command).
+     *
+     * @return array{deliveries: list<array<string, mixed>>, waiting: int}
+     */
+    public function saleDeliverySummary(Transaction $transaction): array
+    {
+        $summary = ['deliveries' => [], 'waiting' => 0];
+        if (! $this->isEnabled() || ! $this->isEligible($transaction)) {
+            return $summary;
+        }
+
+        $rows = StorefrontDigitalFulfillment::query()
+            ->where('storefront_order_id', self::refFor($transaction))
+            ->orderBy('id')
+            ->get();
+        foreach ($rows as $row) {
+            $delivery = $row->toCustomerDelivery();
+            if ($delivery !== null) {
+                $summary['deliveries'][] = $delivery;
+            } else {
+                $summary['waiting']++;
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Allocated units per sell line of a sales order or POS sell (locks qty / remove on edit).
      *
      * @return array<int, int>
      */
-    public function allocatedUnitsBySellLine(int $salesOrderId): array
+    public function allocatedUnitsBySellLine(int $transactionId): array
     {
         if (! Schema::hasTable('storefront_digital_fulfillments')) {
             return [];
         }
 
         return StorefrontDigitalFulfillment::query()
-            ->where('storefront_order_id', self::orderRef($salesOrderId))
+            ->where('transaction_id', $transactionId)
+            ->tap(fn ($q) => self::whereOwnPrefix($q))
             ->where('status', 'allocated')
             ->whereNotNull('sell_line_id')
             ->groupBy('sell_line_id')
@@ -176,7 +233,7 @@ class SalesOrderDigitalFulfillmentService
      */
     private function queue(Transaction $salesOrder, ?array $sellLineIds, string $trigger): void
     {
-        $ref = self::orderRef((int) $salesOrder->id);
+        $ref = self::refFor($salesOrder);
         $lines = TransactionSellLine::query()
             ->join('products as p', 'p.id', '=', 'transaction_sell_lines.product_id')
             ->where('transaction_sell_lines.transaction_id', $salesOrder->id)
@@ -186,6 +243,10 @@ class SalesOrderDigitalFulfillmentService
 
         $keep = [];
         foreach ($lines as $line) {
+            if (! empty($line->so_line_id)) {
+                // Invoice line copied from a sales order: the account is allocated on the order.
+                continue;
+            }
             $digital = AccountsCatalogService::digitalFromSku(
                 $line->product_sku,
                 $line->product_name,
@@ -229,7 +290,7 @@ class SalesOrderDigitalFulfillmentService
     private function allocatePending(Transaction $salesOrder, ?array $sellLineIds): array
     {
         $result = ['allocated' => 0, 'failed' => 0, 'errors' => []];
-        $ref = self::orderRef((int) $salesOrder->id);
+        $ref = self::refFor($salesOrder);
         $rowIds = StorefrontDigitalFulfillment::query()
             ->where('storefront_order_id', $ref)
             ->where(function ($q) {
@@ -333,7 +394,7 @@ class SalesOrderDigitalFulfillmentService
     private function onSaveLineIds(Transaction $salesOrder): array
     {
         return StorefrontDigitalFulfillment::query()
-            ->where('storefront_order_id', self::orderRef((int) $salesOrder->id))
+            ->where('storefront_order_id', self::refFor($salesOrder))
             ->get(['sell_line_id', 'request_meta'])
             ->filter(fn ($row) => ($row->request_meta['trigger'] ?? null) === 'on_save')
             ->pluck('sell_line_id')
@@ -358,7 +419,9 @@ class SalesOrderDigitalFulfillmentService
         $user = User::find($salesOrder->created_by);
         $agent = $user ? trim(($user->first_name ?? '').' '.($user->last_name ?? '')) : '';
 
-        return mb_substr(trim('POS sales order '.$salesOrder->invoice_no.($agent !== '' ? ' / '.$agent : '')), 0, 500);
+        $label = $salesOrder->type === 'sales_order' ? 'POS sales order ' : 'POS sale ';
+
+        return mb_substr(trim($label.$salesOrder->invoice_no.($agent !== '' ? ' / '.$agent : '')), 0, 500);
     }
 
     private function storeProfileId(int $businessId): int

@@ -4,8 +4,11 @@
 
 	$action = !empty($action) ? $action : '';
 
-	// Accounts offers on sales orders: per-line "Fetch account now" + lock once allocated.
-	$is_accounts_line = !empty($is_sales_order) && \App\Services\AccountsCatalogService::isSellableAccountsSku($product->sub_sku ?? null);
+	// Accounts offers on sales orders (and POS sells when enabled): per-line "Fetch account now" + lock once allocated.
+	// Invoice lines copied from a sales order are fulfilled on the order, so they get neither.
+	$is_accounts_line = (!empty($is_sales_order) || \App\Services\AccountsCatalogService::posSellEnabled())
+		&& empty($product->so_line_id)
+		&& \App\Services\AccountsCatalogService::isSellableAccountsSku($product->sub_sku ?? null);
 	$allocated_line_units = (!empty($product->transaction_sell_lines_id) && !empty($allocated_units[$product->transaction_sell_lines_id]))
 		? (int) $allocated_units[$product->transaction_sell_lines_id] : 0;
 	$is_allocated_line = $is_accounts_line && $allocated_line_units > 0;
@@ -203,7 +206,7 @@
   		<textarea class="form-control" name="products[{{$row_count}}][sell_line_note]" rows="2">{{$sell_line_note}}</textarea>
   		<p class="help-block"><small>@lang('lang_v1.sell_line_description_help')</small></p>
 	@endif
-	{{-- Accounts offer on a sales order: allocate on save, or show it is already allocated --}}
+	{{-- Accounts offer: allocate on save, or show it is already allocated --}}
 	@if($is_accounts_line)
 		@if($is_allocated_line)
 			<span class="label bg-green"><i class="fa fa-check"></i> @lang('lang_v1.account_allocated') ({{$allocated_line_units}})</span>

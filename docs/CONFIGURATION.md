@@ -123,18 +123,20 @@ Accounts pushes one hidden POS product per game offer / card category through `P
 
 Config: `config/services.php` → `accounts.catalog_*`. Changes apply on the next sync of each product (`php artisan pos:sync-catalog` in Accounts); run `php artisan config:clear` after editing `.env`.
 
-#### Call-center sales orders with Accounts products
+#### Sales orders and POS sells with Accounts products
 
-Synced Accounts products stay `not_for_selling` (hidden on the storefront and the plain POS screen). On the **sales order** form only, product search also returns them (never `-OFFLINE` offers). On save, POS rejects offline offers on sales orders, rejects new Accounts lines on plain sells, and rejects removing / reducing a line whose account was already allocated.
+Synced Accounts products stay `not_for_selling`, so they never appear on the storefront. Product search on the **sales order** form returns them, and so does the **POS / direct sell** screen while `ACCOUNTS_POS_SELL` is on (never `-OFFLINE` offers). On save, POS rejects offline offers, rejects new Accounts lines on plain sells when `ACCOUNTS_POS_SELL` is off, and rejects removing / reducing a line — or deleting a sale — whose account was already allocated (use a sell return instead).
 
-- Lines with **Fetch account now** ticked are allocated from Accounts when the sales order is saved (even unpaid); the rest when the order becomes fully paid. Credentials go to the staff note (and the line note when the storefront "expose credentials" setting is on), and are copied onto the converted invoice.
-- One ledger row per unit in `storefront_digital_fulfillments` with `storefront_order_id = so-{sales order id}`; Accounts dedupes on that id + line key, and the Accounts order is stamped `pos_order_id` (Send to POS skips it).
+- Lines with **Fetch account now** ticked are allocated from Accounts when the sale is saved (even unpaid); the rest when it becomes fully paid. POS sells are allocated only once **final** (not drafts, quotations or suspended sales). Credentials go to the staff note (and the line note when the storefront "expose credentials" setting is on); sales-order credentials are copied onto the converted invoice, whose copied lines are never allocated again.
+- After a POS checkout the cashier sees the allocated credentials in a pop-up (not printed on the receipt).
+- One ledger row per unit in `storefront_digital_fulfillments` with `storefront_order_id = so-{sales order id}` or `pos-{sell id}`; Accounts dedupes on that id + line key, and the Accounts order is stamped `pos_order_id` (Send to POS skips it).
 - Failures are noted on the staff note and retried by `php artisan accounts:fulfill-sales-orders` (scheduled every 5 minutes, up to 5 attempts).
 
 | Variable | Purpose |
 |----------|---------|
-| `ACCOUNTS_SALES_ORDER_FULFILLMENT` | `true` (default) / `false` — turn sales-order allocation on or off |
-| `ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID` | Accounts store profile credited for these orders; empty = storefront `digital.accounts_store_profile_id` (default 17) |
+| `ACCOUNTS_SALES_ORDER_FULFILLMENT` | `true` (default) / `false` — turn allocation (sales orders and POS sells) on or off |
+| `ACCOUNTS_POS_SELL` | `true` (default) / `false` — also sell synced Accounts products from the POS / direct sell screen (storefront unaffected) |
+| `ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID` | Accounts store profile credited for these sales orders and POS sells; empty = storefront `digital.accounts_store_profile_id` (default 17) |
 | `ACCOUNTS_LEGACY_POS_SKUS` | Comma list of pre-sync Accounts placeholder SKUs counted as account lines by the **Contents** filter (default empty — only list SKUs that are truly Accounts placeholders, never physical products) |
 | `ACCOUNTS_LEGACY_PRODUCT_IDS` | Comma list of old manually created game product ids counted as account lines |
 

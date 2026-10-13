@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\BusinessLocation;
+use App\CashRegister;
 use App\Contact;
 use App\Product;
+use App\Services\AccountsCatalogService;
 use App\Services\Accounts\SalesOrderAccountsGuard;
 use App\Services\Accounts\SalesOrderDigitalFulfillmentService;
 use App\Services\Storefront\DigitalFulfillmentService;
@@ -18,6 +20,7 @@ use App\Utils\ProductUtil;
 use App\Variation;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -42,6 +45,8 @@ class SalesOrderAccountsTest extends TestCase
         config([
             'services.accounts.base' => 'https://accounts.test',
             'services.accounts.sales_order_fulfillment' => true,
+            // Sales-order-only mode; POS sell tests switch it on explicitly.
+            'services.accounts.pos_sell' => false,
             'services.accounts.sales_order_store_profile_id' => 17,
             'services.accounts.legacy_pos_skus' => ['0139'],
             'services.accounts.legacy_product_ids' => [],
@@ -59,6 +64,10 @@ class SalesOrderAccountsTest extends TestCase
                     'order_id' => 7000 + $n,
                     'account_details' => ['email' => "acc{$n}@psn.test", 'password' => "pw{$n}"],
                 ], 201);
+            }
+            if (str_contains($request->url(), '/api/login')) {
+                // Saving through the controllers can clear the cached token.
+                return Http::response(['token' => 'test-token'], 200);
             }
 
             return Http::response(['success' => true], 200);
@@ -279,6 +288,120 @@ class SalesOrderAccountsTest extends TestCase
         $this->assertStringContainsString('acc1@psn.test', (string) $so->staff_note);
         $this->assertSame('accounts_only', $so->content_kind);
         $this->assertStringContainsString(__('lang_v1.accounts_fetched', ['count' => 1]), (string) session('status.msg'));
+    }
+
+    public function test_pos_sell_switch_controls_search_and_guard(): void
+    {
+        $gameId = random_int(9000000, 9999999);
+        $primary = $this->product($this->gameSku($gameId, 'PRIMARY'), 'ZZSO PosGuard '.$gameId);
+        $offline = $this->product($this->gameSku($gameId, 'OFFLINE'), 'ZZSO PosGuard Off '.$gameId);
+        $guard = app(SalesOrderAccountsGuard::class);
+        $qty = fn ($v) => (float) $v;
+        $posSearch = Request::create('/products/list', 'GET', ['include_accounts' => 1, 'accounts_for_sales_order' => 0]);
+        $soSearch = Request::create('/products/list', 'GET', ['include_accounts' => 1, 'accounts_for_sales_order' => 1]);
+
+        $this->assertFalse(AccountsCatalogService::includeInSellSearch($posSearch));
+        $this->assertTrue(AccountsCatalogService::includeInSellSearch($soSearch));
+
+        config(['services.accounts.pos_sell' => true]);
+        $this->assertTrue(AccountsCatalogService::includeInSellSearch($posSearch));
+        $this->assertFalse(AccountsCatalogService::includeInSellSearch(Request::create('/products/list', 'GET', [])));
+        $this->assertNull($guard->check(self::BUSINESS_ID, [['product_id' => $primary->id, 'quantity' => '1']], false, null, $qty));
+        $this->assertSame(
+            __('lang_v1.sale_offline_not_allowed'),
+            $guard->check(self::BUSINESS_ID, [['product_id' => $offline->id, 'quantity' => '1']], false, null, $qty)
+        );
+        $this->assertSame(1, (int) $primary->fresh()->not_for_selling, 'Storefront visibility flag must stay on.');
+    }
+
+    public function test_pos_checkout_allocates_paid_sale_and_returns_credentials(): void
+    {
+        config(['services.accounts.pos_sell' => true]);
+        $gameId = random_int(9000000, 9999999);
+        $primary = $this->product($this->gameSku($gameId, 'PRIMARY'), 'ZZSO PosSale '.$gameId);
+        $contact = $this->contact();
+        $user = $this->loginUser();
+        CashRegister::create([
+            'business_id' => self::BUSINESS_ID,
+            'location_id' => $this->location(),
+            'user_id' => $user->id,
+            'status' => 'open',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->withSession(['user.business_id' => self::BUSINESS_ID, 'user.id' => $user->id])
+            ->postJson('/pos', [
+                'status' => 'final',
+                'location_id' => $this->location(),
+                'contact_id' => $contact->id,
+                'discount_type' => 'fixed',
+                'discount_amount' => 0,
+                'tax_rate_id' => null,
+                'final_total' => 100,
+                'payment' => [['amount' => 100, 'method' => 'cash']],
+                'products' => [[
+                    'product_id' => $primary->id,
+                    'variation_id' => Variation::where('product_id', $primary->id)->value('id'),
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'unit_price_inc_tax' => 100,
+                    'item_tax' => 0,
+                    'tax_id' => null,
+                    'line_discount_type' => 'fixed',
+                    'line_discount_amount' => 0,
+                    'enable_stock' => 0,
+                    'product_type' => 'single',
+                ]],
+            ], ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertJsonPath('success', 1)
+            ->assertJsonPath('accounts_delivery.0.account_email', 'acc1@psn.test')
+            ->assertJsonPath('accounts_delivery.0.account_password', 'pw1');
+
+        $sell = Transaction::where('contact_id', $contact->id)->where('type', 'sell')->latest('id')->firstOrFail();
+        $this->assertSame('paid', $sell->payment_status);
+        $this->assertSame(1, $this->receiveCalls, 'Paid hook + feedback must allocate exactly once.');
+        $this->assertStringContainsString('acc1@psn.test', (string) $sell->staff_note);
+        $this->assertSame('allocated', StorefrontDigitalFulfillment::where('storefront_order_id', 'pos-'.$sell->id)->value('status'));
+        $this->assertStringContainsString(__('lang_v1.accounts_fetched', ['count' => 1]), (string) $response->json('msg'));
+
+        // Deleting the sale would orphan a handed-out account.
+        $this->actingAs($user)->withSession(['user.business_id' => self::BUSINESS_ID, 'user.id' => $user->id])
+            ->deleteJson('/pos/'.$sell->id, [], ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertJsonPath('msg', __('lang_v1.allocated_account_sale_locked'));
+        $this->assertNotNull(Transaction::find($sell->id));
+    }
+
+    public function test_pos_sell_waits_for_final_and_payment_and_skips_sales_order_copies(): void
+    {
+        config(['services.accounts.pos_sell' => true]);
+        $gameId = random_int(9000000, 9999999);
+        $primary = $this->product($this->gameSku($gameId, 'PRIMARY'), 'ZZSO PosWait '.$gameId);
+
+        $draft = $this->salesOrder(['type' => 'sell', 'status' => 'draft', 'payment_status' => 'paid']);
+        $this->line($draft, $primary);
+        $this->assertSame(0, $this->fulfilment()->handlePaid($draft)['allocated']);
+
+        $credit = $this->salesOrder(['type' => 'sell', 'status' => 'final', 'payment_status' => 'due']);
+        $this->line($credit, $primary);
+        $this->assertSame(0, $this->fulfilment()->handlePaid($credit)['allocated']);
+        $credit->update(['payment_status' => 'paid']);
+        $this->assertSame(1, $this->fulfilment()->handlePaid($credit)['allocated']);
+        Http::assertSent(fn (HttpRequest $r) => str_contains($r->url(), '/api/orders/receive')
+            && $r['storefront_order_id'] === 'pos-'.$credit->id
+            && str_contains((string) $r['notes'], 'POS sale '.$credit->invoice_no));
+
+        $so = $this->salesOrder();
+        $soLine = $this->line($so, $primary);
+        $invoice = $this->salesOrder(['type' => 'sell', 'status' => 'final', 'payment_status' => 'paid']);
+        $this->line($invoice, $primary, 1, ['so_line_id' => $soLine->id]);
+        $this->assertSame(0, $this->fulfilment()->handlePaid($invoice)['allocated']);
+
+        config(['services.accounts.pos_sell' => false]);
+        $off = $this->salesOrder(['type' => 'sell', 'status' => 'final', 'payment_status' => 'paid']);
+        $this->line($off, $primary);
+        $this->assertSame(0, $this->fulfilment()->handlePaid($off)['allocated']);
+        $this->assertSame(1, $this->receiveCalls);
     }
 
     private function loginUser(): User

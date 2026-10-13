@@ -9,7 +9,8 @@ use App\Services\AccountsCatalogService;
  * Save-time rules for synced Accounts products on POS sells and sales orders.
  *
  * The product row endpoint does not check not_for_selling, so these checks are what actually
- * keep Accounts offers on sales orders only (and offline slots off them).
+ * keep Accounts offers off plain sells when ACCOUNTS_POS_SELL is off, offline slots off every
+ * sale, and already-allocated lines from being removed or shrunk.
  */
 class SalesOrderAccountsGuard
 {
@@ -22,7 +23,7 @@ class SalesOrderAccountsGuard
      * @param  callable(mixed): float  $parseQty  locale-aware number parser (TransactionUtil::num_uf)
      * @return string|null translated error, or null when the save may proceed
      */
-    public function check(int $businessId, array $products, bool $isSalesOrder, ?int $salesOrderId, callable $parseQty): ?string
+    public function check(int $businessId, array $products, bool $isSalesOrder, ?int $transactionId, callable $parseQty): ?string
     {
         $productIds = array_values(array_unique(array_filter(array_map(
             fn ($row) => (int) ($row['product_id'] ?? 0),
@@ -42,16 +43,16 @@ class SalesOrderAccountsGuard
             if (! $isNewLine) {
                 continue;
             }
-            if (! $isSalesOrder) {
+            if (! $isSalesOrder && ! AccountsCatalogService::posSellEnabled()) {
                 return __('lang_v1.accounts_products_sales_order_only');
             }
             if (AccountsCatalogService::isOfflineSku($sku)) {
-                return __('lang_v1.sales_order_offline_not_allowed');
+                return __($isSalesOrder ? 'lang_v1.sales_order_offline_not_allowed' : 'lang_v1.sale_offline_not_allowed');
             }
         }
 
-        if ($isSalesOrder && $salesOrderId) {
-            return $this->checkAllocatedLinesKept($products, $salesOrderId, $parseQty);
+        if ($transactionId) {
+            return $this->checkAllocatedLinesKept($products, $transactionId, $parseQty);
         }
 
         return null;
@@ -60,9 +61,9 @@ class SalesOrderAccountsGuard
     /**
      * @param  array<int|string, array<string, mixed>>  $products
      */
-    private function checkAllocatedLinesKept(array $products, int $salesOrderId, callable $parseQty): ?string
+    private function checkAllocatedLinesKept(array $products, int $transactionId, callable $parseQty): ?string
     {
-        $allocated = $this->fulfilment->allocatedUnitsBySellLine($salesOrderId);
+        $allocated = $this->fulfilment->allocatedUnitsBySellLine($transactionId);
         if ($allocated === []) {
             return null;
         }

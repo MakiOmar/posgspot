@@ -46,6 +46,8 @@ return [
         'catalog_rate_limit_per_minute' => (int) env('ACCOUNTS_CATALOG_RATE_LIMIT_PER_MINUTE', 300),
         // Call-center sales orders: allocate Accounts game accounts / cards from POS automatically.
         'sales_order_fulfillment' => filter_var(env('ACCOUNTS_SALES_ORDER_FULFILLMENT', true), FILTER_VALIDATE_BOOLEAN),
+        // Also sell synced Accounts products on POS / direct sells (they stay not_for_selling, off the storefront).
+        'pos_sell' => filter_var(env('ACCOUNTS_POS_SELL', true), FILTER_VALIDATE_BOOLEAN),
         // Accounts store profile credited for sales-order allocations; empty = storefront digital setting.
         'sales_order_store_profile_id' => env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== null && env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') !== ''
             ? (int) env('ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID') : null,

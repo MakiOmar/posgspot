@@ -669,7 +669,7 @@ class SellPosController extends Controller
 
                 SellCreatedOrModified::dispatch($transaction);
 
-                $accounts_fetch_msg = $this->fetchCheckedAccountLines($transaction, $input['products']);
+                $accounts_feedback = $this->accountsSaleFeedback($transaction, $input['products']);
 
                 // Fully paid SO deposit → auto-create final invoice after commit.
                 $soConvertMsg = null;
@@ -721,11 +721,15 @@ class SellPosController extends Controller
                     $receipt = $this->receiptContent($business_id, $input['location_id'], $transaction->id, null, false, true, $invoice_layout_id);
                 }
 
-                if (! empty($accounts_fetch_msg)) {
-                    $msg .= ' '.$accounts_fetch_msg;
+                if (! empty($accounts_feedback['msg'])) {
+                    $msg .= ' '.$accounts_feedback['msg'];
                 }
 
                 $output = ['success' => 1, 'msg' => $msg, 'receipt' => $receipt];
+                if (! empty($accounts_feedback['deliveries'])) {
+                    $output['accounts_delivery'] = $accounts_feedback['deliveries'];
+                    $output['accounts_delivery_title'] = __('lang_v1.accounts_delivery_title');
+                }
 
                 if (!empty($whatsapp_link)) {
                     $output['whatsapp_link'] = $whatsapp_link;
@@ -1171,6 +1175,9 @@ class SellPosController extends Controller
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
         $only_payment = request()->segment(2) == 'payment';
 
+        // Lines with an Accounts account already fetched are locked in the form.
+        $allocated_units = app(SalesOrderDigitalFulfillmentService::class)->allocatedUnitsBySellLine((int) $transaction->id);
+
         return view('sale_pos.edit')
             ->with(compact('business_details', 'taxes', 'payment_types', 'walk_in_customer',
                 'sell_details', 'transaction', 'payment_lines', 'location_printer_type', 'shortcuts',
@@ -1178,7 +1185,7 @@ class SellPosController extends Controller
                 'brands', 'accounts', 'waiters', 'redeem_details', 'edit_price', 'edit_discount',
                 'shipping_statuses', 'warranties', 'sub_type', 'pos_module_data', 'invoice_schemes',
                 'default_invoice_schemes', 'invoice_layouts', 'featured_products', 'customer_due',
-                'users', 'only_payment'));
+                'users', 'only_payment', 'allocated_units'));
     }
 
     /**
@@ -1268,7 +1275,7 @@ class SellPosController extends Controller
                     $business_id,
                     $input['products'],
                     $is_sales_order_before,
-                    $is_sales_order_before ? (int) $transaction_before->id : null,
+                    (int) $transaction_before->id,
                     $is_direct_sale
                 );
                 if ($accounts_guard_response !== null) {
@@ -1528,7 +1535,7 @@ class SellPosController extends Controller
                 DB::commit();
                 $this->fulfillStorefrontDigitalIfPaid((int) $transaction->id);
 
-                $accounts_fetch_msg = $this->fetchCheckedAccountLines($transaction, $input['products']);
+                $accounts_feedback = $this->accountsSaleFeedback($transaction, $input['products']);
 
                 // Fully paid SO after edit → auto-create final invoice.
                 $soConvertMsg = null;
@@ -1574,11 +1581,15 @@ class SellPosController extends Controller
                     }
                 }
 
-                if (! empty($accounts_fetch_msg)) {
-                    $msg .= ' '.$accounts_fetch_msg;
+                if (! empty($accounts_feedback['msg'])) {
+                    $msg .= ' '.$accounts_feedback['msg'];
                 }
 
                 $output = ['success' => 1, 'msg' => $msg, 'receipt' => $receipt];
+                if (! empty($accounts_feedback['deliveries'])) {
+                    $output['accounts_delivery'] = $accounts_feedback['deliveries'];
+                    $output['accounts_delivery_title'] = __('lang_v1.accounts_delivery_title');
+                }
 
                 if (!empty($whatsapp_link)) {
                     $output['whatsapp_link'] = $whatsapp_link;
@@ -1665,7 +1676,7 @@ class SellPosController extends Controller
     }
 
     /**
-     * Accounts products: sales orders only, never offline, allocated lines can't shrink.
+     * Accounts products: sales orders (and POS sells when enabled), never offline, allocated lines can't shrink.
      *
      * @return mixed null when the save may continue, otherwise the error response
      */
@@ -1691,16 +1702,40 @@ class SellPosController extends Controller
     }
 
     /**
-     * Allocate the account lines the agent ticked "Fetch account now" on (sales orders only).
+     * After a save: allocate ticked account lines, then report what the cashier should hand over.
+     * POS sells also report lines the paid hook allocated and return the credentials for display.
+     *
+     * @return array{msg: string|null, deliveries: list<array<string, mixed>>}
+     */
+    private function accountsSaleFeedback(Transaction $transaction, array $products): array
+    {
+        $fetch_msg = $this->fetchCheckedAccountLines($transaction, $products);
+        if ($transaction->type !== 'sell') {
+            return ['msg' => $fetch_msg, 'deliveries' => []];
+        }
+
+        $fulfilment = app(SalesOrderDigitalFulfillmentService::class);
+        // The paid hook runs after commit and can be skipped in some POS paths; this replay is idempotent.
+        $fulfilment->handlePaid($transaction);
+        $summary = $fulfilment->saleDeliverySummary($transaction->fresh());
+        $parts = [];
+        if (! empty($summary['deliveries'])) {
+            $parts[] = __('lang_v1.accounts_fetched', ['count' => count($summary['deliveries'])]);
+        }
+        if ($summary['waiting'] > 0) {
+            $parts[] = __('lang_v1.accounts_waiting_allocation', ['count' => $summary['waiting']]);
+        }
+
+        return ['msg' => empty($parts) ? null : implode(' ', $parts), 'deliveries' => $summary['deliveries']];
+    }
+
+    /**
+     * Allocate the account lines staff ticked "Fetch account now" on (sales orders and eligible POS sells).
      *
      * @return string|null feedback appended to the save message
      */
     private function fetchCheckedAccountLines(Transaction $transaction, array $products): ?string
     {
-        if ($transaction->type !== 'sales_order') {
-            return null;
-        }
-
         $line_ids = [];
         $variation_ids = [];
         foreach ($products as $row) {
@@ -1771,6 +1806,13 @@ class SellPosController extends Controller
         if (request()->ajax()) {
             try {
                 $business_id = request()->session()->get('user.business_id');
+
+                // An account already handed out can't be taken back by deleting the sale.
+                $owns_sale = Transaction::where('business_id', $business_id)->whereKey($id)->exists();
+                if ($owns_sale && ! empty(app(SalesOrderDigitalFulfillmentService::class)->allocatedUnitsBySellLine((int) $id))) {
+                    return ['success' => false, 'msg' => __('lang_v1.allocated_account_sale_locked')];
+                }
+
                 //Begin transaction
                 DB::beginTransaction();
 
@@ -2231,8 +2273,8 @@ class SellPosController extends Controller
                 ->where('p.type', '!=', 'modifier')
                 ->where('p.is_inactive', 0)
                 ->where(function ($q) use ($request) {
-                    if ($request->boolean('include_accounts')) {
-                        // Sales orders may also offer synced Accounts products (not offline).
+                    if (\App\Services\AccountsCatalogService::includeInSellSearch($request)) {
+                        // Sell forms may also offer synced Accounts products (not offline).
                         \App\Services\AccountsCatalogService::whereSellableOrAccounts($q, 'p');
                     } else {
                         $q->where('p.not_for_selling', 0);
