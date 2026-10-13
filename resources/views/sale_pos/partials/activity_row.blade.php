@@ -114,12 +114,12 @@
                         </span>
                         {{ $line_change['product'] ?? '' }}
                         @if($line_kind === 'added')
-                            × @format_quantity($line_change['qty_to'] ?? 0) @ @format_currency($line_change['price_to'] ?? 0)
+                            × {{ @format_quantity($line_change['qty_to'] ?? 0) }} @ @format_currency($line_change['price_to'] ?? 0)
                         @elseif($line_kind === 'removed')
-                            × @format_quantity($line_change['qty_from'] ?? 0)
+                            × {{ @format_quantity($line_change['qty_from'] ?? 0) }}
                         @else
                             @if(($line_change['qty_from'] ?? null) != ($line_change['qty_to'] ?? null))
-                                — @lang('lang_v1.quantity'): @format_quantity($line_change['qty_from'] ?? 0) --> @format_quantity($line_change['qty_to'] ?? 0)
+                                — @lang('lang_v1.quantity'): {{ @format_quantity($line_change['qty_from'] ?? 0) }} --> {{ @format_quantity($line_change['qty_to'] ?? 0) }}
                             @endif
                             @if(($line_change['price_from'] ?? null) != ($line_change['price_to'] ?? null))
                                 — @lang('sale.unit_price'): @format_currency($line_change['price_from'] ?? 0) --> @format_currency($line_change['price_to'] ?? 0)

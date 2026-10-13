@@ -135,7 +135,7 @@ Synced Accounts products stay `not_for_selling` (hidden on the storefront and th
 |----------|---------|
 | `ACCOUNTS_SALES_ORDER_FULFILLMENT` | `true` (default) / `false` — turn sales-order allocation on or off |
 | `ACCOUNTS_SALES_ORDER_STORE_PROFILE_ID` | Accounts store profile credited for these orders; empty = storefront `digital.accounts_store_profile_id` (default 17) |
-| `ACCOUNTS_LEGACY_POS_SKUS` | Comma list of pre-sync Accounts placeholder SKUs counted as account lines by the **Contents** filter (default `0139,0140,0141,0142,0143`) |
+| `ACCOUNTS_LEGACY_POS_SKUS` | Comma list of pre-sync Accounts placeholder SKUs counted as account lines by the **Contents** filter (default empty — only list SKUs that are truly Accounts placeholders, never physical products) |
 | `ACCOUNTS_LEGACY_PRODUCT_IDS` | Comma list of old manually created game product ids counted as account lines |
 
 **Contents filter:** `transactions.content_kind` (`accounts_only` / `mixed` / `pos_only`) is refreshed whenever sell lines are written and shown as a filter + badge on the sells and sales-order lists. Backfill after deploy or after changing the legacy lists: `php artisan sales:classify-content` (a `--recent` run is scheduled nightly).
