@@ -2,16 +2,15 @@
 
 namespace App\Jobs;
 
-use App\Services\Storefront\Accounts\AccountsApiClient;
+use App\Services\Storefront\Accounts\AccountsCustomerSync;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 /**
- * Ensure a POS customer also exists in Accounts (find-or-create by phone).
+ * Retry an Accounts find-or-create that could not run during signup (Accounts down).
  */
 class SyncCustomerToAccounts implements ShouldQueue
 {
@@ -34,30 +33,14 @@ class SyncCustomerToAccounts implements ShouldQueue
         return [60, 300, 900, 3600];
     }
 
-    public function handle(AccountsApiClient $accounts): void
+    public function handle(AccountsCustomerSync $sync): void
     {
-        if ($accounts->baseUrl() === '') {
-            Log::warning('Accounts customer sync skipped: ACCOUNTS_BASE_URL is empty', ['phone' => $this->phone]);
-
+        if (! $sync->isConfigured()) {
             return;
         }
 
-        $result = $accounts->createCustomer($this->name, $this->email, $this->phone);
-        if ($result['success']) {
-            return;
+        if ($sync->ensure($this->name, $this->email, $this->phone) === AccountsCustomerSync::UNAVAILABLE) {
+            throw new \RuntimeException('Accounts customer sync unavailable for '.$this->phone);
         }
-
-        // 422 = Accounts rejected the data (e.g. email owned by another phone); retrying cannot fix it.
-        if ($result['status'] === 422) {
-            Log::warning('Accounts customer sync rejected', [
-                'phone' => $this->phone,
-                'email' => $this->email,
-                'error' => $result['error'],
-            ]);
-
-            return;
-        }
-
-        throw new \RuntimeException('Accounts customer sync failed (HTTP '.$result['status'].'): '.$result['error']);
     }
 }

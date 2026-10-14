@@ -4,7 +4,7 @@ namespace Tests\Feature\Storefront;
 
 use App\Contact;
 use App\Jobs\SyncCustomerToAccounts;
-use App\Services\Storefront\Accounts\AccountsApiClient;
+use App\Services\Storefront\Accounts\AccountsCustomerSync;
 use App\Utils\ContactUtil;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Bus;
@@ -16,158 +16,128 @@ class AddCustomerApiTest extends TestCase
 {
     protected int $businessId = 1;
 
+    private const ACCOUNTS_CUSTOMERS = 'accounts.test/api/customers';
+
     protected function setUp(): void
     {
         parent::setUp();
         Bus::fake([SyncCustomerToAccounts::class]);
+        config(['services.accounts.base' => 'https://accounts.test']);
+        Cache::put('accounts_auth_token', 'test-token', 60);
     }
 
-    public function test_add_customer_creates_contact(): void
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function payload(array $overrides = []): array
     {
-        $mobile = '+2010'.random_int(10000000, 99999999);
-
-        $response = $this->postJson('/api/storefront/v1/customers/add', [
+        return array_merge([
             'first_name' => 'Test',
             'last_name' => 'Customer',
             'email' => 'add_customer_'.uniqid().'@example.com',
             'birth_date' => '1990-05-15',
             'country' => 'EG',
             'state' => 'C',
-            'mobile' => $mobile,
+            'mobile' => '+2010'.random_int(10000000, 99999999),
             'dial_code' => '+20',
-        ]);
+        ], $overrides);
+    }
 
-        $response->assertCreated()
+    private function fakeAccounts(int $status = 201, array $body = ['success' => true]): void
+    {
+        Http::fake([self::ACCOUNTS_CUSTOMERS => Http::response($body, $status)]);
+    }
+
+    public function test_add_customer_creates_contact_in_pos_and_accounts(): void
+    {
+        $this->fakeAccounts();
+        $payload = $this->payload(['first_name' => 'Sync', 'last_name' => 'Customer']);
+
+        $this->postJson('/api/storefront/v1/customers/add', $payload)
+            ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.created', true);
 
         $this->assertDatabaseHas('contacts', [
-            'mobile' => $mobile,
+            'mobile' => $payload['mobile'],
             'type' => 'customer',
             'country' => 'EG',
             'state' => 'C',
         ]);
+        Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://'.self::ACCOUNTS_CUSTOMERS
+            && $request['phone'] === $payload['mobile']
+            && $request['email'] === $payload['email']
+            && $request['name'] === 'Sync Customer'
+            && $request['update_existing'] === false);
+        Bus::assertNotDispatched(SyncCustomerToAccounts::class);
+    }
+
+    public function test_add_customer_rejects_email_registered_in_accounts_under_another_phone(): void
+    {
+        $this->fakeAccounts(422, ['success' => false, 'errors' => ['email' => ['The email has already been taken.']]]);
+        $payload = $this->payload();
+
+        $this->postJson('/api/storefront/v1/customers/add', $payload)
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+
+        $this->assertDatabaseMissing('contacts', ['mobile' => $payload['mobile']]);
+    }
+
+    public function test_add_customer_still_creates_pos_contact_and_queues_retry_when_accounts_is_down(): void
+    {
+        $this->fakeAccounts(502, ['message' => 'Bad gateway']);
+        $payload = $this->payload();
+
+        $this->postJson('/api/storefront/v1/customers/add', $payload)->assertCreated();
+
+        $this->assertDatabaseHas('contacts', ['mobile' => $payload['mobile']]);
+        Bus::assertDispatched(SyncCustomerToAccounts::class, fn ($job) => $job->phone === $payload['mobile']
+            && $job->email === $payload['email']);
     }
 
     public function test_add_customer_rejects_invalid_phone(): void
     {
-        $response = $this->postJson('/api/storefront/v1/customers/add', [
-            'first_name' => 'Test',
-            'last_name' => 'Customer',
-            'email' => 'invalid_phone_'.uniqid().'@example.com',
-            'birth_date' => '1990-05-15',
-            'country' => 'EG',
-            'state' => 'C',
-            'mobile' => '+201812345678',
-            'dial_code' => '+20',
-        ]);
+        $this->fakeAccounts();
 
-        $response->assertStatus(422)
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload(['mobile' => '+201812345678']))
+            ->assertStatus(422)
             ->assertJsonValidationErrors(['mobile']);
-    }
 
-    public function test_add_customer_queues_accounts_sync_for_new_contact(): void
-    {
-        Bus::fake([SyncCustomerToAccounts::class]);
-        $mobile = '+2010'.random_int(10000000, 99999999);
-        $email = 'sync_'.uniqid().'@example.com';
-
-        $this->postJson('/api/storefront/v1/customers/add', [
-            'first_name' => 'Sync',
-            'last_name' => 'Customer',
-            'email' => $email,
-            'birth_date' => '1990-05-15',
-            'country' => 'EG',
-            'state' => 'C',
-            'mobile' => $mobile,
-            'dial_code' => '+20',
-        ])->assertCreated();
-
-        Bus::assertDispatched(SyncCustomerToAccounts::class, fn ($job) => $job->phone === $mobile
-            && $job->email === $email
-            && $job->name === 'Sync Customer');
+        Http::assertNothingSent();
     }
 
     public function test_add_customer_existing_mobile_syncs_stored_contact_without_leaking_it(): void
     {
+        $this->fakeAccounts();
         $mobile = '+2011'.random_int(10000000, 99999999);
         $storedEmail = 'first_'.uniqid().'@example.com';
 
-        $this->postJson('/api/storefront/v1/customers/add', [
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload([
             'first_name' => 'Original',
             'last_name' => 'Name',
             'email' => $storedEmail,
-            'birth_date' => '1985-01-01',
-            'country' => 'EG',
-            'state' => 'GZ',
             'mobile' => $mobile,
-            'dial_code' => '+20',
-        ])->assertCreated();
+        ]))->assertCreated();
 
-        Bus::fake([SyncCustomerToAccounts::class]);
-
-        $this->postJson('/api/storefront/v1/customers/add', [
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload([
             'first_name' => 'Another',
             'last_name' => 'Person',
-            'email' => 'second_'.uniqid().'@example.com',
-            'birth_date' => '1985-01-01',
-            'country' => 'EG',
-            'state' => 'C',
             'mobile' => $mobile,
-            'dial_code' => '+20',
-        ])
+        ]))
             ->assertOk()
             ->assertJsonPath('data.created', false)
             ->assertJsonPath('data.contact', null);
 
         $this->assertSame(1, Contact::where('business_id', $this->businessId)->where('mobile', $mobile)->count());
-        Bus::assertDispatched(SyncCustomerToAccounts::class, fn ($job) => $job->email === $storedEmail
-            && $job->name === 'Original Name');
-    }
-
-    public function test_sync_job_posts_customer_to_accounts_without_updating_existing(): void
-    {
-        config(['services.accounts.base' => 'https://accounts.test']);
-        Cache::put('accounts_auth_token', 'test-token', 60);
-        Http::fake(['accounts.test/api/customers' => Http::response(['success' => true], 201)]);
-
-        (new SyncCustomerToAccounts('Sync Customer', 'sync@example.com', '+201012345678'))
-            ->handle(app(AccountsApiClient::class));
-
-        Http::assertSent(fn (HttpRequest $request) => $request->url() === 'https://accounts.test/api/customers'
-            && $request['phone'] === '+201012345678'
-            && $request['email'] === 'sync@example.com'
-            && $request['update_existing'] === false
-            && $request->hasHeader('Authorization', 'Bearer test-token'));
-    }
-
-    public function test_sync_job_throws_for_retry_when_accounts_is_down(): void
-    {
-        config(['services.accounts.base' => 'https://accounts.test']);
-        Cache::put('accounts_auth_token', 'test-token', 60);
-        Http::fake(['accounts.test/api/customers' => Http::response('Bad gateway', 502)]);
-
-        $this->expectException(\RuntimeException::class);
-
-        (new SyncCustomerToAccounts('Sync Customer', 'sync@example.com', '+201012345678'))
-            ->handle(app(AccountsApiClient::class));
-    }
-
-    public function test_sync_job_does_not_retry_when_accounts_rejects_data(): void
-    {
-        config(['services.accounts.base' => 'https://accounts.test']);
-        Cache::put('accounts_auth_token', 'test-token', 60);
-        Http::fake(['accounts.test/api/customers' => Http::response(['success' => false, 'message' => 'Email already exists'], 422)]);
-
-        (new SyncCustomerToAccounts('Sync Customer', 'taken@example.com', '+201012345678'))
-            ->handle(app(AccountsApiClient::class));
-
-        Http::assertSentCount(1);
+        Http::assertSentCount(2);
+        Http::assertSent(fn (HttpRequest $request) => $request['email'] === $storedEmail && $request['name'] === 'Original Name');
     }
 
     public function test_add_customer_matches_mobile_stored_without_dial_code(): void
     {
-        Bus::fake([SyncCustomerToAccounts::class]);
+        $this->fakeAccounts();
         $national = '10'.random_int(10000000, 99999999);
         $storedMobile = '0'.$national;
 
@@ -183,50 +153,51 @@ class AddCustomerApiTest extends TestCase
             'created_by' => 1,
         ]);
 
-        $this->postJson('/api/storefront/v1/customers/add', [
-            'first_name' => 'New',
-            'last_name' => 'Signup',
-            'email' => 'new_'.uniqid().'@example.com',
-            'birth_date' => '1990-01-01',
-            'country' => 'EG',
-            'state' => 'C',
-            'mobile' => '+20'.$national,
-            'dial_code' => '+20',
-        ])
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload(['mobile' => '+20'.$national]))
             ->assertOk()
             ->assertJsonPath('data.created', false);
 
         $this->assertDatabaseMissing('contacts', ['mobile' => '+20'.$national]);
-        Bus::assertDispatched(SyncCustomerToAccounts::class, fn ($job) => $job->phone === $storedMobile);
+        Http::assertSent(fn (HttpRequest $request) => $request['phone'] === $storedMobile);
     }
 
-    public function test_add_customer_rejects_duplicate_email(): void
+    public function test_add_customer_rejects_duplicate_email_case_insensitively(): void
     {
+        $this->fakeAccounts();
         $email = 'duplicate_'.uniqid().'@example.com';
 
-        $this->postJson('/api/storefront/v1/customers/add', [
-            'first_name' => 'First',
-            'last_name' => 'User',
-            'email' => $email,
-            'birth_date' => '1990-01-01',
-            'country' => 'EG',
-            'state' => 'C',
-            'mobile' => '+2010'.random_int(10000000, 99999999),
-            'dial_code' => '+20',
-        ])->assertCreated();
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload(['email' => $email]))->assertCreated();
 
-        $this->postJson('/api/storefront/v1/customers/add', [
-            'first_name' => 'Second',
-            'last_name' => 'User',
-            'email' => $email,
-            'birth_date' => '1991-02-02',
-            'country' => 'EG',
-            'state' => 'GZ',
+        $this->postJson('/api/storefront/v1/customers/add', $this->payload([
+            'email' => '  '.strtoupper($email).' ',
             'mobile' => '+2011'.random_int(10000000, 99999999),
-            'dial_code' => '+20',
-        ])
+        ]))
             ->assertStatus(422)
             ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_add_customer_stores_email_lowercased(): void
+    {
+        $this->fakeAccounts();
+        $email = 'Mixed_'.uniqid().'@Example.com';
+        $payload = $this->payload(['email' => $email]);
+
+        $this->postJson('/api/storefront/v1/customers/add', $payload)->assertCreated();
+
+        $this->assertDatabaseHas('contacts', ['mobile' => $payload['mobile'], 'email' => strtolower($email)]);
+    }
+
+    public function test_sync_job_retries_only_when_accounts_is_unavailable(): void
+    {
+        $job = new SyncCustomerToAccounts('Sync Customer', 'sync@example.com', '+201012345678');
+
+        Http::fake([self::ACCOUNTS_CUSTOMERS => Http::sequence()
+            ->push(['success' => false, 'errors' => ['email' => ['taken']]], 422)
+            ->push('Bad gateway', 502)]);
+        $job->handle(app(AccountsCustomerSync::class));
+
+        $this->expectException(\RuntimeException::class);
+        $job->handle(app(AccountsCustomerSync::class));
     }
 
     public function test_phone_countries_endpoint(): void

@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-14 | Add-customer duplicates: Accounts checked synchronously before POS create (email taken there → 422), lowercased emails, per-phone lock, SQL-narrowed mobile duplicate lookup (was full contacts scan). |
 | 2026-10-14 | Add-customer creates the customer in both POS and Accounts: existing POS mobile no longer 422 (200 `created:false`, no contact echoed); queued Accounts find-or-create with retries; Accounts matches phone across formats. |
 | 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |
 | 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
