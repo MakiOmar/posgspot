@@ -815,7 +815,7 @@ $(document).ready(function() {
             data: function(d) {
                 var start = '';
                 var end = '';
-                if ($('#product_pr_date_filter').val()) {
+                if ($('input#product_pr_date_filter').val() && $('input#product_pr_date_filter').data('daterangepicker')) {
                     start = $('input#product_pr_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -942,7 +942,7 @@ $(document).ready(function() {
                     var start_time = $('#product_sr_start_time').val();
                     var end_time = $('#product_sr_end_time').val();
 
-                    if ($('#product_sr_date_filter').val()) {
+                    if ($('input#product_sr_date_filter').val() && $('input#product_sr_date_filter').data('daterangepicker')) {
                         start = $('input#product_sr_date_filter')
                             .data('daterangepicker')
                             .startDate.format('YYYY-MM-DD');
@@ -1007,7 +1007,7 @@ $(document).ready(function() {
                 var end = '';
                 var start_time = $('#product_sr_start_time').val();
                 var end_time = $('#product_sr_end_time').val();
-                if ($('#product_sr_date_filter').val()) {
+                if ($('input#product_sr_date_filter').val() && $('input#product_sr_date_filter').data('daterangepicker')) {
                     start = $('input#product_sr_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -1057,7 +1057,7 @@ $(document).ready(function() {
                 var end = '';
                 var start_time = $('#product_sr_start_time').val();
                 var end_time = $('#product_sr_end_time').val();
-                if ($('#product_sr_date_filter').val()) {
+                if ($('input#product_sr_date_filter').val() && $('input#product_sr_date_filter').data('daterangepicker')) {
                     start = $('input#product_sr_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -1202,7 +1202,7 @@ $(document).ready(function() {
                 d.location_id = $('select#location_id').val();
                 var start = '';
                 var end = '';
-                if ($('input#ppr_date_filter').val()) {
+                if ($('input#ppr_date_filter').val() && $('input#ppr_date_filter').data('daterangepicker')) {
                     start = $('input#ppr_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -1310,7 +1310,7 @@ $(document).ready(function() {
                 d.customer_group_id = $('select#customer_group_filter').val();
                 var start = '';
                 var end = '';
-                if ($('input#spr_date_filter').val()) {
+                if ($('input#spr_date_filter').val() && $('input#spr_date_filter').data('daterangepicker')) {
                     start = $('input#spr_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -1483,7 +1483,7 @@ $(document).ready(function() {
             data: function(d) {
                 var purchase_start = '';
                 var purchase_end = '';
-                if ($('#ir_purchase_date_filter').val()) {
+                if ($('input#ir_purchase_date_filter').val() && $('input#ir_purchase_date_filter').data('daterangepicker')) {
                     purchase_start = $('input#ir_purchase_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
@@ -1493,7 +1493,7 @@ $(document).ready(function() {
                 }
                 var sale_start = '';
                 var sale_end = '';
-                if ($('#ir_sale_date_filter').val()) {
+                if ($('input#ir_sale_date_filter').val() && $('input#ir_sale_date_filter').data('daterangepicker')) {
                     sale_start = $('input#ir_sale_date_filter')
                         .data('daterangepicker')
                         .startDate.format('YYYY-MM-DD');
