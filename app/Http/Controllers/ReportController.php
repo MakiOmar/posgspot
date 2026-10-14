@@ -2187,7 +2187,7 @@ class ReportController extends Controller
 
         $business_id = $request->session()->get('user.business_id');
         if ($request->ajax()) {
-            $supplier_id = $request->get('supplier_id', null);
+            $supplier_id = (int) $request->get('supplier_id', 0);
             $contact_filter1 = ! empty($supplier_id) ? "AND t.contact_id=$supplier_id" : '';
             $contact_filter2 = ! empty($supplier_id) ? "AND transactions.contact_id=$supplier_id" : '';
 
@@ -2195,15 +2195,21 @@ class ReportController extends Controller
 
             $parent_payment_query_part = empty($location_id) ? 'AND transaction_payments.parent_id IS NULL' : '';
 
+            // Non-correlated IN: a correlated EXISTS here is re-run per payment row and times out on large datasets.
+            $child_purchase_payment_parents = "SELECT tp.parent_id FROM transaction_payments as tp
+                JOIN transactions ON tp.transaction_id = transactions.id
+                WHERE tp.parent_id IS NOT NULL AND transactions.type IN ('purchase', 'opening_balance')
+                AND transactions.business_id = $business_id $contact_filter2";
+
             $query = TransactionPayment::leftjoin('transactions as t', function ($join) use ($business_id) {
                 $join->on('transaction_payments.transaction_id', '=', 't.id')
                     ->where('t.business_id', $business_id)
                     ->whereIn('t.type', ['purchase', 'opening_balance']);
             })
                 ->where('transaction_payments.business_id', $business_id)
-                ->where(function ($q) use ($business_id, $contact_filter1, $contact_filter2, $parent_payment_query_part) {
+                ->where(function ($q) use ($contact_filter1, $parent_payment_query_part, $child_purchase_payment_parents) {
                     $q->whereRaw("(transaction_payments.transaction_id IS NOT NULL AND t.type IN ('purchase', 'opening_balance')  $parent_payment_query_part $contact_filter1)")
-                        ->orWhereRaw("EXISTS(SELECT * FROM transaction_payments as tp JOIN transactions ON tp.transaction_id = transactions.id WHERE transactions.type IN ('purchase', 'opening_balance') AND transactions.business_id = $business_id AND tp.parent_id=transaction_payments.id $contact_filter2)");
+                        ->orWhereRaw("transaction_payments.id IN ($child_purchase_payment_parents)");
                 })
 
                 ->select(
