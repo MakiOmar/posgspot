@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-05 |
+| **Last updated** | 2026-10-14 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -55,7 +55,7 @@
 | Digital catalog + fulfillment | ✅ | Proxy games/cards + `product_type` (game\|subscription); gallery/reviews on detail; Full offer + auth `POST /digital/reviews` (phone from contact); platform-strict list/PDP stock; paid-only Accounts allocate; ledger + staff_note credentials; `digital_deliveries` on account orders when `expose_credentials_to_customer`; allocate sets Accounts `pos_order_id` + stamp fallback; optional `pos_document_type`; optional hide creds from customer; per-offer / per-category synced POS products (`pos_offers`, card `pos_sku`) with placeholder fallback; buy-again keeps `digital` |
 
 | Newsletter subscribe API | ✅ | Pluggable Mailchimp/MailerLite/AWeber; Turnstile when configured |
-| Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation |
+| Add-customer (in-store signup) | ✅ | `POST /customers/add`, geo + phone validation; existing POS mobile → 200 `created:false`; queued `SyncCustomerToAccounts` find-or-creates the Accounts user (`POST /api/customers`, `update_existing=false`) |
 | Phone countries + geo states | ✅ | `PhoneCountryController`, `GeoController`, `GET /geo/bosta-districts` |
 | Storefront sale pricing on variations | ✅ | `storefront_sale_price_inc_tax`, `StorefrontPricing` |
 | Order confirmation email | ✅ | `StorefrontMailService` (system Mailgun API or business SMTP) |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-14 | Add-customer creates the customer in both POS and Accounts: existing POS mobile no longer 422 (200 `created:false`, no contact echoed); queued Accounts find-or-create with retries; Accounts matches phone across formats. |
 | 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |
 | 2026-10-01 | Digital games display order: Accounts `games.display_order` (manager game form "Display Order") sorts `/games` and homepage featured promo tiles: lower first, unset after, newest first. POS/Qwik keep Accounts' order unchanged. |
 | 2026-10-01 | Digital games search: `/games` search box (`?q=`, keeps platform / PS Plus / in-stock, noindex on results, "no matches" + clear); Accounts filters title/code before pagination and lists newest first; POS no longer re-filters the current page only. |

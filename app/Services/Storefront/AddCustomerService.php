@@ -3,7 +3,9 @@
 namespace App\Services\Storefront;
 
 use App\Contact;
+use App\Jobs\SyncCustomerToAccounts;
 use App\Utils\ContactUtil;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -33,17 +35,44 @@ class AddCustomerService
             throw ValidationException::withMessages(['mobile' => [$phoneCheck['message']]]);
         }
 
-        if ($email !== '' && $this->duplicates->findCustomerByEmail($businessId, $email)) {
-            throw ValidationException::withMessages(['email' => ['Email already registered.']]);
-        }
-
-        if ($this->duplicates->findCustomerByMobile($businessId, $mobile, $dialCode)) {
-            throw ValidationException::withMessages(['mobile' => ['Mobile already registered.']]);
-        }
-
         $firstName = trim((string) ($data['first_name'] ?? ''));
         $lastName = trim((string) ($data['last_name'] ?? ''));
         $name = trim($firstName.' '.$lastName);
+
+        $existing = $this->duplicates->findCustomerByMobile($businessId, $mobile, $dialCode);
+        $created = ! $existing instanceof Contact;
+        // The duplicate lookup selects only a few columns; reload the full row for syncing.
+        $contact = $created
+            ? $this->createContact($businessId, $data, $mobile, $email, $firstName, $lastName, $name)
+            : (Contact::find($existing->id) ?? $existing);
+
+        $this->queueAccountsSync($contact, $name, $email);
+
+        return [
+            // Public endpoint: never echo an existing customer's details back to an anonymous caller.
+            'contact' => $created ? $this->formatContact($contact) : null,
+            'message' => $created
+                ? 'Customer account has been created successfully.'
+                : 'This customer is already registered.',
+            'created' => $created,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function createContact(
+        int $businessId,
+        array $data,
+        string $mobile,
+        string $email,
+        string $firstName,
+        string $lastName,
+        string $name
+    ): Contact {
+        if ($email !== '' && $this->duplicates->findCustomerByEmail($businessId, $email)) {
+            throw ValidationException::withMessages(['email' => ['Email already registered.']]);
+        }
 
         $input = [
             'business_id' => $businessId,
@@ -67,11 +96,28 @@ class AddCustomerService
             throw new \RuntimeException('Failed to create customer contact.');
         }
 
-        return [
-            'contact' => $this->formatContact($contact),
-            'message' => 'Customer account has been created successfully.',
-            'created' => true,
-        ];
+        return $contact;
+    }
+
+    /**
+     * Stored POS data wins over submitted data so an existing customer is not altered by the public form.
+     */
+    private function queueAccountsSync(Contact $contact, string $submittedName, string $submittedEmail): void
+    {
+        $email = trim((string) $contact->email) ?: $submittedEmail;
+        $phone = trim((string) $contact->mobile);
+        if ($email === '' || $phone === '') {
+            return;
+        }
+
+        $name = trim((string) $contact->name) ?: ($submittedName !== '' ? $submittedName : $email);
+
+        // On the sync queue driver a failing job throws here; the POS signup must still succeed.
+        try {
+            SyncCustomerToAccounts::dispatch($name, $email, $phone);
+        } catch (\Throwable $e) {
+            Log::warning('Accounts customer sync failed', ['contact_id' => $contact->id, 'error' => $e->getMessage()]);
+        }
     }
 
     /**

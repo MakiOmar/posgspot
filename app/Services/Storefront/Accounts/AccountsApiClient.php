@@ -160,6 +160,22 @@ class AccountsApiClient
         return $this->request('POST', 'api/reviews', $payload, false);
     }
 
+    /**
+     * Find-or-create an Accounts customer by phone (200 = existing, 201 = created).
+     * Existing Accounts users are left unchanged (`update_existing=false`).
+     *
+     * @return array{success:bool,status:int,body:?array,error:?string}
+     */
+    public function createCustomer(string $name, string $email, string $phone): array
+    {
+        return $this->request('POST', 'api/customers', [
+            'name' => mb_substr($name, 0, 255),
+            'email' => $email,
+            'phone' => $phone,
+            'update_existing' => false,
+        ], true);
+    }
+
     public function getCardCategories(): array
     {
         return $this->request('GET', 'api/card-ctegories/list', null, false);
