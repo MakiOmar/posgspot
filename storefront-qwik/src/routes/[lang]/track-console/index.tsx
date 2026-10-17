@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import {
   ApiError,
@@ -80,6 +81,7 @@ const DeviceServiceCards = component$<{ services: DeviceTrackService[] }>(({ ser
 });
 
 export default component$(() => {
+  const settings = useSiteSettings();
   const auth = useAuth();
   const { locale } = useI18n();
   const pending = usePendingState();
@@ -92,6 +94,10 @@ export default component$(() => {
   const signedIn = isAuthenticated(auth);
   const authPending = !auth.ready;
   const authPendingAttr = authPending ? "1" : undefined;
+  const turnstile = settings.value.turnstile;
+  const turnstileEnabled = Boolean(turnstile?.enabled && turnstile.site_key);
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
 
   const form = useStore({
     phone_number: "",
@@ -130,10 +136,20 @@ export default component$(() => {
       await toastError(tStatic(locale, "trackConsole.phoneRequired"));
       return;
     }
+    if (turnstileEnabled && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
 
     await withPendingFeedback(pending, submitting, async () => {
       try {
-        const { data } = await lookupDeviceTrack({ phone_number: phone }, locale);
+        const { data } = await lookupDeviceTrack(
+          {
+            phone_number: phone,
+            ...(turnstileEnabled ? { turnstile_token: turnstileToken.value } : {}),
+          },
+          locale,
+        );
         services.value = data.services ?? [];
         searched.value = true;
         await toastSuccess(tStatic(locale, "trackConsole.found"));
@@ -145,6 +161,9 @@ export default component$(() => {
             ? e.message || tStatic(locale, "trackConsole.notFound")
             : tStatic(locale, "trackConsole.notFound");
         await toastError(message);
+      } finally {
+        // Turnstile tokens are single-use; get a fresh one for the next search.
+        turnstileResetKey.value += 1;
       }
     });
   });
@@ -205,6 +224,16 @@ export default component$(() => {
                   }}
                 />
               </div>
+
+              {/* Security check required by POST /device/track when Turnstile is configured. */}
+              {turnstileEnabled && turnstile.site_key ? (
+                <TurnstileWidget
+                  siteKey={turnstile.site_key}
+                  token={turnstileToken}
+                  resetKey={turnstileResetKey.value}
+                  activation="visible"
+                />
+              ) : null}
 
               <button type="submit" class="btn btn-primary" disabled={submitting.value}>
                 {submitting.value

@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-17 | Repair status + track console guest search: added the Turnstile widget and `turnstile_token` (API has required it since the security hardening; searches failed with "Please complete the security check."). |
 | 2026-10-17 | Repair status + track console: guests get the lookup form in the SSR HTML instead of "Loading your repairs…" until auth hydrates; signed-in customers (saved session flagged by an inline head script) see their list directly with no form flash. Mobile number listed first so the SSR select matches the default; signed-in empty text no longer points to a missing form. |
 | 2026-10-17 | POS Roles → **Storefront** section: grant `storefront.settings`, new `storefront.community` (community posts) and `storefront.requests` (sell-to-us, product requests, community applications), `product_review.access/moderate`, `coupon.access/create/delete` per role. Migration copies the two new permissions to Admin roles and any role that had `storefront.settings`. `StorefrontRolePermissionsTest`. |
 | 2026-10-17 | Brand visibility: POS brand add/edit "Show on storefront" checkbox (default on; brands list "Storefront" column). Hidden brands drop out of `GET /brands`, `GET /brands/{slug}` (404), `brand_slug` filter, homepage slider, sitemap and PDP `brand` (null); products stay listed. `BrandStorefrontVisibilityTest`. |

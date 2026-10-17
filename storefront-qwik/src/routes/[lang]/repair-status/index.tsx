@@ -1,5 +1,6 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import {
   ApiError,
@@ -117,6 +118,10 @@ export default component$(() => {
 
   const lookupEnabled = settings.value.repair?.lookup_enabled ?? true;
   const lookupByMobile = settings.value.repair?.lookup_by_mobile ?? true;
+  const turnstile = settings.value.turnstile;
+  const turnstileEnabled = Boolean(turnstile?.enabled && turnstile.site_key);
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
   const signedIn = isAuthenticated(auth);
   const authPending = !auth.ready;
   const authPendingAttr = authPending ? "1" : undefined;
@@ -179,6 +184,10 @@ export default component$(() => {
       await toastError(tStatic(locale, "repair.searchRequired"));
       return;
     }
+    if (turnstileEnabled && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
 
     await withPendingFeedback(pending, submitting, async () => {
       try {
@@ -187,6 +196,7 @@ export default component$(() => {
             search_type: form.search_type as RepairStatusSearchType,
             search_number: number,
             ...(form.serial_no.trim() ? { serial_no: form.serial_no.trim() } : {}),
+            ...(turnstileEnabled ? { turnstile_token: turnstileToken.value } : {}),
           },
           locale,
         );
@@ -201,6 +211,9 @@ export default component$(() => {
             ? e.message || tStatic(locale, "repair.notFound")
             : tStatic(locale, "repair.notFound");
         await toastError(message);
+      } finally {
+        // Turnstile tokens are single-use; get a fresh one for the next search.
+        turnstileResetKey.value += 1;
       }
     });
   });
@@ -299,6 +312,16 @@ export default component$(() => {
                   }}
                 />
               </div>
+
+              {/* Security check required by POST /repair/status when Turnstile is configured. */}
+              {turnstileEnabled && turnstile.site_key ? (
+                <TurnstileWidget
+                  siteKey={turnstile.site_key}
+                  token={turnstileToken}
+                  resetKey={turnstileResetKey.value}
+                  activation="visible"
+                />
+              ) : null}
 
               <button type="submit" class="btn btn-primary" disabled={submitting.value}>
                 {submitting.value ? tStatic(locale, "repair.searching") : tStatic(locale, "repair.search")}

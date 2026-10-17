@@ -974,6 +974,7 @@ export type RepairStatusLookupPayload = {
   search_type: RepairStatusSearchType;
   search_number: string;
   serial_no?: string;
+  turnstile_token?: string;
 };
 
 export function lookupRepairStatus(payload: RepairStatusLookupPayload, locale?: string) {
@@ -1024,6 +1025,7 @@ export type DeviceTrackService = {
 export type DeviceTrackPayload = {
   phone_number?: string;
   phone?: string;
+  turnstile_token?: string;
 };
 
 /** Public: console/device services by phone (Accounts Device Track proxy). */
