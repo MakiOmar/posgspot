@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-14 |
+| **Last updated** | 2026-10-17 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-17 | Password reset + email verification emails now send through the business mail settings (POS Business Settings → Email); they used to fall back to the `.env` mailer because settings were applied after the mailer was bound. `StorefrontMailService::sendNowForBusiness`; `StorefrontAuthMailSettingsTest`. |
 | 2026-10-14 | Add-customer duplicates: Accounts checked synchronously before POS create (email taken there → 422), lowercased emails, per-phone lock, SQL-narrowed mobile duplicate lookup (was full contacts scan). |
 | 2026-10-14 | Add-customer creates the customer in both POS and Accounts: existing POS mobile no longer 422 (200 `created:false`, no contact echoed); queued Accounts find-or-create with retries; Accounts matches phone across formats. |
 | 2026-10-05 | POS shipping status `preparing` (between ordered and packed); storefront account orders + track order show translated shipping status labels (`lib/shipping-status.ts`). |

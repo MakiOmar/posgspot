@@ -7,6 +7,7 @@ use App\Mail\StorefrontOrderShipped;
 use App\System;
 use App\Transaction;
 use App\Utils\BusinessUtil;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 
@@ -53,6 +54,20 @@ class StorefrontMailService
         Config::set('mail.from.name', $from['name']);
 
         return $from;
+    }
+
+    /**
+     * Send immediately with the business mail settings.
+     *
+     * Settings must be applied before the mailer is resolved: Mail::to() binds the transport
+     * at call time, so applying them later inside Mailable::build() silently keeps the .env mailer.
+     */
+    public function sendNowForBusiness(int $businessId, string $to, Mailable $mailable): void
+    {
+        $this->applyForBusiness($businessId);
+        $mailer = (string) config('mail.default');
+        Mail::purge($mailer);
+        Mail::mailer($mailer)->to($to)->sendNow($mailable);
     }
 
     /**

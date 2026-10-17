@@ -9,8 +9,6 @@ use App\Services\Storefront\StorefrontMailService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
-
 /**
  * Diagnostic: send a storefront email-verification OTP and print sent/failed status.
  *
@@ -83,7 +81,7 @@ class SendStorefrontVerificationEmail extends Command
 
         try {
             // Force synchronous send so SMTP auth failures are visible here.
-            Mail::to($contact->email)->sendNow(new StorefrontEmailVerification($contact, $code));
+            $mailService->sendNowForBusiness($businessId, $contact->email, new StorefrontEmailVerification($contact, $code));
         } catch (\Throwable $e) {
             $this->error('FAILED to send verification email.');
             $this->line($e::class.': '.$e->getMessage());

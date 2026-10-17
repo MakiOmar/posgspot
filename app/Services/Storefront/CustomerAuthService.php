@@ -9,7 +9,6 @@ use App\Support\ImageWebpConverter;
 use App\Utils\ContactUtil;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -129,7 +128,11 @@ class CustomerAuthService
         try {
             // Sync send — same path as `storefront:send-verification`.
             // Queued jobs often never run on shared hosting without a reliable worker.
-            Mail::to($contact->email)->sendNow(new StorefrontEmailVerification($contact, $code));
+            app(StorefrontMailService::class)->sendNowForBusiness(
+                (int) $contact->business_id,
+                $contact->email,
+                new StorefrontEmailVerification($contact, $code)
+            );
         } catch (\Throwable $e) {
             Log::warning('Storefront email verification send failed.', [
                 'contact_id' => $contact->id,

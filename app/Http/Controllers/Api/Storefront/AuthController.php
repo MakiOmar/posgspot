@@ -6,12 +6,12 @@ use App\Contact;
 use App\Mail\StorefrontPasswordReset;
 use App\Services\Storefront\CustomerAuthService;
 use App\Services\Storefront\PhoneValidationService;
+use App\Services\Storefront\StorefrontMailService;
 use App\Services\Storefront\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends StorefrontController
@@ -189,7 +189,8 @@ class AuthController extends StorefrontController
             );
             try {
                 // Sync send so reset works without depending on queue workers.
-                Mail::to($contact->email)->sendNow(new StorefrontPasswordReset($contact, $token));
+                app(StorefrontMailService::class)
+                    ->sendNowForBusiness($businessId, $contact->email, new StorefrontPasswordReset($contact, $token));
             } catch (\Throwable $e) {
                 Log::warning('Storefront password reset email failed.', [
                     'contact_id' => $contact->id,
