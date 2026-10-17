@@ -25,6 +25,10 @@ class Brands extends Model
 
     protected $appends = ['image_url'];
 
+    protected $casts = [
+        'show_on_storefront' => 'boolean',
+    ];
+
     /**
      * Storefront brand logo URL (uploads/img or default placeholder).
      */

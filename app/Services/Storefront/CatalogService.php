@@ -202,7 +202,7 @@ class CatalogService
     }
 
     /**
-     * Brands with at least one sellable product in public selling locations.
+     * Brands shown on the storefront with at least one sellable product in public selling locations.
      *
      * @return array<int, array{id:int,name:string,slug:string}>
      */
@@ -215,6 +215,7 @@ class CatalogService
 
         $query = Brands::query()
             ->where('business_id', $businessId)
+            ->where('show_on_storefront', true)
             ->whereNotNull('slug')
             ->where('slug', '!=', '')
             ->whereHas('products', function (Builder $q) use ($businessId, $locationIds) {
@@ -249,6 +250,7 @@ class CatalogService
 
         $brand = Brands::query()
             ->where('business_id', $businessId)
+            ->where('show_on_storefront', true)
             ->where('slug', $slug)
             ->with(['storefrontTranslations' => fn ($q) => $q->where('locale', $locale)])
             ->first();
@@ -867,7 +869,7 @@ class CatalogService
             'sku' => $product->sku,
             'type' => $product->type,
             'description' => $this->htmlSanitizer->sanitize($product->product_description),
-            'brand' => $product->brand ? (function () use ($product, $locale) {
+            'brand' => $product->brand && $product->brand->show_on_storefront ? (function () use ($product, $locale) {
                 $fields = $this->presenter->brandFields($product->brand, $locale);
                 if ($fields === []) {
                     // Detail still shows brand name even without AR translation row.

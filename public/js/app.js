@@ -142,6 +142,7 @@ $(document).ready(function() {
         columns: [
             { data: 'name', name: 'name' },
             { data: 'logo', name: 'logo', orderable: false, searchable: false },
+            { data: 'show_on_storefront', name: 'show_on_storefront', searchable: false },
             { data: 'description', name: 'description' },
             { data: 'action', name: 'action', orderable: false, searchable: false },
         ],

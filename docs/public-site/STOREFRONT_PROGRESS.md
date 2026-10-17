@@ -35,7 +35,7 @@
 | Settings, locations, categories | ✅ | `SettingsApiService`, `CatalogService`; `GET /locations` = active non-selling branches (`?selling_only=1` for pickup); `show_on_storefront` hides branches from listings + availability; categories/brands expose `image_url`; homepage shelves; `GET /categories` slim tree cached 120s; `GET /settings?shell=1` omits `about.team`; public Cache-Control/ETag on settings + categories |
 | Homepage sections API | ✅ | `GET /homepage`; `homepage_sections` in settings; `SectionTypeRegistry` + Vue POS builder; hero slides optional `image_mobile_url` |
 | Products list + detail + search | ✅ | Filters: category, brand (`brand_id` / `brand_slug`), `q`, `in_stock_only`, `featured`; sort: name, price, newest, bestsellers (cached scores 1h); detail embeds `related_products[]` + `rating` + brand `slug`; `images[]` prefers POS product gallery (media library or upload) when set; product cards eager-load variations+VLD |
-| Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug |
+| Brands list + show | ✅ | `GET /brands`, `GET /brands/{slug}`; `brands.slug` + `image`/`image_url`; locale-strict AR; POS create/update auto-slug; `brands.show_on_storefront` (POS brand form checkbox + list column) hides a brand from list/show/slider/sitemap/PDP while its products stay for sale |
 | Product reviews API | ✅ | Submit (auth + purchase), list approved, eligibility; POS moderate |
 | Per-store availability | ✅ | Active `show_on_storefront` locations; maps URL + coords |
 | Cart validate (price + stock) | ✅ | Fulfillment `location_id` stock check; destination + `shipping_rate_id` → `available_rates[]` |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-17 | Brand visibility: POS brand add/edit "Show on storefront" checkbox (default on; brands list "Storefront" column). Hidden brands drop out of `GET /brands`, `GET /brands/{slug}` (404), `brand_slug` filter, homepage slider, sitemap and PDP `brand` (null); products stay listed. `BrandStorefrontVisibilityTest`. |
 | 2026-10-17 | Password reset + email verification emails now send through the business mail settings (POS Business Settings → Email); they used to fall back to the `.env` mailer because settings were applied after the mailer was bound. `StorefrontMailService::sendNowForBusiness`; `StorefrontAuthMailSettingsTest`. |
 | 2026-10-14 | Add-customer duplicates: Accounts checked synchronously before POS create (email taken there → 422), lowercased emails, per-phone lock, SQL-narrowed mobile duplicate lookup (was full contacts scan). |
 | 2026-10-14 | Add-customer creates the customer in both POS and Accounts: existing POS mobile no longer 422 (200 `created:false`, no contact echoed); queued Accounts find-or-create with retries; Accounts matches phone across formats. |

@@ -25,5 +25,10 @@ return [
     'logo' => 'Logo',
     'remove_logo' => 'Remove current logo',
     'logo_help' => 'Optional. Shown on the storefront shop-by-brand strip.',
+    'show_on_storefront' => 'Show on storefront',
+    'show_on_storefront_help' => 'When unchecked, the brand is hidden from the storefront brands page, its brand page, the homepage brand slider and product pages. Its products stay for sale.',
+    'storefront' => 'Storefront',
+    'storefront_visible' => 'Visible',
+    'storefront_hidden' => 'Hidden',
 
 ];

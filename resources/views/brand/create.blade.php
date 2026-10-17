@@ -26,6 +26,17 @@
         <p class="help-block">@lang('brand.logo_help')</p>
       </div>
 
+      {{-- Storefront visibility: unticked hides the brand (not its products) from the storefront --}}
+      <div class="form-group">
+        <input type="hidden" name="storefront_visibility_field" value="1">
+        <div class="checkbox">
+          <label>
+            {!! Form::checkbox('show_on_storefront', 1, true) !!} @lang('brand.show_on_storefront')
+          </label>
+        </div>
+        <p class="help-block">@lang('brand.show_on_storefront_help')</p>
+      </div>
+
         @if($is_repair_installed)
           <div class="form-group">
              <label>

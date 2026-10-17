@@ -219,8 +219,8 @@ See [`README-GEIDEA-PAYMENTS.md`](./README-GEIDEA-PAYMENTS.md) for signatures, t
 | GET | `/categories` | Category tree (`id`, `name`, `slug`, `image_url`, nested `sub_categories`). `Cache-Control: public, max-age=60` + `ETag`. |
 | GET | `/categories/homepage-shelves` | Categories with `show_on_homepage_shelf` (background `banner_image_url`, mid product `banner_fg_image_url`, heading/kicker/title/CTA from POS category edit). Use each `slug` with `/products?category_slug=` for the shelf grid |
 | GET | `/categories/{slug}` | Single category by slug (404 if unknown); includes `image_url` |
-| GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. |
-| GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown or no locale content); includes `image_url` |
+| GET | `/brands` | Brands with sellable products in public selling locations (`id`, `name`, `slug`, `image_url`). Locale-filtered: AR requires a brand translation row. Brands with **Show on storefront** off (POS brand form) are excluded. |
+| GET | `/brands/{slug}` | Single brand by EN `slug` (404 if unknown, hidden from storefront, or no locale content); includes `image_url`. Product detail returns `brand: null` for hidden brands. |
 | GET | `/products` | Product listing (empty if no selling locations); filter via `category_id` / `category_slug`, `brand_id` / `brand_slug`, `featured=1` (POS `is_storefront_featured`), `ids=3,9,12` (comma list or array, max 50; with `sort=default` results keep the given order; only invalid ids → empty list); sort: `default`, `name`, `price_asc`, `price_desc`, `newest`, `bestsellers` |
 | GET | `/custom-bundle/meta` | Bundle builder meta (platforms, tabs, min/max). Requires `STOREFRONT_CUSTOM_BUNDLE`. See Custom Bundle section. |
 | GET | `/custom-bundle/products` | Physical in-stock products for bundle builder (`platform`, `tab`, `q`). See Custom Bundle section. |

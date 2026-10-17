@@ -42,7 +42,7 @@ class BrandController extends Controller
             $can_delete = auth()->user()->can('brand.delete');
 
             $brands = Brands::where('business_id', $business_id)
-                        ->select(['name', 'description', 'image', 'id']);
+                        ->select(['name', 'description', 'image', 'show_on_storefront', 'id']);
 
             return Datatables::of($brands)
                 ->addColumn('logo', function ($row) {
@@ -51,6 +51,11 @@ class BrandController extends Controller
                     }
 
                     return '<img src="'.e($row->image_url).'" alt="" style="max-height:36px;max-width:72px;object-fit:contain;">';
+                })
+                ->editColumn('show_on_storefront', function ($row) {
+                    return $row->show_on_storefront
+                        ? '<span class="label bg-green">'.e(__('brand.storefront_visible')).'</span>'
+                        : '<span class="label bg-gray">'.e(__('brand.storefront_hidden')).'</span>';
                 })
                 ->addColumn(
                     'action',
@@ -68,7 +73,7 @@ class BrandController extends Controller
                 )
                 ->removeColumn('id')
                 ->removeColumn('image')
-                ->rawColumns(['logo', 'action'])
+                ->rawColumns(['logo', 'show_on_storefront', 'action'])
                 ->make(true);
         }
 
@@ -120,6 +125,10 @@ class BrandController extends Controller
             }
 
             $input['slug'] = Brands::generateSlug((string) $input['name'], $business_id);
+            // Quick-add from the product form has no checkbox: new brands default to visible.
+            $input['show_on_storefront'] = $request->has('storefront_visibility_field')
+                ? $request->boolean('show_on_storefront')
+                : true;
 
             // Storefront brand logo (same uploads/img path as products).
             $fileName = $this->moduleUtil->uploadFile($request, 'image', config('constants.product_img_path'), 'image');
@@ -201,6 +210,10 @@ class BrandController extends Controller
 
                 if (empty($brand->slug)) {
                     $brand->slug = Brands::generateSlug((string) $brand->name, $business_id, $brand->id);
+                }
+
+                if ($request->has('storefront_visibility_field')) {
+                    $brand->show_on_storefront = $request->boolean('show_on_storefront');
                 }
 
                 if ($this->moduleUtil->isModuleInstalled('Repair')) {
