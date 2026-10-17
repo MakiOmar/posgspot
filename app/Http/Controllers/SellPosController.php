@@ -1703,7 +1703,7 @@ class SellPosController extends Controller
 
     /**
      * After a save: allocate ticked account lines, then report what the cashier should hand over.
-     * POS sells also report lines the paid hook allocated and return the credentials for display.
+     * POS sells only ever fetch ticked lines; their credentials are returned for display.
      *
      * @return array{msg: string|null, deliveries: list<array<string, mixed>>}
      */
@@ -1714,10 +1714,7 @@ class SellPosController extends Controller
             return ['msg' => $fetch_msg, 'deliveries' => []];
         }
 
-        $fulfilment = app(SalesOrderDigitalFulfillmentService::class);
-        // The paid hook runs after commit and can be skipped in some POS paths; this replay is idempotent.
-        $fulfilment->handlePaid($transaction);
-        $summary = $fulfilment->saleDeliverySummary($transaction->fresh());
+        $summary = app(SalesOrderDigitalFulfillmentService::class)->saleDeliverySummary($transaction->fresh());
         $parts = [];
         if (! empty($summary['deliveries'])) {
             $parts[] = __('lang_v1.accounts_fetched', ['count' => count($summary['deliveries'])]);

@@ -217,7 +217,7 @@
 					<input type="checkbox" name="products[{{$row_count}}][fetch_account]" value="1" class="fetch_account_checkbox">
 					@lang('lang_v1.fetch_account_now')
 				</label>
-				@show_tooltip(__('lang_v1.fetch_account_now_help'))
+				@show_tooltip(__(!empty($is_sales_order) ? 'lang_v1.fetch_account_now_help' : 'lang_v1.fetch_account_now_help_pos'))
 			</div>
 		@endif
 	@endif

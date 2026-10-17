@@ -3124,7 +3124,7 @@ class TransactionUtil extends Util
                     }
                     $accountsFulfilment = app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class);
                     if ($tx->type === 'sales_order' || $accountsFulfilment->isEligible($tx)) {
-                        // Call-center sales orders and POS sells: allocate remaining Accounts lines once fully paid.
+                        // Sales orders fetch their remaining Accounts lines once paid; POS sells only fetch ticked lines (no-op here).
                         $accountsFulfilment->handlePaid($tx);
 
                         return;

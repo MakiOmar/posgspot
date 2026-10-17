@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Schema;
  * Allocates Accounts game accounts / cards for call-center sales orders and, when
  * ACCOUNTS_POS_SELL is on, final POS / direct sells.
  *
- * Lines staff tick "Fetch account now" are allocated on save; everything else when the
- * sale becomes fully paid. One ledger row per unit (`so-{id}` / `pos-{id}` + per-line keys)
+ * Lines staff tick "Fetch account now" are allocated on save. On sales orders everything else
+ * follows once fully paid; POS sells never fetch unticked lines. One ledger row per unit (`so-{id}` / `pos-{id}` + per-line keys)
  * keeps every trigger idempotent, and Accounts itself dedupes on (storefront_order_id, line_key).
  */
 class SalesOrderDigitalFulfillmentService
@@ -109,6 +109,14 @@ class SalesOrderDigitalFulfillmentService
     }
 
     /**
+     * POS / direct sells only fetch the lines staff ticked; sales orders also fetch the rest once paid.
+     */
+    public static function fetchesRemainingWhenPaid(Transaction $transaction): bool
+    {
+        return $transaction->type === 'sales_order';
+    }
+
+    /**
      * Allocate every remaining account line once the sales order is fully paid.
      *
      * @return array{allocated: int, failed: int, errors: list<string>}
@@ -117,6 +125,9 @@ class SalesOrderDigitalFulfillmentService
     {
         $result = ['allocated' => 0, 'failed' => 0, 'errors' => []];
         $salesOrder->refresh();
+        if (! self::fetchesRemainingWhenPaid($salesOrder)) {
+            return $result;
+        }
         if (! $this->isEnabled() || ! $this->isEligible($salesOrder) || ! $this->isPaid($salesOrder)) {
             return $result;
         }
@@ -163,7 +174,9 @@ class SalesOrderDigitalFulfillmentService
             if (! $salesOrder || ! $this->isEligible($salesOrder)) {
                 continue;
             }
-            $lineIds = $this->isPaid($salesOrder) ? null : $this->onSaveLineIds($salesOrder);
+            $lineIds = self::fetchesRemainingWhenPaid($salesOrder) && $this->isPaid($salesOrder)
+                ? null
+                : $this->onSaveLineIds($salesOrder);
             if ($lineIds === []) {
                 continue;
             }
