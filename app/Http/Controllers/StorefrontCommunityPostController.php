@@ -25,7 +25,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function index()
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -87,7 +87,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function create()
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -96,7 +96,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function store(Request $request)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -139,7 +139,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function edit(int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -153,7 +153,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function update(Request $request, int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -200,7 +200,7 @@ class StorefrontCommunityPostController extends Controller
 
     public function destroy(int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.community')) {
             abort(403, 'Unauthorized action.');
         }
 

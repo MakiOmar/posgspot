@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-17 | POS Roles → **Storefront** section: grant `storefront.settings`, new `storefront.community` (community posts) and `storefront.requests` (sell-to-us, product requests, community applications), `product_review.access/moderate`, `coupon.access/create/delete` per role. Migration copies the two new permissions to Admin roles and any role that had `storefront.settings`. `StorefrontRolePermissionsTest`. |
 | 2026-10-17 | Brand visibility: POS brand add/edit "Show on storefront" checkbox (default on; brands list "Storefront" column). Hidden brands drop out of `GET /brands`, `GET /brands/{slug}` (404), `brand_slug` filter, homepage slider, sitemap and PDP `brand` (null); products stay listed. `BrandStorefrontVisibilityTest`. |
 | 2026-10-17 | Password reset + email verification emails now send through the business mail settings (POS Business Settings → Email); they used to fall back to the `.env` mailer because settings were applied after the mailer was bound. `StorefrontMailService::sendNowForBusiness`; `StorefrontAuthMailSettingsTest`. |
 | 2026-10-14 | Add-customer duplicates: Accounts checked synchronously before POS create (email taken there → 422), lowercased emails, per-phone lock, SQL-narrowed mobile duplicate lookup (was full contacts scan). |

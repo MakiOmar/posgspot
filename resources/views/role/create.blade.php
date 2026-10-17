@@ -159,6 +159,7 @@
         </div>
         </div>
         <hr>
+        @include('role.partials.storefront_permissions', ['role_permissions' => []])
         <div class="row check_group">
         <div class="col-md-1">
           <h4>@lang( 'role.supplier' )</h4>

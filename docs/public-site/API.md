@@ -362,6 +362,8 @@ Back-office: **Settings → Storefront Settings** (`/storefront/settings`)
 
 **Promo codes (POS admin):** Settings → **Promo codes** (`/coupons`) — separate from automatic POS **Discounts**. Storefront visibility/stacking: **Storefront Settings → Promo codes (storefront checkout)** (`enabled_at_checkout`, `allow_stacking`). Types: percentage off order, fixed amount off order, free shipping. Limits: date window, min eligible subtotal, max discount cap, global/per-customer usage, first-order-only, exclude sale items, channel (`storefront` / `pos` / `both`). Permissions: `coupon.access`, `coupon.create`, `coupon.delete`.
 
+**Storefront dashboard permissions (POS Roles → Storefront):** `storefront.settings` (settings, translations, shipping zones), `storefront.community` (community posts), `storefront.requests` (sell-to-us, product requests, community applications), `product_review.access` / `product_review.moderate`, `coupon.access` / `coupon.create` / `coupon.delete`. Admin roles have all of them.
+
 ### Checkout totals order
 
 Sale price → **coupon** → shipping (zone quote; free-shipping coupon zeros delivery rates; free-shipping method min amount uses cart subtotal) → reward points → payment. Coupon + reward points stacking is controlled per coupon (`stack_with_reward_points`, default allowed).

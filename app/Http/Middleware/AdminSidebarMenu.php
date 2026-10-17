@@ -812,6 +812,8 @@ class AdminSidebarMenu
                 auth()->user()->can('tax_rate.create') ||
                 auth()->user()->can('access_package_subscriptions') ||
                 auth()->user()->can('storefront.settings') ||
+                auth()->user()->can('storefront.community') ||
+                auth()->user()->can('storefront.requests') ||
                 auth()->user()->can('coupon.access') ||
                 auth()->user()->can('product_review.access')) {
                 $menu->dropdown(
@@ -840,15 +842,19 @@ class AdminSidebarMenu
                                 'Storefront Translations',
                                 ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'translations']
                             );
-                            $sub->url(
-                                action([\App\Http\Controllers\StorefrontSellRequestController::class, 'index']),
-                                'Sell to us requests',
-                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'sell-requests']
-                            );
+                        }
+                        if (auth()->user()->can('storefront.community')) {
                             $sub->url(
                                 action([\App\Http\Controllers\StorefrontCommunityPostController::class, 'index']),
                                 'Community posts',
                                 ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'community' && request()->segment(3) != 'applications']
+                            );
+                        }
+                        if (auth()->user()->can('storefront.requests')) {
+                            $sub->url(
+                                action([\App\Http\Controllers\StorefrontSellRequestController::class, 'index']),
+                                'Sell to us requests',
+                                ['icon' => '', 'active' => request()->segment(1) == 'storefront' && request()->segment(2) == 'sell-requests']
                             );
                             $sub->url(
                                 action([\App\Http\Controllers\StorefrontCommunityApplicationController::class, 'index']),

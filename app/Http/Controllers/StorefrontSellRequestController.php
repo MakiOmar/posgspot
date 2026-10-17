@@ -19,7 +19,7 @@ class StorefrontSellRequestController extends Controller
 
     public function index()
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -68,7 +68,7 @@ class StorefrontSellRequestController extends Controller
 
     public function show(int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -85,7 +85,7 @@ class StorefrontSellRequestController extends Controller
 
     public function updateStatus(Request $request, int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 

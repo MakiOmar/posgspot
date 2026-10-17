@@ -21,7 +21,7 @@ class StorefrontCommunityApplicationController extends Controller
 
     public function index()
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -85,7 +85,7 @@ class StorefrontCommunityApplicationController extends Controller
 
     public function updateStatus(Request $request, int $id)
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -102,7 +102,7 @@ class StorefrontCommunityApplicationController extends Controller
 
     public function export(): StreamedResponse
     {
-        if (! auth()->user()->can('storefront.settings')) {
+        if (! auth()->user()->can('storefront.requests')) {
             abort(403, 'Unauthorized action.');
         }
 
