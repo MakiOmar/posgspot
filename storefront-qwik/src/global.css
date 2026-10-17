@@ -8509,6 +8509,12 @@ html:not([dir="rtl"]) .home-category-shelf__banner-btn-arrow::before {
   right: calc(100% - 0.35rem);
 }
 
+/* Guest vs signed-in views before auth hydrates (class set by SESSION_HINT_BOOTSTRAP). */
+html:not(.gs-has-session) [data-auth-pending][data-auth-view="mine"],
+html.gs-has-session [data-auth-pending][data-auth-view="guest"] {
+  display: none;
+}
+
 /* Repair status lookup page */
 .repair-status-page .content-lead {
   margin: 0 0 1.5rem;

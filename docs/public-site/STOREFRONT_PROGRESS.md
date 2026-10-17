@@ -94,8 +94,8 @@
 | `/[lang]/contact` | ✅ | Form + branches + map; Turnstile when configured; link to store locator |
 | `/[lang]/stores` | ✅ | Store locator: map + branch list (call / directions / pickup); `GET /locations` |
 | `/[lang]/about`, `/[lang]/faq` | ✅ | Locale modules (EN + AR) + FAQ JSON-LD; team cards from `settings.about.team`; floating contact FAB (Call / Chat / Message; chat opens AI panel when enabled) |
-| `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`) |
-| `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`) |
+| `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`), server-rendered (no auth wait); `gs-has-session` head hint picks the view before hydration |
+| `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`), server-rendered (no auth wait); same session hint |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); "In stock only" toggle (`?in_stock_only=1`, filtered by Accounts before pagination); list + homepage featured sorted by Accounts game **Display Order** (lower first, unset = newest first); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
 | `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
@@ -256,6 +256,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-17 | Repair status + track console: guests get the lookup form in the SSR HTML instead of "Loading your repairs…" until auth hydrates; signed-in customers (saved session flagged by an inline head script) see their list directly with no form flash. Mobile number listed first so the SSR select matches the default; signed-in empty text no longer points to a missing form. |
 | 2026-10-17 | POS Roles → **Storefront** section: grant `storefront.settings`, new `storefront.community` (community posts) and `storefront.requests` (sell-to-us, product requests, community applications), `product_review.access/moderate`, `coupon.access/create/delete` per role. Migration copies the two new permissions to Admin roles and any role that had `storefront.settings`. `StorefrontRolePermissionsTest`. |
 | 2026-10-17 | Brand visibility: POS brand add/edit "Show on storefront" checkbox (default on; brands list "Storefront" column). Hidden brands drop out of `GET /brands`, `GET /brands/{slug}` (404), `brand_slug` filter, homepage slider, sitemap and PDP `brand` (null); products stay listed. `BrandStorefrontVisibilityTest`. |
 | 2026-10-17 | Password reset + email verification emails now send through the business mail settings (POS Business Settings → Email); they used to fall back to the `.env` mailer because settings were applied after the mailer was bound. `StorefrontMailService::sendNowForBusiness`; `StorefrontAuthMailSettingsTest`. |

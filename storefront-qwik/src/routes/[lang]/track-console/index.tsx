@@ -90,6 +90,8 @@ export default component$(() => {
   const myLoaded = useSignal(false);
   const myLoading = useSignal(false);
   const signedIn = isAuthenticated(auth);
+  const authPending = !auth.ready;
+  const authPendingAttr = authPending ? "1" : undefined;
 
   const form = useStore({
     phone_number: "",
@@ -155,15 +157,22 @@ export default component$(() => {
       />
       <article class="content-page repair-status-page track-console-page">
       {/* Guest-only intro; signed-in customers see their list instead of lookup copy. */}
-      {auth.ready && !signedIn ? (
-        <p class="content-lead">{tStatic(locale, "trackConsole.intro")}</p>
+      {!signedIn ? (
+        <p class="content-lead" data-auth-view="guest" data-auth-pending={authPendingAttr}>
+          {tStatic(locale, "trackConsole.intro")}
+        </p>
       ) : null}
 
-      {/* Signed-in: auto-list only. Wait for auth so the guest form does not flash. */}
-      {signedIn || !auth.ready ? (
-        <section class="repair-status-mine" aria-live="polite">
+      {/* Signed-in: auto-list only. Before auth hydrates, CSS shows this only with a saved session. */}
+      {signedIn || authPending ? (
+        <section
+          class="repair-status-mine"
+          aria-live="polite"
+          data-auth-view="mine"
+          data-auth-pending={authPendingAttr}
+        >
           <h2 class="repair-status-mine__title">{tStatic(locale, "trackConsole.myServices")}</h2>
-          {!auth.ready || myLoading.value ? (
+          {authPending || myLoading.value ? (
             <p class="footer-muted">{tStatic(locale, "trackConsole.loadingMine")}</p>
           ) : myLoaded.value && myServices.value.length === 0 ? (
             <p class="footer-muted">{tStatic(locale, "trackConsole.myServicesEmpty")}</p>
@@ -173,9 +182,9 @@ export default component$(() => {
         </section>
       ) : null}
 
-      {/* Guests only: phone lookup. */}
-      {auth.ready && !signedIn ? (
-        <div class="repair-status-layout">
+      {/* Guests: phone lookup, server-rendered so it is usable before auth hydrates. */}
+      {!signedIn ? (
+        <div class="repair-status-layout" data-auth-view="guest" data-auth-pending={authPendingAttr}>
           <div class="repair-status-layout__form">
             <p class="footer-muted">
               {tStatic(locale, "trackConsole.myServicesSignIn")}{" "}

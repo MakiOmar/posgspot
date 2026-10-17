@@ -14,6 +14,7 @@ import {
   needsArabicFont,
   shouldPreconnectGoogleFonts,
 } from "~/lib/fonts/document-head";
+import { SESSION_HINT_BOOTSTRAP } from "~/lib/auth-session-hint";
 import { localeDefinition } from "~/lib/i18n/config";
 import { localeFromPathname } from "~/lib/i18n/paths";
 
@@ -101,6 +102,9 @@ export const RouterHead = component$(() => {
           </noscript>
         </>
       ) : null}
+
+      {/* Flags a saved session before paint so guest/signed-in views do not flash. */}
+      <script {...(nonce ? { nonce } : {})} dangerouslySetInnerHTML={SESSION_HINT_BOOTSTRAP} />
 
       {nonce && (playfairProps || arabicProps) ? (
         <script nonce={nonce} dangerouslySetInnerHTML={ASYNC_STYLESHEET_BOOTSTRAP} />

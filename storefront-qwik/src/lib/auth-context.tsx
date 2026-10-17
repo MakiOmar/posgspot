@@ -14,6 +14,7 @@ import {
   type AuthState,
   type PersistedAuth,
 } from "~/lib/auth-actions";
+import { syncSessionHint } from "~/lib/auth-session-hint";
 import { tStatic } from "~/lib/i18n/context";
 import { localeFromPathname } from "~/lib/i18n/paths";
 import { toastError } from "~/lib/notify";
@@ -92,8 +93,10 @@ export const AuthProvider = component$(() => {
     if (auth.token && auth.contact) {
       const payload: PersistedAuth = { token: auth.token, contact: auth.contact };
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
+      syncSessionHint(true);
     } else if (auth.ready) {
       localStorage.removeItem(AUTH_STORAGE_KEY);
+      syncSessionHint(false);
     }
   });
 

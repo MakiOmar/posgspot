@@ -118,6 +118,8 @@ export default component$(() => {
   const lookupEnabled = settings.value.repair?.lookup_enabled ?? true;
   const lookupByMobile = settings.value.repair?.lookup_by_mobile ?? true;
   const signedIn = isAuthenticated(auth);
+  const authPending = !auth.ready;
+  const authPendingAttr = authPending ? "1" : undefined;
 
   const form = useStore({
     search_type: (lookupByMobile ? "mobile_num" : "job_sheet_no") as RepairStatusSearchType,
@@ -211,15 +213,22 @@ export default component$(() => {
       />
       <article class="content-page repair-status-page">
       {/* Guest-only intro; signed-in customers see their list instead of lookup copy. */}
-      {auth.ready && !signedIn ? (
-        <p class="content-lead">{tStatic(locale, "repair.intro")}</p>
+      {!signedIn ? (
+        <p class="content-lead" data-auth-view="guest" data-auth-pending={authPendingAttr}>
+          {tStatic(locale, "repair.intro")}
+        </p>
       ) : null}
 
-      {/* Signed-in: auto-list only. Wait for auth so the guest form does not flash. */}
-      {lookupEnabled && (signedIn || !auth.ready) ? (
-        <section class="repair-status-mine" aria-live="polite">
+      {/* Signed-in: auto-list only. Before auth hydrates, CSS shows this only with a saved session. */}
+      {lookupEnabled && (signedIn || authPending) ? (
+        <section
+          class="repair-status-mine"
+          aria-live="polite"
+          data-auth-view="mine"
+          data-auth-pending={authPendingAttr}
+        >
           <h2 class="repair-status-mine__title">{tStatic(locale, "repair.myRepairs")}</h2>
-          {!auth.ready || myRepairsLoading.value ? (
+          {authPending || myRepairsLoading.value ? (
             <p class="footer-muted">{tStatic(locale, "repair.loadingMine")}</p>
           ) : myRepairsLoaded.value && myRepairs.value.length === 0 ? (
             <p class="footer-muted">{tStatic(locale, "repair.myRepairsEmpty")}</p>
@@ -229,9 +238,9 @@ export default component$(() => {
         </section>
       ) : null}
 
-      {/* Guests only: job sheet / invoice / mobile lookup. */}
-      {auth.ready && !signedIn ? (
-        <div class="repair-status-layout">
+      {/* Guests: job sheet / invoice / mobile lookup, server-rendered so it is usable before auth hydrates. */}
+      {!signedIn ? (
+        <div class="repair-status-layout" data-auth-view="guest" data-auth-pending={authPendingAttr}>
         <div class="repair-status-layout__form">
           {!lookupEnabled ? (
             <p class="footer-muted">{tStatic(locale, "repair.unavailable")}</p>
@@ -253,11 +262,12 @@ export default component$(() => {
                     form.search_type = el.value as RepairStatusSearchType;
                   }}
                 >
-                  <option value="job_sheet_no">{tStatic(locale, "repair.jobSheetNo")}</option>
-                  <option value="invoice_no">{tStatic(locale, "repair.invoiceNo")}</option>
+                  {/* Default option first: SSR HTML ignores `value` on <select>, so the first option shows until hydration. */}
                   {lookupByMobile ? (
                     <option value="mobile_num">{tStatic(locale, "repair.mobile")}</option>
                   ) : null}
+                  <option value="job_sheet_no">{tStatic(locale, "repair.jobSheetNo")}</option>
+                  <option value="invoice_no">{tStatic(locale, "repair.invoiceNo")}</option>
                 </select>
               </div>
 
