@@ -71,6 +71,8 @@ docker compose exec -u www-data accounts php artisan migrate --force
 
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
+Shop-only deploy: `docker compose up -d --build --no-deps storefront`. Without `--no-deps`, Compose also rebuilds and recreates `pos` (a `depends_on` of `storefront`), taking staff POS down for ~30–60s.
+
 ### Troubleshooting: Cloudflare 504 on the shop
 
 The shop renders by calling POS (`https://pos.gamesspoteg.com`, via Cloudflare). If POS's PHP-FPM pool (40 workers, one replica) saturates, nginx in the `pos` container runs out of connections/file handles, `/healthcheck` times out, Docker marks `pos` unhealthy and **Traefik drops the route** — every POS URL returns 404 (staff POS included) and the shop shows a 504. Check:
