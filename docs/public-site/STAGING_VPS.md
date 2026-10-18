@@ -71,6 +71,8 @@ docker compose exec -u www-data accounts php artisan migrate --force
 
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
+Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`) use the image's `healthcheck-queue` / `healthcheck-schedule` scripts (process check), not the web image's HTTP check on port 8080. To recreate only the workers: `docker compose up -d --no-deps --scale pos-queue=2 pos-queue pos-scheduler accounts-queue`.
+
 Shop-only deploy: `docker compose up -d --build --no-deps storefront`. Without `--no-deps`, Compose also rebuilds and recreates `pos` (a `depends_on` of `storefront`), taking staff POS down for ~30–60s.
 
 ### Troubleshooting: Cloudflare 504 on the shop

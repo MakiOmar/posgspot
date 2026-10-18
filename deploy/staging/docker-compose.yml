@@ -111,6 +111,10 @@ services:
         "--tries=3",
         "--max-time=3600",
       ]
+    # Workers have no nginx; the image's default HTTP healthcheck (port 8080) always fails here
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      start_period: 30s
     env_file:
       - ./pos/.env
     volumes:
@@ -127,6 +131,9 @@ services:
     image: spot-staging/pos:latest
     restart: unless-stopped
     entrypoint: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 30s
     env_file:
       - ./pos/.env
     volumes:
@@ -176,6 +183,9 @@ services:
     image: spot-staging/accounts:latest
     restart: unless-stopped
     entrypoint: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      start_period: 30s
     env_file:
       - ./accounts/.env
     volumes: *accounts_volumes
