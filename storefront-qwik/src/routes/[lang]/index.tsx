@@ -15,11 +15,13 @@ import { TopCategories } from "~/components/home/top-categories";
 import { TrustBadges } from "~/components/home/trust-badges";
 import { JsonLd } from "~/components/seo/json-ld";
 import {
+  API_BASE,
   fetchBrands,
   fetchHomepage,
   fetchHomepageShelves,
   fetchProductsPage,
 } from "~/lib/api";
+import { cachedHomepageCatalog, cachedHomepageSections } from "~/lib/ssr-shell-cache";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
@@ -70,136 +72,153 @@ function sectionSettingBool(settings: Record<string, unknown>, key: string, fall
   return fallback;
 }
 
+type HomepageCatalog = {
+  featured: ProductSummary[];
+  bestsellers: ProductSummary[];
+  brands: Brand[];
+  shelves: Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>;
+  /** Products for selected `category_shelf` sections, keyed by section id. */
+  categoryShelfProducts: Record<string, ProductSummary[]>;
+};
+
 export const useHomepageSections = routeLoader$(async ({ params }): Promise<HomepageSection[]> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    const { data } = await fetchHomepage(locale);
-    return Array.isArray(data?.sections) ? data.sections : [];
-  } catch {
+    return await cachedHomepageSections(locale, async () => {
+      const { data } = await fetchHomepage(locale);
+      return Array.isArray(data?.sections) ? data.sections : [];
+    });
+  } catch (err) {
+    console.error(`[storefront] homepage loader failed (API_BASE=${API_BASE})`, err);
     return [];
   }
 });
 
 export const useHomepageCatalog = routeLoader$(
-  async ({
-    params,
-    resolveValue,
-  }): Promise<{
-    featured: ProductSummary[];
-    bestsellers: ProductSummary[];
-    brands: Brand[];
-    shelves: Array<{ shelf: HomepageCategoryShelf; products: ProductSummary[] }>;
-    /** Products for selected `category_shelf` sections, keyed by section id. */
-    categoryShelfProducts: Record<string, ProductSummary[]>;
-  }> => {
+  async ({ params, resolveValue }): Promise<HomepageCatalog> => {
     const locale = isSupportedLocale(params.lang) ? params.lang : "en";
     const sections = await resolveValue(useHomepageSections);
+    const { catalog } = await cachedHomepageCatalog(
+      locale,
+      () => loadHomepageCatalog(sections, locale),
+      (result) => result.degraded,
+    );
+    return catalog;
+  },
+);
 
-    const featuredSec = sections.find((s) => s.type === "featured_products");
-    const bestSec = sections.find((s) => s.type === "bestsellers");
-    const brandSec = sections.find((s) => s.type === "brand_slider");
-    const shelfSec = sections.find((s) => s.type === "category_shelves");
-    const categoryShelfSecs = sections.filter((s) => s.type === "category_shelf");
+type MarkFailed = <T>(fallback: T) => () => T;
 
-    const featuredPerPage = featuredSec
-      ? sectionSettingNumber(featuredSec.settings, "per_page", 8)
-      : 8;
-    const bestPerPage = bestSec ? sectionSettingNumber(bestSec.settings, "per_page", 6) : 6;
-    const bestInStock = bestSec
-      ? sectionSettingBool(bestSec.settings, "in_stock_only", true)
-      : true;
-    const brandLimit = brandSec ? sectionSettingNumber(brandSec.settings, "limit", 24) : 24;
-    const shelfLimit = shelfSec ? sectionSettingNumber(shelfSec.settings, "limit", 6) : 6;
-    const productsPerShelf = shelfSec
-      ? sectionSettingNumber(shelfSec.settings, "products_per_shelf", 6)
-      : 6;
+/** Products for each `category_shelves` row (shelf list comes from the API). */
+async function loadShelfRows(
+  shelfSec: HomepageSection,
+  locale: string,
+  failed: MarkFailed,
+): Promise<HomepageCatalog["shelves"]> {
+  const shelfLimit = sectionSettingNumber(shelfSec.settings, "limit", 6);
+  const productsPerShelf = sectionSettingNumber(shelfSec.settings, "products_per_shelf", 6);
+  const shelves = await fetchHomepageShelves(locale)
+    .then(({ data }) => (data ?? []).slice(0, shelfLimit))
+    .catch(failed([] as HomepageCategoryShelf[]));
 
-    const [featuredPage, bestPage, brands, shelfRows, categoryShelfProductEntries] =
-      await Promise.all([
-        featuredSec
-          ? fetchProductsPage({ featured: 1, per_page: featuredPerPage }, locale).catch(() =>
-              emptyPage(featuredPerPage),
-            )
-          : Promise.resolve(emptyPage(0)),
-        bestSec
-          ? fetchProductsPage(
-              {
-                sort: "bestsellers",
-                per_page: bestPerPage,
-                ...(bestInStock ? { in_stock_only: true } : {}),
-              },
-              locale,
-            ).catch(() => emptyPage(bestPerPage))
-          : Promise.resolve(emptyPage(0)),
-        brandSec
-          ? fetchBrands(locale)
-              .then((r) => (r.data ?? []).slice(0, brandLimit))
-              .catch(() => [] as Brand[])
-          : Promise.resolve([] as Brand[]),
-        shelfSec
-          ? (async () => {
-              let shelves: HomepageCategoryShelf[] = [];
-              try {
-                const { data } = await fetchHomepageShelves(locale);
-                shelves = (data ?? []).slice(0, shelfLimit);
-              } catch {
-                shelves = [];
-              }
-              return Promise.all(
-                shelves.map(async (shelf) => {
-                  if (!shelf.slug) {
-                    return { shelf, products: [] as ProductSummary[] };
-                  }
-                  try {
-                    const page = await fetchProductsPage(
-                      { category_slug: shelf.slug, per_page: productsPerShelf },
-                      locale,
-                    );
-                    return { shelf, products: page.data };
-                  } catch {
-                    return { shelf, products: [] as ProductSummary[] };
-                  }
-                }),
-              );
-            })()
-          : Promise.resolve([]),
-        Promise.all(
-          categoryShelfSecs.map(async (sec) => {
-            const shelf = sec.settings.shelf as HomepageCategoryShelf | undefined;
-            const perPage = sectionSettingNumber(sec.settings, "products_per_shelf", 6);
-            const pickedIds = categoryShelfPickedIds(sec.settings);
-            if (!shelf?.slug) {
-              return [sec.id, [] as ProductSummary[]] as const;
-            }
-            try {
-              const page = await fetchProductsPage(
-                pickedIds.length > 0
-                  ? { category_slug: shelf.slug, ids: pickedIds.join(","), per_page: pickedIds.length }
-                  : { category_slug: shelf.slug, per_page: perPage },
-                locale,
-              );
-              return [sec.id, page.data] as const;
-            } catch {
-              return [sec.id, [] as ProductSummary[]] as const;
-            }
-          }),
-        ),
-      ]);
+  return Promise.all(
+    shelves.map(async (shelf) => {
+      if (!shelf.slug) {
+        return { shelf, products: [] as ProductSummary[] };
+      }
+      const products = await fetchProductsPage(
+        { category_slug: shelf.slug, per_page: productsPerShelf },
+        locale,
+      )
+        .then((page) => page.data)
+        .catch(failed([] as ProductSummary[]));
+      return { shelf, products };
+    }),
+  );
+}
 
-    const categoryShelfProducts: Record<string, ProductSummary[]> = {};
-    for (const [id, products] of categoryShelfProductEntries) {
-      categoryShelfProducts[id] = products;
-    }
+/** Products for each standalone `category_shelf` section, keyed by section id. */
+async function loadCategoryShelfProducts(
+  categoryShelfSecs: HomepageSection[],
+  locale: string,
+  failed: MarkFailed,
+): Promise<Record<string, ProductSummary[]>> {
+  const entries = await Promise.all(
+    categoryShelfSecs.map(async (sec) => {
+      const shelf = sec.settings.shelf as HomepageCategoryShelf | undefined;
+      const perPage = sectionSettingNumber(sec.settings, "products_per_shelf", 6);
+      const pickedIds = categoryShelfPickedIds(sec.settings);
+      if (!shelf?.slug) {
+        return [sec.id, [] as ProductSummary[]] as const;
+      }
+      const products = await fetchProductsPage(
+        pickedIds.length > 0
+          ? { category_slug: shelf.slug, ids: pickedIds.join(","), per_page: pickedIds.length }
+          : { category_slug: shelf.slug, per_page: perPage },
+        locale,
+      )
+        .then((page) => page.data)
+        .catch(failed([] as ProductSummary[]));
+      return [sec.id, products] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+}
 
-    return {
+/** Fetch every catalog block the homepage sections need; `degraded` is true when any request failed. */
+async function loadHomepageCatalog(
+  sections: HomepageSection[],
+  locale: string,
+): Promise<{ catalog: HomepageCatalog; degraded: boolean }> {
+  let degraded = false;
+  const failed: MarkFailed = (fallback) => () => {
+    degraded = true;
+    return fallback;
+  };
+
+  const featuredSec = sections.find((s) => s.type === "featured_products");
+  const bestSec = sections.find((s) => s.type === "bestsellers");
+  const brandSec = sections.find((s) => s.type === "brand_slider");
+  const shelfSec = sections.find((s) => s.type === "category_shelves");
+  const categoryShelfSecs = sections.filter((s) => s.type === "category_shelf");
+
+  const featuredPerPage = featuredSec ? sectionSettingNumber(featuredSec.settings, "per_page", 8) : 8;
+  const bestPerPage = bestSec ? sectionSettingNumber(bestSec.settings, "per_page", 6) : 6;
+  const bestInStock = bestSec ? sectionSettingBool(bestSec.settings, "in_stock_only", true) : true;
+  const brandLimit = brandSec ? sectionSettingNumber(brandSec.settings, "limit", 24) : 24;
+
+  const [featuredPage, bestPage, brands, shelves, categoryShelfProducts] = await Promise.all([
+    featuredSec
+      ? fetchProductsPage({ featured: 1, per_page: featuredPerPage }, locale).catch(
+          failed(emptyPage(featuredPerPage)),
+        )
+      : Promise.resolve(emptyPage(0)),
+    bestSec
+      ? fetchProductsPage(
+          { sort: "bestsellers", per_page: bestPerPage, ...(bestInStock ? { in_stock_only: true } : {}) },
+          locale,
+        ).catch(failed(emptyPage(bestPerPage)))
+      : Promise.resolve(emptyPage(0)),
+    brandSec
+      ? fetchBrands(locale)
+          .then((r) => (r.data ?? []).slice(0, brandLimit))
+          .catch(failed([] as Brand[]))
+      : Promise.resolve([] as Brand[]),
+    shelfSec ? loadShelfRows(shelfSec, locale, failed) : Promise.resolve([]),
+    loadCategoryShelfProducts(categoryShelfSecs, locale, failed),
+  ]);
+
+  return {
+    catalog: {
       featured: featuredPage.data,
       bestsellers: bestPage.data,
       brands,
-      shelves: shelfRows,
+      shelves,
       categoryShelfProducts,
-    };
-  },
-);
+    },
+    degraded,
+  };
+}
 
 export default component$(() => {
   const settings = useSiteSettings();

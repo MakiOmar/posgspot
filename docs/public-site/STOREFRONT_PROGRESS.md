@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-17 |
+| **Last updated** | 2026-10-18 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -209,6 +209,7 @@
 | PDP HTML sanitization (DOMPurify) | ✅ | `SanitizedHtml` + API `StorefrontHtmlSanitizer` |
 | Safe JSON-LD serialization | ✅ | `serializeJsonLd` escapes `<`/`>`/`&` |
 | CatalogService list/card query cost | ✅ | Wave 2: eager-load variations+VLD (no per-card stock exists); bestsellers scores `Cache::remember` 1h by `business_id`; categories slim payload + AR batch + 120s cache |
+| SSR API cache (shell + homepage) | ✅ | `ssr-shell-cache.ts`: 30s TTL, single-flight, 10 min stale-on-error; homepage sections + catalog cached per locale; SSR GET timeout 10s |
 
 ---
 
@@ -239,7 +240,7 @@
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
 | Homepage API | ✅ | `HomepageApiTest` |
 | Accounts catalog sync + synced digital checkout | ✅ | `AccountsCatalogUpsertTest`, `AccountsSyncedDigitalTest` |
-| Frontend (Qwik) tests | ⬜ |
+| Frontend (Qwik) tests | 🟡 | `npm test` (Node test runner): `tests/ssr-shell-cache.test.ts` only |
 
 ---
 
@@ -256,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-18 | Fix intermittent 504s: homepage SSR traffic bursts (~10 renders/s × 7 uncached POS calls) saturated POS until its healthcheck failed and Traefik dropped the route. Homepage sections + catalog now use the SSR cache (30s, single-flight, 10 min stale-on-error); SSR GETs time out after 10s; `npm test` added. |
 | 2026-10-17 | Repair status + track console guest search: added the Turnstile widget and `turnstile_token` (API has required it since the security hardening; searches failed with "Please complete the security check."). |
 | 2026-10-17 | Repair status + track console: guests get the lookup form in the SSR HTML instead of "Loading your repairs…" until auth hydrates; signed-in customers (saved session flagged by an inline head script) see their list directly with no form flash. Mobile number listed first so the SSR select matches the default; signed-in empty text no longer points to a missing form. |
 | 2026-10-17 | POS Roles → **Storefront** section: grant `storefront.settings`, new `storefront.community` (community posts) and `storefront.requests` (sell-to-us, product requests, community applications), `product_review.access/moderate`, `coupon.access/create/delete` per role. Migration copies the two new permissions to Admin roles and any role that had `storefront.settings`. `StorefrontRolePermissionsTest`. |

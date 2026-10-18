@@ -71,6 +71,18 @@ docker compose exec -u www-data accounts php artisan migrate --force
 
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
+### Troubleshooting: Cloudflare 504 on the shop
+
+The shop renders by calling POS (`https://pos.gamesspoteg.com`, via Cloudflare). If POS's PHP-FPM pool (40 workers, one replica) saturates, nginx in the `pos` container runs out of connections/file handles, `/healthcheck` times out, Docker marks `pos` unhealthy and **Traefik drops the route** — every POS URL returns 404 (staff POS included) and the shop shows a 504. Check:
+
+```bash
+docker compose logs --timestamps --since 1h pos | grep -E 'max_children|Too many open files|upstream timed out'
+docker compose logs --timestamps --since 1h storefront | grep 'loader failed'
+docker compose logs --no-log-prefix --since 1h pos | grep '"node"' | awk '{print $7}' | cut -d'?' -f1 | sort | uniq -c | sort -rn | head   # SSR fan-out by endpoint
+```
+
+The storefront SSR cache (see [API](./API.md) rate-limit notes) absorbs bursts; identify the visitors behind a burst in Cloudflare Analytics / Security Events.
+
 ---
 
 ## Cutover from Hostinger (runbook)

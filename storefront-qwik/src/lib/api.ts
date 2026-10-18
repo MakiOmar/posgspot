@@ -1,6 +1,7 @@
 /**
  * Storefront API client for the Laravel POS backend.
  */
+import { isServer } from "@builder.io/qwik/build";
 import { dispatchAuthSessionExpired } from "./auth-actions";
 import type {
   AccountOrder,
@@ -46,6 +47,16 @@ export const API_BASE: string =
   "http://localhost:8000";
 
 const PREFIX = "/api/storefront/v1";
+
+/** SSR reads give up after this so a slow POS fails loaders fast instead of piling up renders. */
+const SSR_FETCH_TIMEOUT_MS = 10_000;
+
+function ssrReadTimeoutSignal(method?: string): AbortSignal | undefined {
+  if (!isServer || (method && method.toUpperCase() !== "GET")) {
+    return undefined;
+  }
+  return AbortSignal.timeout(SSR_FETCH_TIMEOUT_MS);
+}
 
 export class ApiError extends Error {
   constructor(
@@ -136,6 +147,7 @@ export async function storefrontFetch<T>(
       credentials: "include",
       ...options,
       headers,
+      signal: options.signal ?? ssrReadTimeoutSignal(options.method),
     });
   } catch (err) {
     // Normalize Firefox/Chrome CORS-masked failures into ApiError(0) for callers.
@@ -247,6 +259,7 @@ export async function fetchProductsPage(
       Accept: "application/json",
       "X-Content-Locale": contentLocale,
     },
+    signal: ssrReadTimeoutSignal(),
   });
   const json = (await response.json()) as ApiEnvelope<ProductSummary[]>;
   if (!response.ok || !json.success) {
