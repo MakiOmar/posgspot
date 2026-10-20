@@ -144,9 +144,10 @@ class SettingsApiService
     /**
      * Public branch list for footer / contact / store locator, or selling-only for checkout pickup.
      *
-     * @param  bool  $sellingOnly  When true, only storefront selling locations. When false (default),
-     *                             all active locations except those in selling_location_ids.
-     *                             Always excludes locations with show_on_storefront = false.
+     * @param  bool  $sellingOnly  When true, only storefront selling locations (checkout fulfillment),
+     *                             including ones hidden with show_on_storefront = false.
+     *                             When false (default), active locations shown on the storefront,
+     *                             excluding selling_location_ids.
      * @return list<array<string, mixed>>
      */
     public function getLocations(int $businessId, bool $sellingOnly = false): array
@@ -156,16 +157,19 @@ class SettingsApiService
 
         $query = BusinessLocation::where('business_id', $businessId)
             ->where('is_active', 1)
-            ->visibleOnStorefront()
             ->orderBy('name');
 
         if ($sellingOnly) {
             if ($sellingIds === []) {
                 return [];
             }
+            // Cart validation and checkout accept any selling location; hiding one only removes it from branch lists.
             $query->whereIn('id', $sellingIds);
-        } elseif ($sellingIds !== []) {
-            $query->whereNotIn('id', $sellingIds);
+        } else {
+            $query->visibleOnStorefront();
+            if ($sellingIds !== []) {
+                $query->whereNotIn('id', $sellingIds);
+            }
         }
 
         return $query
