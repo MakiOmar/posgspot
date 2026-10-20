@@ -517,7 +517,7 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
     {
         $normalized = mb_strtolower(trim($street));
 
-        return in_array($normalized, ['digital delivery', 'store pickup'], true);
+        return in_array($normalized, ['digital delivery', 'store pickup', 'no shipping required'], true);
     }
 
     /**

@@ -368,7 +368,7 @@ class StorefrontBundleService
             StorefrontShippingClass::where('business_id', $businessId)
                 ->orderBy('id')
                 ->toBase()
-                ->select(['id', 'name', 'slug'])
+                ->select(['id', 'name', 'slug', 'requires_shipping'])
                 ->cursor() as $class
         ) {
             $slug = trim((string) ($class->slug ?? ''));
@@ -379,6 +379,7 @@ class StorefrontBundleService
                 'id' => (int) $class->id,
                 'name' => (string) $class->name,
                 'slug' => $slug,
+                'requires_shipping' => (bool) ($class->requires_shipping ?? true),
             ];
             $classIdToSlug[(int) $class->id] = $slug;
         }
@@ -1371,6 +1372,9 @@ class StorefrontBundleService
             $class->business_id = $businessId;
             $class->name = $name !== '' ? $name : $slug;
             $class->slug = $slug;
+            if (array_key_exists('requires_shipping', $row)) {
+                $class->requires_shipping = (bool) $row['requires_shipping'];
+            }
             $class->save();
             $classIdMap[$slug] = (int) $class->id;
             $existingClasses[$slug] = $class;

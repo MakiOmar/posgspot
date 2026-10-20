@@ -3,6 +3,7 @@
 namespace App\Services\Storefront\Shipping;
 
 use App\Product;
+use App\StorefrontShippingClass;
 use App\StorefrontShippingMethod;
 use App\StorefrontShippingZone;
 use App\Variation;
@@ -48,20 +49,25 @@ class ShippingQuoteService
     ): array {
         $this->migrator->ensureDefaultZones($businessId);
 
-        if ($this->isDigitalOnlyCart($items)) {
-            $digitalRate = $this->digitalDeliveryRate($locale);
-            $selected = $this->selectRate([$digitalRate], $shippingRateId) ?? $digitalRate;
+        $shippableItems = $this->shippableItems($businessId, $items);
+        if ($items !== [] && $shippableItems === []) {
+            // Nothing ships (digital lines and/or "no shipping" classes): one free rate, no address or zone checks.
+            $noShippingRate = $this->isDigitalOnlyCart($items)
+                ? $this->digitalDeliveryRate($locale)
+                : $this->noShippingRequiredRate($locale);
+            $selected = $this->selectRate([$noShippingRate], $shippingRateId) ?? $noShippingRate;
 
             return [
-                'available_rates' => [$this->publicRate($digitalRate)],
+                'available_rates' => [$this->publicRate($noShippingRate)],
                 'shipping' => 0.0,
                 'shipping_rate' => $this->publicRate($selected),
                 'matched_zone_id' => null,
                 'digital_only' => true,
+                'shipping_required' => false,
             ];
         }
 
-        $context = $this->buildContext($businessId, $subtotal, $items, $destination, $pickupLocationId, $locale);
+        $context = $this->buildContext($subtotal, $shippableItems, $destination, $pickupLocationId, $locale);
         $zone = $this->matchZone($businessId, $destination, $pickupLocationId);
 
         $rates = [];
@@ -124,6 +130,7 @@ class ShippingQuoteService
             'shipping_rate' => $selected ? $this->publicRate($selected) : null,
             'matched_zone_id' => $zone?->id,
             'digital_only' => false,
+            'shipping_required' => true,
         ];
     }
 
@@ -154,7 +161,7 @@ class ShippingQuoteService
         );
 
         if (empty($shippingRateId)) {
-            // Digital-only carts always have exactly one free rate — auto-accept it.
+            // Carts that need no shipping always have exactly one free rate — auto-accept it.
             if (! empty($quoted['digital_only']) && ! empty($quoted['shipping_rate'])) {
                 return [
                     'ok' => true,
@@ -364,10 +371,68 @@ class ShippingQuoteService
         return $state;
     }
 
+    /**
+     * Cart lines that need physical shipping, each paired with its product (null when unknown).
+     * Digital lines and products in a shipping class with requires_shipping = false are dropped.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return list<array{item: array<string, mixed>, product: ?Product}>
+     */
+    private function shippableItems(int $businessId, array $items): array
+    {
+        $variationIds = [];
+        foreach ($items as $item) {
+            if (is_array($item) && (int) ($item['variation_id'] ?? 0) > 0) {
+                $variationIds[] = (int) $item['variation_id'];
+            }
+        }
+
+        $variations = $variationIds === []
+            ? collect()
+            : Variation::with('product')->whereIn('id', array_unique($variationIds))->get()->keyBy('id');
+
+        $classIds = $variations
+            ->map(fn (Variation $v) => (int) ($v->product?->shipping_class_id ?? 0))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $noShippingClassIds = $classIds === []
+            ? []
+            : StorefrontShippingClass::where('business_id', $businessId)
+                ->whereIn('id', $classIds)
+                ->where('requires_shipping', false)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+        $shippable = [];
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            if (is_array($item['digital'] ?? null) && ! empty($item['digital']['kind'])) {
+                continue;
+            }
+            $product = $variations->get((int) ($item['variation_id'] ?? 0))?->product;
+            if ($product && (int) $product->business_id !== $businessId) {
+                $product = null;
+            }
+            if ($product && in_array((int) $product->shipping_class_id, $noShippingClassIds, true)) {
+                continue;
+            }
+            $shippable[] = ['item' => $item, 'product' => $product];
+        }
+
+        return $shippable;
+    }
+
+    /**
+     * @param  list<array{item: array<string, mixed>, product: ?Product}>  $shippableItems
+     */
     private function buildContext(
-        int $businessId,
         float $subtotal,
-        array $items,
+        array $shippableItems,
         array $destination,
         ?int $pickupLocationId,
         string $locale
@@ -376,26 +441,17 @@ class ShippingQuoteService
         $weight = 0.0;
         $classIds = [];
 
-        foreach ($items as $item) {
-            // Digital lines do not contribute to physical shipping weight/qty.
-            if (is_array($item['digital'] ?? null) && ! empty($item['digital']['kind'])) {
-                continue;
-            }
+        foreach ($shippableItems as ['item' => $item, 'product' => $product]) {
             $qty = (float) ($item['quantity'] ?? 0);
             $itemCount += $qty;
-            $variationId = (int) ($item['variation_id'] ?? 0);
-            if ($variationId <= 0) {
+            if (! $product) {
                 continue;
             }
-            $variation = Variation::with('product')->find($variationId);
-            $product = $variation?->product;
-            if ($product && (int) $product->business_id === $businessId) {
-                if (! empty($product->shipping_class_id)) {
-                    $classIds[] = (int) $product->shipping_class_id;
-                }
-                if (! empty($product->weight)) {
-                    $weight += (float) $product->weight * $qty;
-                }
+            if (! empty($product->shipping_class_id)) {
+                $classIds[] = (int) $product->shipping_class_id;
+            }
+            if (! empty($product->weight)) {
+                $weight += (float) $product->weight * $qty;
             }
         }
 
@@ -521,6 +577,25 @@ class ShippingQuoteService
             'amount' => 0.0,
             'eta_label' => $locale === 'ar' ? 'فوري بعد الدفع' : 'Instant after payment',
             'meta' => ['digital' => true],
+        ];
+    }
+
+    /**
+     * Free rate for carts whose physical products are all in a "no shipping" class.
+     * Shares the digital method id/type so clients skip the address form the same way.
+     *
+     * @return array{id:string,method_id:int,method_type:string,title:string,amount:float,eta_label:?string,meta:array}
+     */
+    private function noShippingRequiredRate(string $locale): array
+    {
+        return [
+            'id' => ShippingRateId::encode(StorefrontShippingMethod::DIGITAL_METHOD_ID, 0.0),
+            'method_id' => StorefrontShippingMethod::DIGITAL_METHOD_ID,
+            'method_type' => StorefrontShippingMethod::TYPE_DIGITAL,
+            'title' => $locale === 'ar' ? 'لا يتطلب شحن' : 'No shipping required',
+            'amount' => 0.0,
+            'eta_label' => null,
+            'meta' => ['no_shipping' => true],
         ];
     }
 

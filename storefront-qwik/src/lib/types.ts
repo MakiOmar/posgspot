@@ -527,6 +527,8 @@ export interface CartValidation {
   shipping_notice?: string | null;
   /** True when every cart line is digital (games/gift card) — free digital delivery. */
   digital_only?: boolean;
+  /** False when no cart line needs physical shipping (digital and/or "no shipping" class products). */
+  shipping_required?: boolean;
   coupon?: AppliedCouponInfo | null;
   coupons?: AppliedCouponInfo[];
   coupon_discount?: number;

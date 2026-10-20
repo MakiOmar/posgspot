@@ -261,13 +261,36 @@ class StorefrontShippingZoneController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:191',
             'slug' => 'nullable|string|max:191',
+            'requires_shipping' => 'nullable|boolean',
         ]);
 
         $class = \App\StorefrontShippingClass::create([
             'business_id' => $businessId,
             'name' => $data['name'],
             'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['name']),
+            'requires_shipping' => $data['requires_shipping'] ?? true,
         ]);
+
+        return response()->json(['success' => true, 'data' => $class]);
+    }
+
+    /**
+     * Toggle whether products in this class need physical shipping at storefront checkout.
+     */
+    public function updateClass(Request $request, int $id)
+    {
+        if (! auth()->user()->can('storefront.settings')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $businessId = (int) $request->session()->get('user.business_id');
+        $data = $request->validate([
+            'requires_shipping' => 'required|boolean',
+        ]);
+
+        $class = \App\StorefrontShippingClass::where('business_id', $businessId)->findOrFail($id);
+        $class->requires_shipping = (bool) $data['requires_shipping'];
+        $class->save();
 
         return response()->json(['success' => true, 'data' => $class]);
     }

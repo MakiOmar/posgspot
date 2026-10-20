@@ -527,7 +527,9 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
               country: "EG",
               city: "",
               state: "",
-              address_line_1: "Digital delivery",
+              address_line_1: cart.items.every((line) => Boolean(line.digital?.kind))
+                ? "Digital delivery"
+                : "No shipping required",
             }
           : pickupSelected
             ? {

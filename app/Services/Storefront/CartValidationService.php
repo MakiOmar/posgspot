@@ -219,6 +219,7 @@ class CartValidationService
             'matched_zone_id' => $shippingQuote['matched_zone_id'],
             'hide_rates_until_address' => $hideUntilAddress,
             'digital_only' => $digitalOnly,
+            'shipping_required' => $shippingQuote['shipping_required'] ?? true,
             'shipping_notice' => $shippingNotice,
         ];
 
@@ -412,6 +413,7 @@ class CartValidationService
             'shipping_rate' => $shippingQuote['shipping_rate'],
             'matched_zone_id' => $shippingQuote['matched_zone_id'],
             'digital_only' => ! empty($shippingQuote['digital_only']),
+            'shipping_required' => $shippingQuote['shipping_required'] ?? true,
         ];
 
         return $this->mergeCouponTotals(

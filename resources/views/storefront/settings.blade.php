@@ -319,7 +319,7 @@
                 </div>
 
                 <h5 style="margin-top: 1.5rem;">Shipping classes</h5>
-                <p class="help-block">Assign classes on products; optional per-class costs on flat-rate methods (<code>class_costs</code>).</p>
+                <p class="help-block">Assign classes on products; optional per-class costs on flat-rate methods (<code>class_costs</code>). Untick <strong>Requires shipping</strong> for classes such as "No shipping": those products skip shipping rates and the delivery address at checkout (a cart of only such items checks out with free "No shipping required").</p>
                 <div id="storefront_shipping_classes_app"><p class="text-muted">Loading…</p></div>
                 <button type="button" class="btn btn-default btn-sm" id="sf_shipping_add_class">Add shipping class</button>
 
@@ -2213,9 +2213,14 @@
             }
             var html = '<ul class="list-unstyled">';
             classes.forEach(function (c) {
-                html += '<li style="margin-bottom:4px;">' +
+                var requiresShipping = c.requires_shipping !== false && c.requires_shipping !== 0;
+                html += '<li style="margin-bottom:6px;">' +
                     escapeHtml(c.name + (c.slug ? ' (' + c.slug + ')' : '')) +
-                    ' <button type="button" class="btn btn-xs btn-danger sf-del-class" data-id="' + c.id + '">Delete</button></li>';
+                    ' <label style="font-weight:normal;margin:0 8px;">' +
+                    '<input type="checkbox" class="sf-class-requires-shipping" data-id="' + c.id + '"' + (requiresShipping ? ' checked' : '') + '> Requires shipping' +
+                    '</label>' +
+                    (requiresShipping ? '' : '<span class="label label-info">No shipping at checkout</span> ') +
+                    '<button type="button" class="btn btn-xs btn-danger sf-del-class" data-id="' + c.id + '">Delete</button></li>';
             });
             html += '</ul>';
             $('#storefront_shipping_classes_app').html(html);
@@ -2236,6 +2241,23 @@
                 contentType: 'application/json',
                 headers: { 'X-CSRF-TOKEN': csrfToken },
             }).done(loadClasses).fail(function () { toastr.error('Could not create class'); });
+        });
+        $('#storefront_shipping_classes_app').on('change', '.sf-class-requires-shipping', function () {
+            var $box = $(this);
+            $box.prop('disabled', true);
+            $.ajax({
+                url: '/storefront/shipping/classes/' + $box.data('id'),
+                method: 'PUT',
+                data: JSON.stringify({ requires_shipping: $box.is(':checked') }),
+                contentType: 'application/json',
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(function () {
+                toastr.success('Shipping class updated');
+                loadClasses();
+            }).fail(function () {
+                toastr.error('Could not update shipping class');
+                $box.prop('checked', !$box.is(':checked')).prop('disabled', false);
+            });
         });
         $('#storefront_shipping_classes_app').on('click', '.sf-del-class', function () {
             if (!confirm('Delete this shipping class?')) return;

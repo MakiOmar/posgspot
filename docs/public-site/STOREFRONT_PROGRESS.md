@@ -257,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-20 | Shipping classes gain `requires_shipping` (admin "Requires shipping" checkbox; "No shipping" classes migrated to false). Products in a no-shipping class are skipped by shipping quotes; carts with only such products get a free "No shipping required" rate, no address and no rate validation (`shipping_required: false`). Quote loads variations in one query. `NoShippingClassTest`. |
 | 2026-10-20 | Geidea payment form shows card inputs only (email/phone/address always hidden; admin "Show … on HPP" toggles removed). Checkout name/email/mobile saved on the order and sent to Geidea in preference to the stored contact. `GeideaSessionCustomerTest`. |
 | 2026-10-20 | Payment status badges (paid / not paid / pending / failed) on payment return, checkout confirmation, account orders, payments list, order detail, track order. "Pay now" for unpaid orders: return page and checkout confirmation reuse the order access token; account pages call `POST /account/orders/{id}/payment-access`. Return page shows plain-language status instead of raw gateway text. Removed "Fulfilled from" (and `fulfillment_location` from the API); checkout label is now "Branch". `AccountOrderPaymentAccessTest`. |
 | 2026-10-20 | Checkout after page refresh: form mounts once the cart hydrates, so its client tasks run (governorate select, stock validation, shipping rates were skipped on cold loads and State fell back to a text input). |
