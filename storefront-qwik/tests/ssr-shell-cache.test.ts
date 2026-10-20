@@ -59,6 +59,35 @@ test("degraded results are returned but not cached when nothing better exists", 
   assert.equal(loader.calls(), 2);
 });
 
+test("expired values are served immediately while one background load refreshes them", async () => {
+  const loader = countingLoader("old", "new");
+  assert.equal(await cachedSsr("k", loader.load, { ttlMs: 0 }), "old");
+  const results = await Promise.all(Array.from({ length: 5 }, () => cachedSsr("k", loader.load, { ttlMs: 0 })));
+  assert.deepEqual(new Set(results), new Set(["old"]));
+  assert.equal(loader.calls(), 2);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await cachedSsr("k", loader.load, { ttlMs: 60_000 }), "new");
+});
+
+test("a failed refresh backs off before retrying upstream", async () => {
+  const loader = countingLoader<string>("good", new Error("POS down"), "recovered");
+  await cachedSsr("k", loader.load, { ttlMs: 0 });
+  await cachedSsr("k", loader.load, { ttlMs: 0, backoffMs: 60_000 });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(await cachedSsr("k", loader.load, { ttlMs: 0, backoffMs: 60_000 }), "good");
+  assert.equal(loader.calls(), 2);
+});
+
+test("a degraded refresh backs off before retrying upstream", async () => {
+  const isDegraded = (v: { ok: boolean }) => !v.ok;
+  const loader = countingLoader({ ok: true }, { ok: false }, { ok: true });
+  await cachedSsr("k", loader.load, { ttlMs: 0, isDegraded });
+  await cachedSsr("k", loader.load, { ttlMs: 0, backoffMs: 60_000, isDegraded });
+  await new Promise((resolve) => setImmediate(resolve));
+  await cachedSsr("k", loader.load, { ttlMs: 0, backoffMs: 60_000, isDegraded });
+  assert.equal(loader.calls(), 2);
+});
+
 test("stale values expire after staleMs", async () => {
   const loader = countingLoader<string>("good", new Error("POS down"));
   await cachedSsr("k", loader.load, { ttlMs: 0, staleMs: 0 });

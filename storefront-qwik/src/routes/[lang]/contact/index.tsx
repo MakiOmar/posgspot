@@ -5,7 +5,7 @@ import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial
 import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
-import { ApiError, fetchLocations, fetchPhoneCountries, submitContactForm } from "~/lib/api";
+import { ApiError, fetchPhoneCountries, submitContactForm } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
 import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
@@ -15,16 +15,11 @@ import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { pickDefaultStore, storeMapEmbedUrl } from "~/lib/maps";
 import type { StoreLocation } from "~/lib/types";
 import { withPendingFeedback } from "~/lib/with-pending";
-import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
+import { useFooterLocations, useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useContactLocations = routeLoader$(async () => {
-  try {
-    const { data } = await fetchLocations();
-    return data;
-  } catch {
-    return [] as StoreLocation[];
-  }
-});
+export const useContactLocations = routeLoader$(
+  async ({ resolveValue }): Promise<StoreLocation[]> => resolveValue(useFooterLocations),
+);
 
 export const useContactPhoneCountries = routeLoader$(async () => {
   try {

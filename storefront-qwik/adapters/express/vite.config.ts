@@ -10,6 +10,7 @@ export default extendConfig(baseConfig, () => {
         input: ["src/entry.express.tsx", "@qwik-city-plan"],
       },
     },
-    plugins: [nodeServerAdapter({ name: "express" })],
+    // ssg: null — every page is SSR; SSG would freeze /sitemap.xml at build time and shadow the dynamic route.
+    plugins: [nodeServerAdapter({ name: "express", ssg: null })],
   };
 });

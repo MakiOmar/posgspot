@@ -99,13 +99,39 @@ export const useHomepageCatalog = routeLoader$(
     const locale = isSupportedLocale(params.lang) ? params.lang : "en";
     const sections = await resolveValue(useHomepageSections);
     const { catalog } = await cachedHomepageCatalog(
-      locale,
+      `${locale}:${homepageCatalogSignature(sections)}`,
       () => loadHomepageCatalog(sections, locale),
       (result) => result.degraded,
     );
     return catalog;
   },
 );
+
+const CATALOG_SECTION_TYPES = new Set([
+  "featured_products",
+  "bestsellers",
+  "brand_slider",
+  "category_shelves",
+  "category_shelf",
+]);
+
+/**
+ * Cache-key fragment for the sections that drive catalog fetches. A failed sections
+ * load (empty list) or a homepage builder edit maps to a different key, so neither
+ * can overwrite or reuse the catalog built for another configuration.
+ */
+function homepageCatalogSignature(sections: HomepageSection[]): string {
+  const source = JSON.stringify(
+    sections
+      .filter((s) => CATALOG_SECTION_TYPES.has(s.type))
+      .map((s) => [s.id, s.type, s.settings]),
+  );
+  let hash = 5381;
+  for (let i = 0; i < source.length; i++) {
+    hash = ((hash << 5) + hash + source.charCodeAt(i)) | 0;
+  }
+  return (hash >>> 0).toString(36);
+}
 
 type MarkFailed = <T>(fallback: T) => () => T;
 

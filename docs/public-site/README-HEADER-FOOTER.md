@@ -494,7 +494,7 @@ Optional Phase 2: trust badges (SSL, verified business).
 
 | Content | Source | Cached |
 |---------|--------|--------|
-| Category menu | Storefront API — categories tree | Yes — short TTL (5–15 min) |
+| Category menu | Storefront API — categories tree | Yes — ~30s SSR cache; POS clears its category cache on every edit (see [API](./API.md)) |
 | Cart count / mini-cart | Storefront API — cart session | No — real-time |
 | Wishlist count | Storefront API — wishlist | No — real-time |
 | Logo, site name, phone, email | Business settings API or env | Yes |

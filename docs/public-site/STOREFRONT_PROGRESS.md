@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-18 |
+| **Last updated** | 2026-10-20 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -257,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-20 | Caching audit: SSR cache serves stale while refreshing and backs off 15s after failures; homepage catalog key includes a sections signature; dynamic `/sitemap.xml` (SSG disabled, 1h cache) and `Cache-Control` on sitemap/robots; locations loaders locale-aware; remote SVG failures expire after 5 min; recently viewed expires after 7 days; PDP returns 404 for missing products (was 500/502) and 503 on POS errors. POS: locale-aware ETag + `Vary`, category cache cleared on edits, 30s cache for Accounts listings, per-request settings memo. `ssr-shell-cache`, `recently-viewed`, `StorefrontCachingTest`. |
 | 2026-10-18 | Fix intermittent 504s: homepage SSR traffic bursts (~10 renders/s × 7 uncached POS calls) saturated POS until its healthcheck failed and Traefik dropped the route. Homepage sections + catalog now use the SSR cache (30s, single-flight, 10 min stale-on-error); SSR GETs time out after 10s; `npm test` added. |
 | 2026-10-17 | Repair status + track console guest search: added the Turnstile widget and `turnstile_token` (API has required it since the security hardening; searches failed with "Please complete the security check."). |
 | 2026-10-17 | Repair status + track console: guests get the lookup form in the SSR HTML instead of "Loading your repairs…" until auth hydrates; signed-in customers (saved session flagged by an inline head script) see their list directly with no form flash. Mobile number listed first so the SSR select matches the default; signed-in empty text no longer points to a missing form. |

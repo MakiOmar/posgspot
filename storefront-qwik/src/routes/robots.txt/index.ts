@@ -3,5 +3,6 @@ import { buildRobotsTxt } from "~/lib/seo-files";
 
 export const onGet: RequestHandler = ({ url, headers, send }) => {
   headers.set("Content-Type", "text/plain; charset=utf-8");
+  headers.set("Cache-Control", "public, max-age=3600");
   send(200, buildRobotsTxt(url.origin));
 };

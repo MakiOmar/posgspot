@@ -80,22 +80,27 @@ app.use(
   `/assets`,
   express.static(assetsDir, { immutable: true, maxAge: "1y" }),
 );
-// public/ copies (heroes, favicon, fonts) — long cache (unique names); HTML no-cache.
-app.use(
-  express.static(distDir, {
-    redirect: false,
-    maxAge: "1y",
-    setHeaders(res, filePath) {
-      if (/\.html?$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "no-cache, must-revalidate");
-        return;
-      }
-      if (/\.(woff2?|ttf|eot|otf|webp|avif|png|jpe?g|gif|svg|ico)$/i.test(filePath)) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      }
-    },
-  }),
-);
+// public/ copies (heroes, favicon, manifest) keep stable names and can be replaced in place,
+// so they get a 1-day cache instead of immutable; HTML no-cache.
+const rootStatic = express.static(distDir, {
+  redirect: false,
+  maxAge: "1d",
+  setHeaders(res, filePath) {
+    if (/\.html?$/i.test(filePath)) {
+      res.setHeader("Cache-Control", "no-cache, must-revalidate");
+    }
+  },
+});
+// Build artifacts in dist/ that must not be served as files: the Qwik manifest is internal,
+// and sitemap.xml is a dynamic route (a stale build copy would shadow it).
+const UNSERVED_ROOT_FILES = new Set(["/q-manifest.json", "/sitemap.xml"]);
+app.use((req, res, next) => {
+  if (UNSERVED_ROOT_FILES.has(req.path)) {
+    next();
+    return;
+  }
+  rootStatic(req, res, next);
+});
 // Use Qwik City's page and endpoint request handler
 app.use(router);
 

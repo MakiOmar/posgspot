@@ -4,23 +4,17 @@ import { MapPinIcon, PhoneIcon } from "~/components/icons";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { ProtectedEmailLink } from "~/components/layout/protected-email-link";
 import { JsonLd } from "~/components/seo/json-ld";
-import { fetchLocations } from "~/lib/api";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { pickDefaultStore, storeMapEmbedUrl } from "~/lib/maps";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { StoreLocation } from "~/lib/types";
-import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
+import { useFooterLocations, useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useStoreLocatorLocations = routeLoader$(async () => {
-  try {
-    const { data } = await fetchLocations();
-    return data;
-  } catch {
-    return [] as StoreLocation[];
-  }
-});
+export const useStoreLocatorLocations = routeLoader$(
+  async ({ resolveValue }): Promise<StoreLocation[]> => resolveValue(useFooterLocations),
+);
 
 function storesJsonLd(locations: StoreLocation[], businessName: string) {
   return {

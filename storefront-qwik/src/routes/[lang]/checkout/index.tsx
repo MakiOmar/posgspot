@@ -24,6 +24,7 @@ import { clearCart, clearAppliedCoupon, cartItemsFingerprint, cartLineKey, coupo
 import { useCart } from "~/lib/cart-context";
 import { storePaymentSession, storeOrderAccessToken } from "~/lib/payment-session";
 import { formatPrice } from "~/lib/format";
+import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { usePendingState } from "~/lib/pending-context";
@@ -39,9 +40,10 @@ function normalizeCheckoutCountry(code: string | null | undefined): string {
   return c;
 }
 
-export const useCheckoutLocations = routeLoader$(async () => {
+export const useCheckoutLocations = routeLoader$(async ({ params }) => {
+  const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
-    const { data } = await fetchLocations(undefined, { sellingOnly: true });
+    const { data } = await fetchLocations(locale, { sellingOnly: true });
     return data;
   } catch {
     return [];

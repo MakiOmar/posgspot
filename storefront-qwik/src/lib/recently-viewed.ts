@@ -6,18 +6,27 @@ export const RECENTLY_VIEWED_MAX = 12;
 /** Max products shown in a recently-viewed grid. */
 export const RECENTLY_VIEWED_DISPLAY = 8;
 
+/** Stored summaries carry price/stock snapshots, so drop entries after a week. */
+export const RECENTLY_VIEWED_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 /** Per-locale key so AR/EN names stay correct after language switch. */
 export const recentlyViewedStorageKey = (locale: string) =>
-  `gs-recently-viewed-${locale}-v1`;
+  `gs-recently-viewed-${locale}-v2`;
 
-const isProductSummary = (value: unknown): value is ProductSummary =>
+type StoredRecentlyViewed = ProductSummary & { viewed_at: number };
+
+const isStoredEntry = (value: unknown): value is StoredRecentlyViewed =>
   typeof value === "object" &&
   value !== null &&
   typeof (value as ProductSummary).id === "number" &&
-  typeof (value as ProductSummary).name === "string";
+  typeof (value as ProductSummary).name === "string" &&
+  typeof (value as StoredRecentlyViewed).viewed_at === "number";
 
-/** Parse recently-viewed JSON; returns [] on corrupt data. */
-export const parseStoredRecentlyViewed = (raw: string | null): ProductSummary[] => {
+/** Parse recently-viewed JSON, dropping expired entries; returns [] on corrupt data. */
+export const parseStoredRecentlyViewed = (
+  raw: string | null,
+  now: number = Date.now(),
+): StoredRecentlyViewed[] => {
   if (!raw) {
     return [];
   }
@@ -26,13 +35,16 @@ export const parseStoredRecentlyViewed = (raw: string | null): ProductSummary[] 
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isProductSummary).map((item) => ({ ...item }));
+    return parsed
+      .filter(isStoredEntry)
+      .filter((item) => now - item.viewed_at < RECENTLY_VIEWED_TTL_MS)
+      .map((item) => ({ ...item }));
   } catch {
     return [];
   }
 };
 
-export const persistRecentlyViewed = (locale: string, items: ProductSummary[]) => {
+const persistRecentlyViewed = (locale: string, items: StoredRecentlyViewed[]) => {
   if (typeof localStorage === "undefined") {
     return;
   }
@@ -44,12 +56,17 @@ export const persistRecentlyViewed = (locale: string, items: ProductSummary[]) =
   localStorage.setItem(key, JSON.stringify(items.slice(0, RECENTLY_VIEWED_MAX)));
 };
 
-export const loadRecentlyViewed = (locale: string): ProductSummary[] => {
+const loadStoredRecentlyViewed = (locale: string): StoredRecentlyViewed[] => {
   if (typeof localStorage === "undefined") {
     return [];
   }
   return parseStoredRecentlyViewed(localStorage.getItem(recentlyViewedStorageKey(locale)));
 };
+
+const toSummary = ({ viewed_at: _viewedAt, ...item }: StoredRecentlyViewed): ProductSummary => item;
+
+export const loadRecentlyViewed = (locale: string): ProductSummary[] =>
+  loadStoredRecentlyViewed(locale).map(toSummary);
 
 /**
  * Prepend a product to history (most recent first), dedupe by id, cap length.
@@ -59,10 +76,10 @@ export const recordRecentlyViewed = (
   locale: string,
   product: ProductSummary,
 ): ProductSummary[] => {
-  const existing = loadRecentlyViewed(locale).filter((item) => item.id !== product.id);
-  const next = [product, ...existing].slice(0, RECENTLY_VIEWED_MAX);
+  const existing = loadStoredRecentlyViewed(locale).filter((item) => item.id !== product.id);
+  const next = [{ ...product, viewed_at: Date.now() }, ...existing].slice(0, RECENTLY_VIEWED_MAX);
   persistRecentlyViewed(locale, next);
-  return next;
+  return next.map(toSummary);
 };
 
 /** History for display, optionally excluding the product currently on screen. */

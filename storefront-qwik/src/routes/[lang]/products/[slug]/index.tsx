@@ -17,7 +17,7 @@ import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
-import { fetchProduct } from "~/lib/api";
+import { ApiError, fetchProduct } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -34,13 +34,18 @@ import { withPendingFeedback } from "~/lib/with-pending";
 import { productSummaryFromDetail } from "~/lib/wishlist-actions";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
 
-export const useProductDetail = routeLoader$(async ({ params, status }) => {
+export const useProductDetail = routeLoader$(async ({ params, error }) => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
     const { data } = await fetchProduct(params.slug, locale);
     return data;
-  } catch {
-    throw status(404);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      throw error(404, "Product not found");
+    }
+    // Timeouts / POS 5xx are transient: a 404 here would tell crawlers the product is gone.
+    console.error(`[storefront] product loader failed for "${params.slug}"`, err);
+    throw error(503, "Product temporarily unavailable");
   }
 });
 

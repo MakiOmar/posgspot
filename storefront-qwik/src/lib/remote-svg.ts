@@ -1,7 +1,9 @@
 import { MAX_SVG_BYTES, prepareInlineSvg } from "~/lib/sanitize-svg";
 
 const FETCH_TIMEOUT_MS = 8_000;
-const cache = new Map<string, string>();
+/** Failed fetches are retried after this window instead of being remembered for the process lifetime. */
+const FAILURE_TTL_MS = 5 * 60_000;
+const cache = new Map<string, { markup: string; expiresAt: number }>();
 const MAX_CACHE = 64;
 
 function cacheKey(url: string, currentColor: boolean): string {
@@ -15,8 +17,23 @@ function remember(key: string, value: string): string {
       cache.delete(first);
     }
   }
-  cache.set(key, value);
+  cache.set(key, {
+    markup: value,
+    expiresAt: value === "" ? Date.now() + FAILURE_TTL_MS : Number.POSITIVE_INFINITY,
+  });
   return value;
+}
+
+function recall(key: string): string | undefined {
+  const hit = cache.get(key);
+  if (!hit) {
+    return undefined;
+  }
+  if (hit.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return undefined;
+  }
+  return hit.markup;
 }
 
 /**
@@ -34,7 +51,7 @@ export async function fetchRemoteSvgMarkup(
 
   const useCurrentColor = options.currentColor !== false;
   const key = cacheKey(src, useCurrentColor);
-  const hit = cache.get(key);
+  const hit = recall(key);
   if (hit !== undefined) {
     return hit;
   }
