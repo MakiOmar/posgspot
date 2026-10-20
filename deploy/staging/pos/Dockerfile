@@ -24,5 +24,11 @@ RUN set -eux; \
 USER www-data
 
 ENV SSL_MODE=off
-ENV AUTORUN_ENABLED=false
 ENV PHP_OPCACHE_ENABLE=1
+
+# Web container boot runs `artisan optimize --except=views` (config/route/event cache).
+# Migrations stay manual (docs/public-site/STAGING_VPS.md); workers override the entrypoint and skip this.
+ENV AUTORUN_ENABLED=true \
+    AUTORUN_LARAVEL_MIGRATION=false \
+    AUTORUN_LARAVEL_STORAGE_LINK=false \
+    AUTORUN_LARAVEL_VIEW_CACHE=false

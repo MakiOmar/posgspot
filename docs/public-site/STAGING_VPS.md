@@ -39,8 +39,10 @@ Visitor → Cloudflare (proxy, TLS) → Traefik (80/443, DNS-01 certs)
              └─ Host(gamesspoteg.com|www)      → storefront:3000
 
 pos / accounts → mysql (pos_stg, accounts_stg) + redis
-pos-queue (×2), pos-scheduler, accounts-queue (same images)
+pos-queue (×2), pos-scheduler, accounts-queue, accounts-scheduler (same images)
 ```
+
+Redis: POS caches in DB 0; Accounts caches in DB 1 and uses DB 2 for its default connection (cache locks), set by `configure-production-env.sh`.
 
 Persistent host binds (survive image rebuilds):
 
@@ -64,14 +66,24 @@ docker compose logs -f --tail=100 pos accounts storefront traefik
 git -C pos pull && git -C accounts pull
 cp pos/deploy/staging/docker-compose.yml . && cp -r pos/deploy/staging/traefik pos/deploy/staging/storefront .   # when infra changed
 docker compose up -d --build pos accounts storefront
-docker compose up -d --force-recreate --scale pos=2 --scale pos-queue=2 pos-queue pos-scheduler accounts-queue
+docker compose up -d --force-recreate --scale pos=2 --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler
 docker compose exec -u www-data pos php artisan migrate --force
 docker compose exec -u www-data accounts php artisan migrate --force
 ```
 
+Laravel caches: the `pos` and `accounts` web containers run `php artisan optimize --except=views` at boot (serversideup `AUTORUN_*` in the Dockerfiles; migrations and `storage:link` stay off). Config, routes and events are cached per container, so:
+
+- `.env` edits need a container recreate (`docker compose up -d --force-recreate pos accounts`), as before.
+- Do not run `optimize:clear` after a deploy — it drops the caches until the next restart. Use `cache:clear` for data caches.
+- If boot-time optimize fails, the container exits and restarts in a loop. Before deploying config/route changes, dry-run it: `docker compose run --rm --no-deps pos php artisan optimize --except=views` (same for `accounts`).
+
+Workers override the entrypoint, so they skip AUTORUN and read config uncached.
+
+`accounts-scheduler` runs `schedule:work` (hourly secondary-stock sync, System Ops auto backup when enabled in the UI). It sets `QUEUE_WORKER_VIA_SCHEDULER=false` because `accounts-queue` already drains the queue; the scheduler-driven `queue:work --stop-when-empty` remains the default for cron-only hosts (Hostinger rollback). The Accounts image includes `default-mysql-client` for Spatie backups.
+
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
-Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`) use the image's `healthcheck-queue` / `healthcheck-schedule` scripts (process check), not the web image's HTTP check on port 8080. To recreate only the workers: `docker compose up -d --no-deps --scale pos-queue=2 pos-queue pos-scheduler accounts-queue`.
+Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`, `accounts-scheduler`) use the image's `healthcheck-queue` / `healthcheck-schedule` scripts (process check), not the web image's HTTP check on port 8080. To recreate only the workers: `docker compose up -d --no-deps --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler`.
 
 Shop-only deploy: `docker compose up -d --build --no-deps storefront`. Without `--no-deps`, Compose also rebuilds and recreates `pos` (a `depends_on` of `storefront`), taking staff POS down for ~30–60s.
 
@@ -96,7 +108,7 @@ Scripts run on the VPS as root from `/opt/spot-staging`:
 1. `HOSTINGER_SSH_PASS=… bash scripts/pull-from-hostinger.sh` — DB dumps, POS uploads/storage, Accounts storage/assets/logos, live `.env` files into `data/live-env/` (mode 600). Incremental; re-run during the window.
 2. `bash scripts/configure-production-env.sh` — writes `pos/.env` and `accounts/.env` from the live files (keeps `APP_KEY`, mail, payments) and rewires hosts, DB, Redis, `TRUSTED_PROXIES`.
 3. `bash scripts/import-db.sh` — drops and re-imports `pos_stg` / `accounts_stg`.
-4. `migrate --force` + `optimize:clear` on both apps; restart workers.
+4. `migrate --force` on both apps, then recreate the web containers and workers (boot rebuilds the Laravel caches).
 
 The live databases hold no `new.gamesspoteg.com` or WordPress URLs (checked at cutover), so no content rewrite is needed; `.env` hosts are rewritten in step 2.
 

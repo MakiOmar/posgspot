@@ -67,6 +67,8 @@ set_kv pos/.env CORS_ALLOWED_ORIGINS "https://${SHOP},https://www.${SHOP}"
 set_kv pos/.env ACCOUNTS_BASE_URL "https://${ACC}"
 
 wire_common accounts/.env accounts_stg 1 "https://${ACC}"
+# POS caches in Redis DB 0; keep Accounts' default connection (cache locks) out of it so a POS cache:clear can't drop them
+set_kv accounts/.env REDIS_DB 2
 # WordPress is retired; nothing to notify
 set_kv accounts/.env WORDPRESS_WEBHOOK_URL ""
 

@@ -195,6 +195,25 @@ services:
     networks:
       - spot_internal
 
+  accounts-scheduler:
+    image: spot-staging/accounts:latest
+    restart: unless-stopped
+    entrypoint: ["php", "artisan", "schedule:work"]
+    healthcheck:
+      test: ["CMD", "healthcheck-schedule"]
+      start_period: 30s
+    env_file:
+      - ./accounts/.env
+    environment:
+      # accounts-queue drains the queue; the cron-host fallback in routes/console.php stays off here
+      QUEUE_WORKER_VIA_SCHEDULER: "false"
+    volumes: *accounts_volumes
+    depends_on:
+      - accounts
+      - mysql
+    networks:
+      - spot_internal
+
   storefront:
     build:
       # Built from the POS git checkout (npm ci + npm run build inside Docker)
