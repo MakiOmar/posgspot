@@ -69,6 +69,8 @@ set_kv pos/.env ACCOUNTS_BASE_URL "https://${ACC}"
 wire_common accounts/.env accounts_stg 1 "https://${ACC}"
 # POS caches in Redis DB 0; keep Accounts' default connection (cache locks) out of it so a POS cache:clear can't drop them
 set_kv accounts/.env REDIS_DB 2
+# The image's MariaDB mysqldump rejects MySQL's self-signed cert; traffic stays on spot_internal
+set_kv accounts/.env DB_DUMP_SKIP_SSL true
 # WordPress is retired; nothing to notify
 set_kv accounts/.env WORDPRESS_WEBHOOK_URL ""
 
