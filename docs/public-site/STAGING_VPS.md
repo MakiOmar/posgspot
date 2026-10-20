@@ -65,6 +65,7 @@ docker compose logs -f --tail=100 pos accounts storefront traefik
 # Deploy new code (only after it is committed and pushed — never edit code on the VPS)
 git -C pos pull && git -C accounts pull
 cp pos/deploy/staging/docker-compose.yml . && cp -r pos/deploy/staging/traefik pos/deploy/staging/storefront .   # when infra changed
+cp pos/deploy/staging/pos/{Dockerfile,.dockerignore} pos/ && cp pos/deploy/staging/accounts/{Dockerfile,.dockerignore} accounts/   # compose builds from the checkouts
 docker compose up -d --build pos accounts storefront
 docker compose up -d --force-recreate --scale pos=2 --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler
 docker compose exec -u www-data pos php artisan migrate --force
