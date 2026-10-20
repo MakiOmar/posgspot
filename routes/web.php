@@ -79,7 +79,8 @@ use App\Http\Controllers\Auth\VerificationController;
 |
 */
 
-include_once 'install_r.php';
+// Not include_once: route:cache loads this file twice in one process and would drop the install routes.
+require __DIR__.'/install_r.php';
 
 Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {

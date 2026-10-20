@@ -10,6 +10,18 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 `config/trustedproxy.php` reads `TRUSTED_PROXIES`, a comma-separated list of IPs/CIDRs whose `X-Forwarded-*` headers are trusted. Behind Cloudflare and Traefik every hop must be listed (Docker private ranges plus Cloudflare's published ranges). Otherwise `$request->ip()` returns a Cloudflare edge address, and the per-IP storefront rate limiters throttle all visitors together. Empty keeps the legacy behaviour of trusting only the immediate caller. Accounts reads the same key.
 
+## Config caching and `env()`
+
+Production web containers run `php artisan optimize --except=views` at boot (see [STAGING_VPS](public-site/STAGING_VPS.md)). With a cached config, `env()` returns `null` outside `config/*.php`, so application code must read `config(...)`. Keys moved into config for this: `services.woo.{base,auth_key,webhook_secret}` (`WOO_BASE`, `AUTH_KEY`, `WOOCOMMERCE_WEBHOOK_SECRET`), `services.google_maps.api_key` (`GOOGLE_MAP_API_KEY`), `services.google.{android_client_id,ios_client_id}`. Mail driver checks use `config('mail.default')`.
+
+## Storefront API caching
+
+- Public catalog endpoints send `Cache-Control: public`, an ETag that includes the content locale, and `Vary: X-Content-Locale, Accept-Language, Origin`. Conditional requests get `304`.
+- `storefront.categories.*` (per business and locale) is forgotten whenever a category or category translation is saved, deleted or restored, and after bulk translation or WebP rewrites.
+- Accounts proxy calls (platform listings, featured games, card categories) are cached for 30s, and only successful responses are cached, so an Accounts outage is never pinned.
+- Storefront settings and `System` properties are memoized per HTTP request (not in console, so queue workers always read fresh values).
+- The storefront's own SSR cache (stale-while-revalidate, 15s failure backoff) is described in [API.md](public-site/API.md).
+
 ## Storefront social login (Google + Facebook)
 
 Uses **Laravel Socialite**. Credentials are **env-only** (never Storefront Settings JSON / POS admin).

@@ -1137,7 +1137,7 @@ class Util
      */
     public function IsMailConfigured()
     {
-        $mailer = config('mail.default', env('MAIL_MAILER'));
+        $mailer = config('mail.default');
 
         // System-wide Mailgun API transport (MAIL_MAILER=mailgun).
         if ($mailer === 'mailgun') {
@@ -1572,7 +1572,7 @@ class Util
     public function getLocationFromCoordinates($lat, $long)
     {
         try {
-            $access_token = env('GOOGLE_MAP_API_KEY');
+            $access_token = config('services.google_maps.api_key');
             $full_address = null;
             $address = [];
             if (! empty($access_token)) {

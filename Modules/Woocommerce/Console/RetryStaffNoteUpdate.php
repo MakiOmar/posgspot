@@ -46,7 +46,7 @@ class RetryStaffNoteUpdate extends Command
             }
 
             // Get webhook secret from environment variable
-            $webhook_secret = env('WOOCOMMERCE_WEBHOOK_SECRET');
+            $webhook_secret = config('services.woo.webhook_secret');
             
             if (empty($webhook_secret)) {
                 $this->error("WOOCOMMERCE_WEBHOOK_SECRET not defined in .env file");

@@ -653,10 +653,10 @@ class ContactController extends Controller
             $this->contactUtil->activityLog($output['data'], 'added');
             // ✅ مزامنة العميل مع ووكومرس
             try {
-                $woocommerce_endpoint = env('WOO_BASE') . '/wp-json/caui/v1/create-user';
+                $woocommerce_endpoint = config('services.woo.base') . '/wp-json/caui/v1/create-user';
 
                 $woocommerce_payload = [
-                    'auth_key' => env('AUTH_KEY'),
+                    'auth_key' => config('services.woo.auth_key'),
                     'billing' => [
                         'first_name'  => $output['data']->first_name,
                         'last_name'   => $output['data']->last_name,

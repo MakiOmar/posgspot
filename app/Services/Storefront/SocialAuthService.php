@@ -559,8 +559,8 @@ class SocialAuthService
         $aud = (string) ($payload['aud'] ?? '');
         $allowed = array_filter([
             (string) config('services.google.client_id'),
-            (string) env('GOOGLE_ANDROID_CLIENT_ID', ''),
-            (string) env('GOOGLE_IOS_CLIENT_ID', ''),
+            (string) config('services.google.android_client_id'),
+            (string) config('services.google.ios_client_id'),
         ]);
 
         if ($aud === '' || ($allowed !== [] && ! in_array($aud, $allowed, true))) {

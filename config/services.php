@@ -33,6 +33,15 @@ return [
     'woo' => [
         'endpoint' => env('WOO_ENDPOINT'),
         'token'    => env('WOO_TOKEN'),
+        // Contact → WooCommerce customer sync (caui/v1/create-user).
+        'base' => env('WOO_BASE'),
+        'auth_key' => env('AUTH_KEY'),
+        // Woocommerce module: pos:retry-staff-note-update signs its webhook calls with this.
+        'webhook_secret' => env('WOOCOMMERCE_WEBHOOK_SECRET'),
+    ],
+
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAP_API_KEY'),
     ],
     'accounts' => [
         'base' => env('ACCOUNTS_BASE_URL'),
@@ -65,6 +74,9 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/api/storefront/v1/auth/social/google/callback'),
+        // Extra id_token audiences accepted for native app sign-in.
+        'android_client_id' => env('GOOGLE_ANDROID_CLIENT_ID'),
+        'ios_client_id' => env('GOOGLE_IOS_CLIENT_ID'),
     ],
 
     'facebook' => [

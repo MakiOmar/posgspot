@@ -117,7 +117,7 @@ class AdminSidebarMenu
                             );
                         }
 
-                        if (!empty(env('GOOGLE_MAP_API_KEY'))) {
+                        if (!empty(config('services.google_maps.api_key'))) {
                             $sub->url(
                                 action([\App\Http\Controllers\ContactController::class, 'contactMap']),
                                 __('lang_v1.map'),

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 @section('title', __('lang_v1.' . $type . 's'))
 @php
-    $api_key = env('GOOGLE_MAP_API_KEY');
+    $api_key = config('services.google_maps.api_key');
 @endphp
 @if (!empty($api_key))
     @section('css')

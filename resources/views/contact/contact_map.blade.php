@@ -3,7 +3,7 @@
 
 @section('content')
     @php
-        $api_key = env('GOOGLE_MAP_API_KEY');
+        $api_key = config('services.google_maps.api_key');
     @endphp
 <!-- Content Header (Page header) -->
 <section class="content-header">
