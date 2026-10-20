@@ -2,6 +2,7 @@
 
 namespace App;
 
+use App\Services\Storefront\CatalogService;
 use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -28,6 +29,19 @@ class Category extends Model
     protected $casts = [
         'show_on_homepage_shelf' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        $forget = static function (Category $category): void {
+            if ($category->business_id) {
+                CatalogService::forgetCategoriesCache((int) $category->business_id);
+            }
+        };
+
+        static::saved($forget);
+        static::deleted($forget);
+        static::restored($forget);
+    }
 
     /**
      * Storefront / POS thumbnail URL (uploads/img or default placeholder).

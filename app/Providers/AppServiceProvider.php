@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\System;
 use App\Utils\ModuleUtil;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -48,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
         if (request()->has('lang')) {
             \App::setLocale(request()->get('lang'));
         }
+
+        // Module installs migrate inside an HTTP request and insert "{module}_version" rows with the query builder.
+        Event::listen(MigrationsEnded::class, fn () => System::flushPropertyMemo());
 
         //In Laravel 5.6, Blade will double encode special characters by default. If you would like to maintain the previous behavior of preventing double encoding, you may add Blade::withoutDoubleEncoding() to your AppServiceProvider boot method.
         Blade::withoutDoubleEncoding();

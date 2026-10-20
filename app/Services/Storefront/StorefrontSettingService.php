@@ -17,6 +17,14 @@ class StorefrontSettingService
 {
     private const CACHE_KEY = 'storefront_settings_';
 
+    /**
+     * Decoded settings per business for the current HTTP request (the blob can approach 1 MB
+     * and get() runs several times per request). PHP-FPM resets statics between requests.
+     *
+     * @var array<int, array<string, mixed>>
+     */
+    private static array $requestMemo = [];
+
     /** Blobs larger than this are treated as poisoned (usually leftover inline SVG) and scrubbed. */
     private const OVERSIZED_BLOB_BYTES = 1_000_000;
 
@@ -197,9 +205,27 @@ class StorefrontSettingService
 
     public function get(int $businessId): array
     {
-        return Cache::remember(self::CACHE_KEY.$businessId, 300, function () use ($businessId) {
+        if (isset(self::$requestMemo[$businessId])) {
+            return self::$requestMemo[$businessId];
+        }
+
+        $settings = Cache::remember(self::CACHE_KEY.$businessId, 300, function () use ($businessId) {
             return $this->loadSettingsArray($businessId);
         });
+
+        // Long-lived CLI processes (queue workers, scheduler, tests) must re-read the shared cache.
+        if (! app()->runningInConsole()) {
+            self::$requestMemo[$businessId] = $settings;
+        }
+
+        return $settings;
+    }
+
+    /** Drop the cached settings blob (shared cache + this request's copy) after any write. */
+    public static function forgetCache(int $businessId): void
+    {
+        unset(self::$requestMemo[$businessId]);
+        Cache::forget(self::CACHE_KEY.$businessId);
     }
 
     /**
@@ -291,7 +317,7 @@ class StorefrontSettingService
         ]);
 
         $this->writeValueJsonString($businessId, $payload);
-        Cache::forget(self::CACHE_KEY.$businessId);
+        self::forgetCache($businessId);
 
         return $normalized;
     }
@@ -434,7 +460,7 @@ class StorefrontSettingService
         }
 
         $this->writeValueJsonString($businessId, $payload);
-        Cache::forget(self::CACHE_KEY.$businessId);
+        self::forgetCache($businessId);
 
         return [
             'business_id' => $businessId,
@@ -1317,7 +1343,7 @@ class StorefrontSettingService
             ?? StorefrontSetting::make(['business_id' => $businessId, 'value' => $merged]);
 
         $this->syncSellingLocations($businessId, $merged['selling_location_ids'] ?? []);
-        Cache::forget(self::CACHE_KEY.$businessId);
+        self::forgetCache($businessId);
 
         // Zoning tree depends on API key / staging — refresh on courier save.
         try {
@@ -1724,7 +1750,7 @@ class StorefrontSettingService
             throw new \RuntimeException('Could not encode storefront settings.');
         }
         $this->writeValueJsonString($businessId, $payload);
-        Cache::forget(self::CACHE_KEY.$businessId);
+        self::forgetCache($businessId);
 
         return $normalized;
     }

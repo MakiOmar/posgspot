@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Log;
  */
 class AccountsApiClient
 {
+    /** Listing freshness window; checkout re-checks stock live via checkStock/checkCardStock. */
+    private const LISTING_TTL_SECONDS = 30;
+
     public function baseUrl(): string
     {
         return rtrim((string) config('services.accounts.base'), '/');
@@ -125,7 +128,33 @@ class AccountsApiClient
             $query['search'] = $term;
         }
 
-        return $this->request('GET', 'api/games/platform/'.$platform, $query, false);
+        return $this->rememberSuccessful(
+            'storefront.accounts.platform.'.md5($platform.'|'.http_build_query($query)),
+            self::LISTING_TTL_SECONDS,
+            fn () => $this->request('GET', 'api/games/platform/'.$platform, $query, false),
+        );
+    }
+
+    /**
+     * Short shared cache for public catalog reads hit on every storefront render.
+     * Failures are never cached so the next request retries; stock checks and orders stay live.
+     *
+     * @param  callable(): array{success:bool,status:int,body:?array,error:?string}  $load
+     * @return array{success:bool,status:int,body:?array,error:?string}
+     */
+    private function rememberSuccessful(string $cacheKey, int $ttlSeconds, callable $load): array
+    {
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && ! empty($cached['success'])) {
+            return $cached;
+        }
+
+        $result = $load();
+        if (! empty($result['success'])) {
+            Cache::put($cacheKey, $result, now()->addSeconds($ttlSeconds));
+        }
+
+        return $result;
     }
 
     /**
@@ -138,10 +167,14 @@ class AccountsApiClient
         $count = max(1, min(50, $count));
         $productType = $productType === 'subscription' ? 'subscription' : 'game';
 
-        return $this->request('GET', 'api/games/featured', [
-            'count' => $count,
-            'product_type' => $productType,
-        ], false);
+        return $this->rememberSuccessful(
+            'storefront.accounts.featured.'.$productType.'.'.$count,
+            self::LISTING_TTL_SECONDS,
+            fn () => $this->request('GET', 'api/games/featured', [
+                'count' => $count,
+                'product_type' => $productType,
+            ], false),
+        );
     }
 
     public function getGame(int $id): array
@@ -178,7 +211,11 @@ class AccountsApiClient
 
     public function getCardCategories(): array
     {
-        return $this->request('GET', 'api/card-ctegories/list', null, false);
+        return $this->rememberSuccessful(
+            'storefront.accounts.card-categories',
+            self::LISTING_TTL_SECONDS,
+            fn () => $this->request('GET', 'api/card-ctegories/list', null, false),
+        );
     }
 
     public function checkStock(array $payload): array

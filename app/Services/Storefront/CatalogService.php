@@ -34,15 +34,26 @@ class CatalogService
         return ! empty($this->storefrontSettings->getSellingLocationIds($businessId));
     }
 
+    /** Drop the cached category tree for every storefront locale after a category or translation write. */
+    public static function forgetCategoriesCache(int $businessId): void
+    {
+        foreach (StorefrontLocale::SUPPORTED as $locale) {
+            Cache::forget(self::categoriesCacheKey($businessId, $locale));
+        }
+    }
+
+    private static function categoriesCacheKey(int $businessId, string $locale): string
+    {
+        return 'storefront.categories.'.$businessId.'.'.$locale;
+    }
+
     public function getCategories(int $businessId, string $locale = StorefrontLocale::DEFAULT): array
     {
         if (! $this->hasSellingLocations($businessId)) {
             return [];
         }
 
-        $cacheKey = 'storefront.categories.'.$businessId.'.'.$locale;
-
-        return Cache::remember($cacheKey, 120, function () use ($businessId, $locale) {
+        return Cache::remember(self::categoriesCacheKey($businessId, $locale), 120, function () use ($businessId, $locale) {
             $tree = $this->slimCategoryTree(Category::catAndSubCategories($businessId));
             if (StorefrontLocale::isDefault($locale)) {
                 return $tree;

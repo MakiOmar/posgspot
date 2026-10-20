@@ -28,6 +28,27 @@ class System extends Model
     protected $guarded = ['id'];
 
     /**
+     * Property values read during the current HTTP request. ModuleUtil::isModuleInstalled()
+     * looks up "{module}_version" once per module on every menu/permission check.
+     * PHP-FPM resets statics between requests; CLI processes skip the memo.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $propertyMemo = [];
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => self::flushPropertyMemo());
+        static::deleted(fn () => self::flushPropertyMemo());
+    }
+
+    /** Forget memoized property values after a write that bypasses the helpers below. */
+    public static function flushPropertyMemo(): void
+    {
+        self::$propertyMemo = [];
+    }
+
+    /**
      * Return the value of the property
      *
      * @param $key string
@@ -35,14 +56,20 @@ class System extends Model
      */
     public static function getProperty($key)
     {
+        if (array_key_exists($key, self::$propertyMemo)) {
+            return self::$propertyMemo[$key];
+        }
+
         $row = System::where('key', $key)
                 ->first();
 
-        if (isset($row->value)) {
-            return $row->value;
-        } else {
-            return null;
+        $value = isset($row->value) ? $row->value : null;
+
+        if (! app()->runningInConsole()) {
+            self::$propertyMemo[$key] = $value;
         }
+
+        return $value;
     }
 
     /**
@@ -91,6 +118,7 @@ class System extends Model
     {
         System::where('key', $key)
             ->update(['value' => $value]);
+        self::flushPropertyMemo();
     }
 
     /**
@@ -103,6 +131,7 @@ class System extends Model
     {
         System::where('key', $key)
             ->delete();
+        self::flushPropertyMemo();
     }
 
     /**

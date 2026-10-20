@@ -7,7 +7,6 @@ use App\Business;
 use App\BusinessLocation;
 use App\Category;
 use App\Product;
-use App\Support\StorefrontLocale;
 use App\Unit;
 use App\Utils\ProductUtil;
 use App\Variation;
@@ -253,10 +252,6 @@ class AccountsCatalogService
             'category_type' => 'product',
             'slug' => $slug,
         ]);
-
-        foreach (StorefrontLocale::SUPPORTED as $locale) {
-            Cache::forget('storefront.categories.'.$businessId.'.'.$locale);
-        }
 
         return (int) $category->id;
     }

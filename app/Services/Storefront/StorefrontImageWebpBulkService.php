@@ -5,7 +5,6 @@ namespace App\Services\Storefront;
 use App\StorefrontMedia;
 use App\Support\ImageWebpConverter;
 use App\Utils\Util;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -350,6 +349,8 @@ class StorefrontImageWebpBulkService
             $count += $this->bulkReplaceColumn('categories', 'image', $businessId, $imgMap);
             $count += $this->bulkReplaceColumn('categories', 'shelf_banner', $businessId, $imgMap);
             $count += $this->bulkReplaceColumn('categories', 'shelf_fg_image', $businessId, $imgMap);
+            // Query-builder updates skip Category model events.
+            CatalogService::forgetCategoriesCache($businessId);
             if (DB::getSchemaBuilder()->hasTable('brands')) {
                 $count += $this->bulkReplaceColumn('brands', 'image', $businessId, $imgMap);
             }
@@ -535,7 +536,7 @@ class StorefrontImageWebpBulkService
             'value' => $payload,
             'updated_at' => now(),
         ]);
-        Cache::forget('storefront_settings_'.$businessId);
+        StorefrontSettingService::forgetCache($businessId);
 
         return $count;
     }
@@ -729,7 +730,7 @@ class StorefrontImageWebpBulkService
                 'value' => $payload,
                 'updated_at' => now(),
             ]);
-            Cache::forget('storefront_settings_'.$businessId);
+            StorefrontSettingService::forgetCache($businessId);
         }
 
         return compact('converted', 'skipped', 'failed', 'rewritten');

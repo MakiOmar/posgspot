@@ -4,6 +4,7 @@ namespace App\Utils;
 
 use App\Business;
 use App\Product;
+use App\System;
 use App\Variation;
 use App\VariationLocationDetails;
 use App\VariationTemplate;
@@ -95,6 +96,7 @@ class InstallUtil extends Util
     public function setSystemInfo($key, $value)
     {
         DB::table('system')->where('key', $key)->update(['value' => $value]);
+        System::flushPropertyMemo();
     }
 
     /**

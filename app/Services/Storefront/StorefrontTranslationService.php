@@ -137,6 +137,8 @@ class StorefrontTranslationService
 
         if ($name === '') {
             CategoryTranslation::where('category_id', $category->id)->where('locale', 'ar')->delete();
+            // Mass delete skips CategoryTranslation model events.
+            CatalogService::forgetCategoriesCache($businessId);
 
             return;
         }
