@@ -40,4 +40,8 @@ return [
     'backups' => 'Backups',
     'no_backups' => 'No backups yet. Use "Backup now" or wait for the next automatic run.',
     'cron_required' => 'Automatic backups need the scheduler cron job on the server:',
+    'drive_copy' => 'Google Drive copy',
+    'drive_disabled' => 'Not enabled',
+    'drive_pending' => 'No copy uploaded yet',
+    'drive_kept_days' => 'Drive keeps copies for :days day(s)',
 ];

@@ -98,6 +98,27 @@
                         <dt>@lang('backup.free_space')</dt>
                         <dd>{{ humanFilesize($free_space) }}</dd>
                     @endif
+                    {{-- Off-site copy on Google Drive (configured via GOOGLE_DRIVE_* env keys) --}}
+                    <dt>@lang('backup.drive_copy')</dt>
+                    <dd>
+                        @if (! $drive['enabled'])
+                            <span class="text-muted">@lang('backup.drive_disabled')</span>
+                        @elseif ($drive['at'])
+                            {{ $drive['at']->toDateTimeString() }}
+                            @if ($drive['status'] === 'success')
+                                <span class="label label-success">@lang('backup.status_success')</span>
+                            @else
+                                <span class="label label-danger">@lang('backup.status_failed')</span>
+                                @if ($drive['message'])
+                                    <br><small class="text-danger">{{ $drive['message'] }}</small>
+                                @endif
+                            @endif
+                            <br><small class="text-muted">{{ __('backup.drive_kept_days', ['days' => $drive['keep_days']]) }}</small>
+                        @else
+                            @lang('backup.drive_pending')
+                            <br><small class="text-muted">{{ __('backup.drive_kept_days', ['days' => $drive['keep_days']]) }}</small>
+                        @endif
+                    </dd>
                 </dl>
                 @if ($cron_job_command)
                     <p class="tw-mt-3 tw-mb-1"><strong>@lang('backup.cron_required')</strong></p>

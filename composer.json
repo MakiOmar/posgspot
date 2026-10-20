@@ -67,7 +67,8 @@
         "symfony/http-client": "^7.0",
         "symfony/mailgun-mailer": "^7.0",
         "unicodeveloper/laravel-paystack": "^1.0",
-        "yajra/laravel-datatables-oracle": "^11.0"
+        "yajra/laravel-datatables-oracle": "^11.0",
+        "yaza/laravel-google-drive-storage": "^4.1"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.11",
@@ -99,6 +100,9 @@
         }
     },
     "scripts": {
+        "pre-autoload-dump": [
+            "Google\\Task\\Composer::cleanup"
+        ],
         "post-root-package-install": [
             "php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
@@ -116,6 +120,11 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump"
+        ]
+    },
+    "extra": {
+        "google/apiclient-services": [
+            "Drive"
         ]
     },
     "config": {

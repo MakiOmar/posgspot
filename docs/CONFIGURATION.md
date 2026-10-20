@@ -180,6 +180,13 @@ The scheduler runs `php artisan backup:auto` (backup with the page's scope) on t
 | `BACKUP_DISK` | Filesystem disk for archives (default `backups` → `storage/app/backups`). `local` is **redirected** to `backups`, because the `local` disk is `public/uploads` (web-accessible). |
 | `BACKUP_ARCHIVE_PASSWORD` | Optional AES-256 zip password |
 | `DB_DUMP_SKIP_SSL` | `true` makes `mysqldump` connect without TLS. Needed when the client (e.g. Debian's MariaDB `default-mysql-client`, as in the staging Docker image) rejects the MySQL server's self-signed certificate. Default `false`. |
+| `BACKUP_GOOGLE_DRIVE_ENABLED` | `true` copies each new archive to Google Drive after a successful backup. Only active when the three `GOOGLE_DRIVE_*` credentials below are also set. Default `false`. |
+| `BACKUP_GOOGLE_DRIVE_KEEP_DAYS` | Days of archives kept **on Drive** (older Drive copies are deleted; the newest is always kept). Local archives are unaffected. Default `14`. |
+| `GOOGLE_DRIVE_CLIENT_ID` / `GOOGLE_DRIVE_CLIENT_SECRET` / `GOOGLE_DRIVE_REFRESH_TOKEN` | OAuth client + refresh token for the Google account that owns the backups. |
+| `GOOGLE_DRIVE_FOLDER` | Folder **path** in My Drive (e.g. `Spot Backups/POS`), created if missing. Use a different folder per app. |
+| `GOOGLE_DRIVE_TEAM_DRIVE_ID` | Optional Shared Drive ID. |
+
+**Google Drive copy:** Drive is not a Spatie destination — a Drive failure never fails or retries the local backup. `backup:auto` uploads the newest archive and prunes old Drive copies; the result shows as **Google Drive copy** under **Status**. Verify credentials with `php artisan backup:drive-check`. Setup (Google Cloud project, refresh token, troubleshooting): [integrations/GOOGLE_DRIVE_BACKUPS.md](integrations/GOOGLE_DRIVE_BACKUPS.md).
 
 Backups need `mysqldump` on the server (`default-mysql-client` in the staging POS image). A failed run shows its reason under **Status** on the Backup page.
 

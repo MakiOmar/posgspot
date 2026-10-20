@@ -62,14 +62,14 @@ class BackupScheduleService
     }
 
     /**
-     * Free bytes on the volume holding backups; null for remote disks (S3, Dropbox…).
+     * Free bytes on the volume holding backups; null for remote disks (S3, Dropbox, Google Drive…).
      */
     public function freeDiskSpace(): ?int
     {
-        $disk = $this->disk();
-        if (! method_exists($disk, 'path')) {
+        if (config('filesystems.disks.'.$this->diskName().'.driver') !== 'local') {
             return null;
         }
+        $disk = $this->disk();
         $root = $disk->path('');
         $free = is_dir($root) ? @disk_free_space($root) : false;
 
@@ -115,9 +115,38 @@ class BackupScheduleService
         ];
     }
 
+    public function recordDriveRun(bool $success, string $message): void
+    {
+        System::addProperty(self::KEY_PREFIX.'drive_last_at', now()->toIso8601String());
+        System::addProperty(self::KEY_PREFIX.'drive_last_status', $success ? 'success' : 'failed');
+        System::addProperty(self::KEY_PREFIX.'drive_last_message', mb_substr(trim($message), 0, 1000));
+    }
+
+    /**
+     * Last Google Drive copy attempt.
+     *
+     * @return array{at: ?Carbon, status: ?string, message: ?string}
+     */
+    public function driveStatus(): array
+    {
+        $stored = System::getProperties($this->keys(['drive_last_at', 'drive_last_status', 'drive_last_message']), true);
+        $at = $stored[self::KEY_PREFIX.'drive_last_at'] ?? null;
+
+        return [
+            'at' => $at ? Carbon::parse($at) : null,
+            'status' => $stored[self::KEY_PREFIX.'drive_last_status'] ?? null,
+            'message' => $stored[self::KEY_PREFIX.'drive_last_message'] ?? null,
+        ];
+    }
+
+    public function diskName(): string
+    {
+        return (string) config('backup.backup.destination.disks')[0];
+    }
+
     public function disk(): Filesystem
     {
-        return Storage::disk(config('backup.backup.destination.disks')[0]);
+        return Storage::disk($this->diskName());
     }
 
     /**
@@ -156,7 +185,7 @@ class BackupScheduleService
         return $this->disk()->exists($path) ? $path : null;
     }
 
-    private function directory(): string
+    public function directory(): string
     {
         return str_replace('\\', '/', (string) config('backup.backup.name'));
     }

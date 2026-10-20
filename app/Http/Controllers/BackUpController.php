@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Backup\UpdateBackupSettingsRequest;
 use App\Services\Backup\BackupScheduleService;
+use App\Services\Backup\GoogleDriveBackupService;
 use App\Utils\Util;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -13,7 +14,8 @@ class BackUpController extends Controller
 {
     public function __construct(
         protected Util $commonUtil,
-        protected BackupScheduleService $backups
+        protected BackupScheduleService $backups,
+        protected GoogleDriveBackupService $drive
     ) {}
 
     /**
@@ -34,6 +36,10 @@ class BackUpController extends Controller
             'scopes' => BackupScheduleService::SCOPES,
             'last_run' => $this->backups->lastRun(),
             'next_run' => $this->backups->nextRunAt(),
+            'drive' => [
+                'enabled' => $this->drive->enabled(),
+                'keep_days' => $this->drive->keepDays(),
+            ] + $this->backups->driveStatus(),
             'cron_job_command' => $this->commonUtil->getCronJobCommand(),
         ]);
     }

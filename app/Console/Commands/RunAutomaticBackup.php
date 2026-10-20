@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Services\Backup\BackupScheduleService;
+use App\Services\Backup\GoogleDriveBackupService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +11,7 @@ use Throwable;
 
 /**
  * Backup using the scope on the POS Backup page. Older archives are kept (no cleanup).
+ * When Google Drive is enabled, the new archive is also copied there (Drive keeps the last N days).
  */
 class RunAutomaticBackup extends Command
 {
@@ -18,7 +20,7 @@ class RunAutomaticBackup extends Command
 
     protected $description = 'Run a backup with the Backup page settings (scope); older archives are kept';
 
-    public function handle(BackupScheduleService $schedule): int
+    public function handle(BackupScheduleService $schedule, GoogleDriveBackupService $drive): int
     {
         $settings = $schedule->settings();
         if (! $settings['enabled'] && ! $this->option('force')) {
@@ -44,8 +46,34 @@ class RunAutomaticBackup extends Command
 
         $schedule->recordRun(true, $this->lastLine($output));
         $this->info('Backup completed.');
+        $this->copyToGoogleDrive($schedule, $drive);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Off-site copy: a Drive failure is recorded separately and never fails the local backup.
+     */
+    private function copyToGoogleDrive(BackupScheduleService $schedule, GoogleDriveBackupService $drive): void
+    {
+        if (! $drive->enabled()) {
+            return;
+        }
+
+        try {
+            $result = $drive->syncLatest($schedule->diskName(), $schedule->directory());
+        } catch (Throwable $e) {
+            $reason = GoogleDriveBackupService::describe($e);
+            Log::error('Google Drive backup copy failed', ['exception' => $e]);
+            $schedule->recordDriveRun(false, $reason);
+            $this->warn('Google Drive copy failed: '.$reason);
+
+            return;
+        }
+
+        $message = "Uploaded {$result['file']}; removed {$result['pruned']} old Drive copies.";
+        $schedule->recordDriveRun(true, $message);
+        $this->info($message);
     }
 
     private function reportFailure(BackupScheduleService $schedule, string $output): int
