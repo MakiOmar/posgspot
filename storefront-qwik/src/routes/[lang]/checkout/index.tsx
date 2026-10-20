@@ -68,13 +68,16 @@ export const useCheckoutGeoCountries = routeLoader$(async () => {
   }
 });
 
-export default component$(() => {
+interface CheckoutFormProps {
+  locations: ReturnType<typeof useCheckoutLocations>;
+  phoneCountries: ReturnType<typeof useCheckoutPhoneCountries>;
+  geoCountries: ReturnType<typeof useCheckoutGeoCountries>;
+}
+
+const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries, geoCountries }) => {
   const settings = useSiteSettings();
   const { locale } = useI18n();
   const nav = useNavigate();
-  const locations = useCheckoutLocations();
-  const phoneCountries = useCheckoutPhoneCountries();
-  const geoCountries = useCheckoutGeoCountries();
   const cart = useCart();
   const auth = useAuth();
   const pending = usePendingState();
@@ -1138,6 +1141,38 @@ export default component$(() => {
         </aside>
       </div>
     </section>
+  );
+});
+
+/**
+ * Mounts the form only after the localStorage cart hydrates. SSR always sees an empty cart, and
+ * the hydration re-render dropped the form's pending visible tasks on cold loads (no governorates,
+ * stock validation, or shipping rates after a refresh). A client-created component runs them.
+ */
+export default component$(() => {
+  const { locale } = useI18n();
+  const cart = useCart();
+  const locations = useCheckoutLocations();
+  const phoneCountries = useCheckoutPhoneCountries();
+  const geoCountries = useCheckoutGeoCountries();
+
+  if (!cart.hydrated) {
+    return (
+      <section>
+        <h1 class="page-title">{tStatic(locale, "checkout.title")}</h1>
+        <p class="footer-muted" role="status">
+          {tStatic(locale, "cart.refreshing")}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <CheckoutForm
+      locations={locations}
+      phoneCountries={phoneCountries}
+      geoCountries={geoCountries}
+    />
   );
 });
 

@@ -257,6 +257,8 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-20 | Checkout after page refresh: form mounts once the cart hydrates, so its client tasks run (governorate select, stock validation, shipping rates were skipped on cold loads and State fell back to a text input). |
+| 2026-10-20 | Add-to-cart toast ("Added to cart" + item + View cart) on product cards, PDP, wishlist, digital games, gift cards; digital games and gift cards no longer redirect to `/cart`. `cart-feedback.ts`. |
 | 2026-10-20 | Header Services dropdown no longer links "Track my order"; `/track-order` page unchanged. |
 | 2026-10-20 | Checkout reward points input applies on focus out (was every keystroke); unchanged values skip re-validation. |
 | 2026-10-20 | Checkout fixes: `GET /locations?selling_only=1` now includes selling locations hidden from the storefront (a hidden selling branch emptied checkout, blocking orders with "cart empty or no location" and clearing promo codes). Coupon validate/available price digital lines at the Accounts offer price (was the POS placeholder price, usually 0); checkout coupon UI sends full cart lines. `HiddenSellingLocationTest`, `CouponTest`. |
