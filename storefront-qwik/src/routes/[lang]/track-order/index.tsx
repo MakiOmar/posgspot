@@ -1,6 +1,7 @@
 import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import {
   ApiError,
   fetchOrders,
@@ -50,7 +51,7 @@ const TrackedOrderCard = component$<{ order: TrackedOrder }>(({ order }) => {
         <dt>{tStatic(locale, "trackOrder.status")}</dt>
         <dd>{order.status || "—"}</dd>
         <dt>{tStatic(locale, "trackOrder.payment")}</dt>
-        <dd>{order.payment_status || "—"}</dd>
+        <dd>{order.payment_status ? <PaymentStatusBadge status={order.payment_status} /> : "—"}</dd>
         <dt>{tStatic(locale, "trackOrder.shipping")}</dt>
         <dd>{shippingStatusLabel(locale, order.shipping_status) || "—"}</dd>
         {order.shipping_carrier ? (

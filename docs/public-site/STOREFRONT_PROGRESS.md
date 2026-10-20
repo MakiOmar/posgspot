@@ -257,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-20 | Payment status badges (paid / not paid / pending / failed) on payment return, checkout confirmation, account orders, payments list, order detail, track order. "Pay now" for unpaid orders: return page and checkout confirmation reuse the order access token; account pages call `POST /account/orders/{id}/payment-access`. Return page shows plain-language status instead of raw gateway text. Removed "Fulfilled from" (and `fulfillment_location` from the API); checkout label is now "Branch". `AccountOrderPaymentAccessTest`. |
 | 2026-10-20 | Checkout after page refresh: form mounts once the cart hydrates, so its client tasks run (governorate select, stock validation, shipping rates were skipped on cold loads and State fell back to a text input). |
 | 2026-10-20 | Add-to-cart toast ("Added to cart" + item + View cart) on product cards, PDP, wishlist, digital games, gift cards; digital games and gift cards no longer redirect to `/cart`. `cart-feedback.ts`. |
 | 2026-10-20 | Header Services dropdown no longer links "Track my order"; `/track-order` page unchanged. |

@@ -1,5 +1,7 @@
 import { component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { PayNowButton } from "~/components/order/pay-now-button";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import { fetchOrders } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
@@ -89,15 +91,22 @@ export default component$(() => {
               {orders.items.map((order) => (
                 <tr key={order.id}>
                   <td>{order.invoice_no || order.storefront_order_id}</td>
-                  <td>{order.payment_status}</td>
+                  <td>
+                    <PaymentStatusBadge status={order.payment_status} />
+                  </td>
                   <td>{formatPrice(order.final_total, settings.value.currency, locale)}</td>
                   <td>
-                    <Link
-                      href={localePath(locale, `/account/orders/${order.id}`)}
-                      class="link-accent"
-                    >
-                      {tStatic(locale, "account.view")}
-                    </Link>
+                    <div class="order-row-actions">
+                      {order.can_pay_online ? (
+                        <PayNowButton orderId={order.id} class="btn btn-primary btn-sm" />
+                      ) : null}
+                      <Link
+                        href={localePath(locale, `/account/orders/${order.id}`)}
+                        class="link-accent"
+                      >
+                        {tStatic(locale, "account.view")}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

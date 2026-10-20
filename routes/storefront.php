@@ -167,6 +167,9 @@ Route::prefix('storefront/v1')->group(function () {
         Route::get('/orders', [AccountController::class, 'orders']);
         Route::get('/orders/{orderId}', [AccountController::class, 'orderDetail']);
         Route::get('/orders/{orderId}/invoice', [AccountController::class, 'orderInvoice']);
+        Route::post('/orders/{orderId}/payment-access', [AccountController::class, 'orderPaymentAccess'])
+            ->whereNumber('orderId')
+            ->middleware('throttle:storefront-checkout');
         Route::get('/repairs', [AccountController::class, 'repairs']);
         Route::get('/device-services', [AccountController::class, 'deviceServices']);
         Route::get('/reward-points', [AccountController::class, 'rewardPoints']);

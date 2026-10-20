@@ -1,5 +1,7 @@
 import { component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { PayNowButton } from "~/components/order/pay-now-button";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import { fetchOrders } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice } from "~/lib/format";
@@ -72,14 +74,21 @@ export default component$(() => {
                   <td data-label={tStatic(locale, "account.status")}>
                     <span class="status-pill">{order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}</span>
                   </td>
-                  <td data-label={tStatic(locale, "account.payment")}>{order.payment_status}</td>
+                  <td data-label={tStatic(locale, "account.payment")}>
+                    <PaymentStatusBadge status={order.payment_status} />
+                  </td>
                   <td data-label={tStatic(locale, "account.total")}>
                     {formatPrice(order.final_total, settings.value.currency, locale)}
                   </td>
                   <td>
-                    <Link href={localePath(locale, `/account/orders/${order.id}`)} class="link-accent">
-                      {tStatic(locale, "account.view")}
-                    </Link>
+                    <div class="order-row-actions">
+                      {order.can_pay_online ? (
+                        <PayNowButton orderId={order.id} class="btn btn-primary btn-sm" />
+                      ) : null}
+                      <Link href={localePath(locale, `/account/orders/${order.id}`)} class="link-accent">
+                        {tStatic(locale, "account.view")}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -1,7 +1,9 @@
 import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import { confirmPaymentReturn } from "~/lib/api";
 import { clearPaymentSession } from "~/lib/payment-session";
+import { paymentStatusTone } from "~/lib/payment-status";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import type { PaymentReturnResult } from "~/lib/types";
@@ -16,8 +18,13 @@ export default component$(() => {
   const result = useSignal<PaymentReturnResult | null>(null);
 
   const orderId = loc.url.searchParams.get("order") || "";
+  const accessToken = loc.url.searchParams.get("access") || "";
   const alreadyPaid = loc.url.searchParams.get("paid") === "1";
   const provider = settings.value.online_payments.provider || "fawry";
+  const payAgainPath = localePath(
+    locale,
+    `/checkout/payment/?order=${encodeURIComponent(orderId)}${accessToken ? `&access=${encodeURIComponent(accessToken)}` : ""}`,
+  );
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
@@ -81,7 +88,7 @@ export default component$(() => {
       <section class="payment-page">
         <h1 class="page-title">{tStatic(locale, "payment.failedTitle")}</h1>
         <div class="alert alert-error">{error.value}</div>
-        <Link href={localePath(locale, `/checkout/payment/?order=${encodeURIComponent(orderId)}`)} class="btn btn-primary">
+        <Link href={payAgainPath} class="btn btn-primary">
           {tStatic(locale, "payment.tryAgain")}
         </Link>
       </section>
@@ -89,21 +96,44 @@ export default component$(() => {
   }
 
   const data = result.value;
-  const paid = data?.payment_status === "paid";
-  const pending = data?.payment_status === "pending";
+  const orderStatus = data?.order?.payment_status;
+  const paid = data?.payment_status === "paid" || paymentStatusTone(orderStatus) === "paid";
+  const pending = !paid && data?.payment_status === "pending";
+  const badgeStatus = paid ? "paid" : pending ? "pending" : orderStatus || "due";
+  const orderLabel = data?.order?.invoice_no || orderId;
   const reference = data?.provider_ref_number || data?.reference_number || data?.fawry_ref_number;
+  const canPayNow =
+    !paid &&
+    !pending &&
+    Boolean(accessToken) &&
+    settings.value.online_payments.enabled &&
+    data?.order?.can_pay_online !== false;
 
   return (
     <section class="payment-page">
-      <h1 class="page-title">
-        {paid
-          ? tStatic(locale, "payment.successTitle")
-          : pending
-            ? tStatic(locale, "payment.pendingTitle")
-            : tStatic(locale, "payment.failedTitle")}
-      </h1>
-
-      {data?.message ? <p class="footer-muted">{data.message}</p> : null}
+      {/* Payment outcome card: badge + plain-language status; raw gateway text only for real declines. */}
+      <div class={["payment-result", "card-surface", `payment-result--${paymentStatusTone(badgeStatus)}`]}>
+        <PaymentStatusBadge status={badgeStatus} size="lg" />
+        <h1 class="page-title">
+          {paid
+            ? tStatic(locale, "payment.successTitle")
+            : pending
+              ? tStatic(locale, "payment.pendingTitle")
+              : tStatic(locale, "payment.failedTitle")}
+        </h1>
+        <p class="payment-result__lead">
+          {paid
+            ? tStatic(locale, "payment.paidLead", { order: orderLabel })
+            : pending
+              ? tStatic(locale, "payment.pendingLead", { order: orderLabel })
+              : tStatic(locale, "payment.unpaidLead", { order: orderLabel })}
+        </p>
+        {data?.payment_status === "failed" && data.message ? (
+          <p class="payment-result__details footer-muted">
+            {tStatic(locale, "payment.gatewayDetails", { message: data.message })}
+          </p>
+        ) : null}
+      </div>
 
       {pending && reference ? (
         <div class="payment-reference card-surface">
@@ -111,26 +141,25 @@ export default component$(() => {
           <p class="payment-reference__code" dir="ltr">
             {reference}
           </p>
-          {data.expiration_time ? (
+          {data?.expiration_time ? (
             <p class="footer-muted">{tStatic(locale, "payment.expiresAt", { date: data.expiration_time })}</p>
           ) : null}
         </div>
       ) : null}
 
-      {data?.order?.invoice_no ? (
-        <p class="footer-muted">
-          {tStatic(locale, "checkout.orderThanks", {
-            invoiceNo: data.order.invoice_no,
-            paymentStatus: data.order.payment_status,
-          })}
-        </p>
-      ) : null}
-
       <div class="payment-page__actions">
-        <Link href={localePath(locale, "/account/orders")} class="btn btn-primary">
+        {canPayNow ? (
+          <Link href={payAgainPath} class="btn btn-primary">
+            {tStatic(locale, "payment.payNow")}
+          </Link>
+        ) : null}
+        <Link
+          href={localePath(locale, "/account/orders")}
+          class={canPayNow ? "btn btn-secondary" : "btn btn-primary"}
+        >
           {tStatic(locale, "payment.viewOrders")}
         </Link>
-        <Link href={localePath(locale, "/products")} class="btn btn-ghost">
+        <Link href={localePath(locale, "/products")} class="btn btn-secondary">
           {tStatic(locale, "cart.continueShopping")}
         </Link>
       </div>

@@ -5349,6 +5349,110 @@ html[dir="rtl"] .header-search-type {
   border-radius: var(--gs-radius);
 }
 
+/* Payment status badge + unpaid order call-to-action */
+.payment-badge {
+  --payment-tone: #f5a524;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--payment-tone) 45%, transparent);
+  background: color-mix(in srgb, var(--payment-tone) 14%, transparent);
+  color: var(--payment-tone);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.payment-badge__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.payment-badge--lg {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9375rem;
+}
+
+.payment-badge--paid {
+  --payment-tone: var(--gs-accent);
+}
+
+.payment-badge--pending {
+  --payment-tone: #4da3ff;
+}
+
+.payment-badge--failed {
+  --payment-tone: #ff5c7a;
+}
+
+.payment-due-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: var(--gs-radius);
+  border: 1px solid rgba(245, 165, 36, 0.45);
+  background: rgba(245, 165, 36, 0.08);
+}
+
+.payment-due-banner__text {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.payment-result {
+  margin-top: 1rem;
+  padding: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.payment-result .page-title {
+  margin: 0;
+}
+
+.payment-result__lead {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.payment-result__details {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.payment-result--due,
+.payment-result--failed {
+  border-color: rgba(245, 165, 36, 0.45);
+}
+
+.payment-result--paid {
+  border-color: rgba(0, 212, 170, 0.45);
+}
+
+.order-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8125rem;
+}
+
 /* Auth (login / register / reset) pages */
 .auth-page {
   display: flex;

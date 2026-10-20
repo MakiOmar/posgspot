@@ -794,6 +794,17 @@ export function fetchOrder(token: string, orderId: number) {
   });
 }
 
+/** Fresh order access token for paying an unpaid order (rotates any older guest token). */
+export function fetchOrderPaymentAccess(token: string, orderId: number) {
+  return storefrontFetch<{ storefront_order_id: string; order_access_token: string }>(
+    `/account/orders/${orderId}/payment-access`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export function fetchOrderInvoiceUrl(token: string, orderId: number) {
   return storefrontFetch<{ invoice_print_url: string }>(`/account/orders/${orderId}/invoice`, {
     headers: authHeaders(token),

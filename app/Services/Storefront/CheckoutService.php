@@ -18,6 +18,9 @@ use Illuminate\Validation\ValidationException;
  */
 class CheckoutService
 {
+    /** @var array<int, bool> */
+    private array $onlinePaymentsEnabled = [];
+
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
         private CartValidationService $cartValidation,
@@ -368,6 +371,61 @@ class CheckoutService
             'transaction_date' => $transaction->transaction_date,
             'shipping_status' => $transaction->shipping_status,
             'invoice_print_url' => $invoiceUrl,
+            'can_pay_online' => $this->canPayOnline($transaction),
+        ];
+    }
+
+    /**
+     * Storefront orders that still owe the full total can be (re)paid via the configured gateway.
+     * Partial payments are excluded because gateway sessions always charge final_total.
+     */
+    public function canPayOnline(Transaction $transaction): bool
+    {
+        if (trim((string) $transaction->storefront_order_id) === '') {
+            return false;
+        }
+        if (! in_array(strtolower(trim((string) $transaction->payment_status)), ['due', 'failed'], true)) {
+            return false;
+        }
+        $isOpenOrder = $transaction->status === 'final'
+            || ($transaction->status === 'draft' && (bool) $transaction->is_quotation);
+        if (! $isOpenOrder) {
+            return false;
+        }
+
+        $businessId = (int) $transaction->business_id;
+
+        return $this->onlinePaymentsEnabled[$businessId]
+            ??= $this->paymentGateways->isOnlinePaymentsEnabled($businessId);
+    }
+
+    /**
+     * Issue a fresh order access token so a signed-in customer can pay their own unpaid order.
+     * Rotating the token invalidates any older guest link for the same order.
+     *
+     * @return array{storefront_order_id: string, order_access_token: string}|null null when the order is not the contact's
+     *
+     * @throws ValidationException
+     */
+    public function issuePaymentAccessForContact(int $businessId, int $contactId, int $orderId): ?array
+    {
+        $transaction = $this->contactOrdersQuery($businessId, $contactId)
+            ->where('id', $orderId)
+            ->first();
+
+        if (empty($transaction)) {
+            return null;
+        }
+
+        if (! $this->canPayOnline($transaction)) {
+            throw ValidationException::withMessages([
+                'order' => ['This order cannot be paid online.'],
+            ]);
+        }
+
+        return [
+            'storefront_order_id' => (string) $transaction->storefront_order_id,
+            'order_access_token' => $this->issueOrderAccessToken($transaction),
         ];
     }
 
@@ -508,7 +566,7 @@ class CheckoutService
         }
 
         $base = $this->contactOrdersQuery($businessId, $contactId)
-            ->with(['sell_lines', 'location']);
+            ->with(['sell_lines']);
 
         // Prefer internal id (account URLs). Customers usually quote invoice_no from the UI.
         $transaction = null;
@@ -533,8 +591,6 @@ class CheckoutService
 
         $data = $this->formatOrderResponse($transaction);
         $data['shipping_address'] = $this->shippingAddressPayload($transaction);
-        // Location / product rows can be missing (deleted warehouse or catalog item).
-        $data['fulfillment_location'] = $transaction->location?->name;
         $data['subtotal'] = (float) $transaction->total_before_tax;
         $data['discount_amount'] = (float) $transaction->discount_amount;
         $data['discount_type'] = $transaction->discount_type;

@@ -4,6 +4,7 @@ import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
 import { SearchableSelect } from "~/components/forms/searchable-select";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import {
   ApiError,
   checkout,
@@ -652,14 +653,29 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
       <section>
         <h1 class="page-title">{tStatic(locale, "checkout.orderConfirmed")}</h1>
         <div class="alert alert-success">
-          {tStatic(locale, "checkout.orderThanks", {
-            invoiceNo: order.value.invoice_no,
-            paymentStatus: order.value.payment_status,
-          })}
+          {tStatic(locale, "checkout.orderThanks", { invoiceNo: order.value.invoice_no })}
         </div>
-        <Link href={localePath(locale, "/products")} class="btn btn-primary">
-          {tStatic(locale, "cart.continueShopping")}
-        </Link>
+        <p>
+          <strong>{tStatic(locale, "payment.statusLabel")}:</strong>{" "}
+          <PaymentStatusBadge status={order.value.payment_status} size="lg" />
+        </p>
+        {/* Cash-on-delivery orders can still be paid online when the gateway is enabled. */}
+        <div class="order-row-actions">
+          {order.value.can_pay_online && order.value.order_access_token && onlinePaymentsEnabled ? (
+            <Link
+              href={localePath(
+                locale,
+                `/checkout/payment/?order=${encodeURIComponent(order.value.storefront_order_id)}&access=${encodeURIComponent(order.value.order_access_token)}`,
+              )}
+              class="btn btn-primary"
+            >
+              {tStatic(locale, "payment.payNow")}
+            </Link>
+          ) : null}
+          <Link href={localePath(locale, "/products")} class="btn btn-secondary">
+            {tStatic(locale, "cart.continueShopping")}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -885,7 +901,7 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
               <label for="location_id">
                 {isPickup
                   ? tStatic(locale, "checkout.pickupLocation")
-                  : tStatic(locale, "checkout.fulfillmentLocation")}
+                  : tStatic(locale, "checkout.branchLocation")}
               </label>
               <input type="hidden" name="location_id" value={String(locationId.value)} />
               <SearchableSelect

@@ -1,20 +1,19 @@
 import { component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { PayNowButton } from "~/components/order/pay-now-button";
+import { PaymentStatusBadge } from "~/components/order/payment-status-badge";
 import { ApiError, fetchOrder, fetchOrderInvoiceUrl } from "~/lib/api";
 import { useAuth } from "~/lib/auth-context";
 import { addCartItems } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
 import { formatPrice } from "~/lib/format";
+import { isPaidStatus } from "~/lib/payment-status";
 import { shippingStatusLabel } from "~/lib/shipping-status";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
 import { confirmAction, toastError, toastSuccess } from "~/lib/notify";
 import type { AccountOrderDetail, CartItem } from "~/lib/types";
 import { useLangParam, useSiteSettings } from "~/routes/[lang]/layout";
-
-function isPaidOrder(paymentStatus: string | undefined): boolean {
-  return (paymentStatus ?? "").trim().toLowerCase() === "paid";
-}
 
 function orderLinesToCartItems(order: AccountOrderDetail): CartItem[] {
   return order.lines
@@ -78,7 +77,7 @@ export default component$(() => {
       const { data } = await fetchOrder(auth.token, orderId);
       state.order = data;
 
-      if (isPaidOrder(data.payment_status)) {
+      if (isPaidStatus(data.payment_status)) {
         if (data.invoice_print_url) {
           printUrl.value = data.invoice_print_url;
         } else {
@@ -196,13 +195,25 @@ export default component$(() => {
               ) : null}
             </div>
           </div>
+          {/* Unpaid orders: prominent banner with the online "Pay now" action. */}
+          {order.can_pay_online ? (
+            <div class="payment-due-banner" role="status">
+              <div class="payment-due-banner__text">
+                <PaymentStatusBadge status={order.payment_status} size="lg" />
+                <strong>{tStatic(locale, "payment.unpaidBannerTitle")}</strong>
+                <span class="footer-muted">{tStatic(locale, "payment.unpaidBannerText")}</span>
+              </div>
+              <PayNowButton orderId={order.id} />
+            </div>
+          ) : null}
           <div class="order-meta">
             <span>
               <strong>{tStatic(locale, "account.statusLabel")}</strong>{" "}
               {order.shipping_status ? shippingStatusLabel(locale, order.shipping_status) : order.status}
             </span>
             <span>
-              <strong>{tStatic(locale, "account.paymentLabel")}</strong> {order.payment_status}
+              <strong>{tStatic(locale, "account.paymentLabel")}</strong>{" "}
+              <PaymentStatusBadge status={order.payment_status} />
             </span>
             {order.coupon_code ? (
               <span>
@@ -231,12 +242,6 @@ export default component$(() => {
               <strong>{tStatic(locale, "account.totalLabel")}</strong>{" "}
               {formatPrice(order.final_total, settings.value.currency, locale)}
             </span>
-            {order.fulfillment_location ? (
-              <span>
-                <strong>{tStatic(locale, "account.fulfilledFrom")}</strong>{" "}
-                {order.fulfillment_location}
-              </span>
-            ) : null}
             {order.shipping_method ? (
               <span>
                 <strong>{tStatic(locale, "account.shippingMethodLabel")}</strong>{" "}

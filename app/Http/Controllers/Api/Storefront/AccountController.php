@@ -16,6 +16,7 @@ use App\Support\StorefrontLocale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class AccountController extends StorefrontController
 {
@@ -239,6 +240,31 @@ class AccountController extends StorefrontController
         }
 
         return $this->jsonSuccess($order);
+    }
+
+    /**
+     * Fresh order access token for paying an unpaid order via POST /payments/{provider}/session.
+     */
+    public function orderPaymentAccess(Request $request, int $orderId)
+    {
+        /** @var Contact $contact */
+        $contact = $request->user();
+
+        try {
+            $access = $this->checkoutService->issuePaymentAccessForContact(
+                $this->businessId($request),
+                $contact->id,
+                $orderId
+            );
+        } catch (ValidationException $e) {
+            return $this->jsonError('This order cannot be paid online.', 422, $e->errors());
+        }
+
+        if ($access === null) {
+            return $this->jsonError('Order not found.', 404);
+        }
+
+        return $this->jsonSuccess($access);
     }
 
     public function orderInvoice(Request $request, int $orderId)

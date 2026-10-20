@@ -572,6 +572,8 @@ export interface CheckoutOrder {
   final_total: number;
   transaction_date: string;
   shipping_status: string;
+  /** Unpaid storefront order that can be (re)paid through the configured gateway. */
+  can_pay_online?: boolean;
   payment?: PaymentSession;
 }
 
@@ -747,6 +749,8 @@ export interface AccountOrder {
   final_total: number;
   transaction_date: string;
   shipping_status: string;
+  /** Unpaid storefront order that can be (re)paid through the configured gateway. */
+  can_pay_online?: boolean;
 }
 
 /** Guest track-order lookup result (safe subset, no extra PII). */
@@ -847,7 +851,6 @@ export interface OrderShippingAddress {
 export interface AccountOrderDetail extends AccountOrder {
   lines: AccountOrderLine[];
   shipping_address: OrderShippingAddress | null;
-  fulfillment_location: string | null;
   /** POS invoice page with auto-print; only when payment_status is paid */
   invoice_print_url: string | null;
   subtotal?: number;
