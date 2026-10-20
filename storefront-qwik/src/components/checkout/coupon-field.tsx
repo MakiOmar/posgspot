@@ -1,7 +1,7 @@
 import { $, component$, useSignal, type QRL } from "@builder.io/qwik";
 import { CouponPicker } from "~/components/checkout/coupon-picker";
 import { ApiError, validateCoupon } from "~/lib/api";
-import { persistAppliedCoupons } from "~/lib/cart-actions";
+import { persistAppliedCoupons, toCartApiItem } from "~/lib/cart-actions";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { AppliedCouponInfo, CartItem, StoreSettings } from "~/lib/types";
@@ -66,10 +66,7 @@ export const CouponField = component$<CouponFieldProps>((props) => {
           code,
           coupon_codes: props.allowStacking && existingCodes.length > 0 ? existingCodes : undefined,
           location_id: props.locationId,
-          items: props.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-          })),
+          items: props.items.map(toCartApiItem),
         },
         props.token,
       );
@@ -133,10 +130,7 @@ export const CouponField = component$<CouponFieldProps>((props) => {
           code: remaining[0].code,
           coupon_codes: remaining.length > 1 ? remaining.slice(1).map((coupon) => coupon.code) : undefined,
           location_id: props.locationId,
-          items: props.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-          })),
+          items: props.items.map(toCartApiItem),
         },
         props.token,
       );

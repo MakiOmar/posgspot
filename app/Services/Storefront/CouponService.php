@@ -15,8 +15,10 @@ use Illuminate\Validation\ValidationException;
  */
 class CouponService
 {
-    public function __construct(private StorefrontPricing $storefrontPricing)
-    {
+    public function __construct(
+        private StorefrontPricing $storefrontPricing,
+        private DigitalCatalogService $digitalCatalog
+    ) {
     }
 
     public function normalizeCode(string $code): string
@@ -846,7 +848,8 @@ class CouponService
             }
 
             $pricing = $this->storefrontPricing->resolve($variation);
-            $lineTotal = $pricing['price'] * $qty;
+            $unitPrice = $this->couponLineUnitPrice($businessId, $item, (float) $pricing['price']);
+            $lineTotal = $unitPrice * $qty;
             $subtotal += $lineTotal;
 
             $lines[] = [
@@ -862,5 +865,21 @@ class CouponService
             'lines' => $lines,
             'subtotal' => $subtotal,
         ];
+    }
+
+    /**
+     * Digital (Accounts) lines use the catalog offer price, as cart validation does; their POS
+     * placeholder variation is usually priced 0, which would fail min-spend and zero the discount.
+     */
+    private function couponLineUnitPrice(int $businessId, array $item, float $variationPrice): float
+    {
+        $digital = is_array($item['digital'] ?? null) ? $item['digital'] : [];
+        if (empty($digital['kind'])) {
+            return $variationPrice;
+        }
+
+        $offerPrice = $this->digitalCatalog->resolveOfferPrice($businessId, $digital);
+
+        return $offerPrice !== null && $offerPrice > 0 ? $offerPrice : $variationPrice;
     }
 }

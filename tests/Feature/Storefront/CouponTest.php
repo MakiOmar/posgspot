@@ -548,6 +548,55 @@ class CouponTest extends TestCase
         $this->assertFalse($codes->contains($tooHigh->code));
     }
 
+    public function test_coupon_endpoints_price_digital_lines_at_catalog_offer_price(): void
+    {
+        $fixtures = $this->setupCheckoutFixtures();
+        $variation = $fixtures['variation'];
+
+        $this->mock(\App\Services\Storefront\DigitalCatalogService::class, function ($mock) {
+            $mock->shouldReceive('resolveOfferPrice')->andReturn(400.0);
+        });
+
+        $originalDefault = $variation->default_sell_price;
+        $originalInc = $variation->sell_price_inc_tax;
+        $variation->default_sell_price = 0;
+        $variation->sell_price_inc_tax = 0;
+        $variation->save();
+
+        try {
+            $coupon = $this->createCoupon([
+                'code' => 'DIGI'.strtoupper(substr(uniqid(), -6)),
+                'discount_amount' => 10,
+                'min_order_subtotal' => 300,
+            ]);
+            $session = $this->registerAndLogin();
+            $items = [[
+                'variation_id' => $variation->id,
+                'quantity' => 1,
+                'digital' => ['kind' => 'game', 'game_id' => 99, 'type' => 'secondary', 'platform' => '4'],
+            ]];
+
+            $available = $this->withToken($session['token'])
+                ->postJson('/api/storefront/v1/coupons/available', ['items' => $items])
+                ->assertOk();
+            $this->assertTrue(collect($available->json('data.coupons'))->pluck('code')->contains($coupon->code));
+
+            $validated = $this->withToken($session['token'])
+                ->postJson('/api/storefront/v1/coupons/validate', [
+                    'code' => $coupon->code,
+                    'location_id' => $fixtures['location']->id,
+                    'items' => $items,
+                ])->assertOk();
+
+            $this->assertEqualsWithDelta(400.0, (float) $validated->json('data.subtotal'), 0.01);
+            $this->assertEqualsWithDelta(40.0, (float) $validated->json('data.coupon_discount'), 0.01);
+        } finally {
+            $variation->default_sell_price = $originalDefault;
+            $variation->sell_price_inc_tax = $originalInc;
+            $variation->save();
+        }
+    }
+
     public function test_available_requires_auth(): void
     {
         $fixtures = $this->setupCheckoutFixtures();

@@ -1,5 +1,6 @@
 import { $, component$, useOnDocument, useSignal, useTask$, type QRL } from "@builder.io/qwik";
 import { ApiError, fetchAvailableCoupons } from "~/lib/api";
+import { toCartApiItem } from "~/lib/cart-actions";
 import { formatPrice } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import type { AppliedCouponInfo, AvailableCouponInfo, CartItem, StoreSettings } from "~/lib/types";
@@ -38,10 +39,7 @@ export const CouponPicker = component$<CouponPickerProps>((props) => {
       const excludeCodes = props.allowStacking ? props.appliedCoupons.map((coupon) => coupon.code) : [];
       const { data } = await fetchAvailableCoupons(
         {
-          items: props.items.map((line) => ({
-            variation_id: line.variationId,
-            quantity: line.quantity,
-          })),
+          items: props.items.map(toCartApiItem),
           exclude_codes: excludeCodes.length > 0 ? excludeCodes : undefined,
         },
         props.token,

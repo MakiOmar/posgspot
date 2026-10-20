@@ -23,6 +23,7 @@ class CouponController extends StorefrontController
             'items' => 'required|array|min:1',
             'items.*.variation_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.digital' => 'nullable|array',
             'location_id' => 'nullable|integer',
             'coupon_codes' => 'nullable|array|max:10',
             'coupon_codes.*' => 'string|max:64',
@@ -53,6 +54,7 @@ class CouponController extends StorefrontController
             'items' => 'required|array|min:1',
             'items.*.variation_id' => 'required|integer',
             'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.digital' => 'nullable|array',
             'exclude_codes' => 'nullable|array|max:10',
             'exclude_codes.*' => 'string|max:64',
         ]);
