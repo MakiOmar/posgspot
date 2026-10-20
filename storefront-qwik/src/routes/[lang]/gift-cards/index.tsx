@@ -2,13 +2,14 @@ import { $, component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
+import { notifyAddedToCart } from "~/lib/cart-feedback";
 import { useCart } from "~/lib/cart-context";
 import { checkDigitalCardStock, fetchDigitalCardCategories } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { toastError, toastSuccess } from "~/lib/notify";
+import { toastError } from "~/lib/notify";
 import { publicSeoLinks } from "~/lib/seo-hreflang";
 import { withStorefrontThemeHead } from "~/lib/storefront-head";
 import type { CartItemDigital, DigitalCardCategory } from "~/lib/types";
@@ -89,8 +90,7 @@ export default component$(() => {
         imageUrl: posterImage || sku.image_url,
         digital,
       });
-      await toastSuccess(tStatic(lang, "digital.addedToCart"));
-      await nav(localePath(lang, "/cart"));
+      notifyAddedToCart(lang, name, nav);
     } catch (e) {
       await toastError(
         e instanceof Error ? e.message : tStatic(lang, "digital.stockFailed"),

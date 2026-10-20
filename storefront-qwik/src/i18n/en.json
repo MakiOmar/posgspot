@@ -460,6 +460,7 @@
   },
   "cart": {
     "title": "Your cart",
+    "addedToCart": "Added to cart",
     "empty": "Your cart is empty.",
     "continueShopping": "Continue shopping",
     "subtotal": "Subtotal",

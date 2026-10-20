@@ -1,10 +1,11 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { Link } from "@builder.io/qwik-city";
+import { Link, useNavigate } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { StarRating } from "~/components/catalog/star-rating";
 import { WishlistToggle } from "~/components/catalog/wishlist-toggle";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import { notifyAddedToCart } from "~/lib/cart-feedback";
 import { formatPrice, productPath } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
 import { usePendingState } from "~/lib/pending-context";
@@ -38,6 +39,7 @@ function saleBadgeLabel(
 
 export const ProductCard = component$<ProductCardProps>(({ product, settings }) => {
   const cart = useCart();
+  const nav = useNavigate();
   const pending = usePendingState();
   const adding = useSignal(false);
   const { locale } = useI18n();
@@ -147,6 +149,7 @@ export const ProductCard = component$<ProductCardProps>(({ product, settings }) 
                       quantity: 1,
                       imageUrl: product.image_url,
                     });
+                    notifyAddedToCart(locale, product.name, nav);
                   });
                 }}
               >

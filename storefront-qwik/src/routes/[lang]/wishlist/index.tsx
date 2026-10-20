@@ -1,10 +1,11 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { Link, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { StarRating } from "~/components/catalog/star-rating";
 import { TrashIcon } from "~/components/icons";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import { notifyAddedToCart } from "~/lib/cart-feedback";
 import { useAuth } from "~/lib/auth-context";
 import { formatPrice, productPath } from "~/lib/format";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -19,6 +20,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const wishlist = useWishlist();
   const cart = useCart();
+  const nav = useNavigate();
   const auth = useAuth();
   const pending = usePendingState();
   const { locale } = useI18n();
@@ -110,6 +112,7 @@ export default component$(() => {
                               quantity: 1,
                               imageUrl: product.image_url,
                             });
+                            notifyAddedToCart(locale, product.name, nav);
                           });
                         }}
                       >

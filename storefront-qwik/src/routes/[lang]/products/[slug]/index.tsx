@@ -1,5 +1,5 @@
 import { component$, useSignal } from "@builder.io/qwik";
-import { Link, routeLoader$, useLocation, type DocumentHead } from "@builder.io/qwik-city";
+import { Link, routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { AvailabilityCheckButton } from "~/components/catalog/availability-check-button";
 import { ProductCard } from "~/components/catalog/product-card";
 import { ProductReviews } from "~/components/catalog/product-reviews";
@@ -17,6 +17,7 @@ import { QuantityStepper } from "~/components/ui/quantity-stepper";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { addCartItem } from "~/lib/cart-actions";
 import { useCart } from "~/lib/cart-context";
+import { notifyAddedToCart } from "~/lib/cart-feedback";
 import { ApiError, fetchProduct } from "~/lib/api";
 import { formatPrice } from "~/lib/format";
 import { isSupportedLocale } from "~/lib/i18n/config";
@@ -53,6 +54,7 @@ export default component$(() => {
   const settings = useSiteSettings();
   const product = useProductDetail();
   const cart = useCart();
+  const nav = useNavigate();
   const pending = usePendingState();
   const loc = useLocation();
   const { locale } = useI18n();
@@ -269,6 +271,7 @@ export default component$(() => {
                       quantity: quantity.value,
                       imageUrl: product.value.images[0] || null,
                     });
+                    notifyAddedToCart(locale, product.value.name, nav);
                   });
                 }}
                 disabled={!variation.in_stock || adding.value}

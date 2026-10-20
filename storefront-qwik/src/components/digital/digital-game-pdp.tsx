@@ -9,6 +9,7 @@ import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { JsonLd } from "~/components/seo/json-ld";
 import { SanitizedHtml } from "~/components/ui/sanitized-html";
 import { addCartItem } from "~/lib/cart-actions";
+import { notifyAddedToCart } from "~/lib/cart-feedback";
 import { useCart } from "~/lib/cart-context";
 import { ApiError, checkDigitalGameStock } from "~/lib/api";
 import {
@@ -27,7 +28,7 @@ import {
 import { formatPrice } from "~/lib/format";
 import { tStatic } from "~/lib/i18n/context";
 import { localePath } from "~/lib/i18n/paths";
-import { toastError, toastSuccess } from "~/lib/notify";
+import { toastError } from "~/lib/notify";
 import type {
   CartItemDigital,
   DigitalGameSummary,
@@ -242,8 +243,7 @@ export const DigitalGamePdp = component$<DigitalGamePdpProps>((props) => {
         imageUrl: gameImage || sku.image_url,
         digital,
       });
-      await toastSuccess(tStatic(lang, "digital.addedToCart"));
-      await nav(localePath(lang, "/cart"));
+      notifyAddedToCart(lang, digital.title || gameTitle, nav);
     } catch (e) {
       if (e instanceof ApiError && e.status === 422) {
         liveOut.value = { ...liveOut.value, [offer]: true };

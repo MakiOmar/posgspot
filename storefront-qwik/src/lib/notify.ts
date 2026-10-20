@@ -49,6 +49,26 @@ export async function toastInfo(message: string): Promise<void> {
   await Swal.fire({ ...toastBase, icon: "info", title: message });
 }
 
+/** Success toast with a "View cart" action — resolves true when that button is clicked. */
+export async function toastAddedToCart(options: {
+  title: string;
+  itemName: string;
+  viewCartLabel: string;
+}): Promise<boolean> {
+  const Swal = await getSwal();
+  const result = await Swal.fire({
+    ...toastBase,
+    timer: 4500,
+    icon: "success",
+    titleText: options.title,
+    text: options.itemName,
+    showConfirmButton: true,
+    confirmButtonText: options.viewCartLabel,
+    confirmButtonColor: "#00d4aa",
+  });
+  return result.isConfirmed === true;
+}
+
 /** SweetAlert2 confirmation dialog — returns true when the user confirms. */
 export async function confirmAction(options: {
   title: string;
