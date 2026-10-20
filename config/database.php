@@ -63,9 +63,12 @@ return [
             ]) : [],
             // Consistent InnoDB snapshot without table locks, so hourly backups don't block POS writes.
             // On Windows without mysqldump on PATH, add 'dump_binary_path' => 'C:\path\to\mysql\bin'.
+            // skip_ssl is only set when true: Spatie treats a present-but-false key as "skip".
             'dump' => [
                 'useSingleTransaction' => true,
-            ],
+            ] + array_filter([
+                'skip_ssl' => filter_var(env('DB_DUMP_SKIP_SSL', false), FILTER_VALIDATE_BOOL),
+            ]),
         ],
 
         'pgsql' => [

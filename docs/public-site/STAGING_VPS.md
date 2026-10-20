@@ -80,7 +80,7 @@ Laravel caches: the `pos` and `accounts` web containers run `php artisan optimiz
 
 Workers override the entrypoint, so they skip AUTORUN and read config uncached.
 
-`accounts-scheduler` runs `schedule:work` (hourly secondary-stock sync, System Ops auto backup when enabled in the UI). It sets `QUEUE_WORKER_VIA_SCHEDULER=false` because `accounts-queue` already drains the queue; the scheduler-driven `queue:work --stop-when-empty` remains the default for cron-only hosts (Hostinger rollback). The Accounts image includes `default-mysql-client` (MariaDB) for Spatie backups; `DB_DUMP_SKIP_SSL=true` in `accounts/.env` because that client rejects MySQL's self-signed certificate. Nothing prunes old backups yet (`data/accounts_storage/app/<APP_NAME>/`, ~9 MB per hourly zip).
+`accounts-scheduler` runs `schedule:work` (hourly secondary-stock sync, System Ops auto backup when enabled in the UI). It sets `QUEUE_WORKER_VIA_SCHEDULER=false` because `accounts-queue` already drains the queue; the scheduler-driven `queue:work --stop-when-empty` remains the default for cron-only hosts (Hostinger rollback). The POS and Accounts images include `default-mysql-client` (MariaDB) for Spatie backups; `DB_DUMP_SKIP_SSL=true` in `pos/.env` and `accounts/.env` because that client rejects MySQL's self-signed certificate. POS automatic backups run in `pos-scheduler`, so recreate it after a POS image rebuild. Nothing prunes old backups yet (`data/accounts_storage/app/<APP_NAME>/`, ~9 MB per hourly zip).
 
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 

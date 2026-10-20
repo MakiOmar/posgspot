@@ -179,6 +179,9 @@ The scheduler runs `php artisan backup:auto` (backup with the page's scope) on t
 |----------|---------|
 | `BACKUP_DISK` | Filesystem disk for archives (default `backups` → `storage/app/backups`). `local` is **redirected** to `backups`, because the `local` disk is `public/uploads` (web-accessible). |
 | `BACKUP_ARCHIVE_PASSWORD` | Optional AES-256 zip password |
+| `DB_DUMP_SKIP_SSL` | `true` makes `mysqldump` connect without TLS. Needed when the client (e.g. Debian's MariaDB `default-mysql-client`, as in the staging Docker image) rejects the MySQL server's self-signed certificate. Default `false`. |
+
+Backups need `mysqldump` on the server (`default-mysql-client` in the staging POS image). A failed run shows its reason under **Status** on the Backup page.
 
 MySQL dumps use `--single-transaction` (`config/database.php` → `mysql.dump`) so backups don't lock tables; all tables are InnoDB. Only failure notifications are mailed (`config/backup.php`). If older archives exist in `public/uploads/UltimatePOS/`, move them to `storage/app/backups/UltimatePOS/` and delete the public copies.
 

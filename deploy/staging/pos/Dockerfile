@@ -4,10 +4,10 @@ USER root
 
 WORKDIR /var/www/html
 
-# gd required by barcode / mpdf / phpspreadsheet (composer platform check)
+# gd required by barcode / mpdf / phpspreadsheet (composer platform check); mysql client for Spatie backups
 RUN install-php-extensions gd \
  && apt-get update \
- && apt-get install -y --no-install-recommends git unzip \
+ && apt-get install -y --no-install-recommends git unzip default-mysql-client \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=www-data:www-data . /var/www/html
