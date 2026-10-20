@@ -22,7 +22,8 @@ class AccountsAllocationService
      * Calls Accounts `orders/receive` for one ledger row and records the outcome on the row.
      *
      * @param  array<string, mixed>  $extraPayload  e.g. `notes` for sales orders
-     * @return array<string, mixed>|null secrets on success, null on failure (row marked failed)
+     * @return array<string, mixed>|null secrets on success; null when the row is marked failed, or
+     *                                   left pending because the supplier order is still in progress
      */
     public function allocate(
         Transaction $transaction,
@@ -68,27 +69,21 @@ class AccountsAllocationService
         $row->save();
 
         $response = $this->accounts->receiveOrder($payload);
-        if (! $response['success']) {
-            $row->status = 'failed';
-            $row->last_error = $response['error'] ?? 'Accounts allocate failed';
-            $row->save();
-            Log::warning('Digital fulfillment allocate failed', [
-                'transaction_id' => $transaction->id,
-                'line_key' => $row->line_key,
-                'error' => $row->last_error,
-            ]);
+        $body = is_array($response['body'] ?? null) ? $response['body'] : [];
+
+        if ($this->isSupplierPending($response, $body)) {
+            $this->markPending($transaction, $row, $body);
 
             return null;
         }
 
-        $body = $response['body'] ?? [];
-        if ($row->kind === 'card') {
-            $secrets = ['code' => $body['code'] ?? ($body['card_details']['code'] ?? null)];
-        } else {
-            $secrets = [
-                'email' => $body['account_details']['email'] ?? null,
-                'password' => $body['account_details']['password'] ?? null,
-            ];
+        if (! $response['success'] || ($body['success'] ?? true) === false) {
+            return $this->markFailed($transaction, $row, $response['error'] ?? ($body['message'] ?? null));
+        }
+
+        $secrets = $this->secretsFromBody($row, $body);
+        if (array_filter($secrets, fn ($value) => $value !== null && $value !== '') === []) {
+            return $this->markFailed($transaction, $row, 'Accounts response had no credentials');
         }
 
         $row->accounts_order_id = $body['order_id'] ?? $row->accounts_order_id;
@@ -99,6 +94,65 @@ class AccountsAllocationService
         $row->save();
 
         return $secrets;
+    }
+
+    /**
+     * Accounts answers 202 `{pending: true}` while a supplier (Next Load) order is still in progress;
+     * resending the same storefront_order_id + line_key later returns the code without buying twice.
+     *
+     * @param  array<string, mixed>  $response
+     * @param  array<string, mixed>  $body
+     */
+    private function isSupplierPending(array $response, array $body): bool
+    {
+        return (int) ($response['status'] ?? 0) === 202 || ! empty($body['pending']);
+    }
+
+    /**
+     * A pending supplier order is not a failed attempt, so it does not count toward the retry cap.
+     *
+     * @param  array<string, mixed>  $body
+     */
+    private function markPending(Transaction $transaction, StorefrontDigitalFulfillment $row, array $body): void
+    {
+        $row->status = 'pending';
+        $row->attempts = max(0, (int) $row->attempts - 1);
+        $row->last_error = mb_substr((string) ($body['message'] ?? 'Supplier order in progress'), 0, 500);
+        $row->save();
+        Log::info('Digital fulfillment waiting for supplier order', [
+            'transaction_id' => $transaction->id,
+            'line_key' => $row->line_key,
+        ]);
+    }
+
+    private function markFailed(Transaction $transaction, StorefrontDigitalFulfillment $row, ?string $error): ?array
+    {
+        $row->status = 'failed';
+        $row->last_error = mb_substr((string) ($error ?: 'Accounts allocate failed'), 0, 500);
+        $row->save();
+        Log::warning('Digital fulfillment allocate failed', [
+            'transaction_id' => $transaction->id,
+            'line_key' => $row->line_key,
+            'error' => $row->last_error,
+        ]);
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>
+     */
+    private function secretsFromBody(StorefrontDigitalFulfillment $row, array $body): array
+    {
+        if ($row->kind === 'card') {
+            return ['code' => $body['code'] ?? ($body['card_details']['code'] ?? null)];
+        }
+
+        return [
+            'email' => $body['account_details']['email'] ?? null,
+            'password' => $body['account_details']['password'] ?? null,
+        ];
     }
 
     /**

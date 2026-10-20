@@ -156,6 +156,15 @@ Synced Accounts products stay `not_for_selling`, so they never appear on the sto
 
 **Catalog diagnostics:** `GET /api/storefront/v1/digital/games` adds a `debug` object (Accounts host, request URL, item counts, and a reason such as games with no synced POS product) only when `APP_DEBUG=true`. Keep `APP_DEBUG=false` in production so internal hosts are never exposed; the storefront shows its debug panel only when the API sends this object.
 
+#### Storefront digital fulfilment retries
+
+Paid storefront digital lines are allocated from Accounts on the paid hook. Each ledger row is claimed (`processing`) before the Accounts call, so the payment webhook, the return URL and the scheduler cannot allocate the same line twice. A row stuck in `processing` for 10 minutes is retried.
+
+- `php artisan storefront:fulfill-digital --recent` runs every 5 minutes. It retries `pending` / `failed` rows from the last 7 days, up to 5 failed attempts. It also emails the customer when a retry allocates a line.
+- When Accounts answers **202 pending** (a Next Load supplier order is still in progress), the row stays `pending` with the message in `last_error`. This does not count as an attempt. Accounts reuses the same supplier order on the next retry, so the card is never bought twice. See the Accounts repo `docs/NEXTLOAD.md`.
+- Staff retry for one order, ignoring the attempts cap: `php artisan storefront:fulfill-digital --transaction={id}`.
+- A success response without credentials (no code, or no account email/password) marks the row `failed` instead of `allocated`.
+
 ## POS backups
 
 **POS → Backup** (`/backup`, administrator usernames only) lists archives, runs **Backup now**, and sets the automatic schedule. Schedule settings live in the `system` table (`backup_auto_*`), not `.env`:

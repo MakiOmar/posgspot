@@ -59,6 +59,9 @@ class SalesOrderAccountsTest extends TestCase
                 }
                 $this->receiveCalls++;
                 $n = $this->receiveCalls;
+                if (! empty($request['card_category_id'])) {
+                    return Http::response(['order_id' => 7000 + $n, 'code' => "CARD-{$n}"], 201);
+                }
 
                 return Http::response([
                     'order_id' => 7000 + $n,

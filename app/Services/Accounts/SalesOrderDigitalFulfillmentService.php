@@ -341,6 +341,10 @@ class SalesOrderDigitalFulfillmentService
                 $secrets = null;
             }
 
+            if ($secrets === null && $row->status === 'pending') {
+                // Supplier order in progress: counted as "waiting" until the retry command picks it up.
+                continue;
+            }
             if ($secrets === null) {
                 $result['failed']++;
                 $error = $this->failureLine($row);

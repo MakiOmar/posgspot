@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Schema;
  */
 class DigitalFulfillmentService
 {
+    /** Automatic retries (paid hook, scheduler) stop after this many failed Accounts calls. */
+    public const MAX_ATTEMPTS = 5;
+
+    /** A row stuck in "processing" this long is assumed abandoned (crashed request). */
+    private const STALE_PROCESSING_MINUTES = 10;
+
     public function __construct(
         private AccountsAllocationService $allocator,
         private StorefrontSettingService $settings
@@ -158,7 +164,10 @@ class DigitalFulfillmentService
         return $fixed;
     }
 
-    public function fulfillPaidTransaction(Transaction $transaction): int
+    /**
+     * @param  bool  $ignoreAttemptCap  staff-triggered retries may go past {@see MAX_ATTEMPTS}
+     */
+    public function fulfillPaidTransaction(Transaction $transaction, bool $ignoreAttemptCap = false): int
     {
         $transaction->loadMissing(['contact', 'sell_lines']);
         if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
@@ -167,24 +176,37 @@ class DigitalFulfillmentService
 
         $rows = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
             ->where('storefront_order_id', (string) $transaction->storefront_order_id)
-            ->whereIn('status', ['pending', 'failed'])
+            ->tap(fn ($q) => self::whereRetryable($q, $ignoreAttemptCap))
+            ->orderBy('id')
             ->get();
-
-        if ($rows->isEmpty()) {
-            return 0;
-        }
 
         $allocated = 0;
         foreach ($rows as $row) {
-            $before = $row->status;
-            $this->allocateOne($transaction, $row);
-            $row->refresh();
-            if ($row->status === 'allocated' && $before !== 'allocated') {
+            if ($this->allocateOne($transaction, $row, $ignoreAttemptCap)) {
                 $allocated++;
             }
         }
 
         return $allocated;
+    }
+
+    /**
+     * Rows still waiting for Accounts: pending / failed, or processing but abandoned.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     */
+    public static function whereRetryable($query, bool $ignoreAttemptCap = false): void
+    {
+        $query->where(function ($q) {
+            $q->whereIn('status', ['pending', 'failed'])
+                ->orWhere(function ($p) {
+                    $p->where('status', 'processing')
+                        ->where('updated_at', '<', now()->subMinutes(self::STALE_PROCESSING_MINUTES));
+                });
+        });
+        if (! $ignoreAttemptCap) {
+            $query->where('attempts', '<', self::MAX_ATTEMPTS);
+        }
     }
 
     /**
@@ -205,7 +227,7 @@ class DigitalFulfillmentService
 
         $hasPending = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
             ->where('storefront_order_id', (string) $transaction->storefront_order_id)
-            ->whereIn('status', ['pending', 'failed'])
+            ->tap(fn ($q) => self::whereRetryable($q))
             ->exists();
         if (! $hasPending) {
             return;
@@ -233,7 +255,7 @@ class DigitalFulfillmentService
         if (! $transaction) {
             return;
         }
-        $this->fulfillPaidTransaction($transaction);
+        $this->fulfillPaidTransaction($transaction, true);
     }
 
     /**
@@ -278,14 +300,30 @@ class DigitalFulfillmentService
         return ! empty($digital['expose_credentials_to_customer']);
     }
 
-    private function allocateOne(Transaction $transaction, StorefrontDigitalFulfillment $row): void
+    /**
+     * @return bool true when this call allocated the row
+     */
+    private function allocateOne(Transaction $transaction, StorefrontDigitalFulfillment $row, bool $ignoreAttemptCap): bool
     {
+        // The payment webhook, return URL and scheduler can race; only the claimer calls Accounts.
+        if (! $this->claim($row, $ignoreAttemptCap)) {
+            return false;
+        }
+
         $digital = $this->settings->get((int) $transaction->business_id)['digital'] ?? [];
         $storeProfileId = (int) ($digital['accounts_store_profile_id'] ?? 17);
 
-        $secrets = $this->allocator->allocate($transaction, $row, $storeProfileId);
+        try {
+            $secrets = $this->allocator->allocate($transaction, $row, $storeProfileId);
+        } catch (\Throwable $e) {
+            $row->status = 'failed';
+            $row->last_error = mb_substr($e->getMessage(), 0, 500);
+            $row->save();
+
+            return false;
+        }
         if ($secrets === null) {
-            return;
+            return false;
         }
 
         // Sale line note can print on customer invoices when "show sale description" is on.
@@ -302,6 +340,23 @@ class DigitalFulfillmentService
             $transaction,
             $accountsOrderId > 0 ? $accountsOrderId : null
         );
+
+        return true;
+    }
+
+    /** Atomically move the row to "processing" when it is still retryable. */
+    private function claim(StorefrontDigitalFulfillment $row, bool $ignoreAttemptCap): bool
+    {
+        $claimed = StorefrontDigitalFulfillment::query()
+            ->whereKey($row->id)
+            ->tap(fn ($q) => self::whereRetryable($q, $ignoreAttemptCap))
+            ->update(['status' => 'processing', 'updated_at' => now()]);
+        if ($claimed !== 1) {
+            return false;
+        }
+        $row->refresh();
+
+        return true;
     }
 
     /**

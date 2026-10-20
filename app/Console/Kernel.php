@@ -28,6 +28,11 @@ class Kernel extends ConsoleKernel
                 ->everyFiveMinutes()
                 ->withoutOverlapping(30);
 
+            // Storefront digital lines: Accounts outages and pending supplier (Next Load) orders.
+            $schedule->command('storefront:fulfill-digital --recent')
+                ->everyFiveMinutes()
+                ->withoutOverlapping(30);
+
             // Safety net for sells created by paths that don't refresh content_kind.
             $schedule->command('sales:classify-content --recent')
                 ->dailyAt('03:30')
