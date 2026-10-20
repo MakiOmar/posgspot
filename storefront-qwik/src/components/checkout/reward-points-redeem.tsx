@@ -20,9 +20,11 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
   const validating = useSignal(false);
   const error = useSignal<string | null>(null);
   const redeemAmount = useSignal(0);
+  const appliedPoints = useSignal(props.pointsToRedeem);
   const maxPoints = props.balance.max_redeem_points ?? 0;
 
   const runValidation$ = $(async (points: number) => {
+    appliedPoints.value = points;
     validating.value = true;
     error.value = null;
     try {
@@ -52,9 +54,16 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
     void runValidation$(points);
   });
 
-  const onInput$ = $(async (_: Event, el: HTMLInputElement) => {
+  const onInput$ = $((_: Event, el: HTMLInputElement) => {
     inputPoints.value = el.value.replace(/\D/g, "");
+  });
+
+  // Apply on focus out so each keystroke does not re-price the order.
+  const onBlur$ = $(async () => {
     const points = parseInt(inputPoints.value, 10) || 0;
+    if (points === appliedPoints.value) {
+      return;
+    }
     await runValidation$(points);
   });
 
@@ -98,6 +107,7 @@ export const RewardPointsRedeem = component$<RewardPointsRedeemProps>((props) =>
           placeholder="0"
           value={inputPoints.value}
           onInput$={onInput$}
+          onBlur$={onBlur$}
           disabled={validating.value}
         />
         <button type="button" class="btn btn-secondary" onClick$={useMax$} disabled={validating.value}>
