@@ -257,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-20 | Header Services dropdown no longer links "Track my order"; `/track-order` page unchanged. |
 | 2026-10-20 | Checkout reward points input applies on focus out (was every keystroke); unchanged values skip re-validation. |
 | 2026-10-20 | Checkout fixes: `GET /locations?selling_only=1` now includes selling locations hidden from the storefront (a hidden selling branch emptied checkout, blocking orders with "cart empty or no location" and clearing promo codes). Coupon validate/available price digital lines at the Accounts offer price (was the POS placeholder price, usually 0); checkout coupon UI sends full cart lines. `HiddenSellingLocationTest`, `CouponTest`. |
 | 2026-10-20 | Caching audit: SSR cache serves stale while refreshing and backs off 15s after failures; homepage catalog key includes a sections signature; dynamic `/sitemap.xml` (SSG disabled, 1h cache) and `Cache-Control` on sitemap/robots; locations loaders locale-aware; remote SVG failures expire after 5 min; recently viewed expires after 7 days; PDP returns 404 for missing products (was 500/502) and 503 on POS errors. POS: locale-aware ETag + `Vary`, category cache cleared on edits, 30s cache for Accounts listings, per-request settings memo. `ssr-shell-cache`, `recently-viewed`, `StorefrontCachingTest`. |

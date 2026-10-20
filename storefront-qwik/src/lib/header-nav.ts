@@ -168,10 +168,6 @@ export function buildMainNavLinks(
           href: localePath(lang, "/track-console"),
         },
         {
-          label: tStatic(lang, "nav.trackOrder"),
-          href: localePath(lang, "/track-order"),
-        },
-        {
           label: tStatic(lang, "nav.repairTruck"),
           href: localePath(lang, "/repair-truck-request"),
         },
