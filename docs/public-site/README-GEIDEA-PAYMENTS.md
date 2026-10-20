@@ -420,7 +420,7 @@ Each of these is a **Create Session parameter or a portal switch**, not a new in
 | BNPL (UAE/KSA only) | Tamara needs full customer + `order.items` detail; Tabby needs `returnUrl`, phone, and items | [Tamara](https://docs.geidea.net/docs/tamara) · [Tabby](https://docs.geidea.net/docs/tabby-uae-ksa) |
 | Recurring / subscriptions | Auto-debit via stored token, or recurring payment links | [Recurring Payments](https://docs.geidea.net/docs/recurring) · [Subscriptions](https://docs.geidea.net/docs/subscriptions) |
 
-**Data-quality note:** Create Session already sends checkout `customer.address.billing` / `shipping` (`street` ← `address_line_1`, `city`, ISO-3 `country`, `postalCode`) so Geidea HPP can prefill Street / City when **Show address on HPP** is enabled. Digital/pickup placeholders (`Digital delivery`, `Store pickup`) are omitted. Richer `order.items` detail remains available if BNPL/installments are turned on later.
+**Data-quality note:** Create Session sends the checkout customer (`firstName`, `lastName`, `email`, `phoneNumber` — values typed at checkout, stored as `order_addresses.customer`, falling back to the POS contact) and `customer.address.billing` / `shipping` (`street` ← `address_line_1`, `city`, ISO-3 `country`, `postalCode`). The HPP always runs with `showEmail` / `showPhone` / `showAddress` = `false`, so shoppers only see card inputs (the former "Show email/phone/address on HPP" admin toggles were removed). Digital/pickup placeholders (`Digital delivery`, `Store pickup`) are omitted. Richer `order.items` detail remains available if BNPL/installments are turned on later.
 
 ---
 

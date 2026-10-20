@@ -169,6 +169,7 @@ class CheckoutService
             $orderAddresses = json_encode([
                 'shipping_address' => $payload['shipping_address'] ?? [],
                 'billing_address' => $payload['billing_address'] ?? $payload['shipping_address'] ?? [],
+                'customer' => $this->checkoutCustomerSnapshot($payload['customer'] ?? []),
             ]);
 
             // Optional: create POS quotation (draft) instead of final sell — Storefront Settings → Digital.
@@ -332,6 +333,25 @@ class CheckoutService
             'mobile' => $mobile ?? '',
             'created_by' => 1,
         ])['data'];
+    }
+
+    /**
+     * Contact details exactly as typed at checkout (payment gateways prefer these over the stored contact).
+     *
+     * @param  array<string, mixed>  $customer
+     * @return array<string, string>
+     */
+    private function checkoutCustomerSnapshot(array $customer): array
+    {
+        $snapshot = [];
+        foreach (['first_name', 'last_name', 'email', 'mobile'] as $key) {
+            $value = trim((string) ($customer[$key] ?? ''));
+            if ($value !== '') {
+                $snapshot[$key] = mb_substr($value, 0, 191);
+            }
+        }
+
+        return $snapshot;
     }
 
     private function formatAddressString(array $address): string

@@ -1394,21 +1394,8 @@
                             {!! Form::checkbox('geidea_hide_geidea_logo', 1, $geidea['hide_geidea_logo'] ?? false) !!} Hide Geidea logo
                         </label>
                     </div>
-                    <div class="checkbox">
-                        <label>
-                            {!! Form::checkbox('geidea_show_email', 1, $geidea['show_email'] ?? false) !!} Show email on HPP
-                        </label>
-                    </div>
-                    <div class="checkbox">
-                        <label>
-                            {!! Form::checkbox('geidea_show_phone', 1, $geidea['show_phone'] ?? false) !!} Show phone on HPP
-                        </label>
-                    </div>
-                    <div class="checkbox">
-                        <label>
-                            {!! Form::checkbox('geidea_show_address', 1, $geidea['show_address'] ?? false) !!} Show address on HPP
-                        </label>
-                    </div>
+                    {{-- Email / phone / address are always hidden on the HPP: checkout collects them and sends them on the session. --}}
+                    <p class="help-block">The Geidea payment form shows card fields only; checkout name, email, phone and address are sent with the payment session.</p>
                     <div class="checkbox">
                         <label>
                             {!! Form::checkbox('geidea_receipt_page', 1, $geidea['receipt_page'] ?? false) !!} Show Geidea receipt page

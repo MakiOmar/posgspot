@@ -277,9 +277,6 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
      *   logo_url: string,
      *   header_color: string,
      *   hide_geidea_logo: bool,
-     *   show_email: bool,
-     *   show_phone: bool,
-     *   show_address: bool,
      *   receipt_page: bool,
      *   language: string
      * }
@@ -301,9 +298,6 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
             'logo_url' => trim((string) ($geidea['logo_url'] ?? '')),
             'header_color' => trim((string) ($geidea['header_color'] ?? '')),
             'hide_geidea_logo' => ! empty($geidea['hide_geidea_logo']),
-            'show_email' => ! empty($geidea['show_email']),
-            'show_phone' => ! empty($geidea['show_phone']),
-            'show_address' => ! empty($geidea['show_address']),
             'receipt_page' => ! empty($geidea['receipt_page']),
             'language' => ($geidea['language'] ?? 'en') === 'ar' ? 'ar' : 'en',
         ];
@@ -360,10 +354,19 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
         string $locale,
     ): array {
         $contact = $transaction->contact;
-        $phone = (string) ($contact->mobile ?? '');
+        $orderAddresses = $this->orderAddresses($transaction);
+        // Checkout form values win: guest checkouts may reuse an older contact matched by email/mobile.
+        $checkoutCustomer = is_array($orderAddresses['customer'] ?? null) ? $orderAddresses['customer'] : [];
+        $pick = fn (string $key, mixed $fallback): string => trim((string) ($checkoutCustomer[$key] ?? '')) !== ''
+            ? trim((string) $checkoutCustomer[$key])
+            : trim((string) ($fallback ?? ''));
+
+        $phone = $pick('mobile', $contact?->mobile);
         if ($phone !== '' && ! str_starts_with($phone, '+')) {
             $phone = '+'.$phone;
         }
+        $email = $pick('email', $contact?->email);
+        $firstName = $pick('first_name', $contact?->first_name ?: $contact?->name);
 
         $language = $locale === 'ar' ? 'ar' : $resolved['language'];
         $logoUrl = $resolved['logo_url'];
@@ -374,13 +377,13 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
         $customer = [
             'create' => false,
             'setDefaultMethod' => false,
-            'email' => (string) ($contact->email ?? ''),
+            'email' => $email !== '' ? $email : null,
             'phoneNumber' => $phone !== '' ? $phone : null,
-            'firstName' => (string) ($contact->first_name ?? $contact->name ?? 'Customer'),
-            'lastName' => (string) ($contact->last_name ?? ''),
+            'firstName' => $firstName !== '' ? $firstName : 'Customer',
+            'lastName' => $pick('last_name', $contact?->last_name),
         ];
 
-        $geideaAddress = $this->customerAddressForSession($transaction);
+        $geideaAddress = $this->customerAddressForSession($orderAddresses);
         if ($geideaAddress !== null) {
             $customer['address'] = $geideaAddress;
         }
@@ -399,10 +402,11 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
             'paymentOperation' => 'Pay',
             'signature' => $sessionSignature,
             'customer' => $customer,
+            // Checkout already collected contact + address (sent on `customer`); the HPP shows card inputs only.
             'appearance' => [
-                'showAddress' => $resolved['show_address'],
-                'showEmail' => $resolved['show_email'],
-                'showPhone' => $resolved['show_phone'],
+                'showAddress' => false,
+                'showEmail' => false,
+                'showPhone' => false,
                 'receiptPage' => $resolved['receipt_page'],
                 'merchant' => [
                     'logoUrl' => $logoUrl !== '' ? $logoUrl : null,
@@ -426,21 +430,25 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
     }
 
     /**
-     * Map checkout order_addresses into Geidea Create Session customer.address
-     * so HPP can prefill Street / City (and related fields).
-     *
-     * @return array{billing: array<string, string>, shipping: array<string, string>}|null
+     * @return array<string, mixed>
      */
-    private function customerAddressForSession(Transaction $transaction): ?array
+    private function orderAddresses(Transaction $transaction): array
     {
         $addresses = ! empty($transaction->order_addresses)
             ? json_decode((string) $transaction->order_addresses, true)
             : [];
 
-        if (! is_array($addresses)) {
-            $addresses = [];
-        }
+        return is_array($addresses) ? $addresses : [];
+    }
 
+    /**
+     * Map checkout order_addresses into Geidea Create Session customer.address.
+     *
+     * @param  array<string, mixed>  $addresses
+     * @return array{billing: array<string, string>, shipping: array<string, string>}|null
+     */
+    private function customerAddressForSession(array $addresses): ?array
+    {
         $shippingRaw = is_array($addresses['shipping_address'] ?? null)
             ? $addresses['shipping_address']
             : [];
