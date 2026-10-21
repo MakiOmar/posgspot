@@ -109,13 +109,16 @@ $(document).ready( function(){
         dateRangeSettings,
         function (start, end) {
             $('#sell_list_filter_date_range').val(start.format(moment_date_format) + ' ~ ' + end.format(moment_date_format));
+            saveSalesOrderFilters();
             sell_table.ajax.reload();
         }
     );
     $('#sell_list_filter_date_range').on('cancel.daterangepicker', function(ev, picker) {
         $('#sell_list_filter_date_range').val('');
+        saveSalesOrderFilters();
         sell_table.ajax.reload();
     });
+    restoreSalesOrderFilters();
     sell_table = $('#sell_table').DataTable({
         processing: true,
         serverSide: true,
@@ -179,12 +182,61 @@ $(document).ready( function(){
             { data: 'added_by', name: 'u.first_name'},
         ]
     });
-    $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_status, #so_list_payment_line_status, #sell_list_filter_content_kind',  function() {
+    $(document).on('change', SO_FILTER_SELECTS.join(', '),  function() {
+        saveSalesOrderFilters();
         sell_table.ajax.reload();
     });
 
     watchSalesOrderListChanges();
 });
+
+var SO_FILTER_SELECTS = ['#sell_list_filter_location_id', '#sell_list_filter_customer_id', '#created_by', '#so_list_filter_status', '#so_list_shipping_status', '#so_list_payment_status', '#so_list_payment_line_status', '#sell_list_filter_content_kind'];
+var SO_FILTER_STORAGE_KEY = 'sales_order_list_filters';
+
+/**
+ * Keep filters across full-page round trips on this list (Add/Edit payment posts and redirects back,
+ * browser Back from the edit page) so the table re-queries with them instead of showing every order.
+ */
+function saveSalesOrderFilters() {
+    var filters = {};
+    SO_FILTER_SELECTS.forEach(function (selector) {
+        if ($(selector).length) {
+            filters[selector] = $(selector).val() || '';
+        }
+    });
+    var picker = $('#sell_list_filter_date_range').data('daterangepicker');
+    if ($('#sell_list_filter_date_range').val() && picker) {
+        filters.date_start = picker.startDate.format('YYYY-MM-DD');
+        filters.date_end = picker.endDate.format('YYYY-MM-DD');
+    }
+    try {
+        sessionStorage.setItem(SO_FILTER_STORAGE_KEY, JSON.stringify(filters));
+    } catch (e) {
+        // Storage can be unavailable (private mode / quota); filters then simply reset on reload.
+    }
+}
+
+function restoreSalesOrderFilters() {
+    var filters;
+    try {
+        filters = JSON.parse(sessionStorage.getItem(SO_FILTER_STORAGE_KEY) || '{}');
+    } catch (e) {
+        filters = {};
+    }
+    SO_FILTER_SELECTS.forEach(function (selector) {
+        var $select = $(selector);
+        var value = filters[selector];
+        if ($select.length && value && $select.find('option[value="' + value + '"]').length) {
+            $select.val(value).trigger('change.select2');
+        }
+    });
+    var picker = $('#sell_list_filter_date_range').data('daterangepicker');
+    if (filters.date_start && filters.date_end && picker) {
+        picker.setStartDate(moment(filters.date_start, 'YYYY-MM-DD'));
+        picker.setEndDate(moment(filters.date_end, 'YYYY-MM-DD'));
+        $('#sell_list_filter_date_range').val(picker.startDate.format(moment_date_format) + ' ~ ' + picker.endDate.format(moment_date_format));
+    }
+}
 
 /**
  * Poll a cheap version hash and reload the table (keeping page and filters) when sales orders

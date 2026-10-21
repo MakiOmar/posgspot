@@ -2620,14 +2620,21 @@ $(document).on('submit', 'form#edit_shipping_form', function(e){
         },
         success: function(result) {
             if (result.success == true) {
-                var myDropzone = Dropzone.forElement("#shipping_documents_dropzone");
-                myDropzone.processQueue();
-                if (typeof(sell_table) != 'undefined') {
-                    sell_table.ajax.reload();
+                if (typeof(refreshSalesOrderTable) == 'function') {
+                    refreshSalesOrderTable();
+                } else if (typeof(sell_table) != 'undefined') {
+                    sell_table.ajax.reload(null, false);
                 }
 
                 if (typeof(purchase_order_table) != 'undefined') {
-                    purchase_order_table.ajax.reload();
+                    purchase_order_table.ajax.reload(null, false);
+                }
+
+                // Dropzone.forElement throws when the uploader was not initialised; the shipping save already succeeded.
+                try {
+                    Dropzone.forElement("#shipping_documents_dropzone").processQueue();
+                } catch (dropzoneError) {
+                    console.warn(dropzoneError);
                 }
             } else {
                 toastr.error(result.msg);
