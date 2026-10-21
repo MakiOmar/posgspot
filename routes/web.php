@@ -304,6 +304,8 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     ->name('sales_orders.contact_orders_modal');
     Route::get('/sales-orders/search-transactions', [App\Http\Controllers\SalesOrderController::class, 'searchTransactions'])
     ->name('sales_orders.search_transactions');
+    Route::get('/sales-orders/list-version', [App\Http\Controllers\SalesOrderController::class, 'listVersion'])
+    ->name('sales_orders.list_version');
 
 
     Route::resource('roles', RoleController::class);

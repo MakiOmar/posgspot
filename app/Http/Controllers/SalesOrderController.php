@@ -90,6 +90,31 @@ class SalesOrderController extends Controller
             ));
     }
 
+    /**
+     * Cheap fingerprint of the sales orders the user can list; the list page polls it and
+     * reloads its table only when it changes (new, edited or deleted orders).
+     */
+    public function listVersion()
+    {
+        if (! auth()->user()->can('so.view_own') && ! auth()->user()->can('so.view_all')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_id = request()->session()->get('user.business_id');
+        $stats = Transaction::where('business_id', $business_id)
+            ->where('type', 'sales_order')
+            ->when(
+                ! auth()->user()->can('so.view_all'),
+                fn ($query) => $query->where('created_by', request()->session()->get('user.id'))
+            )
+            ->selectRaw('COUNT(*) as total, MAX(id) as last_id, MAX(updated_at) as last_updated')
+            ->first();
+
+        return response()->json([
+            'version' => md5($stats->total.'|'.$stats->last_id.'|'.$stats->last_updated),
+        ]);
+    }
+
     public function getSalesOrders($customer_id)
     {
         $business_id = request()->session()->get('user.business_id');

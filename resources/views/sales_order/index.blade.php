@@ -182,7 +182,47 @@ $(document).ready( function(){
     $(document).on('change', '#sell_list_filter_location_id, #sell_list_filter_customer_id, #created_by, #so_list_filter_status, #so_list_shipping_status, #so_list_payment_status, #so_list_payment_line_status, #sell_list_filter_content_kind',  function() {
         sell_table.ajax.reload();
     });
+
+    watchSalesOrderListChanges();
 });
+
+/**
+ * Poll a cheap version hash and reload the table (keeping page and filters) when sales orders
+ * were added or changed. Skipped while the tab is hidden or staff are using a modal / Actions menu.
+ */
+function watchSalesOrderListChanges() {
+    var pollMs = 30000;
+    var lastVersion = null;
+    var isBusy = function () {
+        return document.hidden
+            || $('body').hasClass('modal-open')
+            || $('#sell_table .btn-group.open, #sell_table .dropdown.open').length > 0;
+    };
+
+    setInterval(function () {
+        if (isBusy()) {
+            return;
+        }
+        $.ajax({
+            method: 'GET',
+            url: '{{ route('sales_orders.list_version') }}',
+            dataType: 'json',
+            global: false,
+            success: function (result) {
+                if (!result || !result.version) {
+                    return;
+                }
+                if (lastVersion !== null && result.version !== lastVersion) {
+                    if (isBusy()) {
+                        return;
+                    }
+                    sell_table.ajax.reload(null, false);
+                }
+                lastVersion = result.version;
+            }
+        });
+    }, pollMs);
+}
 </script>
 	
 @endsection
