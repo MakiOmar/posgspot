@@ -543,6 +543,7 @@ class SellPosController extends Controller
                 $input['document'] = $this->transactionUtil->uploadFile($request, 'sell_document', 'documents');
 
                 $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id);
+                $this->applySalesOrderDoneFlag($transaction, $request);
 
                 //Upload Shipping documents
                 Media::uploadMedia($business_id, $transaction, $request, 'shipping_documents', false, 'shipping_document');
@@ -1401,6 +1402,7 @@ class SellPosController extends Controller
                 DB::beginTransaction();
 
                 $transaction = $this->transactionUtil->updateSellTransaction($id, $business_id, $input, $invoice_total, $user_id);
+                $this->applySalesOrderDoneFlag($transaction, $request);
 
                 //update service staff timer
                 if (!$is_direct_sale && $transaction->status == 'final') {
@@ -1699,6 +1701,21 @@ class SellPosController extends Controller
         }
 
         return redirect()->back()->with('status', $output);
+    }
+
+    /**
+     * Staff "Done" checkbox; only the sales order form sends `is_done`, so other saves keep the flag.
+     */
+    private function applySalesOrderDoneFlag(Transaction $transaction, Request $request): void
+    {
+        if ($transaction->type !== 'sales_order' || ! $request->has('is_done')) {
+            return;
+        }
+        $isDone = $request->boolean('is_done');
+        if ((bool) $transaction->is_done !== $isDone) {
+            $transaction->is_done = $isDone;
+            $transaction->save();
+        }
     }
 
     /**

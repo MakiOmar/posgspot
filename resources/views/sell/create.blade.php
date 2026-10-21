@@ -252,6 +252,9 @@
 						</div>
 					</div>
 					@endcan
+				@if($sale_type == 'sales_order')
+					@include('sell.partials.sales_order_done_field', ['is_done' => false])
+				@endif
 				
 				@php
 			        $custom_field_1_label = !empty($custom_labels['sell']['custom_field_1']) ? $custom_labels['sell']['custom_field_1'] : '';
