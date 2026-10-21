@@ -78,8 +78,9 @@ BACKUP_GOOGLE_DRIVE_KEEP_DAYS=14
 GOOGLE_DRIVE_CLIENT_ID=
 GOOGLE_DRIVE_CLIENT_SECRET=
 GOOGLE_DRIVE_REFRESH_TOKEN=
-# Folder path inside My Drive, created if missing (e.g. "Spot Backups/POS"); not a folder ID
-GOOGLE_DRIVE_FOLDER=
+# Folder path inside My Drive, created if missing; not a folder ID.
+# Quote it when it contains spaces: an unquoted space makes the whole .env invalid and the app fails to boot.
+GOOGLE_DRIVE_FOLDER="Spot Backups/POS"
 # Optional Shared Drive ID (folder is then relative to that drive)
 GOOGLE_DRIVE_TEAM_DRIVE_ID=
 ```
@@ -199,6 +200,7 @@ Reference implementations: `tests/Feature/GoogleDriveBackupTest.php` in both rep
 | Folder named like an ID appears in Drive | `GOOGLE_DRIVE_FOLDER` must be a folder path, not an ID. |
 | "storage quota has been exceeded" | Drive is full: lower `BACKUP_GOOGLE_DRIVE_KEEP_DAYS`, back up less often / database-only, or use a larger Drive / Shared Drive. |
 | Uploads land in the wrong of two same-named folders | Drive allows duplicate names; the adapter uses the oldest match. Rename or delete the duplicate. |
+| Containers restart in a loop; log says "Failed to parse dotenv file. Encountered unexpected whitespace" | An unquoted `.env` value contains a space (usually `GOOGLE_DRIVE_FOLDER=Spot Backups/POS`). Quote it and recreate the containers. |
 | Drive disabled although keys are set | All of `BACKUP_GOOGLE_DRIVE_ENABLED=true`, client ID, secret and refresh token are required; recreate containers after editing `.env`; run `php artisan config:clear` if config is cached outside Docker. |
 
 ## Applied in this repo set
