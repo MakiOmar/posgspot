@@ -143,6 +143,7 @@ Synced Accounts products stay `not_for_selling`, so they never appear on the sto
 - After a POS checkout the cashier sees the allocated credentials in a pop-up (not printed on the receipt).
 - One ledger row per unit in `storefront_digital_fulfillments` with `storefront_order_id = so-{sales order id}` or `pos-{sell id}`; Accounts dedupes on that id + line key, and the Accounts order is stamped `pos_order_id` (Send to POS skips it).
 - Failures are noted on the staff note and retried by `php artisan accounts:fulfill-sales-orders` (scheduled every 5 minutes, up to 5 attempts).
+- **Undo in Accounts:** when a manager undoes an Accounts order that belongs to an `so-` / `pos-` row, Accounts queues `POST /api/accounts/orders/undone/{business_id}` (Passport; body `storefront_order_id`, `storefront_line_key`, optional `accounts_order_id`). POS deletes that ledger row, puts the credentials in the staff note back to `N/A`, strips them from the line notes (including invoices converted from the sales order) and adds an "Account undone" staff-note line. The line is then unfetched: it is unlocked for edit / delete and is **not** refetched automatically; staff tick **Fetch account now** and save to get a new account (a sales order that becomes paid again also fetches it). Missing, already-reset or stale (`accounts_order_id` mismatch) rows answer `200 {"reset": false}`; storefront `sf-` rows are rejected (422).
 
 | Variable | Purpose |
 |----------|---------|

@@ -706,6 +706,7 @@ return [
     'accounts_fetched' => ':count account(s) fetched from Accounts.',
     'accounts_allocation_unavailable' => "Couldn't reach Accounts to fetch the account. It will be retried automatically.",
     'account_allocation_failed_note' => 'Account allocation failed: :title (:reason)',
+    'account_undone_in_accounts_note' => 'Account undone in Accounts: :title (:account). Tick "Fetch account now" and save to fetch a new one.',
     'fetch_account_now' => 'Fetch account now',
     'fetch_account_now_help' => 'Gets the account from Accounts when you save, even before payment. Unticked lines are fetched once the order is fully paid.',
     'fetch_account_now_help_pos' => 'Gets the account from Accounts when you complete the sale. Unticked lines are not fetched — edit the sale and tick it to fetch later.',

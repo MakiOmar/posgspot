@@ -22,7 +22,9 @@ use App\VariationLocationDetails;
 use App\Utils\CommonUtil;
 use App\Events\ContactCreatedOrModified;
 use App\Http\Requests\AccountsCatalogUpsertRequest;
+use App\Http\Requests\AccountsOrderUndoneRequest;
 use App\Services\AccountsCatalogService;
+use App\Services\Accounts\AccountsUndoResetService;
 use Illuminate\Support\Facades\Http;
 
 class AccountsApi extends Controller
@@ -464,6 +466,38 @@ class AccountsApi extends Controller
             return response()->json([
                 'success' => false,
                 'message' => config('app.debug') ? $e->getMessage() : 'Catalog sync failed.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Accounts undid an order it allocated for a sales order / POS sell: unfetch that POS line
+     * so staff can fetch a new account. Missing or already-reset rows answer `reset: false`.
+     */
+    public function orderUndone(AccountsOrderUndoneRequest $request, AccountsUndoResetService $resetter, $business_id)
+    {
+        $validated = $request->validated();
+
+        try {
+            $reset = $resetter->reset(
+                (int) $business_id,
+                $validated['storefront_order_id'],
+                $validated['storefront_line_key'],
+                isset($validated['accounts_order_id']) ? (int) $validated['accounts_order_id'] : null
+            );
+
+            return response()->json(['success' => true, 'reset' => $reset]);
+        } catch (\Throwable $e) {
+            Log::error('AccountsApi::orderUndone failed', [
+                'business_id' => $business_id,
+                'storefront_order_id' => $validated['storefront_order_id'],
+                'line_key' => $validated['storefront_line_key'],
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => config('app.debug') ? $e->getMessage() : 'Reset failed.',
             ], 500);
         }
     }

@@ -190,12 +190,7 @@ class AccountsAllocationService
         $meta = is_array($row->request_meta) ? $row->request_meta : [];
         $title = (string) ($meta['title'] ?? 'N/A');
         $type = (string) ($meta['type'] ?? ($row->kind === 'card' ? 'card' : 'N/A'));
-        $account = (string) ($secrets['email'] ?? ($secrets['code'] ?? 'N/A'));
-        $password = (string) ($secrets['password'] ?? 'N/A');
-        if ($row->kind === 'card' && ! empty($secrets['code'])) {
-            $account = (string) $secrets['code'];
-            $password = 'N/A';
-        }
+        [$account, $password] = $this->staffNoteCredentials($row, $secrets);
 
         // Always reload — sell edit may have a stale in-memory staff_note.
         $tx = Transaction::find($transactionId);
@@ -244,11 +239,82 @@ class AccountsAllocationService
         $tx->save();
     }
 
+    /**
+     * Undo `appendSecretsToStaffNote`: put the first matching credential pair back to N/A so the
+     * next allocation fills that block again.
+     *
+     * @param  array<string, mixed>  $secrets
+     */
+    public function revertSecretsInStaffNote(int $transactionId, StorefrontDigitalFulfillment $row, array $secrets): void
+    {
+        $tx = Transaction::find($transactionId);
+        if (! $tx) {
+            return;
+        }
+        [$account, $password] = $this->staffNoteCredentials($row, $secrets);
+        if ($account === 'N/A') {
+            return;
+        }
+
+        $updated = preg_replace(
+            '/Account:\s*'.preg_quote($account, '/').'\s*\r?\nPassword:\s*'.preg_quote($password, '/').'/u',
+            "Account: N/A\nPassword: N/A",
+            (string) ($tx->staff_note ?? ''),
+            1,
+            $count
+        );
+        if ($count > 0 && is_string($updated)) {
+            $tx->staff_note = $updated;
+            $tx->save();
+        }
+    }
+
+    /**
+     * Undo `appendSecretsToSellLineNote`.
+     *
+     * @param  array<string, mixed>  $secrets
+     */
+    public function removeSecretsFromSellLineNote(?int $sellLineId, array $secrets): void
+    {
+        $addition = $this->formatSecretsLine($secrets);
+        if (empty($sellLineId) || $addition === '') {
+            return;
+        }
+        $line = TransactionSellLine::find($sellLineId);
+        if (! $line) {
+            return;
+        }
+        $note = (string) ($line->sell_line_note ?? '');
+        $updated = preg_replace('/\r?\n?'.preg_quote($addition, '/').'/u', '', $note, 1, $count);
+        if ($count > 0 && is_string($updated)) {
+            $line->sell_line_note = trim($updated);
+            $line->save();
+        }
+    }
+
     public function stampPosOrder(string $storefrontOrderId, int $transactionId, ?int $accountsOrderId): bool
     {
         $response = $this->accounts->stampPosOrder($storefrontOrderId, $transactionId, $accountsOrderId);
 
         return ! empty($response['success']);
+    }
+
+    /**
+     * Account / Password values as written in the staff note (a card code goes in the Account field).
+     *
+     * @param  array<string, mixed>  $secrets
+     * @return array{0: string, 1: string}
+     */
+    private function staffNoteCredentials(StorefrontDigitalFulfillment $row, array $secrets): array
+    {
+        if ($row->kind === 'card' && ! empty($secrets['code'])) {
+            return [(string) $secrets['code'], 'N/A'];
+        }
+
+        return [
+            (string) ($secrets['email'] ?? ($secrets['code'] ?? 'N/A')),
+            (string) ($secrets['password'] ?? 'N/A'),
+        ];
     }
 
     /**
