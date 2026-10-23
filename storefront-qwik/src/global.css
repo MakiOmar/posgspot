@@ -2924,6 +2924,98 @@ html[dir="rtl"] .header-search-type {
   display: block;
 }
 
+/* Generated gift card artwork (no poster). Mirrors Accounts `components/card-art.blade.php`. */
+.gift-card-art {
+  container-type: inline-size;
+  width: 100%;
+}
+
+.gift-card-art__card {
+  --gift-card-art-color: #4b5563;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--gift-card-art-color);
+  color: #fff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  text-align: start;
+}
+
+.gift-card-art__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3cqw;
+  padding: 6cqw 7cqw;
+  background: #fff;
+  color: #111;
+}
+
+.gift-card-art__kicker {
+  display: flex;
+  flex-direction: column;
+  font-size: 4cqw;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.gift-card-art__value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+}
+
+.gift-card-art__value {
+  font-size: 11cqw;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gift-card-art__flag {
+  width: 13cqw;
+  height: 9.75cqw;
+  border-radius: 1.5cqw;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+
+.gift-card-art__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4cqw;
+  padding: 5cqw 6cqw;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.28));
+}
+
+.gift-card-art__logo {
+  width: 28cqw;
+  height: 28cqw;
+  object-fit: contain;
+}
+
+.gift-card-art__brand {
+  font-size: 8cqw;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.gift-card-art__pill {
+  padding: 1.6cqw 4.5cqw;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 99cqw;
+  font-size: 3.8cqw;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+
 .digital-game-card__body {
   min-height: 5.75rem;
   gap: 0.45rem;

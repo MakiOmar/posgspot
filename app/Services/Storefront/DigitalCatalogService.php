@@ -588,6 +588,7 @@ class DigitalCatalogService
                 'poster_image' => $this->absoluteAccountsUrl(
                     isset($category['poster_image']) ? (string) $category['poster_image'] : null
                 ),
+                'card_art' => $this->normalizeCardArt($category['card_art'] ?? null),
             ];
         }
 
@@ -1003,6 +1004,36 @@ class DigitalCatalogService
         }
 
         return false;
+    }
+
+    /**
+     * Generated gift card artwork from Accounts (only for categories without a poster).
+     * Whitelists keys; color is rendered into a style attribute, so it must be a hex value.
+     *
+     * @return array{brand: string, brand_label: string, value: string, country_code: ?string, flag_url: ?string, logo_url: ?string, color: string}|null
+     */
+    private function normalizeCardArt(mixed $art): ?array
+    {
+        if (is_object($art)) {
+            $art = (array) $art;
+        }
+        $value = is_array($art) ? trim((string) ($art['value'] ?? '')) : '';
+        if ($value === '') {
+            return null;
+        }
+
+        $country = strtolower((string) ($art['country_code'] ?? ''));
+        $color = (string) ($art['color'] ?? '');
+
+        return [
+            'brand' => preg_match('/^[a-z0-9_-]{1,30}$/', (string) ($art['brand'] ?? '')) === 1 ? (string) $art['brand'] : 'generic',
+            'brand_label' => mb_substr(trim((string) ($art['brand_label'] ?? '')), 0, 60),
+            'value' => mb_substr($value, 0, 20),
+            'country_code' => preg_match('/^[a-z]{2}$/', $country) === 1 ? $country : null,
+            'flag_url' => $this->absoluteAccountsUrl(isset($art['flag_url']) ? (string) $art['flag_url'] : null),
+            'logo_url' => $this->absoluteAccountsUrl(isset($art['logo_url']) ? (string) $art['logo_url'] : null),
+            'color' => preg_match('/^#[0-9a-f]{3,8}$/i', $color) === 1 ? $color : '#4b5563',
+        ];
     }
 
     /**

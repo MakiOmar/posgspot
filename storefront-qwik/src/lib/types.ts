@@ -709,11 +709,23 @@ export type DigitalPosOffers = Partial<
   Record<"4" | "5", Partial<Record<"primary" | "secondary" | "full", DigitalPosSku>>>
 >;
 
+/** Generated gift card artwork (Accounts `card_art`); only sent when there is no poster. */
+export interface DigitalCardArt {
+  brand: string;
+  brand_label: string;
+  value: string;
+  country_code: string | null;
+  flag_url: string | null;
+  logo_url: string | null;
+  color: string;
+}
+
 export interface DigitalCardCategory {
   id: number;
   name: string;
   price: number | string;
   poster_image?: string | null;
+  card_art?: DigitalCardArt | null;
   /** Synced POS product for this category; null falls back to `skus.gift_card`. */
   pos_sku?: DigitalPosSku | null;
 }

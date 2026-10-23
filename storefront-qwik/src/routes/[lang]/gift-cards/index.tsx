@@ -1,5 +1,6 @@
 import { $, component$, useSignal } from "@builder.io/qwik";
 import { routeLoader$, useLocation, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
+import { GiftCardArt } from "~/components/digital/gift-card-art";
 import { PageTitleBar } from "~/components/layout/page-title-bar";
 import { addCartItem } from "~/lib/cart-actions";
 import { notifyAddedToCart } from "~/lib/cart-feedback";
@@ -25,6 +26,7 @@ export const useGiftCards = routeLoader$(async ({ params, redirect }) => {
       name: String(row.name ?? ""),
       price: row.price,
       poster_image: row.poster_image ?? null,
+      card_art: row.card_art ?? null,
       pos_sku: row.pos_sku ?? null,
     }));
     return {
@@ -127,6 +129,9 @@ export default component$(() => {
                     height={320}
                     loading="lazy"
                   />
+                ) : category.card_art ? (
+                  /* No poster: artwork generated from the product name */
+                  <GiftCardArt art={category.card_art} />
                 ) : (
                   <div class="product-card__image digital-game-card__image" aria-hidden="true" />
                 )}
