@@ -108,6 +108,10 @@ class StorefrontSettingService
             'request_product' => [
                 'notify_email' => '',
             ],
+            // New website order staff alerts (empty = contact inbox).
+            'orders' => [
+                'notify_email' => '',
+            ],
             'social' => [
                 'facebook' => '',
                 'instagram' => '',

@@ -5,7 +5,14 @@
 
     <!-- Content Header (Page header) -->
     <section class="content-header no-print">
-        <h1  class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang('sale.sells')
+        <h1  class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">
+            {{-- Website orders queue shares this list with fixed filters --}}
+            @if (request()->boolean('website_orders'))
+                @lang('lang_v1.website_orders')
+                <small><a href="{{ action([\App\Http\Controllers\SellController::class, 'index']) }}">@lang('lang_v1.all_sales')</a></small>
+            @else
+                @lang('sale.sells')
+            @endif
         </h1>
     </section>
 
@@ -31,7 +38,7 @@
                     <div class="form-group">
                         {!! Form::label('sell_list_filter_source', __('lang_v1.sources') . ':') !!}
 
-                        {!! Form::select('sell_list_filter_source', $sources, null, [
+                        {!! Form::select('sell_list_filter_source', $sources, request()->query('source'), [
                             'class' => 'form-control select2',
                             'style' => 'width:100%',
                             'placeholder' => __('lang_v1.all'),
@@ -131,6 +138,17 @@
 @section('javascript')
     <script type="text/javascript">
         $(document).ready(function() {
+            // Website order alerts link here with ?view_sell=ID: open that sale's details.
+            @if (request()->filled('view_sell'))
+                $.ajax({
+                    url: @json(action([\App\Http\Controllers\SellController::class, 'show'], [(int) request()->query('view_sell')])),
+                    dataType: 'html',
+                    success: function(result) {
+                        $('.view_modal').html(result).modal('show');
+                    },
+                });
+            @endif
+
             //Date range as a button
             $('#sell_list_filter_date_range').daterangepicker(
                 dateRangeSettings,
@@ -179,6 +197,11 @@
                         if ($('#sell_list_filter_source').length) {
                             d.source = $('#sell_list_filter_source').val();
                         }
+
+                        @if (request()->boolean('website_orders'))
+                            // Website orders queue (sidebar link)
+                            d.website_orders = 1;
+                        @endif
 
                         if ($('#only_subscriptions').is(':checked')) {
                             d.only_subscriptions = 1;

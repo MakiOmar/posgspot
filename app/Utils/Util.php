@@ -1402,6 +1402,8 @@ class Util
                     'read_at' => $notification->read_at,
                     'created_at' => $notification->created_at->diffForHumans(),
                 ];
+            } elseif ($notification->type === \App\Notifications\StorefrontNewOrderNotification::class) {
+                $notifications_data[] = $this->parseStorefrontNewOrderNotification($notification);
             } else {
                 $moduleUtil = new \App\Utils\ModuleUtil;
                 $module_notification_data = $moduleUtil->getModuleData('parse_notification', $notification);
@@ -1416,6 +1418,31 @@ class Util
         }
 
         return $notifications_data;
+    }
+
+    /**
+     * Bell entry for a new website order; links to the sale.
+     */
+    private function parseStorefrontNewOrderNotification($notification): array
+    {
+        $data = $notification->data;
+        $payment = ($data['payment'] ?? '') === 'cod'
+            ? __('lang_v1.storefront_payment_cod')
+            : __('lang_v1.storefront_payment_online');
+
+        return [
+            'msg' => __('lang_v1.storefront_new_order_bell', [
+                'invoice_no' => $data['invoice_no'] ?? '',
+                'count' => $data['items_count'] ?? 0,
+                'total' => trim(($data['total'] ?? '').' '.($data['currency'] ?? '')),
+                'payment' => $payment,
+            ]),
+            'icon_class' => 'fas fa-shopping-cart bg-blue',
+            // Sell details are a modal: the sales list opens it from ?view_sell=.
+            'link' => action([\App\Http\Controllers\SellController::class, 'index'], ['view_sell' => $data['transaction_id'] ?? 0]),
+            'read_at' => $notification->read_at,
+            'created_at' => $notification->created_at->diffForHumans(),
+        ];
     }
 
     /**

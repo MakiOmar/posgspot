@@ -188,6 +188,7 @@
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Sell to us requests | ✅ | `/storefront/sell-requests` list/detail + status; notify email on Settings → Contact |
+| Website order staff alerts + queue | ✅ | Bell (branch sales staff) + orders inbox email once per order (COD at checkout, online on first `markPaid`); Sell → Website orders with cached badge; `NotifyStaffOfStorefrontOrder`, `StorefrontStaffOrderAlert`; Settings → Website orders notify email |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 | Show on storefront (per location) | ✅ | POS Business Locations checkbox; filters listings + availability + pickup |
@@ -235,6 +236,7 @@
 | Wishlist API | ✅ | `WishlistTest` |
 | Product reviews API | ✅ | `ProductReviewTest` |
 | Sell to us API | ✅ | `SellToUsTest` |
+| Website order staff alerts | ✅ | `StorefrontStaffOrderAlertTest`; COD dispatch in `StorefrontCheckoutTest` |
 | Brand slug API | ✅ | `BrandSlugApiTest` |
 | Brand slug generation | ✅ | `BrandSlugGenerationTest`; POS `BrandController` create/update |
 | HTML sanitizer (unit) | ✅ | `StorefrontHtmlSanitizerTest` |
@@ -257,6 +259,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-25 | Website order staff alerts: POS bell for active staff with `sell.view`/`direct_sell.view` at the order's location, plus email to Settings → Website orders notify email (falls back to contact inbox). COD alerts at checkout, online on first payment confirmation; once per order via `transactions.storefront_staff_notified_at`. Digital-only orders flagged. Sell → Website orders queue (alerted, shipping status Ordered) with 60s cached badge; bell/email open `/sells?view_sell=`. `StorefrontStaffOrderAlertTest`. |
 | 2026-10-25 | `/gift-cards` browsing by brand and country: brand tiles (logo, count) → country modal (flag, name via `Intl.DisplayNames`, count) → filtered grid; single-country brands skip the modal; "All cards" and search keep the full grid; canonical stays `/gift-cards`, title names the brand. POS passes Accounts `classification` through `DigitalCatalogService::normalizeClassification` (whitelisted keys, hex colour, `other` fallback). Tests: `DigitalCardArtPassthroughTest`, `tests/gift-card-groups.test.ts`. |
 | 2026-10-23 | `/gift-cards`: categories without a poster render generated artwork (`GiftCardArt`: value, flag, brand logo/colour) from Accounts `card_art`, passed through `DigitalCatalogService` with whitelisted keys and absolute URLs. `DigitalCardArtPassthroughTest`. |
 | 2026-10-20 | Digital fulfilment hardening for Next Load gift cards. Storefront ledger rows are claimed before the Accounts call (webhook, return URL and scheduler can no longer double-allocate). Accounts 202 `pending` keeps the row pending without using an attempt. Automatic retries stop after 5 failed attempts. Success responses without credentials are marked failed. `storefront:fulfill-digital --recent` is scheduled every 5 minutes and emails customers when a retry allocates. Tests are in `StorefrontDigitalFulfillmentTest`. |

@@ -146,6 +146,20 @@ class StorefrontMailService
     }
 
     /**
+     * Inbox for new website order alerts (settings override, else contact inbox).
+     */
+    public function ordersRecipient(int $businessId): string
+    {
+        $settings = $this->storefrontSettings->get($businessId);
+        $email = trim((string) ($settings['orders']['notify_email'] ?? ''));
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $email;
+        }
+
+        return $this->contactRecipient($businessId);
+    }
+
+    /**
      * Inbox for Request a product submissions (settings override, else contact inbox).
      */
     public function requestProductRecipient(int $businessId): string

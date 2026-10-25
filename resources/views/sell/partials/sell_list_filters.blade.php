@@ -63,7 +63,7 @@
     <div class="col-md-3">
         <div class="form-group">
             {!! Form::label('shipping_status', __('lang_v1.shipping_status') . ':') !!}
-            {!! Form::select('shipping_status', $shipping_statuses, null, ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
+            {!! Form::select('shipping_status', $shipping_statuses, request()->query('shipping_status'), ['class' => 'form-control select2', 'style' => 'width:100%', 'placeholder' => __('lang_v1.all')]); !!}
         </div>
     </div>
 @endif

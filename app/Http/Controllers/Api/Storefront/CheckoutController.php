@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Contact;
+use App\Jobs\NotifyStaffOfStorefrontOrder;
 use App\Mail\StorefrontOrderConfirmation;
 use App\Services\Storefront\CheckoutService;
+use App\Services\Storefront\StorefrontStaffOrderAlert;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
@@ -80,6 +82,11 @@ class CheckoutController extends StorefrontController
         $contact = Auth::guard('sanctum')->user();
 
         $order = $this->checkoutService->checkout($this->businessId($request), $data, $contact);
+
+        // Online orders alert staff once paid (StorefrontPaymentRecorder::markPaid).
+        if (($data['payment_method'] ?? 'cod') === 'cod' && ! empty($order['id'])) {
+            NotifyStaffOfStorefrontOrder::dispatch((int) $order['id'], StorefrontStaffOrderAlert::PAYMENT_COD);
+        }
 
         $email = $contact?->email ?? ($data['customer']['email'] ?? null);
         if ($email && ($data['payment_method'] ?? 'cod') === 'cod') {

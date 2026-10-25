@@ -122,6 +122,20 @@ Notify inbox: **Storefront Settings → Request a product notify email** (`setti
 
 Config: `config/storefront.php` → `request_product.enabled`.
 
+## Storefront website order alerts (staff)
+
+Website (Qwik) orders alert POS staff once per order, so nobody misses them:
+
+- **When:** cash on delivery at checkout; online (Fawry / Geidea) once payment is confirmed (`StorefrontPaymentRecorder::markPaid`). Unpaid online orders never alert. The claim is `transactions.storefront_staff_notified_at`.
+- **POS bell:** active staff with `sell.view` or `direct_sell.view` who can access the order's location (or have `access_all_locations`). The bell opens the order on the sales list (`/sells?view_sell={id}`).
+- **Email:** **Storefront Settings → Website orders → Orders notify email** (`settings.orders.notify_email`; falls back to the contact form inbox), sent with the business mail settings.
+- **Queue:** sidebar **Sell → Website orders** lists alerted orders still at shipping status *Ordered*; the badge count is cached for 60 seconds per business and location set. Orders placed before this feature have no alert timestamp and do not appear in the queue.
+- Digital-only orders are flagged "codes are delivered automatically after payment". Digital codes are never included in alerts.
+
+No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-queue` must be running; a mail failure is logged and does not affect the bell or checkout.
+
+**For staff:** open **Sell → Website orders** (the number is how many are waiting at your branches). Each order is already a final sale with an invoice. Prepare it, then change its shipping status (Packed / Shipped / Delivered) from the sale's actions; it leaves the queue once it is no longer *Ordered*. COD orders are collected on delivery; online orders show as paid.
+
 ## Accounts catalog sync (per-offer products)
 
 Accounts pushes one hidden POS product per game offer / card category through `POST /api/accounts/catalog/upsert/{business_id}`. Those products are filed under an existing POS category and brand looked up by slug:

@@ -3,14 +3,17 @@
 namespace Tests\Feature\Storefront;
 
 use App\BusinessLocation;
+use App\Jobs\NotifyStaffOfStorefrontOrder;
 use App\Product;
 use App\Services\Storefront\StorefrontSettingService;
+use App\Services\Storefront\StorefrontStaffOrderAlert;
 use App\StorefrontSetting;
 use App\Transaction;
 use App\Variation;
 use App\VariationLocationDetails;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 /**
@@ -47,6 +50,7 @@ class StorefrontCheckoutTest extends TestCase
     public function test_cod_checkout_creates_storefront_transaction(): void
     {
         Mail::fake();
+        Queue::fake([NotifyStaffOfStorefrontOrder::class]);
 
         $location = BusinessLocation::where('business_id', $this->businessId)
             ->where('is_active', 1)
@@ -123,6 +127,8 @@ class StorefrontCheckoutTest extends TestCase
         $this->assertNotNull($transaction);
         $this->assertSame('storefront', $transaction->source);
         $this->assertSame('final', $transaction->status);
+        Queue::assertPushed(NotifyStaffOfStorefrontOrder::class, fn ($job) => $job->transactionId === (int) $transaction->id
+            && $job->payment === StorefrontStaffOrderAlert::PAYMENT_COD);
     }
 
     public function test_cod_checkout_as_quotation_when_setting_enabled(): void

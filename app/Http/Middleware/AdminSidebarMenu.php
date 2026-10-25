@@ -309,7 +309,14 @@ class AdminSidebarMenu
                             $sub->url(
                                 action([\App\Http\Controllers\SellController::class, 'index']),
                                 __('lang_v1.all_sales'),
-                                ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null]
+                                ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null && ! request()->boolean('website_orders')]
+                            );
+                        }
+                        if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'direct_sell.view'])) {
+                            $sub->url(
+                                action([\App\Http\Controllers\SellController::class, 'index'], ['source' => 'storefront', 'shipping_status' => 'ordered', 'website_orders' => 1]),
+                                $this->websiteOrdersTitle(),
+                                ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null && request()->boolean('website_orders')]
                             );
                         }
                         if (in_array('add_sale', $enabled_modules) && auth()->user()->can('direct_sell.access')) {
@@ -950,5 +957,25 @@ class AdminSidebarMenu
         $moduleUtil->getModuleData('modifyAdminMenu');
 
         return $next($request);
+    }
+
+    /**
+     * "Website orders" label with the count of alerted orders not yet packed/shipped at the user's branches.
+     */
+    private function websiteOrdersTitle(): string
+    {
+        $label = e(__('lang_v1.website_orders'));
+        try {
+            $user = auth()->user();
+            $businessId = (int) $user->business_id;
+            $count = app(\App\Services\Storefront\StorefrontStaffOrderAlert::class)
+                ->openCount($businessId, $user->permitted_locations($businessId));
+        } catch (\Throwable $e) {
+            \Log::warning('Website orders badge failed: '.$e->getMessage());
+
+            return $label;
+        }
+
+        return $count > 0 ? $label.' <span class="label label-warning">'.$count.'</span>' : $label;
     }
 }

@@ -42,6 +42,13 @@ class StorefrontPaymentRecorder
         if (! $alreadyPaid && ! empty($transaction->contact_id)) {
             \App\Jobs\SendStorefrontOrderPush::dispatch((int) $transaction->id, 'paid');
         }
+
+        if (! $alreadyPaid) {
+            \App\Jobs\NotifyStaffOfStorefrontOrder::dispatch(
+                (int) $transaction->id,
+                \App\Services\Storefront\StorefrontStaffOrderAlert::PAYMENT_ONLINE
+            );
+        }
     }
 
     public function storePaymentMeta(Transaction $transaction, array $meta): void

@@ -232,6 +232,11 @@ class SellController extends Controller
                 }
             }
 
+            // "Website orders" queue: only orders staff were alerted about (COD, or paid online).
+            if (request()->boolean('website_orders')) {
+                $sells->whereNotNull('transactions.storefront_staff_notified_at');
+            }
+
             // Accounts content tag (accounts_only | mixed | pos_only), see TransactionContentKindService.
             $sells->addSelect('transactions.content_kind');
             $content_kind = request()->input('content_kind');

@@ -901,6 +901,19 @@
                 </div>
 
                 <hr>
+                {{-- Staff alert inbox for new website orders (bell alerts go to branch sales staff) --}}
+                <h4>@lang('lang_v1.website_orders')</h4>
+                <p class="help-block">@lang('lang_v1.orders_notify_email_help')</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('orders_notify_email', __('lang_v1.orders_notify_email')) !!}
+                            {!! Form::email('orders_notify_email', $settings['orders']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'orders@example.com']) !!}
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <h4>Sell to us (trade-in)</h4>
                 <p class="help-block">Requires <code>STOREFRONT_SELL_TO_US=true</code>. Leave blank to use the contact form inbox.</p>
                 <div class="row">
