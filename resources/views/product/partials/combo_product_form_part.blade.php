@@ -75,7 +75,8 @@
 			</div>
 			<div class="col-sm-4">
 				{!! Form::label('selling_price', __('product.default_selling_price')). ":"!!}
-				{!! Form::text('selling_price', @num_format(0), ['class' => 'form-control input-sm input_number mousetrap']) !!}
+				{{-- Edit keeps the saved price; recalculating it from the rounded margin drifts (12000 -> 12000.04) --}}
+				{!! Form::text('selling_price', @num_format($selling_price ?? 0), ['class' => 'form-control input-sm input_number mousetrap']) !!}
 
 				{!! Form::hidden('selling_price_inc_tax', @num_format(0), ['class' => 'input_number mousetrap', 'id' => 'selling_price_inc_tax']) !!}
 			</div>
@@ -86,8 +87,8 @@
 <script type="text/javascript">
 	$(document).ready(function(){
 		__currency_convert_recursively($(".combo_product_table"));
-		//Use when editing product
-		update_net_total_amount();
+		//Use when editing product: refresh cost totals but keep the saved selling price
+		update_net_total_amount(@json(! empty($selling_price)));
 
 		//Add products
 	    if($( "#search_product" ).length > 0){
@@ -159,7 +160,18 @@
 			return row;
 	    }
 
-	    function update_net_total_amount() {
+	    // The margin input shows 2 decimals; keep the exact value so prices are not rebuilt from the rounded one.
+	    function get_exact_margin() {
+	    	var exact = $('input#margin').data('exact');
+	    	return exact === undefined ? __read_number($('input#margin'), false) : exact;
+	    }
+
+	    function set_exact_margin(margin) {
+	    	$('input#margin').data('exact', margin);
+	    	__write_number($('input#margin'), margin);
+	    }
+
+	    function update_net_total_amount(keep_selling_price = false) {
 	    	
 	    	var item_level_purchase_price_total = 0;
 	    	var purchase_price_inc_tax = 0;
@@ -179,13 +191,19 @@
 
 	    	__currency_convert_recursively($(".combo_product_table_footer").find('tr'));
 
-	    	//Set selling price.
-	    	var margin = __read_number($('input#margin'), false);
-	    	var selling_price = __add_percent(item_level_purchase_price_total, margin);
-	    	var selling_price_inc_tax = __add_percent(selling_price, tax_rate);
+	    	//Set selling price, or keep it and derive the margin from it.
+	    	var selling_price;
+	    	if (keep_selling_price) {
+	    		selling_price = __read_number($('input#selling_price'), false);
+	    		if (item_level_purchase_price_total > 0) {
+	    			set_exact_margin(__get_rate(item_level_purchase_price_total, selling_price));
+	    		}
+	    	} else {
+	    		selling_price = __add_percent(item_level_purchase_price_total, get_exact_margin());
+	    		__write_number($('input#selling_price'), selling_price);
+	    	}
 
-	    	__write_number($('input#selling_price'), selling_price);
-	    	__write_number($('input#selling_price_inc_tax'), selling_price_inc_tax);
+	    	__write_number($('input#selling_price_inc_tax'), __add_percent(selling_price, tax_rate));
 	    }
 
 	    function recalculate_the_row(row){
@@ -212,19 +230,22 @@
 	    });
 
 	    $(document).on('change', 'input#margin', function(){
+	    	$('input#margin').data('exact', __read_number($('input#margin'), false));
 	    	update_net_total_amount();
 	    });
 
+	    //Tax does not change the price before tax
 	    $(document).on('change', 'select#tax', function(){
-	    	update_net_total_amount();
+	    	update_net_total_amount(true);
 	    });
 
 	    $(document).on('change', 'input#selling_price', function(){
 	    	var amount = __read_number($('input#selling_price'), false);
 			var principal = parseFloat($('input#item_level_purchase_price_total').val());
 
-	    	var margin = __get_rate(principal, amount);
-	    	__write_number($('input#margin'), margin);
+	    	if (principal > 0) {
+	    		set_exact_margin(__get_rate(principal, amount));
+	    	}
 
 	    	var tax_rate = $('select#tax').find(':selected').data('rate');
 	    	var selling_price_inc_tax = __add_percent(amount, tax_rate);

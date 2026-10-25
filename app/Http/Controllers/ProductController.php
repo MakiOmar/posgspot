@@ -1125,9 +1125,10 @@ class ProductController extends Controller
 
                 $variation_id = $product_deatails['variations'][0]->id;
                 $profit_percent = $product_deatails['variations'][0]->profit_percent;
+                $selling_price = $product_deatails['variations'][0]->default_sell_price;
 
                 return view('product.partials.combo_product_form_part')
-                ->with(compact('combo_variations', 'profit_percent', 'action', 'variation_id'));
+                ->with(compact('combo_variations', 'profit_percent', 'action', 'variation_id', 'selling_price'));
             }
         }
     }
