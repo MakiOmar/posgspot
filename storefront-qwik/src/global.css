@@ -3016,6 +3016,160 @@ html[dir="rtl"] .header-search-type {
   letter-spacing: 0.12em;
 }
 
+/* Gift card browsing: brand tiles -> country picker -> filtered grid (mobile-first) */
+.gift-card-brands__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.gift-card-brands__title {
+  margin: 0;
+  font-size: 1.125rem;
+}
+
+.gift-card-brands {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 640px) {
+  .gift-card-brands {
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 1rem;
+  }
+}
+
+.gift-card-brands__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--gs-border);
+  border-radius: var(--gs-radius);
+  background: var(--gs-surface);
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.gift-card-brands__tile:hover,
+.gift-card-brands__tile:focus-visible {
+  border-color: var(--gs-accent, #00d4aa);
+  transform: translateY(-2px);
+}
+
+.gift-card-brands__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: calc(var(--gs-radius) * 0.75);
+}
+
+.gift-card-brands__logo img {
+  width: auto;
+  max-width: 55%;
+  height: auto;
+  max-height: 60%;
+  object-fit: contain;
+}
+
+.gift-card-brands__initial {
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.gift-card-brands__label {
+  font-weight: 600;
+}
+
+.gift-card-brands__count {
+  color: var(--gs-muted);
+  font-size: 0.8125rem;
+}
+
+.gift-card-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.gift-card-filter span {
+  color: var(--gs-muted);
+}
+
+.gift-card-filter__change {
+  margin-inline-start: auto;
+}
+
+.gift-card-country__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.gift-card-country__option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--gs-border);
+  border-radius: calc(var(--gs-radius) * 0.75);
+  color: inherit;
+  text-decoration: none;
+}
+
+.gift-card-country__option:hover,
+.gift-card-country__option:focus-visible {
+  border-color: var(--gs-accent, #00d4aa);
+}
+
+.gift-card-country__flag {
+  flex-shrink: 0;
+  width: 28px;
+  height: 20px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.gift-card-country__flag--blank {
+  background: var(--gs-border);
+}
+
+.gift-card-country__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.gift-card-country__count {
+  color: var(--gs-muted);
+  font-size: 0.8125rem;
+}
+
+.gift-card-country__all {
+  width: 100%;
+}
+
 .digital-game-card__body {
   min-height: 5.75rem;
   gap: 0.45rem;

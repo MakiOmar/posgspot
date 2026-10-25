@@ -720,12 +720,24 @@ export interface DigitalCardArt {
   color: string;
 }
 
+/** Brand/country grouping for gift card browsing; `country` is ISO-2, "global" or "other". */
+export interface DigitalCardClassification {
+  brand: string;
+  brand_label: string;
+  logo_url: string | null;
+  color: string;
+  country: string;
+  country_label: string;
+  flag_url: string | null;
+}
+
 export interface DigitalCardCategory {
   id: number;
   name: string;
   price: number | string;
   poster_image?: string | null;
   card_art?: DigitalCardArt | null;
+  classification?: DigitalCardClassification | null;
   /** Synced POS product for this category; null falls back to `skus.gift_card`. */
   pos_sku?: DigitalPosSku | null;
 }

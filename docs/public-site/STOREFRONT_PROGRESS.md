@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-23 |
+| **Last updated** | 2026-10-25 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -97,7 +97,7 @@
 | `/[lang]/repair-status` | ✅ | Signed-in: auto-list via `GET /account/repairs` only. Guests: lookup form (`POST /repair/status`), server-rendered (no auth wait); `gs-has-session` head hint picks the view before hydration |
 | `/[lang]/track-console` | ✅ | Signed-in: auto-list via `GET /account/device-services` only. Guests: phone form (`POST /device/track`), server-rendered (no auth wait); same session hint |
 | `/[lang]/games`, `/[lang]/games/[id]` | ✅ | Accounts digital games + PS Plus (`?product_type=subscription`); "In stock only" toggle (`?in_stock_only=1`, filtered by Accounts before pagination); list + homepage featured sorted by Accounts game **Display Order** (lower first, unset = newest first); Sigma-style PDP with gallery, Primary/Secondary/Full, Accounts reviews submit/display, WhatsApp ask, trust→stores, about, also-bought×4, FAQs; platform-strict stock |
-| `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta; generated `GiftCardArt` when no poster |
+| `/[lang]/gift-cards` | ✅ | Card categories; add → cart with digital meta; generated `GiftCardArt` when no poster; brand tiles → country modal → filtered grid (`?brand=&country=`, `?all=1`, `?q=` keeps the plain grid) from Accounts `classification` (`gift-card-groups.ts`, `gift-card-brand-tiles.tsx`, `gift-card-country-modal.tsx`) |
 | `/[lang]/terms-and-conditions`, privacy, return | ✅ | Legal copy EN + AR |
 | `/[lang]/delete-account` | ✅ | How-to delete account (EN + AR) + HowTo JSON-LD; CTA to Login & Security |
 | `/[lang]/custom-bundle` | ✅ | Physical Custom Bundle builder (PS4/PS5); API `/custom-bundle/*`; cart → checkout; gated by `STOREFRONT_CUSTOM_BUNDLE`; Expo full parity |
@@ -257,6 +257,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-25 | `/gift-cards` browsing by brand and country: brand tiles (logo, count) → country modal (flag, name via `Intl.DisplayNames`, count) → filtered grid; single-country brands skip the modal; "All cards" and search keep the full grid; canonical stays `/gift-cards`, title names the brand. POS passes Accounts `classification` through `DigitalCatalogService::normalizeClassification` (whitelisted keys, hex colour, `other` fallback). Tests: `DigitalCardArtPassthroughTest`, `tests/gift-card-groups.test.ts`. |
 | 2026-10-23 | `/gift-cards`: categories without a poster render generated artwork (`GiftCardArt`: value, flag, brand logo/colour) from Accounts `card_art`, passed through `DigitalCatalogService` with whitelisted keys and absolute URLs. `DigitalCardArtPassthroughTest`. |
 | 2026-10-20 | Digital fulfilment hardening for Next Load gift cards. Storefront ledger rows are claimed before the Accounts call (webhook, return URL and scheduler can no longer double-allocate). Accounts 202 `pending` keeps the row pending without using an attempt. Automatic retries stop after 5 failed attempts. Success responses without credentials are marked failed. `storefront:fulfill-digital --recent` is scheduled every 5 minutes and emails customers when a retry allocates. Tests are in `StorefrontDigitalFulfillmentTest`. |
 | 2026-10-20 | Shipping classes gain `requires_shipping` (admin "Requires shipping" checkbox; "No shipping" classes migrated to false). Products in a no-shipping class are skipped by shipping quotes; carts with only such products get a free "No shipping required" rate, no address and no rate validation (`shipping_required: false`). Quote loads variations in one query. `NoShippingClassTest`. |

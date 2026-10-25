@@ -589,6 +589,7 @@ class DigitalCatalogService
                     isset($category['poster_image']) ? (string) $category['poster_image'] : null
                 ),
                 'card_art' => $this->normalizeCardArt($category['card_art'] ?? null),
+                'classification' => $this->normalizeClassification($category['classification'] ?? null),
             ];
         }
 
@@ -1033,6 +1034,38 @@ class DigitalCatalogService
             'flag_url' => $this->absoluteAccountsUrl(isset($art['flag_url']) ? (string) $art['flag_url'] : null),
             'logo_url' => $this->absoluteAccountsUrl(isset($art['logo_url']) ? (string) $art['logo_url'] : null),
             'color' => preg_match('/^#[0-9a-f]{3,8}$/i', $color) === 1 ? $color : '#4b5563',
+        ];
+    }
+
+    /**
+     * Brand/country grouping from Accounts, used by the gift card brand -> country browsing.
+     * `country` is an ISO-2 code, "global" or "other"; unknown values fall back to "other".
+     *
+     * @return array{brand: string, brand_label: string, logo_url: ?string, color: string, country: string, country_label: string, flag_url: ?string}|null
+     */
+    private function normalizeClassification(mixed $classification): ?array
+    {
+        if (is_object($classification)) {
+            $classification = (array) $classification;
+        }
+        if (! is_array($classification)) {
+            return null;
+        }
+
+        $brand = (string) ($classification['brand'] ?? '');
+        $brandOk = preg_match('/^[a-z0-9_-]{1,30}$/', $brand) === 1;
+        $country = strtolower((string) ($classification['country'] ?? ''));
+        $countryOk = preg_match('/^([a-z]{2}|global|other)$/', $country) === 1;
+        $color = (string) ($classification['color'] ?? '');
+
+        return [
+            'brand' => $brandOk ? $brand : 'other',
+            'brand_label' => $brandOk ? (mb_substr(trim((string) ($classification['brand_label'] ?? '')), 0, 60) ?: 'Other') : 'Other',
+            'logo_url' => $brandOk ? $this->absoluteAccountsUrl(isset($classification['logo_url']) ? (string) $classification['logo_url'] : null) : null,
+            'color' => preg_match('/^#[0-9a-f]{3,8}$/i', $color) === 1 ? $color : '#4b5563',
+            'country' => $countryOk ? $country : 'other',
+            'country_label' => $countryOk ? (mb_substr(trim((string) ($classification['country_label'] ?? '')), 0, 60) ?: 'Other') : 'Other',
+            'flag_url' => $countryOk ? $this->absoluteAccountsUrl(isset($classification['flag_url']) ? (string) $classification['flag_url'] : null) : null,
         ];
     }
 

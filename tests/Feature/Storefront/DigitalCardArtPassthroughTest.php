@@ -71,4 +71,59 @@ class DigitalCardArtPassthroughTest extends TestCase
         $this->assertNull($rows[12]['card_art']['flag_url']);
         $this->assertNull($rows[13]['card_art']);
     }
+
+    public function test_classification_is_passed_through_and_sanitized(): void
+    {
+        Http::fake([
+            'accounts.test/api/card-ctegories/list' => Http::response(['status' => true, 'data' => [
+                [
+                    'id' => 21,
+                    'name' => 'Amazon KSA 100 SAR',
+                    'price' => 600,
+                    'poster_image' => 'images/posters/a.webp',
+                    'card_art' => null,
+                    'classification' => [
+                        'brand' => 'amazon',
+                        'brand_label' => 'Amazon',
+                        'logo_url' => 'images/card-art/brands/amazon.svg',
+                        'color' => '#ff9900',
+                        'country' => 'SA',
+                        'country_label' => 'Saudi Arabia',
+                        'flag_url' => 'images/card-art/flags/sa.svg',
+                        'supplier_cost' => '2.500',
+                    ],
+                ],
+                [
+                    'id' => 22,
+                    'name' => 'Odd',
+                    'price' => 100,
+                    'classification' => ['brand' => '<b>', 'country' => 'zz-top', 'color' => 'red;x', 'flag_url' => 'images/x.svg'],
+                ],
+                ['id' => 23, 'name' => 'Old Accounts', 'price' => 100],
+            ]]),
+        ]);
+
+        $rows = collect($this->getJson('/api/storefront/v1/digital/card-categories')->assertOk()->json('data.categories'))->keyBy('id');
+
+        $this->assertSame([
+            'brand' => 'amazon',
+            'brand_label' => 'Amazon',
+            'logo_url' => 'https://accounts.test/images/card-art/brands/amazon.svg',
+            'color' => '#ff9900',
+            'country' => 'sa',
+            'country_label' => 'Saudi Arabia',
+            'flag_url' => 'https://accounts.test/images/card-art/flags/sa.svg',
+        ], $rows[21]['classification']);
+
+        $this->assertSame([
+            'brand' => 'other',
+            'brand_label' => 'Other',
+            'logo_url' => null,
+            'color' => '#4b5563',
+            'country' => 'other',
+            'country_label' => 'Other',
+            'flag_url' => null,
+        ], $rows[22]['classification']);
+        $this->assertNull($rows[23]['classification']);
+    }
 }
