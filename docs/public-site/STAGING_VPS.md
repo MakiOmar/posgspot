@@ -57,6 +57,8 @@ Compose secrets: `/opt/spot-staging/.env` (mode 600) — see [`deploy/staging/.e
 
 ## Day-2 operations
 
+Copy-paste deploy steps per service and for everything at once: [VPS_PULL_AND_REBUILD.md](./VPS_PULL_AND_REBUILD.md).
+
 ```bash
 cd /opt/spot-staging
 docker compose ps
