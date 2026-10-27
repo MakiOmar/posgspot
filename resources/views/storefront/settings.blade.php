@@ -901,6 +901,12 @@
                 </div>
 
                 <hr>
+                {{-- Contact form inbox: SMTP username from business email settings, not a field on this page --}}
+                <h4>@lang('lang_v1.storefront_notify_type_contact')</h4>
+                <p class="help-block">@lang('lang_v1.storefront_contact_inbox_help')</p>
+                @include('storefront.partials.test_email_button', ['type' => 'contact', 'input' => null])
+
+                <hr>
                 {{-- Staff alert inbox for new website orders (bell alerts go to branch sales staff) --}}
                 <h4>@lang('lang_v1.website_orders')</h4>
                 <p class="help-block">@lang('lang_v1.orders_notify_email_help')</p>
@@ -912,6 +918,7 @@
                         </div>
                     </div>
                 </div>
+                @include('storefront.partials.test_email_button', ['type' => 'orders', 'input' => 'orders_notify_email'])
 
                 <hr>
                 <h4>Sell to us (trade-in)</h4>
@@ -924,6 +931,7 @@
                         </div>
                     </div>
                 </div>
+                @include('storefront.partials.test_email_button', ['type' => 'sell_to_us', 'input' => 'sell_to_us_notify_email'])
 
                 <hr>
                 <h4>Request a product</h4>
@@ -936,6 +944,7 @@
                         </div>
                     </div>
                 </div>
+                @include('storefront.partials.test_email_button', ['type' => 'request_product', 'input' => 'request_product_notify_email'])
 
                 <hr>
                 <h4>Social links</h4>
@@ -1882,6 +1891,35 @@
         // ---- Shipping zones manager ----
         var zonesUrl = @json(action([\App\Http\Controllers\StorefrontShippingZoneController::class, 'index']));
         var csrfToken = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+        // ---- Test email per notification inbox (tests the typed address, unsaved) ----
+        $(document).on('click', '.js-storefront-test-email', function () {
+            var $btn = $(this);
+            if ($btn.prop('disabled')) {
+                return;
+            }
+            var inputName = $btn.data('input');
+            var email = inputName ? $.trim($('[name="' + inputName + '"]').val() || '') : '';
+            var label = $btn.html();
+
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> ' + @json(__('lang_v1.storefront_test_email_sending')));
+            $.ajax({
+                url: @json(route('storefront.settings.test-email')),
+                method: 'POST',
+                dataType: 'json',
+                data: { type: $btn.data('type'), email: email },
+                headers: { 'X-CSRF-TOKEN': csrfToken },
+            }).done(function (res) {
+                toastr.success(res.msg);
+            }).fail(function (xhr) {
+                var msg = xhr.responseJSON && xhr.responseJSON.msg
+                    ? xhr.responseJSON.msg
+                    : (xhr.status === 429 ? @json(__('lang_v1.storefront_test_email_throttled')) : @json(__('messages.something_went_wrong')));
+                toastr.error(msg, '', { timeOut: 15000 });
+            }).always(function () {
+                $btn.prop('disabled', false).html(label);
+            });
+        });
         var sfZonesCache = [];
         var sfEgyptStates = [];
         var sfPickupLocations = [];

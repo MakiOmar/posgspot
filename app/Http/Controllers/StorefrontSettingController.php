@@ -7,6 +7,8 @@ use App\Category;
 use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontBundleService;
+use App\Http\Requests\Storefront\SendStorefrontTestEmailRequest;
+use App\Services\Storefront\StorefrontMailService;
 use App\Services\Storefront\StorefrontMediaLibraryService;
 use App\Services\Storefront\StorefrontSettingService;
 use App\Utils\Util;
@@ -23,7 +25,8 @@ class StorefrontSettingController extends Controller
         private StorefrontBundleService $bundle,
         private HomepageSectionService $homepageSections,
         private SectionTypeRegistry $sectionTypes,
-        private Util $commonUtil
+        private Util $commonUtil,
+        private StorefrontMailService $mail
     ) {
     }
 
@@ -59,13 +62,53 @@ class StorefrontSettingController extends Controller
             ->values()
             ->all();
 
+        $notify_recipients = $this->mail->recipients($business_id);
+
         return view('storefront.settings', compact(
             'settings',
             'locations',
             'homepage_sections',
             'homepage_section_types',
-            'homepage_categories'
+            'homepage_categories',
+            'notify_recipients'
         ));
+    }
+
+    /**
+     * AJAX: send a test message to one storefront notification inbox and report the transport error, if any.
+     */
+    public function sendTestEmail(SendStorefrontTestEmailRequest $request)
+    {
+        $business_id = (int) $request->session()->get('user.business_id');
+        $type = (string) $request->validated('type');
+        $email = $request->validated('email');
+        $recipient = $this->mail->testRecipient($business_id, $type, $email);
+
+        try {
+            $result = $this->mail->sendTestEmail($business_id, $type, $email);
+        } catch (\Throwable $e) {
+            Log::warning('storefront.test_email.failed', [
+                'business_id' => $business_id,
+                'type' => $type,
+                'recipient' => $recipient,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'msg' => __('lang_v1.storefront_test_email_failed', [
+                    'email' => $recipient,
+                    'error' => mb_substr($e->getMessage(), 0, 300),
+                ]),
+            ], 422);
+        }
+
+        Log::info('storefront.test_email.sent', ['business_id' => $business_id, 'type' => $type] + $result);
+
+        return response()->json([
+            'success' => true,
+            'msg' => __('lang_v1.storefront_test_email_sent', ['email' => $result['recipient'], 'from' => $result['from']]),
+        ]);
     }
 
     /**

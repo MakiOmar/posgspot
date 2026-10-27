@@ -132,7 +132,9 @@ Website (Qwik) orders alert POS staff once per order, so nobody misses them:
 - **Queue:** sidebar **Sell → Website orders** lists alerted orders still at shipping status *Ordered*; the badge count is cached for 60 seconds per business and location set. Orders placed before this feature have no alert timestamp and do not appear in the queue.
 - Digital-only orders are flagged "codes are delivered automatically after payment". Digital codes are never included in alerts.
 
-No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-queue` must be running; a mail failure is logged and does not affect the bell or checkout.
+No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-queue` must be running; a mail failure is logged (`Website order email alert failed`) and does not affect the bell or checkout.
+
+**Test emails:** **Storefront Settings → Contact** has a **Send test email** button for the contact form inbox and each notify email (orders, sell to us, request product), with the inbox the saved settings deliver to. It tests the address typed in the field (or that inbox when empty), sends immediately with the business mail settings like order alerts, and shows the mail server error when sending fails (`POST /storefront/settings/test-email`, permission `storefront.settings`, 10 per minute). A successful test that never arrives points at spam filtering or the inbox, not the POS.
 
 **For staff:** open **Sell → Website orders** (the number is how many are waiting at your branches). Each order is already a final sale with an invoice. Prepare it, then change its shipping status (Packed / Shipped / Delivered) from the sale's actions; it leaves the queue once it is no longer *Ordered*. COD orders are collected on delivery; online orders show as paid.
 

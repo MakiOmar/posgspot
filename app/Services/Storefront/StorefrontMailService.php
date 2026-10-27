@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Business;
 use App\Mail\StorefrontOrderShipped;
+use App\Mail\StorefrontTestEmail;
 use App\System;
 use App\Transaction;
 use App\Utils\BusinessUtil;
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Mail;
  */
 class StorefrontMailService
 {
+    /** Storefront inboxes that receive staff notifications (see recipientFor()). */
+    public const NOTIFY_TYPES = ['contact', 'orders', 'sell_to_us', 'request_product'];
+
     public function __construct(
         private BusinessUtil $businessUtil,
         private StorefrontSettingService $storefrontSettings
@@ -171,6 +175,63 @@ class StorefrontMailService
         }
 
         return $this->contactRecipient($businessId);
+    }
+
+    /**
+     * Inbox that live mail of this notification type is delivered to.
+     */
+    public function recipientFor(int $businessId, string $type): string
+    {
+        return match ($type) {
+            'orders' => $this->ordersRecipient($businessId),
+            'sell_to_us' => $this->sellToUsRecipient($businessId),
+            'request_product' => $this->requestProductRecipient($businessId),
+            default => $this->contactRecipient($businessId),
+        };
+    }
+
+    /**
+     * @return array<string, string> notify type => current inbox
+     */
+    public function recipients(int $businessId): array
+    {
+        $out = [];
+        foreach (self::NOTIFY_TYPES as $type) {
+            $out[$type] = $this->recipientFor($businessId, $type);
+        }
+
+        return $out;
+    }
+
+    /** Address typed in the settings form, else the inbox the saved settings resolve to. */
+    public function testRecipient(int $businessId, string $type, ?string $email = null): string
+    {
+        $email = trim((string) $email);
+
+        return $email !== '' ? $email : $this->recipientFor($businessId, $type);
+    }
+
+    /**
+     * Send a test message right now through the same transport as new-order alerts, so transport errors surface.
+     * An empty $email tests the inbox the saved settings resolve to.
+     *
+     * @return array{recipient: string, from: string, mailer: string}
+     *
+     * @throws \Throwable when the mail transport rejects the message
+     */
+    public function sendTestEmail(int $businessId, string $type, ?string $email = null): array
+    {
+        $recipient = $this->testRecipient($businessId, $type, $email);
+        $from = $this->resolveFrom($businessId);
+        $business = Business::find($businessId);
+
+        $this->sendNowForBusiness($businessId, $recipient, new StorefrontTestEmail(
+            $type,
+            (string) ($business->name ?? $from['name']),
+            $recipient
+        ));
+
+        return ['recipient' => $recipient, 'from' => $from['address'], 'mailer' => (string) config('mail.default')];
     }
 
     /**

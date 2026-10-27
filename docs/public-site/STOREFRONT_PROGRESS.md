@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-10-25 |
+| **Last updated** | 2026-10-27 |
 | **Phase** | Phase 1 MVP — COD launch path; Phase 4 mobile scaffold started |
 | **Overall** | Core shop loop **done**; Sprint 1–2 launch hygiene **done**; **i18n / RTL v1 done**; homepage + SEO pack **done**; maintenance gate **done**; **Fawry + Geidea online payments v1 done**; footer payment icons + newsletter providers **done**; **mobile Expo scaffold + device push API done**; **AI support chat v1 (API + Qwik widget + Expo `/support`)** |
 
@@ -188,7 +188,7 @@
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Sell to us requests | ✅ | `/storefront/sell-requests` list/detail + status; notify email on Settings → Contact |
-| Website order staff alerts + queue | ✅ | Bell (branch sales staff) + orders inbox email once per order (COD at checkout, online on first `markPaid`); Sell → Website orders with cached badge; `NotifyStaffOfStorefrontOrder`, `StorefrontStaffOrderAlert`; Settings → Website orders notify email |
+| Website order staff alerts + queue | ✅ | Bell (branch sales staff) + orders inbox email once per order (COD at checkout, online on first `markPaid`); Sell → Website orders with cached badge; `NotifyStaffOfStorefrontOrder`, `StorefrontStaffOrderAlert`; Settings → Website orders notify email; Settings → Contact **Send test email** per inbox (`StorefrontTestEmailTest`) |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 | Show on storefront (per location) | ✅ | POS Business Locations checkbox; filters listings + availability + pickup |
@@ -259,6 +259,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-27 | Settings → Contact: **Send test email** for the contact inbox and each notify email (orders, sell to us, request product), plus the inbox saved settings deliver to. Sends immediately with business mail settings (same path as order alerts) and shows the transport error. `POST /storefront/settings/test-email`; `StorefrontTestEmailTest`. |
 | 2026-10-25 | Website order staff alerts: POS bell for active staff with `sell.view`/`direct_sell.view` at the order's location, plus email to Settings → Website orders notify email (falls back to contact inbox). COD alerts at checkout, online on first payment confirmation; once per order via `transactions.storefront_staff_notified_at`. Digital-only orders flagged. Sell → Website orders queue (alerted, shipping status Ordered) with 60s cached badge; bell/email open `/sells?view_sell=`. `StorefrontStaffOrderAlertTest`. |
 | 2026-10-25 | `/gift-cards` browsing by brand and country: brand tiles (logo, count) → country modal (flag, name via `Intl.DisplayNames`, count) → filtered grid; single-country brands skip the modal; "All cards" and search keep the full grid; canonical stays `/gift-cards`, title names the brand. POS passes Accounts `classification` through `DigitalCatalogService::normalizeClassification` (whitelisted keys, hex colour, `other` fallback). Tests: `DigitalCardArtPassthroughTest`, `tests/gift-card-groups.test.ts`. |
 | 2026-10-23 | `/gift-cards`: categories without a poster render generated artwork (`GiftCardArt`: value, flag, brand logo/colour) from Accounts `card_art`, passed through `DigitalCatalogService` with whitelisted keys and absolute URLs. `DigitalCardArtPassthroughTest`. |
