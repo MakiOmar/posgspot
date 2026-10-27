@@ -281,7 +281,7 @@ Social accounts live in `storefront_social_identities` (not columns on `contacts
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/account/profile` | Profile (`email_verified`, `delete_requested`, address fields, `avatar_url`) |
+| GET | `/account/profile` | Profile (`email_verified`, `delete_requested`, address fields, `avatar_url`, `cod_allowed`: verified customer on the admin COD allowlist, so checkout offers COD even when settings `cod_enabled` is false) |
 | PUT | `/account/profile` | Update profile (changing email clears verification and sends a new OTP) |
 | POST | `/account/profile/avatar` | Upload profile photo — multipart field `avatar` (jpeg/png/webp, max 2MB). Replaces prior photo. Returns updated contact with `avatar_url` |
 | DELETE | `/account/profile/avatar` | Remove profile photo. Returns updated contact (`avatar_url` null) |

@@ -42,6 +42,7 @@ class StorefrontSettingService
             'selling_location_ids' => [],
             'default_fulfillment_location_id' => null,
             'cod_enabled' => true,
+            'cod_allowed_emails' => [],
             'gateway' => [
                 'provider' => null,
                 'api_key' => null,
@@ -1192,6 +1193,10 @@ class StorefrontSettingService
             $merged['payment_icons'] = $this->normalizePaymentIcons($settings['payment_icons']);
         }
 
+        if (array_key_exists('cod_allowed_emails', $settings)) {
+            $merged['cod_allowed_emails'] = CodEligibility::normalizeEmails($settings['cod_allowed_emails']);
+        }
+
         if (array_key_exists('digital', $settings)) {
             $digitalIn = is_array($settings['digital']) ? $settings['digital'] : [];
             // Preserve FAQ / WhatsApp when a partial digital payload omits them.
@@ -1676,7 +1681,7 @@ class StorefrontSettingService
                 $data[$key] = $defaults[$key] ?? [];
             }
         }
-        foreach (['homepage_sections', 'banners', 'payment_icons', 'about_team', 'selling_location_ids'] as $key) {
+        foreach (['homepage_sections', 'banners', 'payment_icons', 'about_team', 'selling_location_ids', 'cod_allowed_emails'] as $key) {
             if (! isset($data[$key]) || ! is_array($data[$key])) {
                 $data[$key] = $defaults[$key] ?? [];
             }

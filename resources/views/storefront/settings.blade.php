@@ -162,6 +162,21 @@
                     </div>
                 </div>
 
+                {{-- COD allowlist: customers who keep cash on delivery while it is switched off for everyone --}}
+                @php($codAllowedEmails = (array) ($settings['cod_allowed_emails'] ?? []))
+                <div class="form-group">
+                    {!! Form::label('cod_allowed_emails', __('lang_v1.storefront_cod_allowed_emails')) !!}
+                    {!! Form::select('cod_allowed_emails[]', array_combine($codAllowedEmails, $codAllowedEmails), $codAllowedEmails, [
+                        'id' => 'cod_allowed_emails',
+                        'class' => 'form-control js-cod-allowed-emails',
+                        'multiple' => true,
+                        'style' => 'width:100%',
+                        'data-url' => route('storefront.settings.cod-customer-emails'),
+                        'data-placeholder' => __('lang_v1.storefront_cod_allowed_emails_placeholder'),
+                    ]) !!}
+                    <p class="help-block">@lang('lang_v1.storefront_cod_allowed_emails_help')</p>
+                </div>
+
                 <hr>
                 <h4>Shipping zones</h4>
                 <p class="help-block">
@@ -1587,6 +1602,33 @@
 <script type="text/javascript">
     $(document).ready(function () {
         $('.select2').select2();
+
+        // COD allowlist: search business customers; typing a full address also allows not-yet-registered emails.
+        $('.js-cod-allowed-emails').each(function () {
+            var $select = $(this);
+            var emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            $select.select2({
+                placeholder: $select.data('placeholder'),
+                minimumInputLength: 2,
+                tags: true,
+                tokenSeparators: [',', ' '],
+                createTag: function (params) {
+                    var term = $.trim(params.term || '').toLowerCase();
+                    return emailPattern.test(term) ? { id: term, text: term, newTag: true } : null;
+                },
+                ajax: {
+                    url: $select.data('url'),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term };
+                    },
+                    processResults: function (data) {
+                        return { results: (data && data.results) || [] };
+                    }
+                }
+            });
+        });
 
         // Homepage builder lives inside this form; hide page Save on that tab and block accidental submits.
         function syncHomepageTabSaveUi() {

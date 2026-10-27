@@ -20,7 +20,8 @@ class CustomerAuthService
 
     public function __construct(
         private ContactUtil $contactUtil,
-        private ContactDuplicateService $duplicates
+        private ContactDuplicateService $duplicates,
+        private StorefrontSettingService $storefrontSettings
     ) {
     }
 
@@ -305,6 +306,10 @@ class CustomerAuthService
             'country' => $contact->country,
             'zip_code' => $contact->zip_code,
             'avatar_url' => $avatarUrl,
+            'cod_allowed' => CodEligibility::isAllowlisted(
+                $this->storefrontSettings->get((int) $contact->business_id),
+                $contact
+            ),
         ];
     }
 }

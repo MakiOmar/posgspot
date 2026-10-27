@@ -122,6 +122,10 @@ Notify inbox: **Storefront Settings → Request a product notify email** (`setti
 
 Config: `config/storefront.php` → `request_product.enabled`.
 
+## Storefront cash on delivery allowlist
+
+**Storefront Settings → General → Cash on Delivery allowed customers** (`settings.cod_allowed_emails`, stored lowercase) lists customer emails that may still pay on delivery while **Enable Cash on Delivery** is off. When COD is on, everyone gets it and the list is ignored. The list only applies to customers signed in with a verified email; guests never get COD through it, even when they type an allowed address. The picker searches the business's customers by name, email or mobile (`GET /storefront/settings/cod-customer-emails?q=`, permission `storefront.settings`, 60 per minute). You can also type a full address for someone who has not registered yet. Checkout enforces the rule server-side (`CodEligibility`), and the storefront shows the COD option from `cod_allowed` on `GET /account/profile`. No env flag.
+
 ## Storefront website order alerts (staff)
 
 Website (Qwik) orders alert POS staff once per order, so nobody misses them:

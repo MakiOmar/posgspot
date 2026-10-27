@@ -751,6 +751,8 @@ export interface AuthContact {
   mobile: string | null;
   email_verified?: boolean;
   delete_requested?: boolean;
+  /** On the admin COD allowlist (only matters while store-wide COD is off). */
+  cod_allowed?: boolean;
   address_line_1: string | null;
   address_line_2: string | null;
   city: string | null;

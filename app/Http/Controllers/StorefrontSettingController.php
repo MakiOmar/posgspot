@@ -7,7 +7,9 @@ use App\Category;
 use App\Services\Storefront\Homepage\HomepageSectionService;
 use App\Services\Storefront\Homepage\SectionTypeRegistry;
 use App\Services\Storefront\StorefrontBundleService;
+use App\Http\Requests\Storefront\SearchCodCustomerEmailsRequest;
 use App\Http\Requests\Storefront\SendStorefrontTestEmailRequest;
+use App\Services\Storefront\CustomerEmailSearchService;
 use App\Services\Storefront\StorefrontMailService;
 use App\Services\Storefront\StorefrontMediaLibraryService;
 use App\Services\Storefront\StorefrontSettingService;
@@ -72,6 +74,18 @@ class StorefrontSettingController extends Controller
             'homepage_categories',
             'notify_recipients'
         ));
+    }
+
+    /**
+     * AJAX (select2): customers with an email for the cash-on-delivery allowlist.
+     */
+    public function searchCodCustomerEmails(SearchCodCustomerEmailsRequest $request, CustomerEmailSearchService $search)
+    {
+        $business_id = (int) $request->session()->get('user.business_id');
+
+        return response()->json([
+            'results' => $search->search($business_id, (string) $request->validated('q', '')),
+        ]);
     }
 
     /**
@@ -300,6 +314,8 @@ class StorefrontSettingController extends Controller
             'selling_location_ids.*' => 'integer|exists:business_locations,id',
             'default_fulfillment_location_id' => 'nullable|integer|exists:business_locations,id',
             'cod_enabled' => 'nullable|boolean',
+            'cod_allowed_emails' => 'nullable|array|max:500',
+            'cod_allowed_emails.*' => 'email|max:191',
             'maintenance_mode' => 'nullable|boolean',
             'shipping_flat_rate' => 'nullable|numeric|min:0',
             'shipping_free_threshold' => 'nullable|numeric|min:0',
@@ -430,6 +446,7 @@ class StorefrontSettingController extends Controller
             'selling_location_ids' => $validated['selling_location_ids'] ?? [],
             'default_fulfillment_location_id' => $validated['default_fulfillment_location_id'] ?? null,
             'cod_enabled' => $request->boolean('cod_enabled'),
+            'cod_allowed_emails' => $validated['cod_allowed_emails'] ?? [],
             'maintenance_mode' => $request->boolean('maintenance_mode'),
             'shipping' => [
                 'flat_rate' => (float) ($validated['shipping_flat_rate'] ?? ($this->settings->get($business_id)['shipping']['flat_rate'] ?? 0)),

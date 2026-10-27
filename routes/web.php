@@ -157,6 +157,9 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/storefront/settings/test-email', [\App\Http\Controllers\StorefrontSettingController::class, 'sendTestEmail'])
         ->middleware('throttle:10,1')
         ->name('storefront.settings.test-email');
+    Route::get('/storefront/settings/cod-customer-emails', [\App\Http\Controllers\StorefrontSettingController::class, 'searchCodCustomerEmails'])
+        ->middleware('throttle:60,1')
+        ->name('storefront.settings.cod-customer-emails');
     Route::get('/storefront/sell-requests', [\App\Http\Controllers\StorefrontSellRequestController::class, 'index'])->name('storefront.sell-requests.index');
     Route::get('/storefront/sell-requests/{id}', [\App\Http\Controllers\StorefrontSellRequestController::class, 'show'])->name('storefront.sell-requests.show');
     Route::post('/storefront/sell-requests/{id}/status', [\App\Http\Controllers\StorefrontSellRequestController::class, 'updateStatus'])->name('storefront.sell-requests.status');

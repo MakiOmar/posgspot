@@ -168,7 +168,7 @@
 |------|--------|------|
 | Storefront settings page | ✅ | `/storefront/settings`, `StorefrontSettingController` |
 | Settings JSON import / export | ✅ | Full ZIP bundle (`storefront_bundle` v2): settings + shipping + media files + media library rows + coupons + catalog overlays + translations; library paths remapped to target business; legacy JSON still works (no media) |
-| Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional) |
+| Selling locations, COD, shipping zones, maintenance | ✅ | Zones CRUD + classes + Bosta courier (prod default; staging optional); COD allowlist by customer email when COD is off |
 | Digital catalog SKUs (Accounts profile + POS product IDs) | ✅ | `/storefront/settings` Digital section; `digital.*` incl. `ask_whatsapp` + `pdp_faqs` |
 | Gateway FawryPay (merchant code, security key, staging) | ✅ | `/storefront/settings`; webhook URL shown in admin |
 | Gateway Geidea (test+live keys, mode, region, HPP options) | ✅ | `/storefront/settings`; both API passwords encrypted; webhook URL shown |
@@ -259,6 +259,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-10-27 | Settings → General: **Cash on Delivery allowed customers**, a searchable list of customer emails that keep COD while it is disabled store-wide (signed-in verified accounts only; guests never). Enforced at checkout (`CodEligibility`); `cod_allowed` on `GET /account/profile` shows the COD option in Qwik checkout. `GET /storefront/settings/cod-customer-emails`; `StorefrontCodAllowlistTest`. |
 | 2026-10-27 | Settings → Contact: **Send test email** for the contact inbox and each notify email (orders, sell to us, request product), plus the inbox saved settings deliver to. Sends immediately with business mail settings (same path as order alerts) and shows the transport error. `POST /storefront/settings/test-email`; `StorefrontTestEmailTest`. |
 | 2026-10-25 | Website order staff alerts: POS bell for active staff with `sell.view`/`direct_sell.view` at the order's location, plus email to Settings → Website orders notify email (falls back to contact inbox). COD alerts at checkout, online on first payment confirmation; once per order via `transactions.storefront_staff_notified_at`. Digital-only orders flagged. Sell → Website orders queue (alerted, shipping status Ordered) with 60s cached badge; bell/email open `/sells?view_sell=`. `StorefrontStaffOrderAlertTest`. |
 | 2026-10-25 | `/gift-cards` browsing by brand and country: brand tiles (logo, count) → country modal (flag, name via `Intl.DisplayNames`, count) → filtered grid; single-country brands skip the modal; "All cards" and search keep the full grid; canonical stays `/gift-cards`, title names the brand. POS passes Accounts `classification` through `DigitalCatalogService::normalizeClassification` (whitelisted keys, hex colour, `other` fallback). Tests: `DigitalCardArtPassthroughTest`, `tests/gift-card-groups.test.ts`. |

@@ -97,7 +97,7 @@ class CheckoutService
         $settings = $this->storefrontSettings->get($businessId);
         $paymentMethod = $this->normalizePaymentMethod($payload['payment_method'] ?? 'cod', $settings);
 
-        if ($paymentMethod === 'cod' && empty($settings['cod_enabled'])) {
+        if ($paymentMethod === 'cod' && ! CodEligibility::isAvailable($settings, $authContact)) {
             throw ValidationException::withMessages(['payment_method' => ['Cash on delivery is not available.']]);
         }
 

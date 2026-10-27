@@ -1,4 +1,4 @@
-import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
+import { $, component$, useComputed$, useSignal, useStore, useVisibleTask$ } from "@builder.io/qwik";
 import { Link, routeLoader$, useNavigate, type DocumentHead } from "@builder.io/qwik-city";
 import { RewardPointsRedeem } from "~/components/checkout/reward-points-redeem";
 import { CouponField } from "~/components/checkout/coupon-field";
@@ -144,7 +144,12 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
     settings.value.online_payments.enabled && settings.value.online_payments.provider,
   );
   const onlineProvider = settings.value.online_payments.provider || "online";
-  const canCheckout = settings.value.cod_enabled || onlinePaymentsEnabled;
+  // Store-wide COD, or a verified signed-in customer on the admin COD allowlist.
+  const codAvailable = useComputed$(
+    () => settings.value.cod_enabled || Boolean(auth.contact?.email_verified && auth.contact?.cod_allowed),
+  );
+  const codEnabled = codAvailable.value;
+  const canCheckout = codEnabled || onlinePaymentsEnabled;
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
@@ -925,13 +930,13 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
             <textarea id="order_note" name="order_note" rows={3} />
           </div>
 
-          {settings.value.cod_enabled || onlinePaymentsEnabled ? (
+          {canCheckout ? (
             <fieldset
-              class={`checkout-choice-group${(settings.value.cod_enabled ? 1 : 0) + (onlinePaymentsEnabled ? 1 : 0) === 1 ? " checkout-choice-group--solo" : ""}`}
+              class={`checkout-choice-group${(codEnabled ? 1 : 0) + (onlinePaymentsEnabled ? 1 : 0) === 1 ? " checkout-choice-group--solo" : ""}`}
             >
               <legend>{tStatic(locale, "checkout.paymentMethod")}</legend>
               <div class="checkout-choice-group__list">
-                {settings.value.cod_enabled ? (
+                {codEnabled ? (
                   <label
                     class={`checkout-choice${paymentMethod.value === "cod" ? " checkout-choice--selected" : ""}${!onlinePaymentsEnabled ? " checkout-choice--solo" : ""}`}
                   >
@@ -957,7 +962,7 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
                 ) : null}
                 {onlinePaymentsEnabled ? (
                   <label
-                    class={`checkout-choice${paymentMethod.value === "online" ? " checkout-choice--selected" : ""}${!settings.value.cod_enabled ? " checkout-choice--solo" : ""}`}
+                    class={`checkout-choice${paymentMethod.value === "online" ? " checkout-choice--selected" : ""}${!codEnabled ? " checkout-choice--solo" : ""}`}
                   >
                     <input
                       type="radio"
@@ -969,7 +974,7 @@ const CheckoutForm = component$<CheckoutFormProps>(({ locations, phoneCountries,
                         paymentMethod.value = "online";
                       }}
                     />
-                    {settings.value.cod_enabled ? (
+                    {codEnabled ? (
                       <span class="checkout-choice__mark" aria-hidden="true" />
                     ) : null}
                     <span class="checkout-choice__body">
