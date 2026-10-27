@@ -163,7 +163,9 @@
                 </div>
 
                 {{-- COD allowlist: customers who keep cash on delivery while it is switched off for everyone --}}
-                @php($codAllowedEmails = (array) ($settings['cod_allowed_emails'] ?? []))
+                @php
+                    $codAllowedEmails = (array) ($settings['cod_allowed_emails'] ?? []);
+                @endphp
                 <div class="form-group">
                     {!! Form::label('cod_allowed_emails', __('lang_v1.storefront_cod_allowed_emails')) !!}
                     {!! Form::select('cod_allowed_emails[]', array_combine($codAllowedEmails, $codAllowedEmails), $codAllowedEmails, [

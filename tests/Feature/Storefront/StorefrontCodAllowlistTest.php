@@ -54,6 +54,19 @@ class StorefrontCodAllowlistTest extends TestCase
         $this->assertSame(['other@example.com'], $settings->get($this->businessId)['cod_allowed_emails']);
     }
 
+    public function test_settings_page_shows_the_allowlist_with_saved_emails(): void
+    {
+        $this->saveCodSettings(false, ['saved.vip@example.com']);
+
+        // No withSession(): the session middleware loads the full business session the layout needs.
+        $this->actingAs($this->admin(['storefront.settings']))
+            ->get(route('storefront.settings.edit'))
+            ->assertOk()
+            ->assertSee('Cash on Delivery allowed customers')
+            ->assertSee('name="cod_allowed_emails[]"', false)
+            ->assertSee('<option value="saved.vip@example.com" selected="selected">', false);
+    }
+
     public function test_settings_update_rejects_invalid_emails(): void
     {
         $this->actingAs($this->admin(['storefront.settings']))
