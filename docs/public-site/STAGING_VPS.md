@@ -34,12 +34,12 @@ Hosts come from `/opt/spot-staging/.env` (`SHOP_DOMAIN`, `POS_DOMAIN`, `ACCOUNTS
 
 ```
 Visitor → Cloudflare (proxy, TLS) → Traefik (80/443, DNS-01 certs)
-             ├─ Host(pos.gamesspoteg.com)      → pos:8080 (×2)
+             ├─ Host(pos.gamesspoteg.com)      → pos:8080
              ├─ Host(accounts.gamesspoteg.com) → accounts:8080
              └─ Host(gamesspoteg.com|www)      → storefront:3000
 
 pos / accounts → mysql (pos_stg, accounts_stg) + redis
-pos-queue (×2), pos-scheduler, accounts-queue, accounts-scheduler (same images)
+pos-queue, pos-scheduler, accounts-queue, accounts-scheduler (same images; one container each)
 ```
 
 Redis: POS caches in DB 0; Accounts caches in DB 1 and uses DB 2 for its default connection (cache locks), set by `configure-production-env.sh`.
@@ -69,7 +69,7 @@ git -C pos pull && git -C accounts pull
 cp pos/deploy/staging/docker-compose.yml . && cp -r pos/deploy/staging/traefik pos/deploy/staging/storefront .   # when infra changed
 cp pos/deploy/staging/pos/{Dockerfile,.dockerignore} pos/ && cp pos/deploy/staging/accounts/{Dockerfile,.dockerignore} accounts/   # compose builds from the checkouts
 docker compose up -d --build pos accounts storefront
-docker compose up -d --force-recreate --scale pos=2 --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler
+docker compose up -d --no-deps --force-recreate pos-queue pos-scheduler accounts-queue accounts-scheduler   # live runs one pos / pos-queue; add --scale only if you scaled up
 docker compose exec -u www-data pos php artisan migrate --force
 docker compose exec -u www-data accounts php artisan migrate --force
 ```
@@ -86,7 +86,7 @@ Workers override the entrypoint, so they skip AUTORUN and read config uncached.
 
 Storefront: the `storefront` image builds from the git checkout `pos/storefront-qwik` (`npm ci` + `npm run build` inside Docker, using the committed `.env.production`). Do not upload locally built bundles. Purge the Cloudflare cache after shop deploys.
 
-Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`, `accounts-scheduler`) use the image's `healthcheck-queue` / `healthcheck-schedule` scripts (process check), not the web image's HTTP check on port 8080. To recreate only the workers: `docker compose up -d --no-deps --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler`.
+Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`, `accounts-scheduler`) use the image's `healthcheck-queue` / `healthcheck-schedule` scripts (process check), not the web image's HTTP check on port 8080. To recreate only the workers: `docker compose up -d --no-deps --force-recreate pos-queue pos-scheduler accounts-queue accounts-scheduler`.
 
 Shop-only deploy: `docker compose up -d --build --no-deps storefront`. Without `--no-deps`, Compose also rebuilds and recreates `pos` (a `depends_on` of `storefront`), taking staff POS down for ~30–60s.
 

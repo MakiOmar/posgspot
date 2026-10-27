@@ -2,7 +2,9 @@
 
 Steps only. Run on the VPS as root, after the code is committed and pushed. Background and troubleshooting: [STAGING_VPS.md](./STAGING_VPS.md).
 
-Keep `--scale pos=2` and `--scale pos-queue=2` on every command that touches those services; without them Compose scales them back to one container.
+Live runs **one** `pos` and **one** `pos-queue` container, which is what these commands keep. Compose resets a service to one container unless you pass `--scale`, so if you scaled up (`--scale pos=2`, `--scale pos-queue=2`), add the same flag to every command that touches that service.
+
+Building first and then dry-running `optimize` catches config/route errors before the running container is replaced (a failing boot `optimize` makes the container restart in a loop).
 
 ## Start (every time)
 
@@ -21,8 +23,10 @@ cp pos/deploy/staging/pos/{Dockerfile,.dockerignore} pos/ && cp pos/deploy/stagi
 
 ```bash
 git -C pos pull
-docker compose up -d --build --scale pos=2 pos
-docker compose up -d --no-deps --force-recreate --scale pos-queue=2 pos-queue pos-scheduler
+docker compose build pos
+docker compose run --rm --no-deps pos php artisan optimize --except=views
+docker compose up -d pos
+docker compose up -d --no-deps --force-recreate pos-queue pos-scheduler
 docker compose exec -u www-data pos php artisan migrate --force
 ```
 
@@ -30,7 +34,9 @@ docker compose exec -u www-data pos php artisan migrate --force
 
 ```bash
 git -C accounts pull
-docker compose up -d --build accounts
+docker compose build accounts
+docker compose run --rm --no-deps accounts php artisan optimize --except=views
+docker compose up -d accounts
 docker compose up -d --no-deps --force-recreate accounts-queue accounts-scheduler
 docker compose exec -u www-data accounts php artisan migrate --force
 ```
@@ -48,8 +54,11 @@ Then purge the Cloudflare cache.
 
 ```bash
 git -C pos pull && git -C accounts pull
-docker compose up -d --build --scale pos=2 pos accounts storefront
-docker compose up -d --no-deps --force-recreate --scale pos-queue=2 pos-queue pos-scheduler accounts-queue accounts-scheduler
+docker compose build pos accounts storefront
+docker compose run --rm --no-deps pos php artisan optimize --except=views
+docker compose run --rm --no-deps accounts php artisan optimize --except=views
+docker compose up -d pos accounts storefront
+docker compose up -d --no-deps --force-recreate pos-queue pos-scheduler accounts-queue accounts-scheduler
 docker compose exec -u www-data pos php artisan migrate --force
 docker compose exec -u www-data accounts php artisan migrate --force
 ```
