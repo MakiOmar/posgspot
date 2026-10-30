@@ -61,7 +61,7 @@ install -m 640 data/live-env/accounts.env accounts/.env
 # Live files may lack a trailing newline; appended keys would otherwise glue onto the last line
 for f in pos/.env accounts/.env; do [ -n "$(tail -c1 "$f")" ] && echo >> "$f"; done
 
-wire_common pos/.env pos_stg 0 "https://${POS}"
+wire_common pos/.env "${POS_DB_NAME:-pos_live}" 0 "https://${POS}"
 set_kv pos/.env STOREFRONT_URL "https://${SHOP}"
 set_kv pos/.env CORS_ALLOWED_ORIGINS "https://${SHOP},https://www.${SHOP}"
 set_kv pos/.env ACCOUNTS_BASE_URL "https://${ACC}"

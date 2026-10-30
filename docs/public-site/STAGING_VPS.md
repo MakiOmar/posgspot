@@ -38,7 +38,7 @@ Visitor → Cloudflare (proxy, TLS) → Traefik (80/443, DNS-01 certs)
              ├─ Host(accounts.gamesspoteg.com) → accounts:8080
              └─ Host(gamesspoteg.com|www)      → storefront:3000
 
-pos / accounts → mysql (pos_stg, accounts_stg) + redis
+pos / accounts → mysql (pos_live, accounts_stg) + redis
 pos-queue, pos-scheduler, accounts-queue, accounts-scheduler (same images; one container each)
 ```
 
@@ -51,6 +51,16 @@ Persistent host binds (survive image rebuilds):
 - `data/accounts_assets/{uploads,ps4,ps5}` → Accounts `public/assets/...`; `data/accounts_logos` → Accounts `public/logos`
 - Named volumes: `mysql_data`, `redis_data`, `traefik_letsencrypt`
 - MySQL runs with `--innodb-buffer-pool-size=4G` and `--innodb-redo-log-capacity=1G` (compose `command`). The 128 MB default thrashed on the multi-GB POS tables. Changing these flags needs a `mysql` recreate, which briefly takes POS, Accounts and the shop offline.
+- POS schema is **`pos_live`** (`POS_DB_NAME` in `/opt/spot-staging/.env`, read by `configure-production-env.sh` and `import-db.sh`). On 2026-10-30 POS moved off `pos_stg`: a runaway Opening Stock save left a ~75M-row transaction whose rollback crawled for weeks and locked stock rows, so POS was rebuilt from a `mysqldump --single-transaction` (which skips uncommitted rows) into `pos_live`. The old `pos_stg` is kept as a fallback until it is dropped.
+
+### Rebuilding the POS schema from a consistent dump
+
+Use when a stuck transaction blocks rows (rollback that never ends). About 10 minutes of POS/shop downtime for a ~45 MB dump; Accounts stays up.
+
+1. `docker compose stop pos pos-queue pos-scheduler` (no writes during the copy).
+2. `mysqldump --single-transaction --quick --routines --triggers --events --hex-blob --set-gtid-purged=OFF <old>` → `data/dumps/*.sql.gz` (run in the `mysql` container as root; check the last line says `Dump completed`).
+3. Create the new schema, `GRANT ALL PRIVILEGES ON <new>.* TO 'spot_stg'@'%'`, restore, compare `COUNT(*)` of key tables and table counts against the old schema.
+4. Set `DB_DATABASE=<new>` in `pos/.env` and `POS_DB_NAME=<new>` in `.env`, then `docker compose up -d --no-deps --force-recreate pos pos-queue pos-scheduler`.
 
 Compose secrets: `/opt/spot-staging/.env` (mode 600) — see [`deploy/staging/.env.example`](../../deploy/staging/.env.example).
 
@@ -111,7 +121,7 @@ Scripts run on the VPS as root from `/opt/spot-staging`:
 
 1. `HOSTINGER_SSH_PASS=… bash scripts/pull-from-hostinger.sh` — DB dumps, POS uploads/storage, Accounts storage/assets/logos, live `.env` files into `data/live-env/` (mode 600). Incremental; re-run during the window.
 2. `bash scripts/configure-production-env.sh` — writes `pos/.env` and `accounts/.env` from the live files (keeps `APP_KEY`, mail, payments) and rewires hosts, DB, Redis, `TRUSTED_PROXIES`.
-3. `bash scripts/import-db.sh` — drops and re-imports `pos_stg` / `accounts_stg`.
+3. `bash scripts/import-db.sh` — drops and re-imports the POS schema (`POS_DB_NAME`, default `pos_live`) and `accounts_stg`.
 4. `migrate --force` on both apps, then recreate the web containers and workers (boot rebuilds the Laravel caches).
 
 The live databases hold no `new.gamesspoteg.com` or WordPress URLs (checked at cutover), so no content rewrite is needed; `.env` hosts are rewritten in step 2.
