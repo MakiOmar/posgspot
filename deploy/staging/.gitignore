@@ -10,6 +10,7 @@ pos/**
 !pos/Dockerfile
 !pos/.dockerignore
 !pos/.gitkeep
+!pos/zz-request-timeout.conf
 accounts/**
 !accounts/Dockerfile
 !accounts/.dockerignore
