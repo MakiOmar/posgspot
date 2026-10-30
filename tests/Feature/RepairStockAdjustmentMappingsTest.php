@@ -7,6 +7,7 @@ use App\Product;
 use App\PurchaseLine;
 use App\StockAdjustmentLine;
 use App\Transaction;
+use App\TransactionSellLine;
 use App\TransactionSellLinesPurchaseLines;
 use App\Variation;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -22,6 +23,8 @@ class RepairStockAdjustmentMappingsTest extends TestCase
 
     private StockAdjustmentLine $line;
 
+    private int $locationId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -31,7 +34,7 @@ class RepairStockAdjustmentMappingsTest extends TestCase
             $this->markTestSkipped('No stock-enabled product for business 1.');
         }
         $variation = Variation::where('product_id', $product->id)->first();
-        $locationId = BusinessLocation::where('business_id', self::BUSINESS_ID)->value('id');
+        $locationId = $this->locationId = BusinessLocation::where('business_id', self::BUSINESS_ID)->value('id');
 
         $opening = $this->transaction('opening_stock', $locationId, '2000-01-01 00:00:00', ['opening_stock_product_id' => $product->id]);
         $this->purchaseLine = PurchaseLine::create([
@@ -74,10 +77,46 @@ class RepairStockAdjustmentMappingsTest extends TestCase
         $this->assertEquals(2, $this->purchaseLine->fresh()->quantity_adjusted);
     }
 
+    public function test_moves_sales_off_an_overused_purchase_line(): void
+    {
+        $this->purchaseLine->update(['quantity_sold' => 11]);
+        $this->mapSale($this->purchaseLine, 11);
+        $newer = $this->newerPurchaseLine(10);
+
+        $this->artisan('stock-adjustment:repair-mappings', ['adjustment_id' => [$this->line->transaction_id]])
+            ->assertExitCode(0);
+
+        $this->assertEquals(10, $this->purchaseLine->fresh()->quantity_sold);
+        $this->assertEquals(0, $this->purchaseLine->fresh()->quantity_adjusted);
+        $this->assertEquals(1, $newer->fresh()->quantity_sold);
+        $this->assertEquals(2, $newer->fresh()->quantity_adjusted);
+    }
+
     public function test_rejects_ids_that_are_not_stock_adjustments(): void
     {
         $this->artisan('stock-adjustment:repair-mappings', ['adjustment_id' => [$this->purchaseLine->transaction_id]])
             ->assertExitCode(1);
+    }
+
+    private function mapSale(PurchaseLine $purchaseLine, float $qty): void
+    {
+        $sell = $this->transaction('sell', $this->locationId, now(), ['status' => 'final']);
+        $sellLine = TransactionSellLine::create([
+            'transaction_id' => $sell->id, 'product_id' => $purchaseLine->product_id, 'variation_id' => $purchaseLine->variation_id,
+            'quantity' => $qty, 'unit_price' => 1, 'unit_price_inc_tax' => 1, 'item_tax' => 0, 'line_discount_amount' => 0,
+        ]);
+        TransactionSellLinesPurchaseLines::create(['sell_line_id' => $sellLine->id, 'purchase_line_id' => $purchaseLine->id, 'quantity' => $qty]);
+    }
+
+    private function newerPurchaseLine(float $qty): PurchaseLine
+    {
+        $opening = $this->transaction('opening_stock', $this->locationId, '2000-06-01 00:00:00',
+            ['opening_stock_product_id' => $this->purchaseLine->product_id]);
+
+        return PurchaseLine::create([
+            'transaction_id' => $opening->id, 'product_id' => $this->purchaseLine->product_id, 'variation_id' => $this->purchaseLine->variation_id,
+            'quantity' => $qty, 'pp_without_discount' => 1, 'purchase_price' => 1, 'purchase_price_inc_tax' => 1, 'item_tax' => 0,
+        ]);
     }
 
     private function transaction(string $type, int $locationId, $date, array $extra = []): Transaction

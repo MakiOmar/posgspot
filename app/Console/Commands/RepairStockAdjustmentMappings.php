@@ -17,7 +17,8 @@ use Illuminate\Support\Facades\DB;
  * re-insert bug, and recomputes purchase_lines.quantity_adjusted for the affected variations
  * at the adjustment's location from the surviving mapping rows.
  *
- * Does not change variation_location_details (physical stock) or sales mappings.
+ * Sales left on over-used purchase lines are moved to other purchase lines of the same variation.
+ * Does not change variation_location_details (physical stock).
  * Everything runs in one DB transaction; any line that cannot be mapped rolls the whole run back.
  */
 class RepairStockAdjustmentMappings extends Command
@@ -93,6 +94,7 @@ class RepairStockAdjustmentMappings extends Command
                 $failures[] = "Adjustment {$adjustment->id} line {$line->id}: ".$e->getMessage();
             }
         }
+        $failures = array_merge($failures, $this->rebalanceOverusedLines($purchaseLines->pluck('id')->all(), $transactionUtil));
 
         $this->report($adjustment, $lines, $mappedBefore, $this->mappedPerLine($lineIds), $before, $this->snapshot(array_keys($before)));
 
@@ -121,6 +123,32 @@ class RepairStockAdjustmentMappings extends Command
             PurchaseLine::where('id', $purchaseLine->id)
                 ->update(['quantity_adjusted' => (float) ($mapped[$purchaseLine->id] ?? 0)]);
         }
+    }
+
+    /**
+     * The bogus negative quantity_adjusted let FIFO keep selling from purchase lines that were already
+     * used up. Once it is corrected those lines are over-used; move the excess onto other purchase
+     * lines with the same routine POS runs after a purchase is edited.
+     *
+     * @return array<int, string> failure messages
+     */
+    private function rebalanceOverusedLines(array $purchaseLineIds, TransactionUtil $transactionUtil): array
+    {
+        $transactionIds = PurchaseLine::whereIn('id', $purchaseLineIds)
+            ->whereRaw('quantity_sold + quantity_adjusted + quantity_returned + mfg_quantity_used > quantity')
+            ->distinct()
+            ->pluck('transaction_id');
+
+        $failures = [];
+        foreach (Transaction::whereIn('id', $transactionIds)->get() as $transaction) {
+            try {
+                $transactionUtil->adjustMappingPurchaseSellAfterEditingPurchase('received', $transaction, collect());
+            } catch (PurchaseSellMismatch $e) {
+                $failures[] = "Rebalancing {$transaction->type} {$transaction->id}: ".$e->getMessage();
+            }
+        }
+
+        return $failures;
     }
 
     private function snapshot(array $purchaseLineIds): array
@@ -157,11 +185,12 @@ class RepairStockAdjustmentMappings extends Command
         $rows = [];
         foreach ($before as $id => $old) {
             $new = $after[$id];
-            if ((float) $old['quantity_adjusted'] === (float) $new['quantity_adjusted']) {
+            if ((float) $old['quantity_adjusted'] === (float) $new['quantity_adjusted'] && (float) $old['quantity_sold'] === (float) $new['quantity_sold']) {
                 continue;
             }
             $used = fn ($pl) => (float) $pl['quantity_sold'] + (float) $pl['quantity_adjusted'] + (float) $pl['quantity_returned'] + (float) $pl['mfg_quantity_used'];
-            $rows[] = [$id, $old['product_id'], (float) $old['quantity'], (float) $old['quantity_sold'],
+            $rows[] = [$id, $old['product_id'], (float) $old['quantity'],
+                (float) $old['quantity_sold'].' -> '.(float) $new['quantity_sold'],
                 (float) $old['quantity_adjusted'].' -> '.(float) $new['quantity_adjusted'],
                 ((float) $old['quantity'] - $used($old)).' -> '.((float) $new['quantity'] - $used($new)), ];
         }
