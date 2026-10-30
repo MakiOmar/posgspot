@@ -103,6 +103,14 @@ Workers (`pos-queue`, `pos-scheduler`, `accounts-queue`, `accounts-scheduler`) u
 
 Shop-only deploy: `docker compose up -d --build --no-deps storefront`. Without `--no-deps`, Compose also rebuilds and recreates `pos` (a `depends_on` of `storefront`), taking staff POS down for ~30–60s.
 
+### Troubleshooting: stock adjustment mappings
+
+Before commit `3c6b689`, `mapPurchaseSell` re-inserted earlier lines' rows when mapping a multi-line stock adjustment. That bloated `transaction_sell_lines_purchase_lines`, and editing the affected purchases or opening stock could run for hours. To rebuild one adjustment's mappings and recompute `purchase_lines.quantity_adjusted` for its variations at that location, dry-run first:
+
+```bash
+docker compose exec -T -u www-data pos php artisan stock-adjustment:repair-mappings 316 --dry-run
+```
+
 ### Troubleshooting: Cloudflare 504 on the shop
 
 The shop renders by calling POS (`https://pos.gamesspoteg.com`, via Cloudflare). If POS's PHP-FPM pool (40 workers, one replica) saturates, nginx in the `pos` container runs out of connections/file handles, `/healthcheck` times out, Docker marks `pos` unhealthy and **Traefik drops the route** — every POS URL returns 404 (staff POS included) and the shop shows a 504. Check:
