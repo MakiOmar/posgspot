@@ -38,6 +38,10 @@ services:
   mysql:
     image: mysql:8.0
     restart: unless-stopped
+    # The 128M default thrashes on the multi-GB POS tables (a large rollback crawled at <1 row/s).
+    command:
+      - --innodb-buffer-pool-size=4G
+      - --innodb-redo-log-capacity=1G
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:

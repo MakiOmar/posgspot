@@ -50,6 +50,7 @@ Persistent host binds (survive image rebuilds):
 - `data/accounts_storage` → Accounts `storage`
 - `data/accounts_assets/{uploads,ps4,ps5}` → Accounts `public/assets/...`; `data/accounts_logos` → Accounts `public/logos`
 - Named volumes: `mysql_data`, `redis_data`, `traefik_letsencrypt`
+- MySQL runs with `--innodb-buffer-pool-size=4G` and `--innodb-redo-log-capacity=1G` (compose `command`). The 128 MB default thrashed on the multi-GB POS tables. Changing these flags needs a `mysql` recreate, which briefly takes POS, Accounts and the shop offline.
 
 Compose secrets: `/opt/spot-staging/.env` (mode 600) — see [`deploy/staging/.env.example`](../../deploy/staging/.env.example).
 
