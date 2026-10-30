@@ -3388,6 +3388,8 @@ class TransactionUtil extends Util
                     )->get();
 
             $purchase_sell_map = [];
+            //Inserted after every line, so it must start empty per line or earlier lines are re-inserted (quadratic growth)
+            $purchase_adjustment_map = [];
 
             //Iterate over the rows, assign the purchase line to sell lines.
             $qty_selling = $line->quantity;
