@@ -11,6 +11,7 @@ RUN install-php-extensions gd \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=www-data:www-data . /var/www/html
+COPY deploy/staging/pos/zz-request-timeout.conf /usr/local/etc/php-fpm.d/zz-request-timeout.conf
 
 # Fail the build if composer fails. Skip post-install artisan scripts (they need DB).
 RUN set -eux; \
@@ -25,6 +26,8 @@ USER www-data
 
 ENV SSL_MODE=off
 ENV PHP_OPCACHE_ENABLE=1
+# Seconds before PHP-FPM kills a web request (zz-request-timeout.conf); override per service in compose.
+ENV PHP_FPM_REQUEST_TERMINATE_TIMEOUT=300
 
 # Web container boot runs `artisan optimize --except=views` (config/route/event cache).
 # Migrations stay manual (docs/public-site/STAGING_VPS.md); workers override the entrypoint and skip this.
