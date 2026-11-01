@@ -1471,6 +1471,7 @@ return [
     'storefront_new_order_open' => 'فتح في نقطة البيع',
     'storefront_payment_cod' => 'الدفع عند الاستلام',
     'storefront_payment_online' => 'مدفوع أونلاين',
+    'storefront_gateway_payment_label' => 'مدفوع أونلاين عبر :provider',
     'website_orders' => 'طلبات الموقع',
     'orders_notify_email' => 'بريد تنبيه الطلبات الجديدة',
     'orders_notify_email_help' => 'يصله بريد لكل طلب جديد من الموقع (الدفع عند الاستلام فوراً، والأونلاين بعد الدفع). اتركه فارغاً لاستخدام بريد التواصل.',

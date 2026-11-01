@@ -21,6 +21,7 @@ use App\Utils\BusinessUtil;
 use App\Utils\ContactUtil;
 use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
+use App\Services\Storefront\StorefrontOrderListPaymentPresenter;
 use App\Utils\TransactionUtil;
 use App\Warranty;
 use DB;
@@ -42,19 +43,28 @@ class SellController extends Controller
 
     protected $productUtil;
 
+    protected StorefrontOrderListPaymentPresenter $storefrontOrderListPayment;
+
     /**
      * Constructor
      *
      * @param  ProductUtils  $product
      * @return void
      */
-    public function __construct(ContactUtil $contactUtil, BusinessUtil $businessUtil, TransactionUtil $transactionUtil, ModuleUtil $moduleUtil, ProductUtil $productUtil)
-    {
+    public function __construct(
+        ContactUtil $contactUtil,
+        BusinessUtil $businessUtil,
+        TransactionUtil $transactionUtil,
+        ModuleUtil $moduleUtil,
+        ProductUtil $productUtil,
+        StorefrontOrderListPaymentPresenter $storefrontOrderListPayment,
+    ) {
         $this->contactUtil = $contactUtil;
         $this->businessUtil = $businessUtil;
         $this->transactionUtil = $transactionUtil;
         $this->moduleUtil = $moduleUtil;
         $this->productUtil = $productUtil;
+        $this->storefrontOrderListPayment = $storefrontOrderListPayment;
 
         $this->dummyPaymentLine = ['method' => '', 'amount' => 0, 'note' => '', 'card_transaction_number' => '', 'card_number' => '', 'card_type' => '', 'card_holder_name' => '', 'card_month' => '', 'card_year' => '', 'card_security' => '', 'cheque_number' => '', 'bank_account_number' => '',
             'is_return' => 0, 'transaction_no' => '', 'payment_line_status' => 'completed', ];
@@ -633,7 +643,17 @@ class SellController extends Controller
                         $payment_method = __('lang_v1.checkout_multi_pay');
                     }
 
+                    $gatewayLabel = $this->storefrontOrderListPayment->resolvePaymentMethodLabel(
+                        $row,
+                        array_values($methods)
+                    );
+                    if ($gatewayLabel !== '') {
+                        $payment_method = $gatewayLabel;
+                    }
+
                     $html = ! empty($payment_method) ? '<span class="payment-method" data-orig-value="'.$payment_method.'" data-status-name="'.$payment_method.'">'.$payment_method.'</span>' : '';
+
+                    $html .= $this->storefrontOrderListPayment->listBadgeHtml($row);
 
                     return $html;
                 })

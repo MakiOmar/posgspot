@@ -1682,6 +1682,7 @@ return [
     'storefront_new_order_open' => 'Open in POS',
     'storefront_payment_cod' => 'Cash on delivery',
     'storefront_payment_online' => 'Paid online',
+    'storefront_gateway_payment_label' => 'Paid online via :provider',
     'website_orders' => 'Website orders',
     'orders_notify_email' => 'New order notify email',
     'orders_notify_email_help' => 'Gets an email for every new website order (COD at checkout, online once paid). Empty uses the contact inbox.',

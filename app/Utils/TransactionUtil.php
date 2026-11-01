@@ -5206,6 +5206,8 @@ class TransactionUtil extends Util
                     'tables.name as table_name',
                     DB::raw('SUM(tsl.quantity - tsl.so_quantity_invoiced) as so_qty_remaining'),
                     'transactions.is_export',
+                    'transactions.storefront_order_id',
+                    'transactions.storefront_payment_meta',
                     DB::raw("CONCAT(COALESCE(dp.surname, ''),' ',COALESCE(dp.first_name, ''),' ',COALESCE(dp.last_name,'')) as delivery_person")
                 );
 
