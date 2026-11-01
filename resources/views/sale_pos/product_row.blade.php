@@ -206,7 +206,8 @@
   		<textarea class="form-control" name="products[{{$row_count}}][sell_line_note]" rows="2">{{$sell_line_note}}</textarea>
   		<p class="help-block"><small>@lang('lang_v1.sell_line_description_help')</small></p>
 	@endif
-	{{-- Accounts offer: allocate on save, or show it is already allocated --}}
+	{{-- Temporarily hidden: fetch account / allocated label UI (feature kept in backend) --}}
+	{{--
 	@if($is_accounts_line)
 		@if($is_allocated_line)
 			<span class="label bg-green"><i class="fa fa-check"></i> @lang('lang_v1.account_allocated') ({{$allocated_line_units}})</span>
@@ -221,6 +222,7 @@
 			</div>
 		@endif
 	@endif
+	--}}
 	</td>
 
 	<td>
