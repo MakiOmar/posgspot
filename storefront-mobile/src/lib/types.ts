@@ -30,12 +30,22 @@ export interface AuthContact {
   city?: string;
   zip_code?: string;
   avatar_url?: string | null;
+  /** On the COD allowlist: keeps Cash on Delivery when it is off store-wide (verified email only). */
+  cod_allowed?: boolean;
 }
 
 export interface AuthSession {
   token: string;
   token_type?: string;
   contact: AuthContact;
+}
+
+/** `GET /settings` → `about.team` (role localized by the API). */
+export interface AboutTeamMember {
+  name: string;
+  role?: string;
+  image_url?: string | null;
+  social?: Record<string, string>;
 }
 
 export interface StoreSettings {
@@ -80,6 +90,8 @@ export interface StoreSettings {
   sell_to_us?: { enabled?: boolean };
   community?: { enabled?: boolean };
   request_product?: { enabled?: boolean };
+  newsletter?: { enabled?: boolean };
+  about?: { team?: AboutTeamMember[] };
   /**
    * Shop mega Physical column (locale-resolved). Empty → app falls back to category filter.
    */
@@ -354,6 +366,8 @@ export interface AccountOrder {
   created_at?: string;
   transaction_date?: string;
   invoice_print_url?: string | null;
+  /** Server decides whether the full total can still be paid through the gateway. */
+  can_pay_online?: boolean;
 }
 
 /** Guest track-order lookup result (safe subset). */
@@ -510,6 +524,40 @@ export interface DigitalPosSku {
 export type DigitalPosOffers = Partial<
   Record<"4" | "5", Partial<Record<"primary" | "secondary" | "full", DigitalPosSku>>>
 >;
+
+/** Generated gift card artwork (Accounts `card_art`); only sent when there is no poster. */
+export interface DigitalCardArt {
+  brand: string;
+  brand_label: string;
+  value: string;
+  country_code: string | null;
+  flag_url: string | null;
+  logo_url: string | null;
+  color: string;
+}
+
+/** Brand/country grouping for gift card browsing; `country` is ISO-2, "global" or "other". */
+export interface DigitalCardClassification {
+  brand: string;
+  brand_label: string;
+  logo_url: string | null;
+  color: string;
+  country: string;
+  country_label: string;
+  flag_url: string | null;
+}
+
+/** Gift card category row (`GET /digital/card-categories`). */
+export interface DigitalCardCategory {
+  id: number;
+  name: string;
+  price: number | string;
+  poster_image?: string | null;
+  card_art?: DigitalCardArt | null;
+  classification?: DigitalCardClassification | null;
+  /** Synced POS product for this category; null falls back to `skus.gift_card`. */
+  pos_sku?: DigitalPosSku | null;
+}
 
 export interface DigitalSkus {
   primary?: DigitalPosSku | null;

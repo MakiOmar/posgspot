@@ -11,18 +11,16 @@ import { fetchOrders } from "../../../src/lib/api";
 import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { OrderListCard } from "../../../src/components/account/OrderListCard";
+import { PayNowButton } from "../../../src/components/account/PayNowButton";
 import {
   ErrorBlock,
   LoadingBlock,
   Screen,
 } from "../../../src/components/ui";
 import { toast } from "../../../src/lib/toast";
+import { isPaidStatus } from "../../../src/lib/order-status";
 
 const PER_PAGE = 20;
-
-function isPaid(status: string | undefined): boolean {
-  return (status ?? "").trim().toLowerCase() === "paid";
-}
 
 export default function OrdersScreen() {
   const { token, t, accent } = useApp();
@@ -99,7 +97,7 @@ export default function OrdersScreen() {
           <OrderListCard
             order={item}
             footer={
-              isPaid(item.payment_status) && item.invoice_print_url ? (
+              isPaidStatus(item.payment_status) && item.invoice_print_url ? (
                 <Pressable
                   style={[styles.invoiceBtn, { borderColor: accent }]}
                   disabled={downloadingId === item.id}
@@ -139,7 +137,9 @@ export default function OrdersScreen() {
                       : t("account.downloadInvoice")}
                   </Text>
                 </Pressable>
-              ) : null
+              ) : (
+                <PayNowButton order={item} variant="compact" />
+              )
             }
           />
         )}

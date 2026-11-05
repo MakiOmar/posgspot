@@ -26,6 +26,7 @@ import {
   VideoBlock,
 } from "./home-blocks";
 import { BrandRail, CategoryRail, ProductRail } from "./home-rails";
+import { RecentlyViewedRail } from "../catalog/RecentlyViewedRail";
 import {
   asSlides,
   asTiles,
@@ -308,7 +309,7 @@ export function HomepageSections({
             );
           }
           case "recently_viewed":
-            return null;
+            return <RecentlyViewedRail key={key} />;
           default:
             return null;
         }

@@ -3,7 +3,7 @@
 import type { ContentLocale } from "../types";
 import { ABOUT_CONTENT_AR, type AboutPageContent } from "./about-content-ar";
 
-export type { AboutPageContent, AboutTeamMember, AboutVisionItem } from "./about-content-ar";
+export type { AboutPageContent, AboutVisionItem } from "./about-content-ar";
 
 export const ABOUT_CONTENT_EN: AboutPageContent = {
   kicker: "Play to your level",
@@ -36,13 +36,6 @@ export const ABOUT_CONTENT_EN: AboutPageContent = {
   historyIntro:
     "Every branch opening and every repair completed is part of our story with the gaming community in Egypt.",
   teamTitle: "Our team",
-  team: [
-    { name: "Mohamed Salah", role: "CEO & Founder" },
-    { name: "Ahmed Hassan", role: "Operations Manager" },
-    { name: "Karim Ali", role: "Head of Repairs" },
-    { name: "Sara Mahmoud", role: "Customer Experience" },
-    { name: "Omar Nabil", role: "Retail Lead" },
-  ],
 };
 
 export function getAboutContent(locale: ContentLocale): AboutPageContent {

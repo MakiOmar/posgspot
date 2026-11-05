@@ -4,6 +4,7 @@ import { submitContact } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
 import { FormScrollView, PrimaryButton, Screen } from "../src/components/ui";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 
 export default function ContactScreen() {
   const { t } = useApp();
@@ -13,6 +14,7 @@ export default function ContactScreen() {
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   return (
     <Screen padded={false} avoidKeyboard={false}>
@@ -42,6 +44,7 @@ export default function ContactScreen() {
           multiline
           style={{ height: 120, textAlignVertical: "top" }}
         />
+        <TurnstileWidget turnstile={turnstile} />
         {status ? (
           <Text style={{ marginBottom: 8, color: "#333" }}>{status}</Text>
         ) : null}
@@ -49,13 +52,19 @@ export default function ContactScreen() {
           label={busy ? t("common.loading") : t("contact.send")}
           disabled={busy}
           onPress={() => {
+            if (!turnstile.ensure()) {
+              return;
+            }
             setBusy(true);
-            void submitContact({ name, email, mobile, message })
+            void submitContact({ name, email, mobile, message, ...turnstile.payload() })
               .then(() => setStatus(t("contact.sent")))
               .catch((e) =>
                 setStatus(e instanceof Error ? e.message : t("common.error")),
               )
-              .finally(() => setBusy(false));
+              .finally(() => {
+                turnstile.reset();
+                setBusy(false);
+              });
           }}
         />
       </FormScrollView>

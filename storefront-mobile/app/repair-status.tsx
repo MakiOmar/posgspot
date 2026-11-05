@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import { fetchAccountRepairs, repairStatus } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 import {
   FormScrollView,
   LoadingBlock,
@@ -93,6 +94,7 @@ export default function RepairStatusScreen() {
   const [myLoaded, setMyLoaded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   const loadMine = useCallback(() => {
     if (!token) {
@@ -189,15 +191,20 @@ export default function RepairStatusScreen() {
           value={searchNumber}
           onChangeText={setSearchNumber}
         />
+        <TurnstileWidget turnstile={turnstile} />
         <PrimaryButton
           label={busy ? t("common.loading") : t("repair.lookup")}
           disabled={busy || !searchNumber.trim()}
           onPress={() => {
+            if (!turnstile.ensure()) {
+              return;
+            }
             setBusy(true);
             setMessage(null);
             void repairStatus({
               search_type: searchType,
               search_number: searchNumber.trim(),
+              ...turnstile.payload(),
             })
               .then(({ data }) => {
                 const list =
@@ -210,7 +217,10 @@ export default function RepairStatusScreen() {
               .catch((e) =>
                 setMessage(e instanceof Error ? e.message : t("common.error")),
               )
-              .finally(() => setBusy(false));
+              .finally(() => {
+                turnstile.reset();
+                setBusy(false);
+              });
           }}
         />
         {message ? <Text style={styles.message}>{message}</Text> : null}

@@ -11,6 +11,7 @@ import type { AccountOrder } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { UnderlineTabs } from "../../../src/components/account/UnderlineTabs";
 import { OrderListCard } from "../../../src/components/account/OrderListCard";
+import { PayNowButton } from "../../../src/components/account/PayNowButton";
 import { ErrorBlock, LoadingBlock, Screen } from "../../../src/components/ui";
 
 type PayFilter = "all" | "due" | "paid" | "pending" | "failed";
@@ -98,7 +99,12 @@ export default function PaymentsListScreen() {
               />
             ) : null
           }
-          renderItem={({ item }) => <OrderListCard order={item} />}
+          renderItem={({ item }) => (
+            <OrderListCard
+              order={item}
+              footer={<PayNowButton order={item} variant="compact" />}
+            />
+          )}
           ListEmptyComponent={
             <Text style={styles.empty}>{t("account.noOrders")}</Text>
           }

@@ -223,7 +223,7 @@ export function fetchLocations(sellingOnly = false, locale?: ContentLocale) {
   return storefrontFetch<StoreLocation[]>(`/locations${qs}`, {}, locale);
 }
 
-export async function login(loginId: string, password: string) {
+export async function login(loginId: string, password: string, turnstileToken?: string) {
   let headers: Record<string, string> = {};
   try {
     const { guestTokenHeader } = await import("./support-chat");
@@ -234,7 +234,11 @@ export async function login(loginId: string, password: string) {
   return storefrontFetch<AuthSession>("/auth/login", {
     method: "POST",
     headers,
-    body: JSON.stringify({ login: loginId, password }),
+    body: JSON.stringify({
+      login: loginId,
+      password,
+      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+    }),
   });
 }
 
@@ -320,6 +324,14 @@ export function fetchOrder(token: string, orderId: number) {
   return storefrontFetch<AccountOrderDetail>(`/account/orders/${orderId}`, {
     headers: authHeaders(token),
   });
+}
+
+/** Fresh order access token for paying an unpaid order (`POST /payments/{provider}/session`). */
+export function fetchOrderPaymentAccess(token: string, orderId: number) {
+  return storefrontFetch<{ storefront_order_id: string; order_access_token: string }>(
+    `/account/orders/${orderId}/payment-access`,
+    { method: "POST", headers: authHeaders(token) },
+  );
 }
 
 export function fetchOrderInvoiceUrl(token: string, orderId: number) {
@@ -504,6 +516,7 @@ export function fetchDigitalGames(
   locale?: ContentLocale,
   q?: string,
   productType: "game" | "subscription" = "game",
+  inStockOnly = false,
 ) {
   const qs = new URLSearchParams({
     platform,
@@ -513,6 +526,9 @@ export function fetchDigitalGames(
   const term = (q || "").trim();
   if (term) {
     qs.set("q", term);
+  }
+  if (inStockOnly) {
+    qs.set("in_stock_only", "1");
   }
   return storefrontFetch<{
     platform: string;
@@ -532,13 +548,9 @@ export function fetchDigitalGame(id: number, locale?: ContentLocale) {
 
 export function fetchCardCategories(locale?: ContentLocale) {
   return storefrontFetch<{
-    categories: Array<{
-      id: number;
-      name?: string;
-      title?: string;
-      price?: number | string;
-      poster_image?: string | null;
-    }>;
+    categories: Array<
+      Partial<import("./types").DigitalCardCategory> & { id: number; title?: string }
+    >;
     skus: import("./types").DigitalSkus;
   }>("/digital/card-categories", {}, locale);
 }
@@ -548,6 +560,17 @@ export function submitContact(body: Record<string, unknown>) {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export function subscribeNewsletter(
+  payload: { email: string; turnstile_token?: string },
+  locale?: ContentLocale,
+) {
+  return storefrontFetch<{ status: string; message: string }>(
+    "/newsletter/subscribe",
+    { method: "POST", body: JSON.stringify(payload) },
+    locale,
+  );
 }
 
 export function repairStatus(body: Record<string, unknown>) {
@@ -565,7 +588,11 @@ export function fetchAccountRepairs(token: string) {
   });
 }
 
-export function trackDevice(body: { phone_number?: string; phone?: string }) {
+export function trackDevice(body: {
+  phone_number?: string;
+  phone?: string;
+  turnstile_token?: string;
+}) {
   return storefrontFetch<{
     count?: number;
     services?: Array<Record<string, unknown>>;
@@ -854,12 +881,16 @@ export function fetchCommunityPosts(
   params: {
     type?: import("./types").CommunityPostType;
     scope?: "upcoming" | "previous";
+    q?: string;
+    limit?: number;
   } = {},
   locale?: ContentLocale,
 ) {
   const qs = new URLSearchParams();
   if (params.type) qs.set("type", params.type);
   if (params.scope) qs.set("scope", params.scope);
+  if (params.q?.trim()) qs.set("q", params.q.trim());
+  if (params.limit) qs.set("limit", String(params.limit));
   const suffix = qs.toString() ? `?${qs}` : "";
   return storefrontFetch<import("./types").CommunityPostSummary[]>(
     `/community/posts${suffix}`,

@@ -63,6 +63,11 @@
         @if($sell->document_path)
           <br>
           <br>
+          @if(\App\Services\SellDocumentService::isImageFile($sell->document))
+            <a href="{{ $sell->document_path }}" target="_blank" rel="noopener" class="pull-left no-print" style="margin-right: 8px;">
+              <img src="{{ $sell->document_path }}" alt="{{ $sell->document_name }}" class="img-thumbnail" style="max-height: 80px;">
+            </a>
+          @endif
           <a href="{{$sell->document_path}}" 
           download="{{$sell->document_name}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-accent pull-left no-print">
             <i class="fa fa-download"></i> 

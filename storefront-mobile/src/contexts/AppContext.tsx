@@ -61,7 +61,8 @@ function sameContact(a: AuthContact | undefined, b: AuthContact): boolean {
     a.state === b.state &&
     a.city === b.city &&
     a.zip_code === b.zip_code &&
-    a.avatar_url === b.avatar_url
+    a.avatar_url === b.avatar_url &&
+    a.cod_allowed === b.cod_allowed
   );
 }
 
@@ -95,7 +96,7 @@ interface AppContextValue {
   refreshContact: () => Promise<void>;
   applySession: (session: AuthSession) => Promise<void>;
   updateContactLocal: (contact: AuthContact) => Promise<void>;
-  signIn: (loginId: string, password: string) => Promise<void>;
+  signIn: (loginId: string, password: string, turnstileToken?: string) => Promise<void>;
   signUp: (body: Record<string, unknown>) => Promise<void>;
   signOut: () => Promise<void>;
   passkeyEnabled: boolean;
@@ -272,8 +273,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const signIn = useCallback(async (loginId: string, password: string) => {
-    const { data } = await apiLogin(loginId, password);
+  const signIn = useCallback(async (loginId: string, password: string, turnstileToken?: string) => {
+    const { data } = await apiLogin(loginId, password, turnstileToken);
     await saveAuthSession(data);
     setSession(data);
   }, []);

@@ -12,6 +12,8 @@ import type { AccountOrderDetail } from "../../../src/lib/types";
 import { useApp } from "../../../src/contexts/AppContext";
 import { useCart } from "../../../src/contexts/CartContext";
 import { SecretRevealRow } from "../../../src/components/account/SecretRevealRow";
+import { PaymentStatusBadge } from "../../../src/components/account/OrderListCard";
+import { PayNowButton } from "../../../src/components/account/PayNowButton";
 import {
   ErrorBlock,
   LoadingBlock,
@@ -19,25 +21,11 @@ import {
   Screen,
 } from "../../../src/components/ui";
 import { toast } from "../../../src/lib/toast";
-
-function isPaidOrder(paymentStatus: string | undefined): boolean {
-  return (paymentStatus ?? "").trim().toLowerCase() === "paid";
-}
-
-/** Unpaid statuses that can still open online checkout for this order. */
-function canPayOnline(paymentStatus: string | undefined): boolean {
-  const status = (paymentStatus ?? "").trim().toLowerCase();
-  return (
-    status === "due" ||
-    status === "pending" ||
-    status === "partial" ||
-    status === "failed"
-  );
-}
+import { isPaidStatus, shippingStatusLabel } from "../../../src/lib/order-status";
 
 export default function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token, t, accent, settings } = useApp();
+  const { token, t, accent, locale } = useApp();
   const { addItem } = useCart();
   const router = useRouter();
   const [order, setOrder] = useState<AccountOrderDetail | null>(null);
@@ -46,9 +34,6 @@ export default function OrderDetailScreen() {
   const [reordering, setReordering] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const onlineEnabled =
-    !!settings?.online_payments?.enabled && !!settings?.online_payments?.provider;
 
   // Reduce screenshot risk while digital secrets are on screen (iOS + Android).
   useEffect(() => {
@@ -76,7 +61,7 @@ export default function OrderDetailScreen() {
       setOrder(data);
       setError(null);
       let printUrl = data.invoice_print_url || null;
-      if (isPaidOrder(data.payment_status) && !printUrl) {
+      if (isPaidStatus(data.payment_status) && !printUrl) {
         try {
           const invoice = await fetchOrderInvoiceUrl(token, Number(id));
           printUrl = invoice.data.invoice_print_url;
@@ -84,7 +69,7 @@ export default function OrderDetailScreen() {
           // Invoice endpoint may be unavailable.
         }
       }
-      setInvoiceUrl(isPaidOrder(data.payment_status) ? printUrl : null);
+      setInvoiceUrl(isPaidStatus(data.payment_status) ? printUrl : null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("common.error"));
     } finally {
@@ -116,10 +101,7 @@ export default function OrderDetailScreen() {
     );
   }
 
-  const showPayNow =
-    onlineEnabled &&
-    !!order.storefront_order_id &&
-    canPayOnline(order.payment_status);
+  const shipping = shippingStatusLabel(locale, order.shipping_status);
 
   return (
     <Screen padded={false}>
@@ -127,9 +109,15 @@ export default function OrderDetailScreen() {
         <Text style={styles.title}>
           {order.invoice_no || order.storefront_order_id || `#${order.id}`}
         </Text>
-        <Text>
-          {t("account.payment")}: {order.payment_status || "—"}
-        </Text>
+        <View style={styles.statusRow}>
+          <Text>{t("account.payment")}:</Text>
+          <PaymentStatusBadge status={order.payment_status} />
+        </View>
+        {shipping ? (
+          <Text>
+            {t("trackOrder.shipping")}: {shipping}
+          </Text>
+        ) : null}
         {order.final_total != null ? (
           <Text>
             {t("cart.total")}: {Number(order.final_total).toFixed(2)} EGP
@@ -146,20 +134,7 @@ export default function OrderDetailScreen() {
             onPress={() => void Linking.openURL(order.shipping_tracking_url!)}
           />
         ) : null}
-        {showPayNow ? (
-          <PrimaryButton
-            label={t("account.payNow")}
-            onPress={() => {
-              router.push({
-                pathname: "/checkout/payment",
-                params: {
-                  storefrontOrderId: order.storefront_order_id!,
-                  orderId: String(order.id),
-                },
-              });
-            }}
-          />
-        ) : null}
+        <PayNowButton order={order} />
         {invoiceUrl ? (
           <PrimaryButton
             label={
@@ -289,6 +264,7 @@ export default function OrderDetailScreen() {
 const styles = StyleSheet.create({
   pad: { padding: 16, gap: 10 },
   title: { fontSize: 20, fontWeight: "800" },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   section: { fontWeight: "800", marginTop: 8 },
   card: {
     backgroundColor: "#fff",

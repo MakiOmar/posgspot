@@ -7,10 +7,11 @@ import {
   Text,
   View,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { fetchCommunityPosts } from "../../lib/api";
 import { useApp } from "../../contexts/AppContext";
 import { LoadingBlock, Screen } from "../ui";
+import { CommunityExtras } from "./CommunityExtras";
 import type { CommunityPostSummary, CommunityPostType } from "../../lib/types";
 
 type Props = {
@@ -105,6 +106,8 @@ export function CommunityListScreen({
 }: Props) {
   const { t, locale, accent, settings } = useApp();
   const router = useRouter();
+  const params = useLocalSearchParams<{ q?: string }>();
+  const query = type === "news" && typeof params.q === "string" ? params.q.trim() : "";
   const enabled = settings?.community?.enabled === true;
   const [scope, setScope] = useState<"upcoming" | "previous">("upcoming");
   const [posts, setPosts] = useState<CommunityPostSummary[]>([]);
@@ -121,20 +124,21 @@ export function CommunityListScreen({
       {
         type,
         ...(scoped ? { scope } : {}),
+        ...(query ? { q: query } : {}),
       },
       locale,
     )
       .then(({ data }) => setPosts(data || []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, [enabled, type, scoped, scope, locale]);
+  }, [enabled, type, scoped, scope, locale, query]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const { hero, latest } = useMemo(() => {
-    if (type !== "news") {
+    if (type !== "news" || query) {
       return { hero: null as CommunityPostSummary | null, latest: posts };
     }
     const featured = posts.filter((p) => p.is_featured);
@@ -150,7 +154,7 @@ export function CommunityListScreen({
       hero: nextHero,
       latest: nextHero ? posts.filter((p) => p.id !== nextHero.id) : posts,
     };
-  }, [posts, type]);
+  }, [posts, type, query]);
 
   if (!enabled) {
     return (
@@ -170,6 +174,11 @@ export function CommunityListScreen({
           <View style={styles.head}>
             <Text style={styles.title}>{t(titleKey)}</Text>
             <Text style={styles.lead}>{t(leadKey)}</Text>
+            {query ? (
+              <Text style={styles.sectionLabel}>
+                {t("community.searchResults")}: {query}
+              </Text>
+            ) : null}
             {scoped ? (
               <View style={styles.tabs}>
                 {(["upcoming", "previous"] as const).map((id) => {
@@ -222,6 +231,15 @@ export function CommunityListScreen({
             onPress={() => router.push(`${detailBase}/${item.slug}` as never)}
           />
         )}
+        ListFooterComponent={
+          <CommunityExtras
+            currentListType={type}
+            initialQuery={query}
+            onSearch={
+              type === "news" ? (q) => router.setParams({ q: q || undefined }) : undefined
+            }
+          />
+        }
       />
     </Screen>
   );

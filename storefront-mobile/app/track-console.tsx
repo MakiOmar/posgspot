@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import { fetchAccountDeviceServices, trackDevice } from "../src/lib/api";
 import { useApp } from "../src/contexts/AppContext";
 import { LabeledInput } from "../src/components/LabeledInput";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 import {
   FormScrollView,
   LoadingBlock,
@@ -86,6 +87,7 @@ export default function TrackConsoleScreen() {
   const [myLoaded, setMyLoaded] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   const loadMine = useCallback(() => {
     if (!token) {
@@ -155,13 +157,17 @@ export default function TrackConsoleScreen() {
           keyboardType="phone-pad"
           autoComplete="tel"
         />
+        <TurnstileWidget turnstile={turnstile} />
         <PrimaryButton
           label={busy ? t("common.loading") : t("trackConsole.search")}
           disabled={busy || !phone.trim()}
           onPress={() => {
+            if (!turnstile.ensure()) {
+              return;
+            }
             setBusy(true);
             setMessage(null);
-            void trackDevice({ phone_number: phone.trim() })
+            void trackDevice({ phone_number: phone.trim(), ...turnstile.payload() })
               .then(({ data }) => {
                 const list =
                   (data as { services?: DeviceService[] })?.services || [];
@@ -173,7 +179,10 @@ export default function TrackConsoleScreen() {
               .catch((e) =>
                 setMessage(e instanceof Error ? e.message : t("common.error")),
               )
-              .finally(() => setBusy(false));
+              .finally(() => {
+                turnstile.reset();
+                setBusy(false);
+              });
           }}
         />
         {message ? <Text style={styles.message}>{message}</Text> : null}

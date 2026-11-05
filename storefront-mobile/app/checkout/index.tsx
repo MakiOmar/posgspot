@@ -55,7 +55,7 @@ function isDigitalRate(rate: ShippingRate | undefined): boolean {
 }
 
 export default function CheckoutScreen() {
-  const { t, token, settings, locale, contact, accent } = useApp();
+  const { t, token, settings, locale, contact, accent, refreshContact } = useApp();
   const { items, clear, subtotal } = useCart();
   const router = useRouter();
   const params = useLocalSearchParams<{ coupon?: string }>();
@@ -108,7 +108,9 @@ export default function CheckoutScreen() {
   const onlineProvider = settings?.online_payments?.provider || "online";
   const onlineLabel =
     settings?.online_payments?.label || t("checkout.online");
-  const codEnabled = settings?.cod_enabled !== false;
+  const codEnabled =
+    settings?.cod_enabled !== false ||
+    Boolean(token && contact?.email_verified && contact?.cod_allowed);
   const selectedRate = rates.find((r) => r.id === selectedRateId);
   const pickupMode = isPickupRate(selectedRate);
   const digitalMode = digitalOnly || isDigitalRate(selectedRate);
@@ -116,6 +118,11 @@ export default function CheckoutScreen() {
   const useStateSelect = states.length > 0;
   const needDistrict =
     showAddress && bostaEnabled && districts.length > 0 && !districtId;
+
+  // COD allowlist membership can change in POS while the app stays signed in.
+  useEffect(() => {
+    if (token) void refreshContact();
+  }, [token, refreshContact]);
 
   useEffect(() => {
     if (!codEnabled && onlineEnabled) {

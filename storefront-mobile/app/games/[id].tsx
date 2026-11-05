@@ -45,6 +45,8 @@ import {
 import { toast } from "../../src/lib/toast";
 import { useRtl } from "../../src/lib/rtl";
 import { buildWhatsAppUrl, normalizeWhatsAppDigits } from "../../src/lib/whatsapp";
+import { STOREFRONT_WEB_URL } from "../../src/lib/config";
+import { ShareTargets } from "../../src/components/share/ShareTargets";
 
 type Platform = "4" | "5";
 
@@ -491,6 +493,11 @@ export default function GameDetailScreen() {
             </Text>
           </Pressable>
         ) : null}
+
+        <ShareTargets
+          title={title}
+          url={`${STOREFRONT_WEB_URL}/${locale}/games/${encodeURIComponent(String(game.id ?? id))}?platform=${platform}`}
+        />
 
         <View style={styles.trust}>
           <Text style={[styles.trustItem, { textAlign, writingDirection }]}>

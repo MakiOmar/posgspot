@@ -4,11 +4,9 @@ import {
   Dimensions,
   FlatList,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
-  Platform,
 } from "react-native";
 import type { KeyboardAwareScrollViewRef } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +22,7 @@ import { useCart } from "../../src/contexts/CartContext";
 import { useWishlist } from "../../src/contexts/WishlistContext";
 import { AvailabilityModal } from "../../src/components/catalog/AvailabilityModal";
 import { ProductCard } from "../../src/components/catalog/ProductCard";
+import { RecentlyViewedRail } from "../../src/components/catalog/RecentlyViewedRail";
 import { StarRating } from "../../src/components/catalog/StarRating";
 import { ProductGallery } from "../../src/components/pdp/ProductGallery";
 import { ProductReviews } from "../../src/components/pdp/ProductReviews";
@@ -37,6 +36,9 @@ import {
 import { STOREFRONT_WEB_URL } from "../../src/lib/config";
 import { absoluteMediaUrl } from "../../src/lib/storefront-href";
 import { paramString } from "../../src/lib/product-path";
+import { productSummaryFromDetail } from "../../src/lib/recently-viewed";
+import { shareNative } from "../../src/lib/share";
+import { ShareTargets } from "../../src/components/share/ShareTargets";
 import { useRtl } from "../../src/lib/rtl";
 import { toast } from "../../src/lib/toast";
 import type {
@@ -156,6 +158,11 @@ export default function ProductScreen() {
     return Array.from(new Set(list));
   }, [product, variation]);
 
+  const recentSummary = useMemo(
+    () => (product ? productSummaryFromDetail(product, variationId, images[0] ?? null) : null),
+    [product, variationId, images],
+  );
+
   const inStock = variation?.in_stock ?? product?.in_stock ?? true;
   const wished = product ? isInWishlist(product.id) : false;
 
@@ -200,23 +207,13 @@ export default function ProductScreen() {
     }
   };
 
+  const shareUrl = product
+    ? `${STOREFRONT_WEB_URL}/${locale}/products/${encodeURIComponent(product.slug || String(product.id))}`
+    : "";
+
   const onShare = async () => {
     if (!product) return;
-    const path = `/products/${encodeURIComponent(product.slug || String(product.id))}`;
-    const url = `${STOREFRONT_WEB_URL}/${locale}${path}`;
-    try {
-      await Share.share(
-        Platform.OS === "ios"
-          ? { title: product.name, message: product.name, url }
-          : { title: product.name, message: `${product.name}\n${url}` },
-        { dialogTitle: t("share.label") },
-      );
-    } catch (e) {
-      // User dismiss is not an error on some platforms.
-      if (e && typeof e === "object" && "message" in e) {
-        const msg = String((e as { message?: string }).message || "");
-        if (/cancel|dismiss/i.test(msg)) return;
-      }
+    if (!(await shareNative(product.name, shareUrl, t("share.label")))) {
       toast.error(t("common.error"), t("share.failed"));
     }
   };
@@ -372,6 +369,10 @@ export default function ProductScreen() {
               t("product.noDescription")}
           </Text>
 
+          <View style={styles.share}>
+            <ShareTargets title={product.name} url={shareUrl} />
+          </View>
+
           {(product.related_products?.length || 0) > 0 ? (
             <View style={styles.related}>
               <Text style={[styles.section, { textAlign, writingDirection }]}>
@@ -392,6 +393,10 @@ export default function ProductScreen() {
               />
             </View>
           ) : null}
+
+          <View style={styles.recent}>
+            <RecentlyViewedRail recordProduct={recentSummary} />
+          </View>
 
           <View
             onLayout={(e) => {
@@ -475,4 +480,6 @@ const styles = StyleSheet.create({
   varText: { fontWeight: "600", fontSize: 13 },
   desc: { color: "#333", lineHeight: 22, marginVertical: 16, paddingHorizontal: 16 },
   related: { marginTop: 20, paddingLeft: 16 },
+  recent: { marginTop: 20 },
+  share: { paddingHorizontal: 16 },
 });

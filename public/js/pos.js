@@ -2072,6 +2072,7 @@ function reset_pos_form(){
 	if(pos_form_obj[0]){
 		pos_form_obj[0].reset();
 	}
+	clear_pos_payment_image();
 	if(sell_form[0]){
 		sell_form[0].reset();
 	}
@@ -2682,6 +2683,68 @@ function enable_pos_form_actions(){
     $('#pos-save').removeAttr('disabled');
     $('div.pos-form-actions').find('button').removeAttr('disabled');
 }
+
+function clear_pos_payment_image() {
+    var field = $('.pos-payment-image');
+    field.find('.pos-payment-image-name').val('');
+    field.find('.pos-payment-image-picker').val('');
+    field.find('.pos-payment-image-status').text('');
+    field.find('.pos-payment-image-preview').addClass('hide').find('img').attr('src', '');
+}
+
+$(document).on('change', '.pos-payment-image-picker', function() {
+    var file = this.files && this.files[0];
+    var field = $(this).closest('.pos-payment-image');
+    if (!file) {
+        return;
+    }
+
+    var max_bytes = parseInt(field.data('max-bytes'), 10) || 0;
+    if (max_bytes && file.size > max_bytes) {
+        toastr.error(file.name + ': ' + field.data('msg-too-large'));
+        $(this).val('');
+        return;
+    }
+
+    var form_data = new FormData();
+    form_data.append('image', file);
+
+    $.ajax({
+        method: 'POST',
+        url: field.data('upload-url'),
+        data: form_data,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        beforeSend: function() {
+            field.find('.pos-payment-image-status').text(field.data('msg-uploading'));
+            $('#pos-save').attr('disabled', 'true');
+        },
+        success: function(result) {
+            if (result.success) {
+                field.find('.pos-payment-image-name').val(result.filename);
+                field.find('.pos-payment-image-preview').removeClass('hide').find('img').attr('src', result.url);
+                field.find('.pos-payment-image-status').text('');
+            } else {
+                clear_pos_payment_image();
+                toastr.error(result.msg);
+            }
+        },
+        error: function(xhr) {
+            clear_pos_payment_image();
+            var msg = xhr.responseJSON && xhr.responseJSON.msg ? xhr.responseJSON.msg : LANG.something_went_wrong;
+            toastr.error(msg);
+        },
+        complete: function() {
+            field.find('.pos-payment-image-picker').val('');
+            $('#pos-save').removeAttr('disabled');
+        },
+    });
+});
+
+$(document).on('click', '.pos-payment-image-clear', function() {
+    clear_pos_payment_image();
+});
 
 $(document).on('change', '#recur_interval_type', function() {
     if ($(this).val() == 'months') {

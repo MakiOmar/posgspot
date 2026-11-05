@@ -11,6 +11,7 @@ import { LabeledInput } from "../src/components/LabeledInput";
 import { PhoneInput } from "../src/components/PhoneInput";
 import { PrimaryButton } from "../src/components/ui";
 import { SocialLoginButtons } from "../src/components/auth/SocialLoginButtons";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 import { useRtl } from "../src/lib/rtl";
 
 type LoginMethod = "email" | "phone" | "passkey";
@@ -32,6 +33,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   useEffect(() => {
     if (passkeyCanUnlock) {
@@ -156,6 +158,7 @@ export default function LoginScreen() {
               {t("auth.forgotPassword")}
             </Text>
           </Pressable>
+          <TurnstileWidget turnstile={turnstile} />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <PrimaryButton
             label={busy ? t("common.loading") : t("auth.login")}
@@ -169,15 +172,19 @@ export default function LoginScreen() {
                 setError(t("checkout.requiredContact"));
                 return;
               }
+              if (!turnstile.ensure()) {
+                return;
+              }
               setBusy(true);
               setError(null);
-              void signIn(loginId, password)
+              void signIn(loginId, password, turnstile.payload().turnstile_token)
                 .then(() => {
                   goAfterLogin();
                 })
-                .catch((e) =>
-                  setError(e instanceof Error ? e.message : t("common.error")),
-                )
+                .catch((e) => {
+                  turnstile.reset();
+                  setError(e instanceof Error ? e.message : t("common.error"));
+                })
                 .finally(() => setBusy(false));
             }}
           />

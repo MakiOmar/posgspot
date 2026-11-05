@@ -130,6 +130,7 @@
         }
       ],
       "./plugins/withGeideaSdk.js",
+      "./plugins/withGradleJvmArgs.js",
       "expo-image",
       [
         "expo-local-authentication",

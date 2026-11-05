@@ -539,8 +539,9 @@ class SellPosController extends Controller
                     $input['is_kitchen_order'] = request()->get('is_kitchen_order');
                 }
 
-                //upload document
-                $input['document'] = $this->transactionUtil->uploadFile($request, 'sell_document', 'documents');
+                //upload document, else keep an image already uploaded from the payment modal
+                $input['document'] = $this->transactionUtil->uploadFile($request, 'sell_document', 'documents')
+                    ?? app(SellDocumentService::class)->resolveUploadedImageName($request->input('document'));
 
                 $transaction = $this->transactionUtil->createSellTransaction($business_id, $input, $invoice_total, $user_id);
                 $this->applySalesOrderDoneFlag($transaction, $request);
@@ -1352,10 +1353,13 @@ class SellPosController extends Controller
                     $input['is_kitchen_order'] = request()->get('is_kitchen_order');
                 }
 
-                //upload document
-                $document_name = $this->transactionUtil->uploadFile($request, 'sell_document', 'documents');
+                //upload document, else keep an image already uploaded from the payment modal
+                $document_name = $this->transactionUtil->uploadFile($request, 'sell_document', 'documents')
+                    ?? app(SellDocumentService::class)->resolveUploadedImageName($request->input('document'));
                 if (!empty($document_name)) {
                     $input['document'] = $document_name;
+                } else {
+                    unset($input['document']);
                 }
 
                 if ($request->input('additional_expense_value_1') != '') {
@@ -1663,6 +1667,11 @@ class SellPosController extends Controller
         $input['payment'][] = $change_return;
         $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
         $this->cashRegisterUtil->updateSellPayments($transaction->status, $transaction, $input['payment']);
+
+        if (!empty($input['document'])) {
+            $transaction->document = $input['document'];
+            $transaction->save();
+        }
 
         //Update payment status
         $payment_status = $this->transactionUtil->updatePaymentStatus($transaction->id, $transaction->final_total);
@@ -2088,6 +2097,40 @@ class SellPosController extends Controller
 
         return view('sale_pos.partials.payment_row')
             ->with(compact('payment_types', 'row_index', 'removable', 'payment_line', 'accounts'));
+    }
+
+    /**
+     * Uploads the payment modal image before the sale is submitted; the returned
+     * filename is posted with the sale as `document`.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function uploadPosImage(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->can('sell.create') && !$user->can('sell.update') && !$user->can('edit_pos_payment')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $file_name = app(SellDocumentService::class)->storePosImage($request);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'msg' => collect($e->errors())->flatten()->first()], 422);
+        } catch (\Exception $e) {
+            \Log::emergency('POS image upload failed: ' . $e->getMessage(), ['file' => $e->getFile(), 'line' => $e->getLine()]);
+
+            return response()->json(['success' => false, 'msg' => __('messages.something_went_wrong')], 500);
+        }
+
+        if (empty($file_name)) {
+            return response()->json(['success' => false, 'msg' => __('messages.something_went_wrong')], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'filename' => $file_name,
+            'url' => asset('uploads/' . SellDocumentService::DOCUMENTS_DIR . '/' . rawurlencode($file_name)),
+        ]);
     }
 
     /**

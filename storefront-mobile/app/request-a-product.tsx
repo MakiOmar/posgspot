@@ -9,6 +9,7 @@ import {
 } from "../src/lib/api";
 import { LabeledInput } from "../src/components/LabeledInput";
 import { SelectField } from "../src/components/SelectField";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 import type { RequestProductMeta } from "../src/lib/types";
 
 export default function RequestProductScreen() {
@@ -25,6 +26,7 @@ export default function RequestProductScreen() {
   const [notes, setNotes] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   useEffect(() => {
     if (!enabled) return;
@@ -105,6 +107,7 @@ export default function RequestProductScreen() {
           keyboardType="phone-pad"
         />
 
+        <TurnstileWidget turnstile={turnstile} />
         {status ? <Text style={styles.status}>{status}</Text> : null}
         <PrimaryButton
           label={busy ? t("requestProduct.submitting") : t("requestProduct.submit")}
@@ -112,6 +115,9 @@ export default function RequestProductScreen() {
           onPress={() => {
             if (!productName.trim() || !name.trim() || !email.trim()) {
               setStatus(t("requestProduct.failed"));
+              return;
+            }
+            if (!turnstile.ensure()) {
               return;
             }
             setBusy(true);
@@ -124,6 +130,7 @@ export default function RequestProductScreen() {
                 product_name: productName.trim(),
                 ...(platform ? { platform } : {}),
                 ...(notes.trim() ? { notes: notes.trim() } : {}),
+                ...turnstile.payload(),
               },
               token,
             )
@@ -138,7 +145,10 @@ export default function RequestProductScreen() {
                   e instanceof Error ? e.message : t("requestProduct.failed"),
                 ),
               )
-              .finally(() => setBusy(false));
+              .finally(() => {
+                turnstile.reset();
+                setBusy(false);
+              });
           }}
         />
       </FormScrollView>

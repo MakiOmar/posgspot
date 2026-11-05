@@ -5,11 +5,6 @@ export interface AboutVisionItem {
   text: string;
 }
 
-export interface AboutTeamMember {
-  name: string;
-  role: string;
-}
-
 export interface AboutPageContent {
   kicker: string;
   lead: string;
@@ -22,7 +17,6 @@ export interface AboutPageContent {
   historyTitle: string;
   historyIntro: string;
   teamTitle: string;
-  team: AboutTeamMember[];
 }
 
 export const ABOUT_CONTENT_AR: AboutPageContent = {
@@ -55,11 +49,4 @@ export const ABOUT_CONTENT_AR: AboutPageContent = {
   historyTitle: "نصنع التاريخ معًا",
   historyIntro: "كل افتتاح فرع وكل صيانة مكتملة جزء من قصتنا مع مجتمع الألعاب في مصر.",
   teamTitle: "فريقنا",
-  team: [
-    { name: "Mohamed Salah", role: "الرئيس التنفيذي والمؤسس" },
-    { name: "Ahmed Hassan", role: "مدير العمليات" },
-    { name: "Karim Ali", role: "رئيس قسم الصيانة" },
-    { name: "Sara Mahmoud", role: "تجربة العملاء" },
-    { name: "Omar Nabil", role: "قائد التجزئة" },
-  ],
 };

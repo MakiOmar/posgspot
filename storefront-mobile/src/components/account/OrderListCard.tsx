@@ -5,23 +5,24 @@ import { Link } from "expo-router";
 import type { AccountOrder } from "../../lib/types";
 import { useApp } from "../../contexts/AppContext";
 import { useRtl } from "../../lib/rtl";
+import {
+  PAYMENT_BADGE_COLORS,
+  paymentStatusLabel,
+  paymentStatusTone,
+  shippingStatusLabel,
+} from "../../lib/order-status";
 
-type BadgeColors = { backgroundColor: string; color: string };
-
-/** Soft badge palette by payment_status (case-insensitive). */
-export function paymentStatusBadgeColors(status: string | undefined): BadgeColors {
-  switch ((status ?? "").trim().toLowerCase()) {
-    case "paid":
-      return { backgroundColor: "#E8F5E9", color: "#1B5E20" };
-    case "pending":
-      return { backgroundColor: "#FFF8E1", color: "#F57F17" };
-    case "due":
-      return { backgroundColor: "#FFF3E0", color: "#E65100" };
-    case "failed":
-      return { backgroundColor: "#FFEBEE", color: "#B71C1C" };
-    default:
-      return { backgroundColor: "#F0F0F0", color: "#555555" };
-  }
+/** Localized payment status pill (paid / not paid / partial / pending / failed). */
+export function PaymentStatusBadge({ status }: { status?: string | null }) {
+  const { locale } = useApp();
+  const badge = PAYMENT_BADGE_COLORS[paymentStatusTone(status)];
+  return (
+    <View style={[styles.badge, { backgroundColor: badge.backgroundColor }]}>
+      <Text style={[styles.badgeText, { color: badge.color }]}>
+        {paymentStatusLabel(locale, status)}
+      </Text>
+    </View>
+  );
 }
 
 /** Tappable order row: title, status badge, total, circular chevron. */
@@ -32,16 +33,15 @@ export function OrderListCard({
   order: AccountOrder;
   footer?: ReactNode;
 }) {
-  const { accent } = useApp();
+  const { accent, locale } = useApp();
   const { row, textAlign, writingDirection, isRtl } = useRtl();
-  const badge = paymentStatusBadgeColors(order.payment_status);
   const title =
     order.invoice_no || order.storefront_order_id || `#${order.id}`;
   const total =
     order.final_total != null
       ? `${Number(order.final_total).toFixed(2)} EGP`
       : null;
-  const statusLabel = (order.payment_status || "—").trim() || "—";
+  const shipping = shippingStatusLabel(locale, order.shipping_status);
 
   return (
     <View style={styles.card}>
@@ -59,16 +59,12 @@ export function OrderListCard({
               {title}
             </Text>
             <View style={[styles.metaRow, { flexDirection: row }]}>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: badge.backgroundColor },
-                ]}
-              >
-                <Text style={[styles.badgeText, { color: badge.color }]}>
-                  {statusLabel}
+              <PaymentStatusBadge status={order.payment_status} />
+              {shipping ? (
+                <Text style={[styles.shipping, { textAlign, writingDirection }]}>
+                  {shipping}
                 </Text>
-              </View>
+              ) : null}
               {total ? (
                 <Text style={[styles.total, { textAlign, writingDirection }]}>
                   {total}
@@ -117,8 +113,8 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 12,
     fontWeight: "700",
-    textTransform: "capitalize",
   },
+  shipping: { color: "#333", fontSize: 12, fontWeight: "600" },
   total: { color: "#555", fontSize: 13, fontWeight: "500" },
   chevronCircle: {
     width: 36,

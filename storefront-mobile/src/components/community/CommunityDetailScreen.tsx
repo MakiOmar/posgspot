@@ -17,6 +17,9 @@ import { toast } from "../../lib/toast";
 import { LabeledInput } from "../LabeledInput";
 import { PhoneInput } from "../PhoneInput";
 import { LoadingBlock, PrimaryButton, Screen } from "../ui";
+import { TurnstileWidget, useTurnstile } from "../forms/Turnstile";
+import { ImageLightbox } from "../media/ImageLightbox";
+import { CommunityExtras } from "./CommunityExtras";
 import type { CommunityPostDetail, CommunityPostType } from "../../lib/types";
 
 function stripUnsafeHtml(html: string): string {
@@ -129,6 +132,8 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
   const [nationalNumber, setNationalNumber] = useState("");
   const [fullPhone, setFullPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const turnstile = useTurnstile();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!enabled || !slug) {
@@ -181,6 +186,11 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
     return rows;
   }, [post, t]);
 
+  const galleryImages = useMemo(
+    () => (post?.media ?? []).filter((item) => item.kind === "image").map((item) => item.url),
+    [post],
+  );
+
   if (!enabled) {
     return (
       <Screen>
@@ -230,6 +240,9 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
       toast.error(t("community.applyFailed"));
       return;
     }
+    if (!turnstile.ensure()) {
+      return;
+    }
     setSubmitting(true);
     try {
       await submitCommunityApplication(
@@ -239,6 +252,7 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
           mobile: fullPhone.trim(),
           dial_code: dialCode,
           source: "mobile",
+          ...turnstile.payload(),
         },
         locale,
       );
@@ -253,6 +267,7 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
           : t("community.applyFailed"),
       );
     } finally {
+      turnstile.reset();
       setSubmitting(false);
     }
   };
@@ -313,8 +328,18 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
                 {post.media.map((item, index) => (
                   <Pressable
                     key={`${item.url}-${index}`}
-                    onPress={() => void Linking.openURL(item.url)}
+                    onPress={() => {
+                      if (item.kind === "image") {
+                        setLightboxIndex(galleryImages.indexOf(item.url));
+                        return;
+                      }
+                      void Linking.openURL(item.url);
+                    }}
                     style={styles.galleryItem}
+                    accessibilityRole={item.kind === "image" ? "imagebutton" : "link"}
+                    accessibilityLabel={
+                      item.kind === "image" ? t("lightbox.open") : item.caption || t("community.gallery")
+                    }
                   >
                     {item.kind === "image" ? (
                       <Image source={{ uri: item.url }} style={styles.galleryImage} />
@@ -362,6 +387,7 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
                   setFullPhone(nextFull);
                 }}
               />
+              <TurnstileWidget turnstile={turnstile} />
               <PrimaryButton
                 label={submitting ? t("community.submitting") : t("community.submitApply")}
                 onPress={() => void submitInternal()}
@@ -393,12 +419,19 @@ export function CommunityDetailScreen({ expectedType, listPath }: Props) {
             </View>
           ) : null}
 
+          <CommunityExtras />
+
           <PrimaryButton
             label={t("community.back")}
             onPress={() => router.replace(listPath as never)}
           />
         </View>
       </ScrollView>
+      <ImageLightbox
+        images={galleryImages}
+        startIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
     </Screen>
   );
 }

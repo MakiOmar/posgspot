@@ -122,6 +122,7 @@ export default function GamesScreen() {
   const isPlus = productType === "subscription";
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
+  const [inStockOnly, setInStockOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
   const [games, setGames] = useState<DigitalGameSummary[]>([]);
@@ -151,6 +152,7 @@ export default function GamesScreen() {
           locale,
           debouncedQ || undefined,
           productType,
+          inStockOnly,
         );
         const list = data.games || [];
         setGames((prev) => (append ? [...prev, ...list] : list));
@@ -165,7 +167,7 @@ export default function GamesScreen() {
         setLoadingMore(false);
       }
     },
-    [locale, t, settings, platform, debouncedQ, productType],
+    [locale, t, settings, platform, debouncedQ, productType, inStockOnly],
   );
 
   useEffect(() => {
@@ -201,6 +203,19 @@ export default function GamesScreen() {
               </Pressable>
             );
           })}
+          <Pressable
+            style={[
+              styles.chip,
+              inStockOnly && { borderColor: accent, backgroundColor: "#fff8e8" },
+            ]}
+            onPress={() => setInStockOnly((on) => !on)}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: inStockOnly }}
+          >
+            <Text style={[styles.chipText, { textAlign, writingDirection }]}>
+              {inStockOnly ? `✓ ${t("plp.inStockOnly")}` : t("plp.inStockOnly")}
+            </Text>
+          </Pressable>
         </View>
         <FormTextInput
           style={styles.search}
@@ -212,7 +227,7 @@ export default function GamesScreen() {
         />
       </View>
     ),
-    [accent, isPlus, platform, q, row, t, textAlign, writingDirection],
+    [accent, inStockOnly, isPlus, platform, q, row, t, textAlign, writingDirection],
   );
 
   if (loading && games.length === 0) {
@@ -263,7 +278,13 @@ export default function GamesScreen() {
             ListEmptyComponent={
               loading ? null : (
                 <Text style={[styles.empty, { textAlign }]}>
-                  {isPlus ? t("digital.noPsPlus") : t("digital.noGames")}
+                  {inStockOnly
+                    ? isPlus
+                      ? t("digital.noInStockPsPlus")
+                      : t("digital.noInStockGames")
+                    : isPlus
+                      ? t("digital.noPsPlus")
+                      : t("digital.noGames")}
                 </Text>
               )
             }
@@ -284,7 +305,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listPad: { paddingBottom: 24 },
   lead: { color: "#666", marginTop: 8, marginBottom: 12, lineHeight: 20 },
-  platformRow: { gap: 8, marginBottom: 10 },
+  platformRow: { gap: 8, marginBottom: 10, flexWrap: "wrap" },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

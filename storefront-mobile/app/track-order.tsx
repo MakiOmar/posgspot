@@ -11,7 +11,8 @@ import {
   PrimaryButton,
   Screen,
 } from "../src/components/ui";
-import type { AccountOrder, TrackedOrder } from "../src/lib/types";
+import type { AccountOrder, ContentLocale, TrackedOrder } from "../src/lib/types";
+import { paymentStatusLabel, shippingStatusLabel } from "../src/lib/order-status";
 
 function looksLikeEmail(value: string): boolean {
   return value.includes("@");
@@ -20,9 +21,11 @@ function looksLikeEmail(value: string): boolean {
 function TrackedCard({
   order,
   t,
+  locale,
 }: {
   order: TrackedOrder;
   t: (key: string) => string;
+  locale: ContentLocale;
 }) {
   return (
     <View style={styles.card}>
@@ -36,12 +39,12 @@ function TrackedCard({
       ) : null}
       {order.payment_status ? (
         <Text>
-          {t("trackOrder.payment")}: {order.payment_status}
+          {t("trackOrder.payment")}: {paymentStatusLabel(locale, order.payment_status)}
         </Text>
       ) : null}
       {order.shipping_status ? (
         <Text>
-          {t("trackOrder.shipping")}: {order.shipping_status}
+          {t("trackOrder.shipping")}: {shippingStatusLabel(locale, order.shipping_status)}
         </Text>
       ) : null}
       {order.shipping_carrier ? (
@@ -78,7 +81,7 @@ function TrackedCard({
 }
 
 export default function TrackOrderScreen() {
-  const { t, token, accent } = useApp();
+  const { t, token, accent, locale } = useApp();
   const [invoiceNo, setInvoiceNo] = useState("");
   const [phoneOrEmail, setPhoneOrEmail] = useState("");
   const [tracked, setTracked] = useState<TrackedOrder | null>(null);
@@ -173,7 +176,7 @@ export default function TrackOrderScreen() {
                 .finally(() => setBusy(false));
             }}
           />
-          {tracked ? <TrackedCard order={tracked} t={t} /> : null}
+          {tracked ? <TrackedCard order={tracked} t={t} locale={locale} /> : null}
         </View>
       </FormScrollView>
     </Screen>

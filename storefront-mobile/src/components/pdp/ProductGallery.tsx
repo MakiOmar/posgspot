@@ -1,4 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useState } from "react";
 import {
   Dimensions,
   Pressable,
@@ -8,6 +9,7 @@ import {
   View,
 } from "react-native";
 import { RemoteImage } from "../RemoteImage";
+import { ImageLightbox } from "../media/ImageLightbox";
 import { useApp } from "../../contexts/AppContext";
 import { useRtl } from "../../lib/rtl";
 
@@ -33,6 +35,7 @@ export function ProductGallery({
 }: Props) {
   const { t, accent } = useApp();
   const { end } = useRtl();
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   return (
     <View style={styles.galleryWrap}>
@@ -46,14 +49,22 @@ export function ProductGallery({
         }}
       >
         {(images.length ? images : [null]).map((uri, idx) => (
-          <RemoteImage
+          <Pressable
             key={`${uri || "ph"}-${idx}`}
-            uri={uri}
-            style={styles.image}
-            placeholderColor="#eee"
-          />
+            onPress={() => uri && setLightboxIndex(idx)}
+            disabled={!uri}
+            accessibilityRole="imagebutton"
+            accessibilityLabel={t("lightbox.open")}
+          >
+            <RemoteImage uri={uri} style={styles.image} placeholderColor="#eee" />
+          </Pressable>
         ))}
       </ScrollView>
+      <ImageLightbox
+        images={images}
+        startIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
 
       {/* Floating share + wishlist — top-end (right LTR / left RTL) */}
       <View

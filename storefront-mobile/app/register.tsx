@@ -10,6 +10,7 @@ import { LabeledInput } from "../src/components/LabeledInput";
 import { PhoneInput } from "../src/components/PhoneInput";
 import { PrimaryButton } from "../src/components/ui";
 import { SocialLoginButtons } from "../src/components/auth/SocialLoginButtons";
+import { TurnstileWidget, useTurnstile } from "../src/components/forms/Turnstile";
 import { useRtl } from "../src/lib/rtl";
 
 export default function RegisterScreen() {
@@ -31,6 +32,7 @@ export default function RegisterScreen() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const turnstile = useTurnstile();
 
   const loginHref = {
     pathname: "/login" as const,
@@ -91,6 +93,7 @@ export default function RegisterScreen() {
         onChangeText={setConfirm}
         secureTextEntry
       />
+      <TurnstileWidget turnstile={turnstile} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PrimaryButton
         label={busy ? t("common.loading") : t("auth.createAccount")}
@@ -104,6 +107,9 @@ export default function RegisterScreen() {
             setError(t("auth.confirmPassword"));
             return;
           }
+          if (!turnstile.ensure()) {
+            return;
+          }
           setBusy(true);
           setError(null);
           const body: Record<string, unknown> = {
@@ -112,6 +118,7 @@ export default function RegisterScreen() {
             email: email.trim(),
             password,
             password_confirmation: confirm,
+            ...turnstile.payload(),
           };
           if (fullPhone || national) {
             body.mobile = fullPhone || `${dialCode}${national}`;
@@ -124,9 +131,10 @@ export default function RegisterScreen() {
                 params: { email: email.trim(), next: nextPath },
               } as unknown as Href),
             )
-            .catch((e) =>
-              setError(e instanceof Error ? e.message : t("common.error")),
-            )
+            .catch((e) => {
+              turnstile.reset();
+              setError(e instanceof Error ? e.message : t("common.error"));
+            })
             .finally(() => setBusy(false));
         }}
       />

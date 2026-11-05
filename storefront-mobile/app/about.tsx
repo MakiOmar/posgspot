@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useApp } from "../src/contexts/AppContext";
 import { getAboutContent } from "../src/lib/content/about-content";
 import { Screen } from "../src/components/ui";
+import { AboutTeam } from "../src/components/content/AboutTeam";
 
 export default function AboutScreen() {
   const { settings, locale } = useApp();
@@ -28,12 +29,7 @@ export default function AboutScreen() {
           </View>
         ))}
 
-        <Text style={styles.section}>{content.teamTitle}</Text>
-        {content.team.map((member) => (
-          <Text key={member.name} style={styles.body}>
-            {member.name} — {member.role}
-          </Text>
-        ))}
+        <AboutTeam title={content.teamTitle} members={settings?.about?.team ?? []} />
       </ScrollView>
     </Screen>
   );

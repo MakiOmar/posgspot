@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-27 |
+| **Last updated** | 2026-11-04 |
 | **Phase** | Phase 4 — React Native (Expo Dev Client) |
 | **Overall** | Nav parity (Community live when enabled); contact FAB; Track Order; Custom Bundle + Sell to us; Community Featured/registration; digital + auth-gated repair/console |
 
@@ -82,6 +82,18 @@
 | M2 commerce (Fawry wrapper, Geidea hosted pay, coupons, RP, wishlist, reviews) | Done |
 | M3 extras (digital, stores, repair, content) | Done |
 | M4 store release (EAS config + listing checklist) | Partial — replace EAS/project IDs before submit |
+| COD allowlist (`cod_allowed` + verified email when store-wide COD is off) | Done — profile refreshed on checkout |
+| Pay Now via `POST /account/orders/{id}/payment-access` (detail, orders list, payments list) | Done — prefers API `can_pay_online` |
+| Translated payment / shipping status labels (orders, payments, track order) | Done |
+| Gift cards brand → country → grid + `card_art` faces | Done — `?q=` / `?all=1` keep flat grid; `npm test` covers grouping |
+| Games / PS Plus in-stock filter chip (`in_stock_only=1`) | Done |
+| Turnstile (WebView, `baseUrl` = storefront origin) | Done — login, register, contact, request a product, guest repair / track-console lookup, community registration, newsletter |
+| Recently viewed (AsyncStorage `gs-recently-viewed-{locale}-v2`, 12 kept / 8 shown / 7-day TTL) | Done — home `recently_viewed` section + PDP rail |
+| About team from `settings.about.team` | Done — photo / initials cards + social links |
+| Newsletter signup (`POST /newsletter/subscribe`) | Done — when `settings.newsletter.enabled`; community extras block |
+| Community extras (newsletter, news search `?q=`, 5 upcoming tournaments / events) | Done — list footer + detail |
+| PDP + game share row (native, copy link, WhatsApp, Facebook, X) | Done — `expo-clipboard` (needs a new dev build) |
+| Fullscreen image lightbox (PDP gallery, community gallery images) | Done |
 
 ---
 
@@ -89,6 +101,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-11-04 | Web parity: COD allowlist, payment-access Pay Now, translated status labels; gift card brand/country browse + art; games in-stock chip; Turnstile WebView on website forms; recently viewed; About team from settings; newsletter + community extras; share row; image lightbox; `npm test` (node --test). |
 | 2026-09-27 | Game PDP and gift cards add the synced per-offer / per-category POS product (`pos_offers`, `pos_sku`), falling back to shared `skus`; reorder keeps `digital` meta. |
 | 2026-09-21 | Digital parity: fixed PDP `setReviewPhone` crash; offer row + stock pills; prefetch live stock; list stock line; PS Plus stack title; review profile link + ProductReviews avatars. |
 | 2026-09-19 | List perf: horizontal FlatList product rails; memo ProductCard + shared AvailabilityModal; PLP FlatList window tuning; Wave 3 hygiene (gitignore play SA, expo-crypto guest UUID, iOS screen-capture, lazy invoice PDF). |

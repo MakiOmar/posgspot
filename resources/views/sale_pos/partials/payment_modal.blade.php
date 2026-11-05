@@ -129,6 +129,39 @@
                                 </div>
                             </div>
                         </div>
+                        {{-- Image is uploaded on pick; only its stored filename is posted with the sale as `document` --}}
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group pos-payment-image"
+                                    data-upload-url="{{ route('sells.pos.upload-image') }}"
+                                    data-max-bytes="{{ (int) config('constants.document_size_limit') }}"
+                                    data-msg-too-large="{{ __('lang_v1.sell_document_too_large', ['size' => config('constants.document_size_limit') / 1000000]) }}"
+                                    data-msg-uploading="{{ __('lang_v1.uploading') }}">
+                                    {!! Form::label('pos_payment_image_picker', __('lang_v1.attach_image') . ':') !!}
+                                    <div>
+                                        <label for="pos_payment_image_picker"
+                                            class="tw-dw-btn tw-dw-btn-sm tw-dw-btn-primary tw-text-white pos-payment-image-choose"
+                                            style="cursor: pointer;">
+                                            <i class="fa fa-image"></i> @lang('lang_v1.choose_image')
+                                        </label>
+                                        <input type="file" id="pos_payment_image_picker" class="pos-payment-image-picker"
+                                            accept="image/jpeg,image/png,image/webp" style="display: none;">
+                                        <input type="hidden" name="document" class="pos-payment-image-name" value="">
+                                        <span class="pos-payment-image-status text-muted"></span>
+                                    </div>
+                                    <div class="pos-payment-image-preview hide" style="margin-top: 8px;">
+                                        <img src="" alt="" class="img-thumbnail" style="max-height: 120px;">
+                                        <button type="button"
+                                            class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-error pos-payment-image-clear">
+                                            <i class="fas fa-times"></i> @lang('messages.delete')
+                                        </button>
+                                    </div>
+                                    <p class="help-block">
+                                        @lang('purchase.max_file_size', ['size' => config('constants.document_size_limit') / 1000000])
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <div class="box box-solid bg-orange">

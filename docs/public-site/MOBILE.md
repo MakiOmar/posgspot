@@ -1,6 +1,7 @@
 # Games Spot Mobile App
 
 **Progress tracker:** [`MOBILE_PROGRESS.md`](./MOBILE_PROGRESS.md)  
+**Web changes not yet on mobile:** [`MOBILE_PORT_BACKLOG.md`](./MOBILE_PORT_BACKLOG.md)  
 **Web storefront:** [`README.md`](./README.md) · **API:** [`API.md`](./API.md)
 
 React Native (Expo Dev Client) iOS/Android client for the same Storefront API as Qwik.
