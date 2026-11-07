@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Contact;
 use App\Jobs\NotifyStaffOfStorefrontOrder;
 use App\Mail\StorefrontOrderConfirmation;
+use App\Services\Storefront\CartValidationService;
 use App\Services\Storefront\CheckoutService;
 use App\Services\Storefront\StorefrontStaffOrderAlert;
 use Illuminate\Http\Request;
@@ -22,9 +23,9 @@ class CheckoutController extends StorefrontController
     {
         $data = $request->validate([
             'idempotency_key' => 'required|string|max:191',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.CartValidationService::MAX_LINES,
             'items.*.variation_id' => 'required|integer',
-            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.digital' => 'nullable|array',
             'items.*.digital.kind' => 'nullable|in:game,card',
             'items.*.digital.game_id' => 'nullable|integer|min:1',

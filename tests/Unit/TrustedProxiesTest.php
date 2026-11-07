@@ -41,10 +41,10 @@ class TrustedProxiesTest extends TestCase
         $this->assertSame('8.8.8.8', $this->clientIpThroughMiddleware('8.8.8.8', '1.2.3.4'));
     }
 
-    public function test_without_config_the_immediate_caller_is_trusted_as_before(): void
+    public function test_without_config_forwarded_headers_are_not_trusted(): void
     {
         config(['trustedproxy.proxies' => null]);
 
-        $this->assertSame('41.33.10.5', $this->clientIpThroughMiddleware('172.18.0.4', '41.33.10.5'));
+        $this->assertSame('172.18.0.4', $this->clientIpThroughMiddleware('172.18.0.4', '41.33.10.5'));
     }
 }

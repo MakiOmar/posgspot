@@ -6,7 +6,6 @@ use App\Contact;
 use App\Services\Storefront\SocialAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class SocialAuthController extends StorefrontController
 {
@@ -24,7 +23,7 @@ class SocialAuthController extends StorefrontController
         ]);
 
         $intent = $data['intent'] ?? 'login';
-        $contact = $this->optionalSanctumContact($request);
+        $contact = $this->optionalSanctumContact();
 
         if ($intent === 'link') {
             if (! $contact) {
@@ -99,7 +98,7 @@ class SocialAuthController extends StorefrontController
         ]);
 
         $intent = $data['intent'] ?? 'login';
-        $contact = $this->optionalSanctumContact($request);
+        $contact = $this->optionalSanctumContact();
 
         if ($intent === 'link') {
             if (! $contact) {
@@ -144,19 +143,5 @@ class SocialAuthController extends StorefrontController
             'message' => 'Social account disconnected.',
             'identities' => $this->socialAuth->listIdentities($contact->fresh()),
         ]);
-    }
-
-    private function optionalSanctumContact(Request $request): ?Contact
-    {
-        $bearer = $request->bearerToken();
-        if (! $bearer) {
-            return null;
-        }
-        $accessToken = PersonalAccessToken::findToken($bearer);
-        if (! $accessToken || ! ($accessToken->tokenable instanceof Contact)) {
-            return null;
-        }
-
-        return $accessToken->tokenable;
     }
 }

@@ -18,10 +18,13 @@ class CustomerAuthService
 {
     public const VERIFY_CODE_TTL_MINUTES = 30;
 
+    private const VERIFY_CODE_PURPOSE = 'email-verify';
+
     public function __construct(
         private ContactUtil $contactUtil,
         private ContactDuplicateService $duplicates,
-        private StorefrontSettingService $storefrontSettings
+        private StorefrontSettingService $storefrontSettings,
+        private OneTimeCodeAttempts $codeAttempts
     ) {
     }
 
@@ -125,6 +128,7 @@ class CustomerAuthService
             $contact->email_verified_at = null;
         }
         $contact->save();
+        $this->codeAttempts->clear(self::VERIFY_CODE_PURPOSE, (string) $contact->id);
 
         try {
             // Sync send — same path as `storefront:send-verification`.
@@ -168,7 +172,8 @@ class CustomerAuthService
             throw ValidationException::withMessages(['code' => ['Invalid or expired verification code.']]);
         }
 
-        if (! empty($contact->email_verified_at)) {
+        // Only the signed-in owner may skip the code check; an email lookup must always prove the code.
+        if (! empty($contact->email_verified_at) && $authContact) {
             return $contact;
         }
 
@@ -176,8 +181,16 @@ class CustomerAuthService
             empty($contact->email_verify_code_hash)
             || empty($contact->email_verify_expires_at)
             || now()->gt($contact->email_verify_expires_at)
-            || ! Hash::check($code, $contact->email_verify_code_hash)
         ) {
+            throw ValidationException::withMessages(['code' => ['Invalid or expired verification code.']]);
+        }
+
+        if (! Hash::check($code, $contact->email_verify_code_hash)) {
+            if ($this->codeAttempts->recordFailure(self::VERIFY_CODE_PURPOSE, (string) $contact->id)) {
+                $contact->email_verify_code_hash = null;
+                $contact->email_verify_expires_at = null;
+                $contact->save();
+            }
             throw ValidationException::withMessages(['code' => ['Invalid or expired verification code.']]);
         }
 
@@ -185,6 +198,7 @@ class CustomerAuthService
         $contact->email_verify_code_hash = null;
         $contact->email_verify_expires_at = null;
         $contact->save();
+        $this->codeAttempts->clear(self::VERIFY_CODE_PURPOSE, (string) $contact->id);
 
         return $contact;
     }

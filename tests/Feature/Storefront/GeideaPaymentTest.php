@@ -106,7 +106,8 @@ class GeideaPaymentTest extends TestCase
         }
 
         $this->saveGeideaSettings($location->id);
-        Http::fake($this->geideaHttpFake('sess-pay'));
+        $remoteOrder = [];
+        $this->fakeGeideaWithRemoteOrder($remoteOrder);
 
         $orderKey = 'SF-GEI-WH-'.uniqid();
         $this->postCheckout($orderKey, $location->id, $variation->id)->assertCreated();
@@ -114,15 +115,7 @@ class GeideaPaymentTest extends TestCase
         $transaction = Transaction::where('storefront_order_id', $orderKey)->firstOrFail();
         $amount = number_format((float) $transaction->final_total, 2, '.', '');
         $payload = $this->signedCallback($orderKey, $amount, 'test-pw', 'Success', 'Paid');
-
-        Http::fake($this->geideaHttpFake('sess-pay', [
-            'orderId' => 'gid-paid',
-            'status' => 'Success',
-            'detailedStatus' => 'Paid',
-            'amount' => (float) $amount,
-            'currency' => 'EGP',
-            'merchantReferenceId' => $orderKey,
-        ]));
+        $remoteOrder = $this->remoteOrder($orderKey, (float) $amount, 'Paid');
 
         $this->postJson('/api/storefront/v1/payments/geidea/webhook', $payload)
             ->assertOk();
@@ -186,21 +179,14 @@ class GeideaPaymentTest extends TestCase
 
         $this->saveGeideaSettings($location->id);
         $orderKey = 'SF-GEI-REPLAY-'.uniqid();
-        Http::fake($this->geideaHttpFake());
+        $remoteOrder = [];
+        $this->fakeGeideaWithRemoteOrder($remoteOrder);
         $this->postCheckout($orderKey, $location->id, $variation->id)->assertCreated();
 
         $transaction = Transaction::where('storefront_order_id', $orderKey)->firstOrFail();
         $amount = number_format((float) $transaction->final_total, 2, '.', '');
         $payload = $this->signedCallback($orderKey, $amount, 'test-pw');
-
-        Http::fake($this->geideaHttpFake('sess-pay', [
-            'orderId' => 'gid-paid',
-            'status' => 'Success',
-            'detailedStatus' => 'Paid',
-            'amount' => (float) $amount,
-            'currency' => 'EGP',
-            'merchantReferenceId' => $orderKey,
-        ]));
+        $remoteOrder = $this->remoteOrder($orderKey, (float) $amount, 'Paid');
 
         $this->postJson('/api/storefront/v1/payments/geidea/webhook', $payload)->assertOk();
         $this->postJson('/api/storefront/v1/payments/geidea/webhook', $payload)->assertOk();
@@ -243,27 +229,70 @@ class GeideaPaymentTest extends TestCase
         }
 
         $this->saveGeideaSettings($location->id);
-        Http::fake($this->geideaHttpFake());
+        $remoteOrder = [];
+        $this->fakeGeideaWithRemoteOrder($remoteOrder);
         $orderKey = 'SF-GEI-DS-'.uniqid();
         $this->postCheckout($orderKey, $location->id, $variation->id)->assertCreated();
         $transaction = Transaction::where('storefront_order_id', $orderKey)->firstOrFail();
         $amount = number_format((float) $transaction->final_total, 2, '.', '');
         $payload = $this->signedCallback($orderKey, $amount, 'test-pw', 'Success', 'Paid');
-
-        Http::fake($this->geideaHttpFake('sess-pay', [
-            'orderId' => 'gid-auth',
-            'status' => 'Success',
-            'detailedStatus' => 'Authorized',
-            'amount' => (float) $amount,
-            'currency' => 'EGP',
-            'merchantReferenceId' => $orderKey,
-        ]));
+        $remoteOrder = $this->remoteOrder($orderKey, (float) $amount, 'Authorized');
 
         $this->postJson('/api/storefront/v1/payments/geidea/webhook', $payload)
             ->assertStatus(400);
 
         $transaction->refresh();
         $this->assertNotSame('paid', strtolower((string) $transaction->payment_status));
+    }
+
+    public function test_unsigned_return_rejects_paid_geidea_order_of_another_reference(): void
+    {
+        $status = $this->postUnsignedReturnWithRemoteReference('SF-SOMEONE-ELSE');
+
+        $this->assertNotSame('paid', $status);
+    }
+
+    public function test_unsigned_return_accepts_paid_geidea_order_of_same_reference(): void
+    {
+        $status = $this->postUnsignedReturnWithRemoteReference(null);
+
+        $this->assertSame('paid', $status);
+    }
+
+    /**
+     * Unsigned browser return whose orderId points at a remote order with the given merchant
+     * reference (null = this order's own reference). Returns the local payment_status.
+     */
+    private function postUnsignedReturnWithRemoteReference(?string $remoteReference): string
+    {
+        Mail::fake();
+        [$location, $variation] = $this->resolveCheckoutFixtures();
+        if ($location === null) {
+            return '';
+        }
+
+        $this->saveGeideaSettings($location->id);
+        $orderKey = 'SF-GEI-RET-'.uniqid();
+        $remoteOrder = [];
+        $this->fakeGeideaWithRemoteOrder($remoteOrder);
+
+        $checkout = $this->postCheckout($orderKey, $location->id, $variation->id)->assertCreated();
+        $transaction = Transaction::where('storefront_order_id', $orderKey)->firstOrFail();
+        $amount = round((float) $transaction->final_total, 2);
+        $remoteOrder = $this->remoteOrder($remoteReference ?? $orderKey, $amount, 'Paid');
+
+        $this->postJson('/api/storefront/v1/payments/geidea/return', [
+            'access' => $checkout->json('data.order_access_token'),
+            'order' => [
+                'merchantReferenceId' => $orderKey,
+                'orderId' => 'gid-paid',
+                'amount' => $amount,
+                'currency' => 'EGP',
+                'status' => 'Success',
+            ],
+        ])->assertOk();
+
+        return strtolower((string) $transaction->fresh()->payment_status);
     }
 
     public function test_geidea_test_signature_is_rejected_for_live_mode_transaction(): void
@@ -333,6 +362,38 @@ class GeideaPaymentTest extends TestCase
 
         app(StorefrontSettingService::class)->save($this->businessId, $payload);
         Cache::flush();
+    }
+
+    /**
+     * Single fake for the whole test: stacked Http::fake calls keep the first match, so the
+     * remote order is read by reference once the order total is known.
+     *
+     * @param  array<string, mixed>  $remoteOrder
+     */
+    private function fakeGeideaWithRemoteOrder(array &$remoteOrder): void
+    {
+        Http::fake(function ($request) use (&$remoteOrder) {
+            if (str_contains($request->url(), '/direct/session')) {
+                return Http::response(['session' => ['id' => 'sess-pay']], 200);
+            }
+
+            return Http::response(['order' => $remoteOrder], 200);
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function remoteOrder(string $merchantReference, float $amount, string $detailedStatus): array
+    {
+        return [
+            'orderId' => 'gid-paid',
+            'status' => 'Success',
+            'detailedStatus' => $detailedStatus,
+            'amount' => $amount,
+            'currency' => 'EGP',
+            'merchantReferenceId' => $merchantReference,
+        ];
     }
 
     /**

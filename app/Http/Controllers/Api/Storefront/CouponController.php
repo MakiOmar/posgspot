@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Contact;
+use App\Services\Storefront\CartValidationService;
 use App\Services\Storefront\CouponService;
 use App\Services\Storefront\StorefrontSettingService;
 use Illuminate\Http\Request;
@@ -20,9 +21,9 @@ class CouponController extends StorefrontController
     {
         $data = $request->validate([
             'code' => 'required|string|max:64',
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.CartValidationService::MAX_LINES,
             'items.*.variation_id' => 'required|integer',
-            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.digital' => 'nullable|array',
             'location_id' => 'nullable|integer',
             'coupon_codes' => 'nullable|array|max:10',
@@ -51,9 +52,9 @@ class CouponController extends StorefrontController
     public function available(Request $request)
     {
         $data = $request->validate([
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.CartValidationService::MAX_LINES,
             'items.*.variation_id' => 'required|integer',
-            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.digital' => 'nullable|array',
             'exclude_codes' => 'nullable|array|max:10',
             'exclude_codes.*' => 'string|max:64',

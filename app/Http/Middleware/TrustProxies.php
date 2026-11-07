@@ -34,6 +34,7 @@ class TrustProxies extends Middleware
     public function proxies()
     {
         // Chained proxies (Cloudflare -> Traefik) need every hop listed so the visitor IP survives.
-        return config('trustedproxy.proxies') ?: '*';
+        // No wildcard fallback: it would let any direct caller spoof X-Forwarded-For past IP throttles.
+        return config('trustedproxy.proxies') ?: null;
     }
 }

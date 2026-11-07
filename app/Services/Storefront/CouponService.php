@@ -662,6 +662,41 @@ class CouponService
         return $redemption;
     }
 
+    /**
+     * Usage caps checked again on the locked coupon row. Eligibility ran before the lock, and
+     * InnoDB plain reads inside the checkout transaction may be stale, so counts use locking reads.
+     * The caller must already hold the contact row lock.
+     */
+    public function assertUsageLimitsUnderLock(Coupon $lockedCoupon, Contact $contact, int $currentTransactionId): void
+    {
+        if (! empty($lockedCoupon->max_uses_total) && (int) $lockedCoupon->times_used >= (int) $lockedCoupon->max_uses_total) {
+            throw ValidationException::withMessages(['coupon_code' => ['This promo code has reached its usage limit.']]);
+        }
+
+        if (! empty($lockedCoupon->max_uses_per_customer)) {
+            $used = CouponRedemption::where('coupon_id', $lockedCoupon->id)
+                ->where('contact_id', $contact->id)
+                ->sharedLock()
+                ->count();
+            if ($used >= (int) $lockedCoupon->max_uses_per_customer) {
+                throw ValidationException::withMessages(['coupon_code' => ['You have already used this promo code.']]);
+            }
+        }
+
+        if ($lockedCoupon->first_order_only) {
+            $hasPriorOrder = Transaction::where('contact_id', $contact->id)
+                ->where('source', 'storefront')
+                ->where('status', 'final')
+                ->where('type', 'sell')
+                ->where('id', '!=', $currentTransactionId)
+                ->sharedLock()
+                ->exists();
+            if ($hasPriorOrder) {
+                throw ValidationException::withMessages(['coupon_code' => ['This promo code is for first orders only.']]);
+            }
+        }
+    }
+
     public function hasExistingRedemption(int $couponId, int $transactionId): bool
     {
         return CouponRedemption::where('coupon_id', $couponId)

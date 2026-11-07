@@ -16,9 +16,9 @@ class CartController extends StorefrontController
     public function validateCart(Request $request)
     {
         $data = $request->validate([
-            'items' => 'required|array|min:1',
+            'items' => 'required|array|min:1|max:'.CartValidationService::MAX_LINES,
             'items.*.variation_id' => 'required|integer',
-            'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items.*.quantity' => 'required|integer|min:1',
             'items.*.digital' => 'nullable|array',
             'items.*.digital.kind' => 'nullable|in:game,card',
             'items.*.digital.game_id' => 'nullable|integer|min:1',

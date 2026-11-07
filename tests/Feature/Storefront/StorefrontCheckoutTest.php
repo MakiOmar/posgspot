@@ -320,10 +320,14 @@ class StorefrontCheckoutTest extends TestCase
             $this->markTestSkipped('No variation for product.');
         }
 
-        app(StorefrontSettingService::class)->save($this->businessId, [
+        $settings = app(StorefrontSettingService::class);
+        $digitalSettings = $settings->get($this->businessId)['digital'] ?? [];
+        $settings->save($this->businessId, [
             'selling_location_ids' => [$location->id],
             'default_fulfillment_location_id' => $location->id,
             'cod_enabled' => true,
+            // Digital meta is only accepted on the configured placeholder product.
+            'digital' => array_merge($digitalSettings, ['secondary_product_id' => (int) $product->id]),
         ]);
         Cache::flush();
 
@@ -394,6 +398,12 @@ class StorefrontCheckoutTest extends TestCase
             $variation->default_sell_price = $originalDefault;
             $variation->sell_price_inc_tax = $originalInc;
             $variation->save();
+            $settings->save($this->businessId, [
+                'selling_location_ids' => [$location->id],
+                'default_fulfillment_location_id' => $location->id,
+                'digital' => $digitalSettings,
+            ]);
+            Cache::flush();
         }
     }
 }

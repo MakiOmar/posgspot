@@ -28,11 +28,11 @@ class DeviceTrackApiTest extends TestCase
                         'tracking_code' => 'DRTEST001',
                         'status' => 'processing',
                         'status_display' => 'Processing',
-                        'device_serial_number' => 'SN1',
-                        'notes' => null,
+                        'device_serial_number' => 'SN12345678',
+                        'notes' => 'Customer said the HDMI port is loose',
                         'submitted_at' => '2026-09-05T12:00:00+03:00',
                         'status_updated_at' => '2026-09-05T12:00:00+03:00',
-                        'client_name' => 'Test User',
+                        'client_name' => 'Ahmed Mohamed Ali',
                         'phone' => '+201000000000',
                         'device_model' => [
                             'id' => 1,
@@ -56,7 +56,11 @@ class DeviceTrackApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.count', 1)
             ->assertJsonPath('data.services.0.tracking_code', 'DRTEST001')
-            ->assertJsonPath('data.services.0.device_model.full_name', 'Sony PS5');
+            ->assertJsonPath('data.services.0.device_model.full_name', 'Sony PS5')
+            ->assertJsonPath('data.services.0.client_name', 'Ahmed A.')
+            ->assertJsonPath('data.services.0.device_serial_number', '******5678')
+            ->assertJsonPath('data.services.0.phone', '*********0000')
+            ->assertJsonPath('data.services.0.notes', null);
     }
 
     public function test_track_maps_upstream_not_found(): void

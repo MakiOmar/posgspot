@@ -308,7 +308,7 @@ class SupportToolRunner
             return ['count' => 0, 'services' => []];
         }
 
-        $result = $this->devices->trackByPhone($phone);
+        $result = $this->devices->trackByPhone($phone, true);
         if (in_array($result['status'] ?? 0, [429, 503], true)) {
             return ['error' => $result['message'] ?? 'Device tracking failed'];
         }

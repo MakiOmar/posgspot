@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Contact;
+use App\Support\PiiMask;
 use App\Support\StorefrontLocale;
 use App\Utils\ModuleUtil;
 use Carbon\Carbon;
@@ -103,7 +104,7 @@ class RepairStatusLookupService
 
             $results = [];
             foreach ($rows as $row) {
-                $results[] = $this->formatJobSheet($row);
+                $results[] = $this->formatJobSheet($row, true);
             }
 
             return $results;
@@ -212,10 +213,13 @@ class RepairStatusLookupService
     }
 
     /**
+     * Public lookups ($redact) are keyed on sequential job/invoice numbers, so staff names
+     * are hidden and the serial number is masked.
+     *
      * @param  JobSheet  $row
      * @return array<string, mixed>
      */
-    private function formatJobSheet($row): array
+    private function formatJobSheet($row, bool $redact = false): array
     {
         $activities = Activity::forSubject($row)
             ->with(['causer'])
@@ -244,7 +248,7 @@ class RepairStatusLookupService
             }
 
             $by = 'Staff';
-            if ($activity->causer) {
+            if ($activity->causer && ! $redact) {
                 $by = trim((string) ($activity->causer->user_full_name ?? $activity->causer->first_name ?? 'Staff'));
             }
 
@@ -264,7 +268,7 @@ class RepairStatusLookupService
             'brand' => $row->manufacturer,
             'device' => $row->repair_device,
             'model' => $row->repair_model,
-            'serial_no' => $row->serial_no,
+            'serial_no' => $redact ? (PiiMask::tail($row->serial_no) ?: null) : $row->serial_no,
             'status' => $row->repair_status,
             'status_color' => $row->repair_status_color,
             'due_date' => $delivery?->toIso8601String(),

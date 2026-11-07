@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\Storefront;
 
+use App\Contact;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Base controller for the public Storefront API.
@@ -15,6 +17,17 @@ abstract class StorefrontController extends Controller
     protected function businessId(Request $request): int
     {
         return (int) $request->attributes->get('storefront_business_id', config('storefront.business_id'));
+    }
+
+    /**
+     * Signed-in customer on routes without `auth:sanctum`. The guard enforces token expiry,
+     * unlike a raw PersonalAccessToken lookup.
+     */
+    protected function optionalSanctumContact(): ?Contact
+    {
+        $user = Auth::guard('sanctum')->user();
+
+        return $user instanceof Contact ? $user : null;
     }
 
     protected function jsonSuccess(mixed $data = null, array $meta = [], int $status = 200): JsonResponse

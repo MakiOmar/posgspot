@@ -15,6 +15,9 @@ use Illuminate\Validation\ValidationException;
  */
 class CartValidationService
 {
+    /** Upper bound on cart lines per request; each line costs DB and Accounts lookups. */
+    public const MAX_LINES = 50;
+
     public function __construct(
         private StorefrontSettingService $storefrontSettings,
         private ProductUtil $productUtil,
@@ -58,7 +61,7 @@ class CartValidationService
             $variationId = (int) ($item['variation_id'] ?? 0);
             $qty = (float) ($item['quantity'] ?? 0);
 
-            if ($qty <= 0) {
+            if (! $this->isWholeQuantity($qty)) {
                 throw ValidationException::withMessages(["items.$index.quantity" => ['Invalid quantity.']]);
             }
 
@@ -69,7 +72,7 @@ class CartValidationService
 
             $product = $variation->product;
             $digital = is_array($item['digital'] ?? null) ? $item['digital'] : null;
-            if ($this->isUnavailableForStorefront($product, $digital)) {
+            if ($this->isUnavailableForStorefront($product, $digital, $settings)) {
                 throw ValidationException::withMessages(["items.$index.variation_id" => ['Product is not available.']]);
             }
 
@@ -256,7 +259,7 @@ class CartValidationService
      *
      * @param  array<string, mixed>|null  $digital
      */
-    private function isUnavailableForStorefront(Product $product, ?array $digital): bool
+    private function isUnavailableForStorefront(Product $product, ?array $digital, array $settings): bool
     {
         if ($product->is_inactive) {
             return true;
@@ -266,7 +269,37 @@ class CartValidationService
             return empty($digital['kind']) || AccountsCatalogService::skuForDigital($digital) !== $product->sku;
         }
 
+        // Digital meta reprices the line and skips stock, so only the configured placeholder may carry it.
+        if (! empty($digital['kind']) && ! $this->isDigitalPlaceholderFor($product, $digital, $settings)) {
+            return true;
+        }
+
         return (bool) $product->not_for_selling;
+    }
+
+    /**
+     * Shared placeholder product clients fall back to when an offer has no synced SKU
+     * (`skus.primary` / `skus.secondary` / `skus.gift_card`).
+     *
+     * @param  array<string, mixed>  $digital
+     * @param  array<string, mixed>  $settings
+     */
+    private function isDigitalPlaceholderFor(Product $product, array $digital, array $settings): bool
+    {
+        $config = is_array($settings['digital'] ?? null) ? $settings['digital'] : [];
+        $key = match (true) {
+            ($digital['kind'] ?? '') === 'card' => 'gift_card_product_id',
+            ($digital['type'] ?? '') === 'secondary' => 'secondary_product_id',
+            default => 'primary_product_id',
+        };
+        $placeholderId = (int) ($config[$key] ?? 0);
+
+        return $placeholderId > 0 && $placeholderId === (int) $product->id;
+    }
+
+    private function isWholeQuantity(float $qty): bool
+    {
+        return $qty >= 1 && floor($qty) === $qty;
     }
 
     private function checkStock(Product $product, Variation $variation, float $qty, array $locationIds): bool
@@ -315,7 +348,7 @@ class CartValidationService
             $variationId = (int) ($item['variation_id'] ?? 0);
             $requested = (float) ($item['quantity'] ?? 0);
 
-            if ($requested <= 0) {
+            if (! $this->isWholeQuantity($requested)) {
                 throw ValidationException::withMessages(["items.$index.quantity" => ['Invalid quantity.']]);
             }
 
@@ -348,7 +381,7 @@ class CartValidationService
             $status['variation_name'] = $variation->name;
             $status['unit_price'] = $unitPrice;
 
-            if ($this->isUnavailableForStorefront($product, $digital)) {
+            if ($this->isUnavailableForStorefront($product, $digital, $settings)) {
                 $lineStatus[] = $status;
 
                 continue;

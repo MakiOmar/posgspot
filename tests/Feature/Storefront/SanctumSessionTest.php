@@ -78,9 +78,18 @@ class SanctumSessionTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_sanctum_expiration_matches_storefront_setting_by_default(): void
+    {
+        $this->assertGreaterThan(0, (int) config('sanctum.expiration'));
+        $this->assertSame(
+            (int) config('storefront.sanctum_expiration_minutes'),
+            (int) config('sanctum.expiration')
+        );
+    }
+
     public function test_expired_sanctum_token_is_rejected(): void
     {
-        config(['sanctum.expiration' => 60]);
+        $lifetime = (int) config('sanctum.expiration');
 
         $email = 'sanctum_expired_'.uniqid().'@example.com';
         $mobile = '+2010'.random_int(10000000, 99999999);
@@ -100,10 +109,35 @@ class SanctumSessionTest extends TestCase
         DB::table('personal_access_tokens')
             ->where('tokenable_id', $contactId)
             ->where('tokenable_type', 'App\\Contact')
-            ->update(['created_at' => now()->subMinutes(61)]);
+            ->update(['created_at' => now()->subMinutes($lifetime + 1)]);
 
         $this->withHeader('Authorization', 'Bearer '.$bearer)
             ->getJson('/api/storefront/v1/account/profile')
+            ->assertUnauthorized();
+    }
+
+    public function test_expired_token_is_ignored_on_optional_auth_routes(): void
+    {
+        $lifetime = (int) config('sanctum.expiration');
+        $email = 'sanctum_optional_'.uniqid().'@example.com';
+
+        $register = $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Sanctum',
+            'last_name' => 'Optional',
+            'email' => $email,
+            'mobile' => '+2010'.random_int(10000000, 99999999),
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        DB::table('personal_access_tokens')
+            ->where('tokenable_id', (int) $register->json('data.contact.id'))
+            ->where('tokenable_type', 'App\\Contact')
+            ->update(['created_at' => now()->subMinutes($lifetime + 1)]);
+        $this->app['auth']->forgetGuards();
+
+        $this->withHeader('Authorization', 'Bearer '.$register->json('data.token'))
+            ->getJson('/api/storefront/v1/auth/social/google/redirect?intent=link&format=json')
             ->assertUnauthorized();
     }
 }

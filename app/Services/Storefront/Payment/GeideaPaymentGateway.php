@@ -304,7 +304,8 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
     }
 
     /**
-     * Confirm detailedStatus from Geidea (unhashed on the callback).
+     * Confirm detailedStatus from Geidea (unhashed on the callback). The callback orderId is
+     * client-controlled on browser returns, so the remote order must belong to this transaction.
      */
     private function remoteDetailedStatus(Transaction $transaction, string $orderId, int $businessId): string
     {
@@ -332,9 +333,33 @@ class GeideaPaymentGateway implements PaymentGatewayInterface
             );
         }
 
-        $detailed = mb_strtolower((string) ($remote['order']['detailedStatus'] ?? ''));
+        $remoteOrder = is_array($remote['order'] ?? null) ? $remote['order'] : [];
+        if (! $this->remoteOrderMatchesTransaction($remoteOrder, $transaction)) {
+            return '';
+        }
 
-        return $detailed;
+        return mb_strtolower((string) ($remoteOrder['detailedStatus'] ?? ''));
+    }
+
+    /**
+     * @param  array<string, mixed>  $remoteOrder
+     */
+    private function remoteOrderMatchesTransaction(array $remoteOrder, Transaction $transaction): bool
+    {
+        $reference = (string) ($remoteOrder['merchantReferenceId'] ?? '');
+        if ($reference === '' || ! hash_equals((string) $transaction->storefront_order_id, $reference)) {
+            return false;
+        }
+
+        if (! is_numeric($remoteOrder['amount'] ?? null)
+            || abs(round((float) $remoteOrder['amount'], 2) - round((float) $transaction->final_total, 2)) > 0.01) {
+            return false;
+        }
+
+        $expectedCurrency = strtoupper((string) ($this->paymentMeta($transaction)['currency'] ?? 'EGP'));
+        $remoteCurrency = strtoupper((string) ($remoteOrder['currency'] ?? ''));
+
+        return $remoteCurrency === '' || $remoteCurrency === $expectedCurrency;
     }
 
     /**

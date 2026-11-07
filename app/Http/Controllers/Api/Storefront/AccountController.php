@@ -47,17 +47,22 @@ class AccountController extends StorefrontController
             'dial_code' => 'nullable|string|max:6',
         ]);
 
+        /** @var Contact $contact */
+        $contact = $request->user();
+        $businessId = $this->businessId($request);
+
         if (! empty($data['mobile'])) {
             $dialCode = $data['dial_code'] ?? $this->inferDialCode($data['mobile']);
             $phoneCheck = $this->phoneValidation->validate($data['mobile'], $dialCode);
             if (! $phoneCheck['valid']) {
                 return $this->jsonError($phoneCheck['message'], 422, ['mobile' => [$phoneCheck['message']]]);
             }
+            // Repairs and device services are looked up by mobile, so a number owned by another customer must not be claimable.
+            if ($this->mobileOwnedByAnotherCustomer($contact, $businessId, $data['mobile'], $dialCode)) {
+                return $this->jsonError('Mobile already registered.', 422, ['mobile' => ['Mobile already registered.']]);
+            }
         }
 
-        /** @var Contact $contact */
-        $contact = $request->user();
-        $businessId = $this->businessId($request);
         $emailChanged = false;
 
         if (! empty($data['email']) && strcasecmp((string) $data['email'], (string) $contact->email) !== 0) {
@@ -218,7 +223,7 @@ class AccountController extends StorefrontController
             ]);
         }
 
-        $result = $this->deviceTrackLookup->trackByPhone($phone);
+        $result = $this->deviceTrackLookup->trackByPhone($phone, true);
         if (in_array($result['status'], [429, 503], true)) {
             return $this->jsonError($result['message'], $result['status'], $result['errors']);
         }
@@ -365,6 +370,18 @@ class AccountController extends StorefrontController
         return $this->jsonSuccess(
             $this->couponService->listUsedWallet($this->businessId($request), $contact)
         );
+    }
+
+    private function mobileOwnedByAnotherCustomer(Contact $contact, int $businessId, string $mobile, ?string $dialCode): bool
+    {
+        $current = trim((string) $contact->mobile);
+        if ($current !== '' && $this->phoneValidation->mobilesMatch($current, $mobile, $dialCode)) {
+            return false;
+        }
+
+        $owner = $this->duplicates->findCustomerByMobile($businessId, $mobile, $dialCode);
+
+        return $owner !== null && (int) $owner->id !== (int) $contact->id;
     }
 
     private function inferDialCode(string $mobile): string

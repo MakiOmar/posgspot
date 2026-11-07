@@ -10,6 +10,7 @@ use App\Coupon;
 use App\Utils\ContactUtil;
 use App\Utils\ProductUtil;
 use App\Utils\TransactionUtil;
+use App\VariationLocationDetails;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -140,12 +141,15 @@ class CheckoutService
         DB::beginTransaction();
 
         try {
-            if ($rpRedeemed > 0) {
+            // Lock order is fixed (contact, stock rows, coupons) so concurrent checkouts cannot deadlock.
+            if ($rpRedeemed > 0 || ($authContact && ! empty($validated['applied_coupons']))) {
                 $contact = Contact::where('business_id', $businessId)
                     ->where('id', $contact->id)
                     ->lockForUpdate()
                     ->firstOrFail();
+            }
 
+            if ($rpRedeemed > 0) {
                 $redemption = $this->rewardPointsService->resolveCheckoutRedemption(
                     $businessId,
                     $contact,
@@ -244,6 +248,7 @@ class CheckoutService
 
             // Quotations do not decrease stock until staff converts to a final sale (Accounts pattern).
             if (! $asQuotation) {
+                $this->lockAndAssertStock($input['products'], $checkoutItems, $locationId);
                 foreach ($input['products'] as $product) {
                     $decreaseQty = (float) $product['quantity'];
                     if ($product['enable_stock']) {
@@ -296,6 +301,44 @@ class CheckoutService
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
+        }
+    }
+
+    /**
+     * Re-check physical stock under row locks just before deduction; cart validation read it
+     * without a lock, so two checkouts could otherwise both take the last unit.
+     * Rows are locked in variation order to keep concurrent checkouts deadlock-free.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @param  list<array<string, mixed>>  $checkoutItems
+     */
+    private function lockAndAssertStock(array $products, array $checkoutItems, int $locationId): void
+    {
+        $required = [];
+        foreach ($products as $index => $product) {
+            $isDigital = ! empty($checkoutItems[$index]['digital']['kind']);
+            if ($isDigital || empty($product['enable_stock'])) {
+                continue;
+            }
+            $key = (int) $product['variation_id'];
+            $required[$key] = [
+                'product_id' => (int) $product['product_id'],
+                'quantity' => ($required[$key]['quantity'] ?? 0) + (float) $product['quantity'],
+            ];
+        }
+        ksort($required);
+
+        foreach ($required as $variationId => $need) {
+            $available = VariationLocationDetails::where('variation_id', $variationId)
+                ->where('product_id', $need['product_id'])
+                ->where('location_id', $locationId)
+                ->lockForUpdate()
+                ->value('qty_available');
+            if ((float) $available < $need['quantity']) {
+                throw ValidationException::withMessages([
+                    'items' => ['Some items just went out of stock. Please review your cart.'],
+                ]);
+            }
         }
     }
 
@@ -798,6 +841,7 @@ class CheckoutService
             }
 
             $coupon = $this->couponService->lockForCheckout($couponId);
+            $this->couponService->assertUsageLimitsUnderLock($coupon, $contact, (int) $transaction->id);
             $discountAmount = (float) ($applied['coupon_discount'] ?? 0);
 
             $this->couponService->recordRedemption(

@@ -46,7 +46,8 @@ return [
     |
     */
 
-    'expiration' => config('storefront.sanctum_expiration_minutes') ?: null,
+    // Read env directly: config files load alphabetically, so storefront.php is not loaded yet here.
+    'expiration' => ((int) env('STOREFRONT_SANCTUM_EXPIRATION_MINUTES', 43200)) ?: null,
 
     /*
     |--------------------------------------------------------------------------

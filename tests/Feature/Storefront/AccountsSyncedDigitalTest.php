@@ -120,6 +120,95 @@ class AccountsSyncedDigitalTest extends TestCase
         $this->assertRejected(fn () => $this->validateLine($variation->id, $this->gameDigital(980004)));
     }
 
+    public function test_digital_meta_cannot_reprice_an_ordinary_product(): void
+    {
+        $variation = $this->ordinarySellableVariation();
+        $this->setPlaceholders(['primary_product_id' => null, 'secondary_product_id' => null, 'gift_card_product_id' => null]);
+
+        $this->assertRejected(fn () => $this->validateLine($variation->id, $this->gameDigital(980010)));
+        $this->assertRejected(fn () => $this->validateLine($variation->id, [
+            'kind' => 'card', 'card_category_id' => 980011, 'line_key' => 'card|category:980011',
+        ]));
+    }
+
+    public function test_configured_placeholder_accepts_only_its_own_digital_kind(): void
+    {
+        $variation = $this->ordinarySellableVariation();
+        $this->setPlaceholders([
+            'primary_product_id' => null,
+            'secondary_product_id' => null,
+            'gift_card_product_id' => (int) $variation->product_id,
+        ]);
+
+        $card = ['kind' => 'card', 'card_category_id' => 980012, 'line_key' => 'card|category:980012'];
+        $this->assertNotEmpty($this->validateLine($variation->id, $card));
+        $this->assertRejected(fn () => $this->validateLine($variation->id, $this->gameDigital(980012)));
+    }
+
+    public function test_fractional_quantity_is_rejected(): void
+    {
+        $offer = $this->syncOffer('ACCOUNTS-GAME-980013-PS5-PRIMARY');
+        $this->partialMock(DigitalCatalogService::class, function ($mock) {
+            $mock->shouldReceive('resolveOfferPrice')->andReturn(500.0);
+        });
+
+        try {
+            app(CartValidationService::class)->validate($this->businessId, [[
+                'variation_id' => $offer['variation_id'],
+                'quantity' => 0.01,
+                'digital' => $this->gameDigital(980013),
+            ]], $this->locationId);
+            $this->fail('Expected a fractional quantity to be rejected.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('items.0.quantity', $e->errors());
+        }
+    }
+
+    public function test_checkout_api_rejects_fractional_quantity_and_oversized_carts(): void
+    {
+        $line = ['variation_id' => 1, 'quantity' => 0.5];
+
+        $this->postJson('/api/storefront/v1/cart/validate', ['items' => [$line]])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['items.0.quantity']);
+
+        $tooMany = array_fill(0, CartValidationService::MAX_LINES + 1, ['variation_id' => 1, 'quantity' => 1]);
+        $this->postJson('/api/storefront/v1/cart/validate', ['items' => $tooMany])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['items']);
+    }
+
+    /**
+     * @param  array<string, int|null>  $ids
+     */
+    private function setPlaceholders(array $ids): void
+    {
+        $settings = app(StorefrontSettingService::class);
+        $digital = $settings->get($this->businessId)['digital'] ?? [];
+        $settings->save($this->businessId, [
+            'selling_location_ids' => [$this->locationId],
+            'default_fulfillment_location_id' => $this->locationId,
+            'digital' => array_merge($digital, $ids),
+        ]);
+        Cache::flush();
+        $this->assertSame($ids['gift_card_product_id'], $settings->get($this->businessId)['digital']['gift_card_product_id'] ?? null);
+    }
+
+    private function ordinarySellableVariation(): Variation
+    {
+        $product = Product::where('business_id', $this->businessId)
+            ->where('is_inactive', 0)
+            ->where('not_for_selling', 0)
+            ->where('sku', 'not like', 'ACCOUNTS-%')
+            ->first();
+        $variation = $product ? Variation::where('product_id', $product->id)->first() : null;
+        if (! $variation) {
+            $this->markTestSkipped('No sellable product in database.');
+        }
+
+        return $variation;
+    }
+
     public function test_pos_offers_come_from_active_synced_products_and_fall_back_when_missing(): void
     {
         $primary = $this->syncOffer('ACCOUNTS-GAME-980005-PS5-PRIMARY');

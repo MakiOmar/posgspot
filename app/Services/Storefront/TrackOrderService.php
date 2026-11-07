@@ -42,9 +42,6 @@ class TrackOrderService
             ->where(function ($q) use ($invoiceNo) {
                 $q->where('invoice_no', $invoiceNo)
                     ->orWhere('storefront_order_id', $invoiceNo);
-                if (ctype_digit($invoiceNo)) {
-                    $q->orWhere('id', (int) $invoiceNo);
-                }
             })
             ->with('contact')
             ->orderByDesc('id')

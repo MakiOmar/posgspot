@@ -4,6 +4,7 @@ namespace App\Services\Storefront;
 
 use App\Contact;
 use App\Services\Storefront\Accounts\AccountsApiClient;
+use App\Support\PiiMask;
 
 /**
  * Proxies public console/device service lookups to the Accounts Device Track API.
@@ -20,9 +21,11 @@ class DeviceTrackLookupService
     }
 
     /**
+     * Staff notes are only included for the signed-in customer's own number ($includeNotes).
+     *
      * @return array{ok:bool,status:int,message:string,services:list<array<string,mixed>>,errors:array<string,list<string>>}
      */
-    public function trackByPhone(string $phone): array
+    public function trackByPhone(string $phone, bool $includeNotes = false): array
     {
         $phone = trim($phone);
         if ($phone === '') {
@@ -91,7 +94,7 @@ class DeviceTrackLookupService
         if (is_array($raw)) {
             foreach ($raw as $row) {
                 if (is_array($row)) {
-                    $services[] = $this->normalizeService($row);
+                    $services[] = $this->normalizeService($row, $includeNotes);
                 }
             }
         }
@@ -135,16 +138,19 @@ class DeviceTrackLookupService
             return [];
         }
 
-        $result = $this->trackByPhone($phone);
+        $result = $this->trackByPhone($phone, true);
 
         return $result['services'];
     }
 
     /**
+     * Name, phone and serial are always masked: the lookup key is just a phone number, which
+     * proves nothing about who is asking (signed-in profiles can change their mobile too).
+     *
      * @param  array<string,mixed>  $row
      * @return array<string,mixed>
      */
-    private function normalizeService(array $row): array
+    private function normalizeService(array $row, bool $includeNotes): array
     {
         $model = is_array($row['device_model'] ?? null) ? $row['device_model'] : null;
         $store = is_array($row['store_profile'] ?? null) ? $row['store_profile'] : null;
@@ -154,16 +160,16 @@ class DeviceTrackLookupService
             'tracking_code' => (string) ($row['tracking_code'] ?? ''),
             'status' => (string) ($row['status'] ?? ''),
             'status_display' => (string) ($row['status_display'] ?? ($row['status'] ?? '')),
-            'device_serial_number' => (string) ($row['device_serial_number'] ?? ''),
-            'notes' => isset($row['notes']) && $row['notes'] !== null ? (string) $row['notes'] : null,
+            'device_serial_number' => PiiMask::tail((string) ($row['device_serial_number'] ?? '')),
+            'notes' => $includeNotes && isset($row['notes']) && $row['notes'] !== null ? (string) $row['notes'] : null,
             'submitted_at' => isset($row['submitted_at']) && $row['submitted_at'] !== null
                 ? (string) $row['submitted_at']
                 : null,
             'status_updated_at' => isset($row['status_updated_at']) && $row['status_updated_at'] !== null
                 ? (string) $row['status_updated_at']
                 : null,
-            'client_name' => (string) ($row['client_name'] ?? ''),
-            'phone' => (string) ($row['phone'] ?? ''),
+            'client_name' => PiiMask::name((string) ($row['client_name'] ?? '')),
+            'phone' => PiiMask::tail((string) ($row['phone'] ?? '')),
             'device_model' => $model ? [
                 'id' => isset($model['id']) ? (int) $model['id'] : null,
                 'name' => (string) ($model['name'] ?? ''),

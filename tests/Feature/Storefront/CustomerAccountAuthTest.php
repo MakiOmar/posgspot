@@ -5,6 +5,7 @@ namespace Tests\Feature\Storefront;
 use App\Contact;
 use App\Mail\StorefrontEmailVerification;
 use App\Mail\StorefrontPasswordReset;
+use App\Services\Storefront\OneTimeCodeAttempts;
 use App\Services\Storefront\StorefrontSettingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
@@ -68,6 +69,63 @@ class CustomerAccountAuthTest extends TestCase
             ->assertJsonPath('data.contact.email_verified', true);
 
         $this->assertNotNull($contact->fresh()->email_verified_at);
+    }
+
+    public function test_guest_verify_never_returns_profile_and_requires_a_valid_code(): void
+    {
+        Mail::fake();
+
+        $email = 'verify_guest_'.uniqid().'@example.com';
+        $register = $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Guest',
+            'last_name' => 'Verify',
+            'email' => $email,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $contact = Contact::findOrFail((int) $register->json('data.contact.id'));
+        $contact->email_verify_code_hash = Hash::make('654321');
+        $contact->email_verify_expires_at = now()->addMinutes(30);
+        $contact->save();
+
+        $this->postJson('/api/storefront/v1/auth/email/verify', ['email' => $email, 'code' => '654321'])
+            ->assertOk()
+            ->assertJsonMissingPath('data.contact');
+
+        // Already verified: a guess must not succeed or leak the profile.
+        $this->postJson('/api/storefront/v1/auth/email/verify', ['email' => $email, 'code' => '000000'])
+            ->assertStatus(422)
+            ->assertJsonMissingPath('data.contact');
+    }
+
+    public function test_profile_cannot_claim_another_customers_mobile(): void
+    {
+        Mail::fake();
+
+        $victimMobile = '+2010'.random_int(10000000, 99999999);
+        $attackerMobile = '+2011'.random_int(10000000, 99999999);
+        $responses = [];
+        foreach ([['victim', $victimMobile], ['attacker', $attackerMobile]] as [$name, $mobile]) {
+            $responses[$name] = $this->postJson('/api/storefront/v1/auth/register', [
+                'first_name' => ucfirst($name),
+                'last_name' => 'Mobile',
+                'email' => $name.'_mobile_'.uniqid().'@example.com',
+                'mobile' => $mobile,
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])->assertCreated();
+        }
+        $bearer = 'Bearer '.$responses['attacker']->json('data.token');
+
+        $this->withHeader('Authorization', $bearer)
+            ->putJson('/api/storefront/v1/account/profile', ['mobile' => $victimMobile])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.mobile.0', 'Mobile already registered.');
+
+        $this->withHeader('Authorization', $bearer)
+            ->putJson('/api/storefront/v1/account/profile', ['mobile' => $attackerMobile, 'first_name' => 'Renamed'])
+            ->assertOk();
     }
 
     public function test_change_password_issues_new_token(): void
@@ -219,6 +277,69 @@ class CustomerAccountAuthTest extends TestCase
             'login' => $email,
             'password' => 'newpassword123',
         ])->assertOk();
+    }
+
+    public function test_reset_code_is_burned_after_repeated_wrong_guesses(): void
+    {
+        Mail::fake();
+
+        $email = 'reset_lock_'.uniqid().'@example.com';
+        $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Reset',
+            'last_name' => 'Lock',
+            'email' => $email,
+            'password' => 'oldpassword123',
+            'password_confirmation' => 'oldpassword123',
+        ])->assertCreated();
+        $this->postJson('/api/storefront/v1/auth/forgot-password', ['email' => $email])->assertOk();
+
+        $code = null;
+        Mail::assertSent(StorefrontPasswordReset::class, function (StorefrontPasswordReset $mail) use (&$code) {
+            $code = $mail->token;
+
+            return true;
+        });
+        $wrong = $code === '000000' ? '111111' : '000000';
+        $attempt = fn (string $token) => $this->postJson('/api/storefront/v1/auth/reset-password', [
+            'email' => $email,
+            'token' => $token,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        for ($i = 0; $i < OneTimeCodeAttempts::MAX_FAILURES; $i++) {
+            $attempt($wrong)->assertStatus(422);
+        }
+
+        $attempt($code)->assertStatus(422);
+    }
+
+    public function test_verify_code_is_burned_after_repeated_wrong_guesses(): void
+    {
+        Mail::fake();
+
+        $email = 'verify_lock_'.uniqid().'@example.com';
+        $register = $this->postJson('/api/storefront/v1/auth/register', [
+            'first_name' => 'Verify',
+            'last_name' => 'Lock',
+            'email' => $email,
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+        ])->assertCreated();
+
+        $contact = Contact::findOrFail((int) $register->json('data.contact.id'));
+        $contact->email_verify_code_hash = Hash::make('654321');
+        $contact->email_verify_expires_at = now()->addMinutes(30);
+        $contact->save();
+
+        for ($i = 0; $i < OneTimeCodeAttempts::MAX_FAILURES; $i++) {
+            $this->postJson('/api/storefront/v1/auth/email/verify', ['email' => $email, 'code' => '000000'])
+                ->assertStatus(422);
+        }
+
+        $this->postJson('/api/storefront/v1/auth/email/verify', ['email' => $email, 'code' => '654321'])
+            ->assertStatus(422);
+        $this->assertNull($contact->fresh()->email_verified_at);
     }
 
     public function test_authenticated_unverified_customer_cannot_checkout(): void

@@ -101,6 +101,17 @@ class TrackOrderTest extends TestCase
         ])->assertStatus(404);
     }
 
+    public function test_track_order_does_not_match_internal_transaction_id(): void
+    {
+        $email = 'track_id_'.uniqid().'@example.com';
+        $order = $this->createContactWithOrder($email, '+201011122299', 'TRK-'.uniqid());
+
+        $this->postJson('/api/storefront/v1/track-order', [
+            'invoice_no' => (string) $order->id,
+            'email' => $email,
+        ])->assertStatus(404);
+    }
+
     public function test_track_order_requires_phone_or_email(): void
     {
         $this->postJson('/api/storefront/v1/track-order', [

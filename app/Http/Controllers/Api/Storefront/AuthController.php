@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Storefront;
 use App\Contact;
 use App\Mail\StorefrontPasswordReset;
 use App\Services\Storefront\CustomerAuthService;
+use App\Services\Storefront\OneTimeCodeAttempts;
 use App\Services\Storefront\PhoneValidationService;
 use App\Services\Storefront\StorefrontMailService;
 use App\Services\Storefront\TurnstileService;
@@ -12,11 +13,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends StorefrontController
 {
+    private const RESET_CODE_PURPOSE = 'password-reset';
+
     public function __construct(
+        private OneTimeCodeAttempts $codeAttempts,
         private CustomerAuthService $authService,
         private PhoneValidationService $phoneValidation,
         private TurnstileService $turnstile
@@ -117,17 +120,21 @@ class AuthController extends StorefrontController
             'email' => 'nullable|email|max:191',
         ]);
 
+        $authContact = $this->optionalSanctumContact();
         $contact = $this->authService->verifyEmailCode(
             $this->businessId($request),
             $data['code'],
-            $this->optionalSanctumContact($request),
+            $authContact,
             $data['email'] ?? null
         );
 
-        return $this->jsonSuccess([
-            'message' => 'Email verified.',
-            'contact' => $this->authService->formatContact($contact),
-        ]);
+        // Guests prove only the code, so they never receive profile fields.
+        $payload = ['message' => 'Email verified.'];
+        if ($authContact) {
+            $payload['contact'] = $this->authService->formatContact($contact);
+        }
+
+        return $this->jsonSuccess($payload);
     }
 
     public function resendEmailVerification(Request $request)
@@ -137,7 +144,7 @@ class AuthController extends StorefrontController
         ]);
 
         $businessId = $this->businessId($request);
-        $contact = $this->optionalSanctumContact($request);
+        $contact = $this->optionalSanctumContact();
         if (! $contact) {
             if (empty($data['email'])) {
                 return $this->jsonError('Email is required.', 422, ['email' => ['Email is required.']]);
@@ -150,25 +157,11 @@ class AuthController extends StorefrontController
 
         // Avoid account enumeration for public resend.
         if ($contact && empty($contact->email_verified_at)) {
-            $authenticated = $this->optionalSanctumContact($request) !== null;
+            $authenticated = $this->optionalSanctumContact() !== null;
             $this->authService->issueEmailVerificationCode($contact, false, $authenticated);
         }
 
         return $this->jsonSuccess(['message' => 'If verification is needed, a new code has been sent.']);
-    }
-
-    private function optionalSanctumContact(Request $request): ?Contact
-    {
-        $bearer = $request->bearerToken();
-        if (! $bearer) {
-            return null;
-        }
-        $accessToken = PersonalAccessToken::findToken($bearer);
-        if (! $accessToken || ! ($accessToken->tokenable instanceof Contact)) {
-            return null;
-        }
-
-        return $accessToken->tokenable;
     }
 
     public function forgotPassword(Request $request)
@@ -187,6 +180,7 @@ class AuthController extends StorefrontController
                 ['email' => $contact->email],
                 ['token' => Hash::make($token), 'created_at' => now()]
             );
+            $this->codeAttempts->clear(self::RESET_CODE_PURPOSE, $contact->email);
             try {
                 // Sync send so reset works without depending on queue workers.
                 app(StorefrontMailService::class)
@@ -214,7 +208,15 @@ class AuthController extends StorefrontController
         $businessId = $this->businessId($request);
         $row = DB::table('password_resets_contacts')->where('email', $data['email'])->first();
 
-        if (empty($row) || ! Hash::check($data['token'], $row->token)) {
+        if (empty($row)) {
+            return $this->jsonError('Invalid or expired reset token.', 422);
+        }
+
+        if (! Hash::check($data['token'], $row->token)) {
+            if ($this->codeAttempts->recordFailure(self::RESET_CODE_PURPOSE, $data['email'])) {
+                DB::table('password_resets_contacts')->where('email', $data['email'])->delete();
+            }
+
             return $this->jsonError('Invalid or expired reset token.', 422);
         }
 
@@ -239,6 +241,7 @@ class AuthController extends StorefrontController
         $contact->save();
         $contact->tokens()->delete();
         DB::table('password_resets_contacts')->where('email', $data['email'])->delete();
+        $this->codeAttempts->clear(self::RESET_CODE_PURPOSE, $data['email']);
 
         return $this->jsonSuccess(['message' => 'Password updated successfully.']);
     }
