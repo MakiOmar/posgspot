@@ -1541,7 +1541,18 @@ class SellPosController extends Controller
                 DB::commit();
                 $this->fulfillStorefrontDigitalIfPaid((int) $transaction->id);
 
-                $accounts_feedback = $this->accountsSaleFeedback($transaction, $input['products']);
+                // The paid hook only fires when the status changes, so lines added to an order that stays paid are fetched here.
+                $added_line_ids = [];
+                if ($transaction->type === 'sales_order'
+                    && $transaction_before->payment_status === 'paid'
+                    && ($transaction->payment_status ?? null) === 'paid') {
+                    $added_line_ids = TransactionSellLine::where('transaction_id', $transaction->id)
+                        ->whereNull('parent_sell_line_id')
+                        ->whereNotIn('id', array_keys($sell_lines_before))
+                        ->pluck('id')
+                        ->all();
+                }
+                $accounts_feedback = $this->accountsSaleFeedback($transaction, $input['products'], $added_line_ids);
 
                 // Fully paid SO after edit → auto-create final invoice.
                 $soConvertMsg = null;
@@ -1731,11 +1742,12 @@ class SellPosController extends Controller
      * After a save: allocate ticked account lines, then report what the cashier should hand over.
      * POS sells only ever fetch ticked lines; their credentials are returned for display.
      *
+     * @param  list<int>  $extra_line_ids  lines to fetch as if ticked
      * @return array{msg: string|null, deliveries: list<array<string, mixed>>}
      */
-    private function accountsSaleFeedback(Transaction $transaction, array $products): array
+    private function accountsSaleFeedback(Transaction $transaction, array $products, array $extra_line_ids = []): array
     {
-        $fetch_msg = $this->fetchCheckedAccountLines($transaction, $products);
+        $fetch_msg = $this->fetchCheckedAccountLines($transaction, $products, $extra_line_ids);
         if ($transaction->type !== 'sell') {
             return ['msg' => $fetch_msg, 'deliveries' => []];
         }
@@ -1755,11 +1767,12 @@ class SellPosController extends Controller
     /**
      * Allocate the account lines staff ticked "Fetch account now" on (sales orders and eligible POS sells).
      *
+     * @param  list<int>  $extra_line_ids  lines to fetch as if ticked
      * @return string|null feedback appended to the save message
      */
-    private function fetchCheckedAccountLines(Transaction $transaction, array $products): ?string
+    private function fetchCheckedAccountLines(Transaction $transaction, array $products, array $extra_line_ids = []): ?string
     {
-        $line_ids = [];
+        $line_ids = $extra_line_ids;
         $variation_ids = [];
         foreach ($products as $row) {
             if (empty($row['fetch_account'])) {

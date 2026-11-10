@@ -293,6 +293,51 @@ class SalesOrderAccountsTest extends TestCase
         $this->assertStringContainsString(__('lang_v1.accounts_fetched', ['count' => 1]), (string) session('status.msg'));
     }
 
+    public function test_editing_a_paid_sales_order_fetches_only_added_lines(): void
+    {
+        $gameId = random_int(9000000, 9999998);
+        $existing = $this->product($this->gameSku($gameId, 'PRIMARY'), 'ZZSO Existing '.$gameId);
+        $added = $this->product($this->gameSku($gameId + 1, 'PRIMARY'), 'ZZSO Added '.$gameId);
+        $so = $this->salesOrder(['is_direct_sale' => 1, 'payment_status' => 'paid', 'total_before_tax' => 0, 'final_total' => 0]);
+        // Unfetched while paid, e.g. undone in Accounts.
+        $existingLine = $this->line($so, $existing, 1, ['unit_price' => 0, 'unit_price_inc_tax' => 0]);
+        $user = $this->loginUser();
+        $row = fn (Product $p, array $extra = []) => array_merge([
+            'product_id' => $p->id,
+            'variation_id' => Variation::where('product_id', $p->id)->value('id'),
+            'quantity' => 1,
+            'unit_price' => 0,
+            'unit_price_inc_tax' => 0,
+            'item_tax' => 0,
+            'tax_id' => null,
+            'line_discount_type' => 'fixed',
+            'line_discount_amount' => 0,
+            'enable_stock' => 0,
+            'product_type' => 'single',
+        ], $extra);
+
+        $this->actingAs($user)->withSession(['user.business_id' => self::BUSINESS_ID, 'user.id' => $user->id])
+            ->from('/sells/'.$so->id.'/edit')
+            ->put('/pos/'.$so->id, [
+                'status' => 'ordered',
+                'location_id' => $so->location_id,
+                'contact_id' => $so->contact_id,
+                'discount_type' => 'fixed',
+                'discount_amount' => 0,
+                'tax_rate_id' => null,
+                'final_total' => 0,
+                'products' => [$row($existing, ['transaction_sell_lines_id' => $existingLine->id]), $row($added)],
+            ])
+            ->assertSessionHas('status.success', 1);
+
+        $addedLineId = (int) TransactionSellLine::where('transaction_id', $so->id)
+            ->whereNull('parent_sell_line_id')
+            ->where('id', '!=', $existingLine->id)
+            ->value('id');
+        $this->assertSame(1, $this->receiveCalls, 'Only the added line may be fetched.');
+        $this->assertSame([$addedLineId => 1], $this->fulfilment()->allocatedUnitsBySellLine($so->id));
+    }
+
     public function test_pos_sell_switch_controls_search_and_guard(): void
     {
         $gameId = random_int(9000000, 9999999);

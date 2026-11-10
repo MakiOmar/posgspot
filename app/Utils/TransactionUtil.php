@@ -3106,6 +3106,7 @@ class TransactionUtil extends Util
         $status = $this->calculatePaymentStatus($transaction_id, $final_amount);
 
         $transaction = Transaction::find($transaction_id);
+        $was_paid = $transaction->payment_status === 'paid';
         $transaction->payment_status = $status;
         $transaction->save();
 
@@ -3116,7 +3117,7 @@ class TransactionUtil extends Util
         // Storefront digital: allocate Accounts credentials whenever status is paid
         // (covers sell edit + cash, payment modal, Fawry recorder, etc.).
         if ($status === 'paid') {
-            $run = function () use ($transaction_id) {
+            $run = function () use ($transaction_id, $was_paid) {
                 try {
                     $tx = Transaction::find($transaction_id);
                     if (! $tx) {
@@ -3124,8 +3125,11 @@ class TransactionUtil extends Util
                     }
                     $accountsFulfilment = app(\App\Services\Accounts\SalesOrderDigitalFulfillmentService::class);
                     if ($tx->type === 'sales_order' || $accountsFulfilment->isEligible($tx)) {
-                        // Sales orders fetch their remaining Accounts lines once paid; POS sells only fetch ticked lines (no-op here).
-                        $accountsFulfilment->handlePaid($tx);
+                        // Sales orders fetch their remaining Accounts lines only when they become paid, so re-saving
+                        // a paid order never refetches lines undone in Accounts. POS sells only fetch ticked lines.
+                        if (! $was_paid) {
+                            $accountsFulfilment->handlePaid($tx);
+                        }
 
                         return;
                     }

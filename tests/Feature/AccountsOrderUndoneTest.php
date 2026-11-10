@@ -13,6 +13,7 @@ use App\TransactionSellLine;
 use App\Unit;
 use App\User;
 use App\Utils\ProductUtil;
+use App\Utils\TransactionUtil;
 use App\Variation;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -206,6 +207,25 @@ class AccountsOrderUndoneTest extends TestCase
         $refetched = (string) $so->fresh()->staff_note;
         $this->assertStringContainsString("Account: undo2@psn.test\nPassword: pw2", $refetched);
         $this->assertStringNotContainsString("Account: N/A\nPassword: N/A", $refetched);
+    }
+
+    public function test_paid_hook_refetches_an_undone_line_only_when_the_order_becomes_paid_again(): void
+    {
+        $so = $this->transaction();
+        $this->line($so, $this->gameProduct());
+        $util = app(TransactionUtil::class);
+
+        $util->updatePaymentStatus($so->id, 0);
+        $this->assertSame(1, $this->receiveCalls, 'Becoming paid fetches the line.');
+
+        $this->undo($this->allocatedRow('so-'.$so->id))->assertOk()->assertJson(['reset' => true]);
+
+        $util->updatePaymentStatus($so->id, 0);
+        $this->assertSame(1, $this->receiveCalls, 'Re-saving an order that is still paid must not refetch the undone line.');
+
+        $this->assertSame('due', $util->updatePaymentStatus($so->id, 100));
+        $util->updatePaymentStatus($so->id, 0);
+        $this->assertSame(2, $this->receiveCalls, 'Becoming paid again fetches it.');
     }
 
     public function test_undo_resets_pos_sell_and_converted_invoice_notes(): void
