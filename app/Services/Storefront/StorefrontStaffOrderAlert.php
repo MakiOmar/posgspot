@@ -18,7 +18,23 @@ class StorefrontStaffOrderAlert
 
     public const PAYMENT_ONLINE = 'online';
 
+    /** POS role permission for the Website orders queue and new-order alerts. */
+    public const PERMISSION = 'storefront.orders';
+
     private const OPEN_COUNT_TTL_SECONDS = 60;
+
+    /**
+     * Website orders queue on the sales list; $viewSellId also opens that order's details.
+     */
+    public static function queueUrl(?int $viewSellId = null): string
+    {
+        $params = ['source' => 'storefront', 'shipping_status' => 'ordered', 'website_orders' => 1];
+        if ($viewSellId) {
+            $params['view_sell'] = $viewSellId;
+        }
+
+        return action([\App\Http\Controllers\SellController::class, 'index'], $params);
+    }
 
     /**
      * Mark the order as alerted. False when another request (webhook, return page, scheduler) already did.
@@ -52,7 +68,7 @@ class StorefrontStaffOrderAlert
     }
 
     /**
-     * Active staff who can view sales at the order's branch.
+     * Active staff with the website orders permission at the order's branch.
      *
      * @return Collection<int, User>
      */
@@ -67,7 +83,7 @@ class StorefrontStaffOrderAlert
             ->where('allow_login', 1)
             ->get()
             ->filter(function (User $user) use ($businessId, $locationId) {
-                if (! $user->can('sell.view') && ! $user->can('direct_sell.view')) {
+                if (! $user->can(self::PERMISSION)) {
                     return false;
                 }
                 $locations = $user->permitted_locations($businessId);

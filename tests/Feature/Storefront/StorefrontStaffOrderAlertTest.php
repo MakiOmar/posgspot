@@ -62,21 +62,21 @@ class StorefrontStaffOrderAlertTest extends TestCase
         $this->setOrdersInbox('orders@business.test');
     }
 
-    public function test_cod_order_alerts_branch_sales_staff_and_orders_inbox(): void
+    public function test_cod_order_alerts_branch_website_order_staff_and_orders_inbox(): void
     {
-        $branchStaff = $this->staffWith(['sell.view', 'location.'.$this->location->id]);
-        $directSeller = $this->staffWith(['direct_sell.view', 'location.'.$this->location->id]);
-        $allLocations = $this->staffWith(['sell.view', 'access_all_locations']);
-        $otherBranch = $this->staffWith(['sell.view', 'location.'.$this->otherLocation->id]);
-        $noSalesAccess = $this->staffWith(['location.'.$this->location->id]);
+        $branchStaff = $this->staffWith(['storefront.orders', 'location.'.$this->location->id]);
+        $allLocations = $this->staffWith(['storefront.orders', 'access_all_locations']);
+        $otherBranch = $this->staffWith(['storefront.orders', 'location.'.$this->otherLocation->id]);
+        $salesOnly = $this->staffWith(['sell.view', 'direct_sell.view', 'location.'.$this->location->id]);
+        $noAccess = $this->staffWith(['location.'.$this->location->id]);
         $transaction = $this->makeStorefrontOrder();
 
         $this->runAlert($transaction, StorefrontStaffOrderAlert::PAYMENT_COD);
 
-        foreach ([$branchStaff, $directSeller, $allLocations] as $user) {
+        foreach ([$branchStaff, $allLocations] as $user) {
             $this->assertSame(1, $this->alertCount($user), $user->username.' should get the bell alert.');
         }
-        foreach ([$otherBranch, $noSalesAccess] as $user) {
+        foreach ([$otherBranch, $salesOnly, $noAccess] as $user) {
             $this->assertSame(0, $this->alertCount($user), $user->username.' must not get the bell alert.');
         }
 
@@ -91,7 +91,7 @@ class StorefrontStaffOrderAlertTest extends TestCase
 
     public function test_order_is_alerted_only_once(): void
     {
-        $staff = $this->staffWith(['sell.view', 'access_all_locations']);
+        $staff = $this->staffWith(['storefront.orders', 'access_all_locations']);
         $transaction = $this->makeStorefrontOrder();
 
         $this->runAlert($transaction, StorefrontStaffOrderAlert::PAYMENT_ONLINE);
@@ -114,7 +114,7 @@ class StorefrontStaffOrderAlertTest extends TestCase
 
     public function test_mail_failure_still_sends_bell_and_does_not_throw(): void
     {
-        $staff = $this->staffWith(['sell.view', 'access_all_locations']);
+        $staff = $this->staffWith(['storefront.orders', 'access_all_locations']);
         $transaction = $this->makeStorefrontOrder();
         $this->mock(StorefrontMailService::class, function ($mock) {
             $mock->shouldReceive('ordersRecipient')->andReturn('orders@business.test');
@@ -128,7 +128,7 @@ class StorefrontStaffOrderAlertTest extends TestCase
 
     public function test_pos_sales_are_never_alerted(): void
     {
-        $staff = $this->staffWith(['sell.view', 'access_all_locations']);
+        $staff = $this->staffWith(['storefront.orders', 'access_all_locations']);
         $transaction = $this->makeStorefrontOrder();
         Transaction::whereKey($transaction->id)->update(['source' => null]);
 
@@ -162,7 +162,7 @@ class StorefrontStaffOrderAlertTest extends TestCase
 
     public function test_bell_message_links_to_the_order(): void
     {
-        $staff = $this->staffWith(['sell.view', 'access_all_locations']);
+        $staff = $this->staffWith(['storefront.orders', 'access_all_locations']);
         $transaction = $this->makeStorefrontOrder();
         $this->runAlert($transaction, StorefrontStaffOrderAlert::PAYMENT_COD);
 
@@ -171,6 +171,7 @@ class StorefrontStaffOrderAlertTest extends TestCase
         $this->assertCount(1, $parsed);
         $this->assertStringContainsString($transaction->invoice_no, $parsed[0]['msg']);
         $this->assertStringContainsString('view_sell='.$transaction->id, $parsed[0]['link']);
+        $this->assertStringContainsString('website_orders=1', $parsed[0]['link']);
     }
 
     public function test_first_online_payment_queues_alert_and_repeat_does_not(): void
@@ -218,6 +219,37 @@ class StorefrontStaffOrderAlertTest extends TestCase
             ->assertSee(__('lang_v1.website_orders'))
             ->assertSee('website_orders=1', false)
             ->assertSee('<span class="label label-warning">'.$expected.'</span>', false);
+    }
+
+    public function test_website_orders_permission_alone_opens_the_queue_but_not_all_sales(): void
+    {
+        $staff = $this->staffWith(['storefront.orders', 'access_all_locations']);
+        $alerted = $this->makeStorefrontOrder();
+        $this->runAlert($alerted, StorefrontStaffOrderAlert::PAYMENT_COD);
+        $posSale = $this->makeStorefrontOrder();
+        Transaction::whereKey($posSale->id)->update(['source' => null, 'storefront_staff_notified_at' => now()]);
+
+        $this->actingAs($staff)->get(StorefrontStaffOrderAlert::queueUrl($alerted->id))
+            ->assertOk()
+            ->assertSee(__('lang_v1.website_orders'));
+
+        $this->actingAs($staff)->getJson('/sells?website_orders=1&length=100', ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertSee($alerted->invoice_no)
+            ->assertSee('sells\/'.$alerted->id, false)
+            ->assertDontSee($posSale->invoice_no);
+
+        $this->actingAs($staff)->get('/sells')->assertForbidden();
+    }
+
+    public function test_sales_access_without_website_orders_permission_hides_the_queue(): void
+    {
+        $staff = $this->staffWith(['sell.view', 'direct_sell.view', 'access_all_locations']);
+
+        $this->actingAs($staff)->get('/sells')
+            ->assertOk()
+            ->assertDontSee('website_orders=1', false);
+        $this->actingAs($staff)->get(StorefrontStaffOrderAlert::queueUrl())->assertForbidden();
     }
 
     private function runAlert(Transaction $transaction, string $payment): void

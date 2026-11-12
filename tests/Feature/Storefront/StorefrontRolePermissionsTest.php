@@ -74,6 +74,7 @@ class StorefrontRolePermissionsTest extends TestCase
 
         $this->as($admin)->get('/roles/create')
             ->assertOk()
+            ->assertSee('value="storefront.orders"', false)
             ->assertSee('value="storefront.settings"', false)
             ->assertSee('value="storefront.community"', false)
             ->assertSee('value="storefront.requests"', false)

@@ -22,6 +22,7 @@ use App\Utils\ContactUtil;
 use App\Utils\ModuleUtil;
 use App\Utils\ProductUtil;
 use App\Services\Storefront\StorefrontOrderListPaymentPresenter;
+use App\Services\Storefront\StorefrontStaffOrderAlert;
 use App\Utils\TransactionUtil;
 use App\Warranty;
 use DB;
@@ -88,7 +89,13 @@ class SellController extends Controller
     {
         $is_admin = $this->businessUtil->is_admin(auth()->user());
 
-        if (! $is_admin && ! auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'direct_sell.view', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping', 'so.view_all', 'so.view_own'])) {
+        // Website orders queue is granted by its own role permission, independent of sales list access.
+        $website_orders = request()->boolean('website_orders');
+        if ($website_orders) {
+            if (! auth()->user()->can(StorefrontStaffOrderAlert::PERMISSION)) {
+                abort(403, 'Unauthorized action.');
+            }
+        } elseif (! $is_admin && ! auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'direct_sell.view', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping', 'so.view_all', 'so.view_own'])) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -127,7 +134,7 @@ class SellController extends Controller
             }
 
             $partial_permissions = ['view_own_sell_only', 'view_commission_agent_sell', 'access_own_shipping', 'access_commission_agent_shipping'];
-            if (! auth()->user()->can('direct_sell.view')) {
+            if (! $website_orders && ! auth()->user()->can('direct_sell.view')) {
                 $sells->where(function ($q) {
                     if (auth()->user()->hasAnyPermission(['view_own_sell_only', 'access_own_shipping'])) {
                         $q->where('transactions.created_by', request()->session()->get('user.id'));
@@ -149,7 +156,7 @@ class SellController extends Controller
                 }
             }
 
-            if (! $is_admin && ! $only_shipments && $sale_type != 'sales_order') {
+            if (! $is_admin && ! $website_orders && ! $only_shipments && $sale_type != 'sales_order') {
                 $payment_status_arr = [];
                 if (auth()->user()->can('view_paid_sells_only')) {
                     $payment_status_arr[] = 'paid';
@@ -243,8 +250,9 @@ class SellController extends Controller
             }
 
             // "Website orders" queue: only orders staff were alerted about (COD, or paid online).
-            if (request()->boolean('website_orders')) {
-                $sells->whereNotNull('transactions.storefront_staff_notified_at');
+            if ($website_orders) {
+                $sells->where('transactions.source', 'storefront')
+                    ->whereNotNull('transactions.storefront_staff_notified_at');
             }
 
             // Accounts content tag (accounts_only | mixed | pos_only), see TransactionContentKindService.
@@ -409,10 +417,11 @@ class SellController extends Controller
                 $sells->addSelect('transactions.is_recurring', 'transactions.recur_parent_id');
             }
             $sales_order_statuses = Transaction::sales_order_statuses();
+            $can_view_website_order = $website_orders && auth()->user()->can(StorefrontStaffOrderAlert::PERMISSION);
             $datatable = Datatables::of($sells)
                 ->addColumn(
                     'action',
-                    function ($row) use ($only_shipments, $is_admin, $sale_type) {
+                    function ($row) use ($only_shipments, $is_admin, $sale_type, $can_view_website_order) {
                         $html = '<div class="btn-group">
                                     <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-info tw-w-max dropdown-toggle" 
                                         data-toggle="dropdown" aria-expanded="false">'.
@@ -422,7 +431,7 @@ class SellController extends Controller
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-left" role="menu">';
 
-                        if (auth()->user()->can('sell.view') || auth()->user()->can('direct_sell.view') || auth()->user()->can('view_own_sell_only')) {
+                        if ($can_view_website_order || auth()->user()->can('sell.view') || auth()->user()->can('direct_sell.view') || auth()->user()->can('view_own_sell_only')) {
                             $html .= '<li><a href="#" data-href="'.action([\App\Http\Controllers\SellController::class, 'show'], [$row->id]).'" class="btn-modal" data-container=".view_modal"><i class="fas fa-eye" aria-hidden="true"></i> '.__('messages.view').'</a></li>';
                         }
                         if (! $only_shipments) {
@@ -695,8 +704,8 @@ class SellController extends Controller
                     return '<span class="label '.$status_class.' payment-line-status-label" data-orig-value="'.$status.'">'.$status_label.'</span>';
                 })
                 ->setRowAttr([
-                    'data-href' => function ($row) {
-                        if (auth()->user()->can('sell.view') || auth()->user()->can('view_own_sell_only')) {
+                    'data-href' => function ($row) use ($can_view_website_order) {
+                        if ($can_view_website_order || auth()->user()->can('sell.view') || auth()->user()->can('view_own_sell_only')) {
                             return  action([\App\Http\Controllers\SellController::class, 'show'], [$row->id]);
                         } else {
                             return '';

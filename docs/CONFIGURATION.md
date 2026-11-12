@@ -131,7 +131,8 @@ Config: `config/storefront.php` → `request_product.enabled`.
 Website (Qwik) orders alert POS staff once per order, so nobody misses them:
 
 - **When:** cash on delivery at checkout; online (Fawry / Geidea) once payment is confirmed (`StorefrontPaymentRecorder::markPaid`). Unpaid online orders never alert. The claim is `transactions.storefront_staff_notified_at`.
-- **POS bell:** active staff with `sell.view` or `direct_sell.view` who can access the order's location (or have `access_all_locations`). The bell opens the order on the sales list (`/sells?view_sell={id}`).
+- **Who:** POS **Roles → Storefront → Access website orders** (`storefront.orders`). It controls the sidebar link, the queue, opening orders from it, and the bell. It does not require `sell.view`, and `sell.view` alone no longer grants it. Admin roles always have it. Storefront orders still appear in **All sales** for users with sales access.
+- **POS bell:** active staff with `storefront.orders` who can access the order's location (or have `access_all_locations`). The bell opens the order in the Website orders queue (`/sells?website_orders=1&…&view_sell={id}`).
 - **Email:** **Storefront Settings → Website orders → Orders notify email** (`settings.orders.notify_email`; falls back to the contact form inbox), sent with the business mail settings.
 - **Queue:** sidebar **Sell → Website orders** lists alerted orders still at shipping status *Ordered*; the badge count is cached for 60 seconds per business and location set. Orders placed before this feature have no alert timestamp and do not appear in the queue.
 - Digital-only orders are flagged "codes are delivered automatically after payment". Digital codes are never included in alerts.

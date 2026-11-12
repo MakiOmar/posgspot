@@ -293,7 +293,7 @@ class AdminSidebarMenu
                 )->order(25);
             }
             //Sell dropdown
-            if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping', 'access_sell_return', 'direct_sell.view', 'direct_sell.update', 'access_own_sell_return'])) {
+            if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'sell.create', 'direct_sell.access', 'view_own_sell_only', 'view_commission_agent_sell', 'access_shipping', 'access_own_shipping', 'access_commission_agent_shipping', 'access_sell_return', 'direct_sell.view', 'direct_sell.update', 'access_own_sell_return', \App\Services\Storefront\StorefrontStaffOrderAlert::PERMISSION])) {
                 $menu->dropdown(
                     __('sale.sale'),
                     function ($sub) use ($enabled_modules, $is_admin, $pos_settings) {
@@ -312,9 +312,9 @@ class AdminSidebarMenu
                                 ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null && ! request()->boolean('website_orders')]
                             );
                         }
-                        if ($is_admin || auth()->user()->hasAnyPermission(['sell.view', 'direct_sell.view'])) {
+                        if (auth()->user()->can(\App\Services\Storefront\StorefrontStaffOrderAlert::PERMISSION)) {
                             $sub->url(
-                                action([\App\Http\Controllers\SellController::class, 'index'], ['source' => 'storefront', 'shipping_status' => 'ordered', 'website_orders' => 1]),
+                                \App\Services\Storefront\StorefrontStaffOrderAlert::queueUrl(),
                                 $this->websiteOrdersTitle(),
                                 ['icon' => '', 'active' => request()->segment(1) == 'sells' && request()->segment(2) == null && request()->boolean('website_orders')]
                             );

@@ -1439,7 +1439,7 @@ class Util
             ]),
             'icon_class' => 'fas fa-shopping-cart bg-blue',
             // Sell details are a modal: the sales list opens it from ?view_sell=.
-            'link' => action([\App\Http\Controllers\SellController::class, 'index'], ['view_sell' => $data['transaction_id'] ?? 0]),
+            'link' => \App\Services\Storefront\StorefrontStaffOrderAlert::queueUrl((int) ($data['transaction_id'] ?? 0)),
             'read_at' => $notification->read_at,
             'created_at' => $notification->created_at->diffForHumans(),
         ];

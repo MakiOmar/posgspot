@@ -325,6 +325,7 @@ return [
     'storefront_display_address_help' => 'Optional. Shown on the public contact page. If empty, landmark, city, state, country, and zip are combined.',
     'show_on_storefront' => 'Show on storefront',
     'storefront_permissions' => 'Storefront',
+    'storefront_perm_orders' => 'Access website orders (queue, order details & new order alerts)',
     'storefront_perm_settings' => 'Manage storefront settings, translations & shipping zones',
     'storefront_perm_community' => 'Manage community posts',
     'storefront_perm_requests' => 'Manage sell-to-us, product requests & community applications',

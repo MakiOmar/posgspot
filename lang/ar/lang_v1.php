@@ -322,6 +322,7 @@ return [
     'location_id' => 'معرف الموقع',
     'show_on_storefront' => 'إظهار على المتجر الإلكتروني',
     'storefront_permissions' => 'المتجر الإلكتروني',
+    'storefront_perm_orders' => 'الوصول إلى طلبات الموقع (قائمة الطلبات وتفاصيلها وتنبيهات الطلبات الجديدة)',
     'storefront_perm_settings' => 'إدارة إعدادات المتجر والترجمات ومناطق الشحن',
     'storefront_perm_community' => 'إدارة منشورات المجتمع',
     'storefront_perm_requests' => 'إدارة طلبات البيع لنا وطلبات المنتجات وطلبات الانضمام للمجتمع',

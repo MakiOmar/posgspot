@@ -1,6 +1,7 @@
 {{-- Storefront dashboard capabilities (shared by role create / edit). Expects $role_permissions (array of names). --}}
 @php
   $storefront_permissions = [
+    'storefront.orders' => __('lang_v1.storefront_perm_orders'),
     'storefront.settings' => __('lang_v1.storefront_perm_settings'),
     'storefront.community' => __('lang_v1.storefront_perm_community'),
     'storefront.requests' => __('lang_v1.storefront_perm_requests'),

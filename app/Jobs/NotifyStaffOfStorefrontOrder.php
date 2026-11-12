@@ -47,7 +47,7 @@ class NotifyStaffOfStorefrontOrder implements ShouldQueue
 
         try {
             $businessId = (int) $transaction->business_id;
-            $orderUrl = action([\App\Http\Controllers\SellController::class, 'index'], ['view_sell' => $transaction->id]);
+            $orderUrl = StorefrontStaffOrderAlert::queueUrl((int) $transaction->id);
             $mail->sendNowForBusiness($businessId, $mail->ordersRecipient($businessId), new StorefrontStaffNewOrder($summary, $orderUrl));
         } catch (\Throwable $e) {
             Log::warning('Website order email alert failed: '.$e->getMessage(), $context);
