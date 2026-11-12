@@ -345,6 +345,17 @@ class SellController extends Controller
                 if (! auth()->user()->can('so.view_all') && auth()->user()->can('so.view_own')) {
                     $sells->where('transactions.created_by', request()->session()->get('user.id'));
                 }
+
+                $pos_settings = json_decode((string) Business::where('id', $business_id)->value('pos_settings'), true) ?: [];
+                if (! empty($pos_settings['hide_invoiced_sales_orders'])) {
+                    $invoiced_so_ids = $this->transactionUtil->invoicedSalesOrderIds($business_id);
+                    if (! empty($invoiced_so_ids)) {
+                        $sells->where(function ($q) use ($invoiced_so_ids) {
+                            $q->where('transactions.status', '!=', 'completed')
+                                ->orWhereNotIn('transactions.id', $invoiced_so_ids);
+                        });
+                    }
+                }
             }
 
             if (! empty(request()->input('delivery_person'))) {

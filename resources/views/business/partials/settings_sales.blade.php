@@ -123,6 +123,16 @@
             <div class="form-group">
                 <div class="checkbox">
                     <label>
+                    {!! Form::checkbox('pos_settings[hide_invoiced_sales_orders]', 1, !empty($pos_settings['hide_invoiced_sales_orders']), ['class' => 'input-icheck', 'id' => 'hide_invoiced_sales_orders']); !!} {{ __( 'lang_v1.hide_invoiced_sales_orders' ) }}
+                    </label>
+                  @show_tooltip(__('lang_v1.hide_invoiced_sales_orders_help'))
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
                     {!! Form::checkbox('pos_settings[lock_sales_order_location]', 1, !empty($pos_settings['lock_sales_order_location']) , [ 'class' => 'input-icheck', 'id' => 'lock_sales_order_location']); !!} {{ __( 'lang_v1.lock_sales_order_location' ) }}
                     </label>
                   @show_tooltip(__('lang_v1.lock_sales_order_location_help'))

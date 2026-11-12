@@ -1346,6 +1346,8 @@ return [
     'enable_sales_order' => 'Enable Sales Order',
     'so_invoice_on_full_payment' => 'Invoice sales order only when fully paid',
     'so_invoice_on_full_payment_help' => 'Deposits stay on the sales order (no stock change, no tax invoice). When the order is fully paid, create the invoice and decrease stock automatically. Turn off to allow invoicing unpaid sales orders from Add Sale.',
+    'hide_invoiced_sales_orders' => 'Hide invoiced sales orders',
+    'hide_invoiced_sales_orders_help' => 'Hide completed sales orders from the Sales Order list once their invoice is listed under All Sales. Partially invoiced orders stay visible.',
     'so_create_invoice' => 'Create invoice',
     'so_invoice_created' => 'Invoice :invoice_no created from sales order',
     'so_payments_moved_to_invoice' => 'Deposits were moved to invoice :invoice_no (no stock/cashbook double-post).',

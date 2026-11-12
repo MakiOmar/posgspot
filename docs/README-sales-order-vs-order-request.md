@@ -73,6 +73,8 @@ Use the **sales order** screen when you need day-to-day **internal** sales order
 
 **Permissions:** users need sales order permissions such as `so.view_own`, `so.view_all`, and/or `so.create` (see `SalesOrderController`).
 
+**Hide invoiced sales orders** (Business Settings → Sales, `pos_settings.hide_invoiced_sales_orders`, off by default): sales order lists (including the CRM order request list) skip orders whose status is **completed** and that are linked (`sales_order_ids`) from a final invoice shown under **All Sales**. Partially invoiced orders, and orders marked completed by hand without an invoice, stay visible.
+
 ---
 
 ## When to use **Order request**

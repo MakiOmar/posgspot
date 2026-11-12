@@ -5223,6 +5223,27 @@ class TransactionUtil extends Util
     }
 
     /**
+     * Ids of sales orders linked from a final invoice that is listed under All Sales.
+     *
+     * @return int[]
+     */
+    public function invoicedSalesOrderIds(int $business_id): array
+    {
+        return Transaction::where('business_id', $business_id)
+            ->where('type', 'sell')
+            ->where('status', 'final')
+            ->whereNull('sub_type')
+            ->whereNotNull('sales_order_ids')
+            ->pluck('sales_order_ids')
+            ->flatMap(fn ($ids) => is_array($ids) ? $ids : (json_decode((string) $ids, true) ?: []))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Function to get ledger details
      */
     public function getLedgerDetails($contact_id, $start, $end, $format = 'format_1', $location_id = null, $line_details = false)
