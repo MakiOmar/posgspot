@@ -34,7 +34,11 @@ npm-debug.log
 !/public/fonts/vendor/
 /public/fonts/vendor/*
 !/public/fonts/vendor/@fortawesome/
-/public/images/
+/public/images/*
+# vendor.css references the iCheck checkbox sprites; same reason as the fonts above.
+!/public/images/vendor/
+/public/images/vendor/*
+!/public/images/vendor/icheck/
 /public/modules/
 /public/.rnd
 /public/mix-manifest.json
