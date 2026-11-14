@@ -59,7 +59,7 @@ class ModuleUtil extends Util
 
         $installed_modules = [];
         foreach ($modules as $module => $details) {
-            if ($this->isModuleInstalled($details['name'])) {
+            if (Module::isEnabled($details['name']) && $this->isModuleInstalled($details['name'])) {
                 $installed_modules[] = $details;
             }
         }

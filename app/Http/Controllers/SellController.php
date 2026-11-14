@@ -100,7 +100,9 @@ class SellController extends Controller
         }
 
         $business_id = request()->session()->get('user.business_id');
-        $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+        // Disabled: WordPress/WooCommerce retired (Qwik storefront).
+        // $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+        $is_woocommerce = false;
         $is_crm = $this->moduleUtil->isModuleInstalled('Crm');
         $is_tables_enabled = $this->transactionUtil->isModuleEnabled('tables');
         $is_service_staff_enabled = $this->transactionUtil->isModuleEnabled('service_staff');
@@ -1390,7 +1392,9 @@ class SellController extends Controller
             $business_id = request()->session()->get('user.business_id');
             $is_quotation = request()->input('is_quotation', 0);
 
-            $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+            // Disabled: WordPress/WooCommerce retired (Qwik storefront).
+            // $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+            $is_woocommerce = false;
 
             $sells = Transaction::leftJoin('contacts', 'transactions.contact_id', '=', 'contacts.id')
                 ->leftJoin('users as u', 'transactions.created_by', '=', 'u.id')

@@ -69,7 +69,9 @@ class ProductController extends Controller
         }
         $business_id = request()->session()->get('user.business_id');
         $selling_price_group_count = SellingPriceGroup::countSellingPriceGroups($business_id);
-        $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+        // Disabled: WordPress/WooCommerce retired (Qwik storefront).
+        // $is_woocommerce = $this->moduleUtil->isModuleInstalled('Woocommerce');
+        $is_woocommerce = false;
 
         if (request()->ajax()) {
             //Filter by location
@@ -2376,44 +2378,45 @@ class ProductController extends Controller
                 ->with(compact('product', 'business_locations'));
     }
 
-    /**
-     * Toggle WooComerce sync
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function toggleWooCommerceSync(Request $request)
-    {
-        try {
-            $selected_products = $request->input('woocommerce_products_sync');
-            $woocommerce_disable_sync = $request->input('woocommerce_disable_sync');
-
-            $business_id = $request->session()->get('user.business_id');
-            $product_ids = explode(',', $selected_products);
-
-            DB::beginTransaction();
-            if ($this->moduleUtil->isModuleInstalled('Woocommerce')) {
-                Product::where('business_id', $business_id)
-                        ->whereIn('id', $product_ids)
-                        ->update(['woocommerce_disable_sync' => $woocommerce_disable_sync]);
-            }
-            DB::commit();
-            $output = [
-                'success' => 1,
-                'msg' => __('lang_v1.success'),
-            ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
-
-            $output = [
-                'success' => 0,
-                'msg' => __('messages.something_went_wrong'),
-            ];
-        }
-
-        return $output;
-    }
+    // Disabled: WordPress/WooCommerce retired (Qwik storefront).
+    // /**
+    //  * Toggle WooComerce sync
+    //  *
+    //  * @param  \Illuminate\Http\Request  $request
+    //  * @return \Illuminate\Http\Response
+    //  */
+    // public function toggleWooCommerceSync(Request $request)
+    // {
+    //     try {
+    //         $selected_products = $request->input('woocommerce_products_sync');
+    //         $woocommerce_disable_sync = $request->input('woocommerce_disable_sync');
+    //
+    //         $business_id = $request->session()->get('user.business_id');
+    //         $product_ids = explode(',', $selected_products);
+    //
+    //         DB::beginTransaction();
+    //         if ($this->moduleUtil->isModuleInstalled('Woocommerce')) {
+    //             Product::where('business_id', $business_id)
+    //                     ->whereIn('id', $product_ids)
+    //                     ->update(['woocommerce_disable_sync' => $woocommerce_disable_sync]);
+    //         }
+    //         DB::commit();
+    //         $output = [
+    //             'success' => 1,
+    //             'msg' => __('lang_v1.success'),
+    //         ];
+    //     } catch (\Exception $e) {
+    //         DB::rollBack();
+    //         \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+    //
+    //         $output = [
+    //             'success' => 0,
+    //             'msg' => __('messages.something_went_wrong'),
+    //         ];
+    //     }
+    //
+    //     return $output;
+    // }
 
     /**
      * Function to download all products in xlsx format

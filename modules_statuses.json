@@ -13,7 +13,7 @@
     "Repair": true,
     "Spreadsheet": true,
     "Superadmin": true,
-    "Woocommerce": true,
+    "Woocommerce": false,
     "AiAssistance": true,
     "Hms": true,
     "InboxReport": true,

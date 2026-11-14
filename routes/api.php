@@ -96,10 +96,11 @@ Route::middleware(['auth:api', 'throttle:accounts-catalog'])
     ->withoutMiddleware('throttle:api')
     ->post('/accounts/catalog/upsert/{business_id}', [AccountsApi::class, 'catalogUpsert'])
     ->whereNumber('business_id');
-Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
-Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
-
-Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
+// Disabled: WordPress/WooCommerce retired (Qwik storefront).
+// Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
+// Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
+//
+// Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
 Route::middleware('auth:api')->get(
     '/contacts/{contact_id}/info',
     [ContactController::class, 'getContactInfoApi']

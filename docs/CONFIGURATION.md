@@ -12,7 +12,18 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 ## Config caching and `env()`
 
-Production web containers run `php artisan optimize --except=views` at boot (see [STAGING_VPS](public-site/STAGING_VPS.md)). With a cached config, `env()` returns `null` outside `config/*.php`, so application code must read `config(...)`. Keys moved into config for this: `services.woo.{base,auth_key,webhook_secret}` (`WOO_BASE`, `AUTH_KEY`, `WOOCOMMERCE_WEBHOOK_SECRET`), `services.google_maps.api_key` (`GOOGLE_MAP_API_KEY`), `services.google.{android_client_id,ios_client_id}`. Mail driver checks use `config('mail.default')`.
+Production web containers run `php artisan optimize --except=views` at boot (see [STAGING_VPS](public-site/STAGING_VPS.md)). With a cached config, `env()` returns `null` outside `config/*.php`, so application code must read `config(...)`. Keys moved into config for this: `services.google_maps.api_key` (`GOOGLE_MAP_API_KEY`), `services.google.{android_client_id,ios_client_id}`. Mail driver checks use `config('mail.default')`.
+
+## WordPress / WooCommerce (disabled)
+
+The public shop is the Qwik storefront; the WordPress/WooCommerce bridge is switched off but kept in code (commented out, marked `Disabled: WordPress/WooCommerce retired`) so it can be restored:
+
+- `modules_statuses.json` sets `Woocommerce` to `false`, so the module's routes (`/webhook/order-*`, `/woocommerce/*`, its API routes), artisan commands, and auto-sync schedule are not registered. Disabled modules also no longer receive `ModuleUtil::getModuleData` hooks (sidebar menu, product form fields, permissions).
+- New contacts are no longer pushed to WordPress (`caui/v1/create-user`).
+- `POST /api/woo/create-contact`, `POST /api/woo/get-orders`, `GET /api/possells/{id}/print` and `POST /products/toggle-woocommerce-sync` are commented out in the route files.
+- `services.woo.*` is commented out; `WOO_ENDPOINT`, `WOO_TOKEN`, `WOO_BASE`, `AUTH_KEY`, `WOOCOMMERCE_WEBHOOK_SECRET` are no longer read and can be removed from `.env`.
+
+Accounts orders (`/api/accounts/orders/*`) still use the legacy `woocommerce_order_id` payload field and are unaffected. After deploying, clear caches (`php artisan optimize:clear`) so the module manifest and cached routes/config drop the module.
 
 ## Storefront API caching
 

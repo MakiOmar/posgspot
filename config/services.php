@@ -30,15 +30,16 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
-    'woo' => [
-        'endpoint' => env('WOO_ENDPOINT'),
-        'token'    => env('WOO_TOKEN'),
-        // Contact → WooCommerce customer sync (caui/v1/create-user).
-        'base' => env('WOO_BASE'),
-        'auth_key' => env('AUTH_KEY'),
-        // Woocommerce module: pos:retry-staff-note-update signs its webhook calls with this.
-        'webhook_secret' => env('WOOCOMMERCE_WEBHOOK_SECRET'),
-    ],
+    // Disabled: WordPress/WooCommerce retired (Qwik storefront).
+    // 'woo' => [
+    //     'endpoint' => env('WOO_ENDPOINT'),
+    //     'token'    => env('WOO_TOKEN'),
+    //     // Contact → WooCommerce customer sync (caui/v1/create-user).
+    //     'base' => env('WOO_BASE'),
+    //     'auth_key' => env('AUTH_KEY'),
+    //     // Woocommerce module: pos:retry-staff-note-update signs its webhook calls with this.
+    //     'webhook_secret' => env('WOOCOMMERCE_WEBHOOK_SECRET'),
+    // ],
 
     'google_maps' => [
         'api_key' => env('GOOGLE_MAP_API_KEY'),
