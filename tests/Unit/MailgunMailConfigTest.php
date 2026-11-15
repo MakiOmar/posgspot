@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
 /**
- * System-wide Mailgun API mail configuration helpers.
+ * System-wide API mail configuration helpers (Mailgun + ZeptoMail / CPaaS).
  */
 class MailgunMailConfigTest extends TestCase
 {
@@ -27,6 +27,24 @@ class MailgunMailConfigTest extends TestCase
         Config::set('mail.default', 'mailgun');
         Config::set('services.mailgun.domain', 'mg.example.com');
         Config::set('services.mailgun.secret', '');
+        Config::set('mail.from.address', 'noreply@example.com');
+
+        $this->assertFalse((new Util())->IsMailConfigured());
+    }
+
+    public function test_is_mail_configured_true_for_zeptomail(): void
+    {
+        Config::set('mail.default', 'zeptomail');
+        Config::set('services.zeptomail.token', 'Zoho-enczapikey test-token');
+        Config::set('mail.from.address', 'noreply@example.com');
+
+        $this->assertTrue((new Util())->IsMailConfigured());
+    }
+
+    public function test_is_mail_configured_false_when_zeptomail_token_missing(): void
+    {
+        Config::set('mail.default', 'zeptomail');
+        Config::set('services.zeptomail.token', '');
         Config::set('mail.from.address', 'noreply@example.com');
 
         $this->assertFalse((new Util())->IsMailConfigured());
@@ -111,6 +129,34 @@ class MailgunMailConfigTest extends TestCase
         ], true);
 
         $this->assertSame('mailgun', config('mail.default'));
+        $this->assertSame('smtp.should-not-apply.test', config('mail.mailers.smtp.host'));
+        $this->assertSame('system@example.com', config('mail.from.address'));
+        $this->assertSame('Business Name', config('mail.from.name'));
+    }
+
+    public function test_configure_email_superadmin_keeps_zeptomail_transport(): void
+    {
+        Config::set('mail.default', 'zeptomail');
+        Config::set('mail.from.address', 'system@example.com');
+        Config::set('mail.from.name', 'System');
+        Config::set('mail.mailers.smtp.host', 'smtp.should-not-apply.test');
+
+        \App\System::updateOrCreate(
+            ['key' => 'allow_email_settings_to_businesses'],
+            ['value' => '1']
+        );
+
+        $util = new NotificationUtil();
+        $util->configureEmail([
+            'email_settings' => [
+                'use_superadmin_settings' => 1,
+                'mail_host' => 'smtp.business-override.test',
+                'mail_from_address' => '',
+                'mail_from_name' => 'Business Name',
+            ],
+        ], true);
+
+        $this->assertSame('zeptomail', config('mail.default'));
         $this->assertSame('smtp.should-not-apply.test', config('mail.mailers.smtp.host'));
         $this->assertSame('system@example.com', config('mail.from.address'));
         $this->assertSame('Business Name', config('mail.from.name'));

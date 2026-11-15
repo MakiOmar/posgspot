@@ -297,9 +297,9 @@ class NotificationUtil extends Util
         if (! empty($is_superadmin_settings_allowed) && ! empty($email_settings['use_superadmin_settings']) && $check_superadmin) {
             $default_mailer = config('mail.default', 'smtp');
 
-            // System-wide Mailgun API: keep mailgun transport; do not copy SMTP credentials.
-            if ($default_mailer === 'mailgun') {
-                Config::set('mail.default', 'mailgun');
+            // System-wide API transports: keep mailer; do not copy SMTP credentials.
+            if (in_array($default_mailer, ['mailgun', 'zeptomail'], true)) {
+                Config::set('mail.default', $default_mailer);
 
                 $from_address = ! empty($email_settings['mail_from_address'])
                     ? $email_settings['mail_from_address']

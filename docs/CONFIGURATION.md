@@ -6,6 +6,8 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 **Production VPS** (Docker Compose behind Cloudflare on `gamesspoteg.com`): [`docs/public-site/STAGING_VPS.md`](public-site/STAGING_VPS.md).
 
+**Transactional mail (Zoho CPaaS):** [`docs/integrations/ZOHO_CPAAS_MAIL.md`](integrations/ZOHO_CPAAS_MAIL.md).
+
 ## Trusted proxies (`TRUSTED_PROXIES`)
 
 `config/trustedproxy.php` reads `TRUSTED_PROXIES`, a comma-separated list of IPs/CIDRs whose `X-Forwarded-*` headers are trusted. Behind Cloudflare and Traefik every hop must be listed (Docker private ranges plus Cloudflare's published ranges). Otherwise `$request->ip()` returns a Cloudflare edge address, and the per-IP storefront rate limiters throttle all visitors together. Empty trusts no proxy: `X-Forwarded-*` is ignored and the socket address is used, so any deployment behind a proxy must set it. (The old wildcard fallback let any direct caller spoof `X-Forwarded-For` and dodge the per-IP limiters.) Accounts reads the same key.

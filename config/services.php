@@ -21,6 +21,12 @@ return [
         'scheme' => 'https',
     ],
 
+    // Zoho CPaaS / ZeptoMail (MAIL_MAILER=zeptomail). See docs/integrations/ZOHO_CPAAS_MAIL.md.
+    'zeptomail' => [
+        'host' => env('ZEPTOMAIL_HOST', 'zoho.com'),
+        'token' => env('ZEPTOMAIL_TOKEN'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

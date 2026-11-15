@@ -68,7 +68,8 @@
         "symfony/mailgun-mailer": "^7.0",
         "unicodeveloper/laravel-paystack": "^1.0",
         "yajra/laravel-datatables-oracle": "^11.0",
-        "yaza/laravel-google-drive-storage": "^4.1"
+        "yaza/laravel-google-drive-storage": "^4.1",
+        "zohomail/laravel-zeptomail": "dev-main"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.11",

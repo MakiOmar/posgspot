@@ -29,8 +29,8 @@ class StorefrontMailService
     /**
      * Configure Laravel mail for the business and return the From address/name.
      *
-     * When the business uses superadmin settings, keep the system mailer
-     * (e.g. Mailgun API from .env) and only override the From header.
+     * When the business uses superadmin settings, keep the system API mailer
+     * (ZeptoMail / Mailgun from .env) and only override the From header.
      *
      * @return array{address: string, name: string}
      */
@@ -43,7 +43,7 @@ class StorefrontMailService
             && ! empty(System::getProperty('allow_email_settings_to_businesses'));
 
         if ($useSuperadmin) {
-            // Leave mail.default / Mailgun credentials from .env unchanged.
+            // Leave mail.default / system API credentials from .env unchanged.
         } elseif (! empty($emailSettings['mail_host'])) {
             Config::set('mail.default', $emailSettings['mail_driver'] ?? 'smtp');
             Config::set('mail.mailers.smtp.host', $emailSettings['mail_host']);

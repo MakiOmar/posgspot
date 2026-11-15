@@ -54,6 +54,10 @@ return [
             'transport' => 'mailgun',
         ],
 
+        'zeptomail' => [
+            'transport' => 'zeptomail',
+        ],
+
         'postmark' => [
             'transport' => 'postmark',
         ],

@@ -1146,6 +1146,12 @@ class Util
                 && ! empty(config('mail.from.address'));
         }
 
+        // System-wide Zoho CPaaS / ZeptoMail API (MAIL_MAILER=zeptomail).
+        if ($mailer === 'zeptomail') {
+            return ! empty(config('services.zeptomail.token'))
+                && ! empty(config('mail.from.address'));
+        }
+
         return ! empty($mailer)
             && ! empty(config('mail.mailers.smtp.host'))
             && ! empty(config('mail.mailers.smtp.port'))

@@ -130,7 +130,7 @@ The storefront SSR cache (see [API](./API.md) rate-limit notes) absorbs bursts; 
 Scripts run on the VPS as root from `/opt/spot-staging`:
 
 1. `HOSTINGER_SSH_PASS=… bash scripts/pull-from-hostinger.sh` — DB dumps, POS uploads/storage, Accounts storage/assets/logos, live `.env` files into `data/live-env/` (mode 600). Incremental; re-run during the window.
-2. `bash scripts/configure-production-env.sh` — writes `pos/.env` and `accounts/.env` from the live files (keeps `APP_KEY`, mail, payments) and rewires hosts, DB, Redis, `TRUSTED_PROXIES`.
+2. `bash scripts/configure-production-env.sh` — writes `pos/.env` and `accounts/.env` from the live files (keeps `APP_KEY`, mail, payments) and rewires hosts, DB, Redis, `TRUSTED_PROXIES`. For Zoho CPaaS, both env files need `MAIL_MAILER=zeptomail`, `ZEPTOMAIL_HOST`, `ZEPTOMAIL_TOKEN`, and a verified `MAIL_FROM_*` (see [integrations/ZOHO_CPAAS_MAIL.md](../integrations/ZOHO_CPAAS_MAIL.md) → Operator deploy).
 3. `bash scripts/import-db.sh` — drops and re-imports the POS schema (`POS_DB_NAME`, default `pos_live`) and `accounts_stg`.
 4. `migrate --force` on both apps, then recreate the web containers and workers (boot rebuilds the Laravel caches).
 
