@@ -1,15 +1,28 @@
 @extends('layouts.app')
-@section('title', __('lang_v1.all_sales'))
+@section('title', request()->boolean('website_orders') ? __('lang_v1.website_orders') : __('lang_v1.all_sales'))
 
 @section('content')
+    @php
+        $is_website_orders = request()->boolean('website_orders');
+        $can_open_all_sales = auth()->user()->can('direct_sell.view') ||
+            auth()->user()->can('view_own_sell_only') ||
+            auth()->user()->can('view_commission_agent_sell') ||
+            auth()->user()->can('sell.view') ||
+            auth()->user()->can('direct_sell.access') ||
+            auth()->user()->can('access_shipping') ||
+            auth()->user()->can('access_own_shipping') ||
+            auth()->user()->can('access_commission_agent_shipping');
+    @endphp
 
     <!-- Content Header (Page header) -->
     <section class="content-header no-print">
         <h1  class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">
             {{-- Website orders queue shares this list with fixed filters --}}
-            @if (request()->boolean('website_orders'))
+            @if ($is_website_orders)
                 @lang('lang_v1.website_orders')
-                <small><a href="{{ action([\App\Http\Controllers\SellController::class, 'index']) }}">@lang('lang_v1.all_sales')</a></small>
+                @if ($can_open_all_sales)
+                    <small><a href="{{ action([\App\Http\Controllers\SellController::class, 'index']) }}">@lang('lang_v1.all_sales')</a></small>
+                @endif
             @else
                 @lang('sale.sells')
             @endif
@@ -48,7 +61,7 @@
             @endif
             @include('sell.partials.content_kind_filter')
         @endcomponent
-        @component('components.widget', ['class' => 'box-primary', 'title' => __('lang_v1.all_sales')])
+        @component('components.widget', ['class' => 'box-primary', 'title' => $is_website_orders ? __('lang_v1.website_orders') : __('lang_v1.all_sales')])
             @can('direct_sell.access')
                 @slot('tool')
                     <div class="box-tools">
@@ -65,9 +78,11 @@
                     </div>
                 @endslot
             @endcan
+            {{-- Website orders queue is granted by storefront.orders alone; All sales still needs sell view perms. --}}
             @if (auth()->user()->can('direct_sell.view') ||
                     auth()->user()->can('view_own_sell_only') ||
-                    auth()->user()->can('view_commission_agent_sell'))
+                    auth()->user()->can('view_commission_agent_sell') ||
+                    ($is_website_orders && auth()->user()->can(\App\Services\Storefront\StorefrontStaffOrderAlert::PERMISSION)))
                 @php
                     $custom_labels = json_decode(session('business.custom_labels'), true);
                 @endphp

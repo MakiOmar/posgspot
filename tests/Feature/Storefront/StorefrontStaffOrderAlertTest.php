@@ -231,7 +231,12 @@ class StorefrontStaffOrderAlertTest extends TestCase
 
         $this->actingAs($staff)->get(StorefrontStaffOrderAlert::queueUrl($alerted->id))
             ->assertOk()
-            ->assertSee(__('lang_v1.website_orders'));
+            ->assertSee(__('lang_v1.website_orders'))
+            ->assertSee('id="sell_table"', false)
+            ->assertDontSee(
+                'href="'.action([\App\Http\Controllers\SellController::class, 'index']).'">'.__('lang_v1.all_sales'),
+                false
+            );
 
         $this->actingAs($staff)->getJson('/sells?website_orders=1&length=100', ['X-Requested-With' => 'XMLHttpRequest'])
             ->assertOk()
@@ -240,6 +245,16 @@ class StorefrontStaffOrderAlertTest extends TestCase
             ->assertDontSee($posSale->invoice_no);
 
         $this->actingAs($staff)->get('/sells')->assertForbidden();
+
+        // Queue staff can update shipping on storefront orders without All sales / Access Shipments.
+        $this->actingAs($staff)->get('/sells/edit-shipping/'.$alerted->id)
+            ->assertOk();
+        $this->actingAs($staff)->put('/sells/update-shipping/'.$alerted->id, [
+            'shipping_status' => 'packed',
+        ])->assertOk();
+        $this->assertSame('packed', $alerted->fresh()->shipping_status);
+
+        $this->actingAs($staff)->get('/sells/edit-shipping/'.$posSale->id)->assertForbidden();
     }
 
     public function test_sales_access_without_website_orders_permission_hides_the_queue(): void

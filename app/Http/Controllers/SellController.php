@@ -485,7 +485,8 @@ class SellController extends Controller
                             }
                         }
 
-                        if ($is_admin || auth()->user()->hasAnyPermission(['access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
+                        // Website orders queue is already storefront-only; queue permission can edit shipping there.
+                        if ($is_admin || auth()->user()->hasAnyPermission(['access_shipping', 'access_own_shipping', 'access_commission_agent_shipping']) || $can_view_website_order) {
                             $html .= '<li><a href="#" data-href="'.action([\App\Http\Controllers\SellController::class, 'editShipping'], [$row->id]).'" class="btn-modal" data-container=".view_modal"><i class="fas fa-truck" aria-hidden="true"></i>'.__('lang_v1.edit_shipping').'</a></li>';
                         }
 
@@ -1690,17 +1691,15 @@ class SellController extends Controller
      */
     public function editShipping($id)
     {
-        $is_admin = $this->businessUtil->is_admin(auth()->user());
-
-        if (! $is_admin && ! auth()->user()->hasAnyPermission(['access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
-            abort(403, 'Unauthorized action.');
-        }
-
         $business_id = request()->session()->get('user.business_id');
 
         $transaction = Transaction::where('business_id', $business_id)
                                 ->with(['media', 'media.uploaded_by_user'])
                                 ->findorfail($id);
+
+        if (! $this->canEditSellShipping($transaction)) {
+            abort(403, 'Unauthorized action.');
+        }
 
         $users = User::forDropdown($business_id, false, false, false);
 
@@ -1724,12 +1723,6 @@ class SellController extends Controller
      */
     public function updateShipping(Request $request, $id)
     {
-        $is_admin = $this->businessUtil->is_admin(auth()->user());
-
-        if (! $is_admin && ! auth()->user()->hasAnyPermission(['access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
-            abort(403, 'Unauthorized action.');
-        }
-
         try {
             $input = $request->only([
                 'shipping_details', 'shipping_address',
@@ -1743,6 +1736,10 @@ class SellController extends Controller
 
             $transaction = Transaction::where('business_id', $business_id)
                                 ->findOrFail($id);
+
+            if (! $this->canEditSellShipping($transaction)) {
+                abort(403, 'Unauthorized action.');
+            }
 
             $transaction_before = $transaction->replicate();
             $wasShipped = ($transaction_before->shipping_status ?? '') === 'shipped';
@@ -1871,5 +1868,22 @@ class SellController extends Controller
 
         echo 'Mapping reset success';
         exit;
+    }
+
+    /**
+     * Shipping edits: shipment perms for any sale, or storefront.orders for storefront sales only.
+     */
+    private function canEditSellShipping(Transaction $transaction): bool
+    {
+        if ($this->businessUtil->is_admin(auth()->user())) {
+            return true;
+        }
+
+        if (auth()->user()->hasAnyPermission(['access_shipping', 'access_own_shipping', 'access_commission_agent_shipping'])) {
+            return true;
+        }
+
+        return $transaction->source === 'storefront'
+            && auth()->user()->can(StorefrontStaffOrderAlert::PERMISSION);
     }
 }
