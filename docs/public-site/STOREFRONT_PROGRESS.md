@@ -107,7 +107,7 @@
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
-| `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode`; redirects shop routes; `/add-customer` exempt |
+| `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode` or `PUBLIC_STOREFRONT_FORCE_MAINTENANCE`; redirects shop routes; `/add-customer` exempt unless force flag |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
 | Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit; `type=games\|gift_cards` |
 

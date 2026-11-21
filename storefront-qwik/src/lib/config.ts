@@ -39,6 +39,16 @@ function parseFontFamily(raw: string | undefined): FontFamily {
 export const ROBOTS_DISALLOW_ALL: boolean = envFlag("PUBLIC_ROBOTS_DISALLOW_ALL");
 
 /**
+ * Force the shop into maintenance without calling the POS API.
+ * Set `PUBLIC_STOREFRONT_FORCE_MAINTENANCE=true` in `.env.production` and rebuild.
+ * Blocks every `storefrontFetch`, skips shell loaders, and ignores `/add-customer` exemptions.
+ * Turn off by setting false/unset and rebuilding the storefront image.
+ */
+export const FORCE_STOREFRONT_MAINTENANCE: boolean = envFlag(
+  "PUBLIC_STOREFRONT_FORCE_MAINTENANCE",
+);
+
+/**
  * Header layout:
  * - `one` — single bar (logo + nav + icon actions); search opens a modal (Sigma-style).
  * - `two` — main row (logo, inline search, actions) + second row for nav and categories.

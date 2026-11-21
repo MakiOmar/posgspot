@@ -41,6 +41,7 @@ import type {
   WishlistPayload,
 } from "./types";
 import type { CartApiItem } from "./cart-actions";
+import { FORCE_STOREFRONT_MAINTENANCE } from "./config";
 
 export const API_BASE: string =
   (import.meta.env.PUBLIC_API_BASE as string | undefined)?.replace(/\/$/, "") ||
@@ -129,6 +130,10 @@ export async function storefrontFetch<T>(
   options: RequestInit = {},
   locale?: string,
 ): Promise<FetchResult<T>> {
+  if (FORCE_STOREFRONT_MAINTENANCE) {
+    throw new ApiError(503, "Storefront is under maintenance", {});
+  }
+
   const url = `${API_BASE}${PREFIX}${path}`;
   const contentLocale = locale ?? activeContentLocale;
   const headers: Record<string, string> = {

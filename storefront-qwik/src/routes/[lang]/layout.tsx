@@ -17,7 +17,7 @@ import { API_BASE, fetchCategories, fetchLocations, fetchSettings, setActiveCont
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { WishlistProvider } from "~/lib/wishlist-context";
-import { FONT_FAMILY, SITE_PARTICLES } from "~/lib/config";
+import { FONT_FAMILY, FORCE_STOREFRONT_MAINTENANCE, SITE_PARTICLES } from "~/lib/config";
 import { I18nProvider } from "~/lib/i18n/context";
 import { isSupportedLocale, localeDefinition, type StoreLocaleCode } from "~/lib/i18n/config";
 import { ensureLocaleMessages } from "~/lib/i18n/translate";
@@ -33,6 +33,11 @@ import { cachedCategories, cachedLocations, cachedSettings } from "~/lib/ssr-she
 import { themeHeadStyleFromSettings } from "~/lib/theme";
 import type { StoreLocation, StoreSettings } from "~/lib/types";
 
+const FORCED_MAINTENANCE_SETTINGS: StoreSettings = {
+  ...FALLBACK_STORE_SETTINGS,
+  maintenance_mode: true,
+};
+
 export const useLangParam = routeLoader$(async ({ params, redirect }): Promise<StoreLocaleCode> => {
   if (!isSupportedLocale(params.lang)) {
     throw redirect(302, "/en/");
@@ -46,6 +51,9 @@ export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSet
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   setActiveContentLocale(locale);
   await ensureLocaleMessages(locale);
+  if (FORCE_STOREFRONT_MAINTENANCE) {
+    return FORCED_MAINTENANCE_SETTINGS;
+  }
   try {
     return await cachedSettings(locale, async () => {
       const { data } = await fetchSettings(locale, { shell: true });
@@ -63,9 +71,13 @@ export const useMaintenanceGate = routeLoader$(
     const settings = await resolveValue(useSiteSettings);
     const lang = isSupportedLocale(params.lang) ? params.lang : "en";
     const onMaintenancePage = isMaintenancePagePath(pathname);
-    const exempt = isMaintenanceExemptPath(pathname);
+    // Force flag ignores exemptions so no shop route can still hit the API.
+    const exempt =
+      !FORCE_STOREFRONT_MAINTENANCE && isMaintenanceExemptPath(pathname);
+    const inMaintenance =
+      FORCE_STOREFRONT_MAINTENANCE || settings.maintenance_mode;
 
-    if (settings.maintenance_mode) {
+    if (inMaintenance) {
       if (exempt) {
         return null;
       }
@@ -85,6 +97,9 @@ export const useMaintenanceGate = routeLoader$(
 );
 
 export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCategoriesLoad> => {
+  if (FORCE_STOREFRONT_MAINTENANCE) {
+    return EMPTY_NAV_CATEGORIES;
+  }
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
     return await cachedCategories(locale, async () => {
@@ -98,6 +113,9 @@ export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCate
 });
 
 export const useFooterLocations = routeLoader$(async ({ params }): Promise<StoreLocation[]> => {
+  if (FORCE_STOREFRONT_MAINTENANCE) {
+    return [];
+  }
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   try {
     return await cachedLocations(locale, async () => {

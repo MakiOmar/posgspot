@@ -84,6 +84,7 @@ PUBLIC_API_BASE=https://pos.example.com
 PUBLIC_HEADER_STYLE=one
 # PUBLIC_FONT_FAMILY=playfair
 # PUBLIC_ROBOTS_DISALLOW_ALL=true   # staging only — blocks all crawlers
+# PUBLIC_STOREFRONT_FORCE_MAINTENANCE=true  # show maintenance; no POS API calls (rebuild to toggle)
 # PUBLIC_CSP_REPORT_ONLY=true       # test CSP without enforcing
 ```
 
@@ -248,6 +249,7 @@ Set POS `STOREFRONT_URL=http://localhost:5173` and CORS accordingly.
 | Shop loads, catalog empty / CORS errors | Wrong `PUBLIC_API_BASE` or POS `CORS_ALLOWED_ORIGINS` |
 | Login works but emails link to wrong host | POS `STOREFRONT_URL` |
 | Payment return 404 on shop | Shop routes not deployed / wrong `ORIGIN` host |
+| Shop stuck on maintenance with no POS traffic | `PUBLIC_STOREFRONT_FORCE_MAINTENANCE=true` baked into the image — set false/unset in `.env.production` and rebuild storefront |
 | Staging indexed by Google | Missing `PUBLIC_ROBOTS_DISALLOW_ALL=true` at **build** time |
 | Lighthouse SEO ~69 on preview | `PUBLIC_ROBOTS_DISALLOW_ALL` is on (meta + `X-Robots-Tag` noindex) — intentional for staging; unset for production builds |
 | Lighthouse Best Practices (cookies / deprecated APIs) | YouTube iframe + footer Turnstile / Cloudflare challenge scripts. Click-to-play + deferred Turnstile fix app-owned third parties; `cdn-cgi/challenge-platform` deprecations are Cloudflare-injected and not app-fixable. |
