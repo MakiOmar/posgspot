@@ -32,7 +32,14 @@ class User extends Authenticatable
      * @var array
      */
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'remember_token', 'login_otp_hash',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'login_otp_expires_at' => 'datetime',
     ];
 
     // change api guard to web

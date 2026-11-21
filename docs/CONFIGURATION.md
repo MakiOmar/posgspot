@@ -8,6 +8,25 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 **Transactional mail (Zoho CPaaS):** [`docs/integrations/ZOHO_CPAAS_MAIL.md`](integrations/ZOHO_CPAAS_MAIL.md).
 
+## Staff login OTP (email)
+
+Staff sign-in at `/login` uses a **6-digit email code** only (no username/password on the web form). Passport `POST /api/login` (username + password) stays for machine/API clients.
+
+1. `POST /login/otp/request` with `{ email }` — if the address matches **exactly one** active user with `allow_login`, a code is hashed onto `users.login_otp_*` and emailed synchronously (`Mail::sendNow`). Response never reveals whether the email exists.
+2. `POST /login/otp/verify` with `{ email, code, remember? }` — on success, starts the web session (same business/user checks as before) and clears the code.
+3. After **5** wrong guesses for one issued code, the code is burned.
+
+| Env | Config | Default |
+|-----|--------|---------|
+| `AUTH_OTP_EXPIRE_MINUTES` | `auth_otp.expire_minutes` | `10` |
+| `AUTH_OTP_ISSUE_PER_MINUTE` | `auth_otp.issue_per_minute` | `5` (per IP+email) |
+
+Verify uses named limiter `auth-otp-verify` (12/min per IP). Mail uses the system transport ([Zoho CPaaS](integrations/ZOHO_CPAAS_MAIL.md)). Template: `resources/views/emails/staff-login-otp.blade.php`.
+
+```bash
+php artisan test --filter=StaffLoginOtpTest
+```
+
 ## Trusted proxies (`TRUSTED_PROXIES`)
 
 `config/trustedproxy.php` reads `TRUSTED_PROXIES`, a comma-separated list of IPs/CIDRs whose `X-Forwarded-*` headers are trusted. Behind Cloudflare and Traefik every hop must be listed (Docker private ranges plus Cloudflare's published ranges). Otherwise `$request->ip()` returns a Cloudflare edge address, and the per-IP storefront rate limiters throttle all visitors together. Empty trusts no proxy: `X-Forwarded-*` is ignored and the socket address is used, so any deployment behind a proxy must set it. (The old wildcard fallback let any direct caller spoof `X-Forwarded-For` and dodge the per-IP limiters.) Accounts reads the same key.

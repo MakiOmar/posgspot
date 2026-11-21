@@ -87,10 +87,15 @@ Route::middleware(['setData'])->group(function () {
         return view('welcome');
     });
 
-    // Auth::routes() replacement for Laravel 11 compatibility
+    // Auth::routes() replacement for Laravel 11 compatibility (staff login = email OTP only)
     Route::middleware('web')->group(function () {
         Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
-        Route::post('login', [LoginController::class, 'login']);
+        Route::post('login/otp/request', [LoginController::class, 'requestOtp'])
+            ->middleware('throttle:auth-otp')
+            ->name('login.otp.request');
+        Route::post('login/otp/verify', [LoginController::class, 'verifyOtp'])
+            ->middleware('throttle:auth-otp-verify')
+            ->name('login.otp.verify');
         Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
         Route::get('register', [RegisterController::class, 'showRegistrationForm'])->name('register');

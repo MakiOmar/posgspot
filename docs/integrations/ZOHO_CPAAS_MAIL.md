@@ -81,6 +81,8 @@ MAIL_FROM_ADDRESS=noreply@gamesspoteg.com
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
+**Quote the token.** Values with a space (the `Zoho-enczapikey …` form) must be double-quoted or Laravel refuses to boot (`Failed to parse dotenv file. Encountered unexpected whitespace`).
+
 Do not commit the real API key. Comment out unused `MAILGUN_*` when ZeptoMail is the system mailer.
 
 ### Data center → `ZEPTOMAIL_HOST`

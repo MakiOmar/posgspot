@@ -91,6 +91,19 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(max(1, $perMinute))->by($request->ip().'|'.$email);
         });
 
+        // Staff web login email OTP issue (per IP + email)
+        RateLimiter::for('auth-otp', function (Request $request) {
+            $perMinute = max(1, (int) config('auth_otp.issue_per_minute', 5));
+            $email = strtolower(trim((string) $request->input('email', '')));
+
+            return Limit::perMinute($perMinute)->by($request->ip().'|'.$email);
+        });
+
+        // Staff login OTP verify guesses (per IP)
+        RateLimiter::for('auth-otp-verify', function (Request $request) {
+            return Limit::perMinute(12)->by($request->ip());
+        });
+
         RateLimiter::for('storefront-support-chat', function (Request $request) {
             $perMinute = (int) config('storefront.support_chat.rate_limit_per_minute', 30);
 

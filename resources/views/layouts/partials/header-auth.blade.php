@@ -12,7 +12,7 @@
             style="text-align: left">
             @if (!($request->segment(1) == 'business' && $request->segment(2) == 'register') && $request->segment(1) != 'login')
                 <a class="tw-text-white tw-font-medium tw-text-sm md:tw-text-base hover:tw-text-white"
-                    href="{{ action([\App\Http\Controllers\Auth\LoginController::class, 'login']) }}@if (!empty(request()->lang)) {{ '?lang=' . request()->lang }} @endif">{{ __('business.sign_in') }}</a>
+                    href="{{ route('login') }}@if (!empty(request()->lang))?lang={{ request()->lang }}@endif">{{ __('business.sign_in') }}</a>
             @endif
 
             <!-- Register  -->
