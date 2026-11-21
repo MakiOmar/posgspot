@@ -5,6 +5,7 @@
     'storefront.settings' => __('lang_v1.storefront_perm_settings'),
     'storefront.community' => __('lang_v1.storefront_perm_community'),
     'storefront.requests' => __('lang_v1.storefront_perm_requests'),
+    'storefront.override_gateway_payment' => __('lang_v1.storefront_perm_override_gateway_payment'),
     'product_review.access' => __('lang_v1.storefront_perm_reviews_view'),
     'product_review.moderate' => __('lang_v1.storefront_perm_reviews_moderate'),
     'coupon.access' => __('lang_v1.storefront_perm_coupons_view'),

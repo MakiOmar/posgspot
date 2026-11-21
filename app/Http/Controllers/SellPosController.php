@@ -38,10 +38,12 @@ use App\InvoiceLayout;
 use App\InvoiceScheme;
 use App\Media;
 use App\Product;
+use App\Exceptions\StorefrontGatewayPaymentBlockedException;
 use App\Services\Accounts\SalesOrderAccountsGuard;
 use App\Services\Accounts\SalesOrderDigitalFulfillmentService;
 use App\Services\SellActivityChangesService;
 use App\Services\SellDocumentService;
+use App\Services\Storefront\Payment\StorefrontOnlinePaymentGuard;
 use App\SellingPriceGroup;
 use App\TaxRate;
 use App\Transaction;
@@ -1385,6 +1387,7 @@ class SellPosController extends Controller
 
                 //if edit pos not allowed and only edit payment allowed
                 if ($only_payment) {
+                    $this->assertStorefrontGatewayPaymentsAllowed($transaction_before, $input, $request);
                     DB::beginTransaction();
                     $this->onlyUpdatePayment($transaction_before, $input);
                     DB::commit();
@@ -1475,6 +1478,7 @@ class SellPosController extends Controller
                     $input['payment'][] = $change_return;
 
                     if (!$is_direct_sale || auth()->user()->can('sell.payments')) {
+                        $this->assertStorefrontGatewayPaymentsAllowed($transaction, $input, $request);
                         $this->transactionUtil->createOrUpdatePaymentLines($transaction, $input['payment']);
 
                         //Update cash register
@@ -1618,10 +1622,14 @@ class SellPosController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
-            $output = ['success' => 0,
-                'msg' => __('messages.something_went_wrong'),
-            ];
+            if ($e instanceof StorefrontGatewayPaymentBlockedException) {
+                $output = ['success' => 0, 'msg' => $e->getMessage()];
+            } else {
+                \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+                $output = ['success' => 0,
+                    'msg' => __('messages.something_went_wrong'),
+                ];
+            }
         }
 
         if (!$is_direct_sale) {
@@ -1655,6 +1663,23 @@ class SellPosController extends Controller
                     ->with('status', $output);
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function assertStorefrontGatewayPaymentsAllowed(Transaction $transaction, array $input, Request $request): void
+    {
+        $lines = $input['payment'] ?? [];
+        if (! is_array($lines) || $lines === []) {
+            return;
+        }
+
+        app(StorefrontOnlinePaymentGuard::class)->assertPaymentLinesMayComplete(
+            $transaction,
+            $lines,
+            $request->input('storefront_gateway_override_reason')
+        );
     }
 
     /**

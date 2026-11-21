@@ -6,6 +6,8 @@ use App\Contact;
 use App\Events\TransactionPaymentAdded;
 use App\Events\TransactionPaymentUpdated;
 use App\Exceptions\AdvanceBalanceNotAvailable;
+use App\Exceptions\StorefrontGatewayPaymentBlockedException;
+use App\Services\Storefront\Payment\StorefrontOnlinePaymentGuard;
 use App\Transaction;
 use App\TransactionPayment;
 use App\Utils\ModuleUtil;
@@ -104,6 +106,13 @@ class TransactionPaymentController extends Controller
                     $prefix_type = 'expense_payment';
                 }
 
+                app(StorefrontOnlinePaymentGuard::class)->assertMayCompleteOnlinePayment(
+                    $transaction,
+                    (string) $inputs['payment_line_status'],
+                    null,
+                    $request->input('storefront_gateway_override_reason')
+                );
+
                 DB::beginTransaction();
 
                 $ref_count = $this->transactionUtil->setAndGetReferenceCount($prefix_type);
@@ -177,7 +186,7 @@ class TransactionPaymentController extends Controller
             DB::rollBack();
             $msg = __('messages.something_went_wrong');
 
-            if (get_class($e) == \App\Exceptions\AdvanceBalanceNotAvailable::class) {
+            if ($e instanceof AdvanceBalanceNotAvailable || $e instanceof StorefrontGatewayPaymentBlockedException) {
                 $msg = $e->getMessage();
             } else {
                 \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
@@ -289,8 +298,25 @@ class TransactionPaymentController extends Controller
             //Accounts
             $accounts = $this->moduleUtil->accountsDropdown($business_id, true, false, true);
 
+            $gatewayGuard = app(StorefrontOnlinePaymentGuard::class);
+            $gateway_payment_locked = $transaction
+                && $gatewayGuard->isOnlineGatewayCheckout($transaction)
+                && ! $gatewayGuard->hasVerifiedCapture($transaction)
+                && ! auth()->user()->can(StorefrontOnlinePaymentGuard::OVERRIDE_PERMISSION);
+            $gateway_override_allowed = $transaction
+                && $gatewayGuard->isOnlineGatewayCheckout($transaction)
+                && ! $gatewayGuard->hasVerifiedCapture($transaction)
+                && auth()->user()->can(StorefrontOnlinePaymentGuard::OVERRIDE_PERMISSION);
+
             return view('transaction_payment.edit_payment_row')
-                        ->with(compact('transaction', 'payment_types', 'payment_line', 'accounts'));
+                        ->with(compact(
+                            'transaction',
+                            'payment_types',
+                            'payment_line',
+                            'accounts',
+                            'gateway_payment_locked',
+                            'gateway_override_allowed'
+                        ));
         }
     }
 
@@ -354,6 +380,15 @@ class TransactionPaymentController extends Controller
                 $inputs['document'] = $document_name;
             }
 
+            if ($transaction) {
+                app(StorefrontOnlinePaymentGuard::class)->assertMayCompleteOnlinePayment(
+                    $transaction,
+                    (string) $inputs['payment_line_status'],
+                    (string) ($payment->payment_line_status ?? ''),
+                    $request->input('storefront_gateway_override_reason')
+                );
+            }
+
             DB::beginTransaction();
 
             $payment->update($inputs);
@@ -390,10 +425,15 @@ class TransactionPaymentController extends Controller
             }
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            $msg = __('messages.something_went_wrong');
+            if ($e instanceof StorefrontGatewayPaymentBlockedException) {
+                $msg = $e->getMessage();
+            } else {
+                \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            }
 
             $output = ['success' => false,
-                'msg' => __('messages.something_went_wrong'),
+                'msg' => $msg,
             ];
         }
 

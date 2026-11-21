@@ -174,6 +174,19 @@ class DigitalFulfillmentService
             return 0;
         }
 
+        if (trim((string) ($transaction->storefront_order_id ?? '')) !== '') {
+            $gatewayGuard = app(\App\Services\Storefront\Payment\StorefrontOnlinePaymentGuard::class);
+            if ($gatewayGuard->isOnlineGatewayCheckout($transaction)
+                && ! $gatewayGuard->hasVerifiedCapture($transaction)) {
+                Log::warning('Storefront fulfillPaidTransaction blocked: missing gateway capture', [
+                    'transaction_id' => $transaction->id,
+                    'storefront_order_id' => $transaction->storefront_order_id,
+                ]);
+
+                return 0;
+            }
+        }
+
         $rows = StorefrontDigitalFulfillment::where('transaction_id', $transaction->id)
             ->where('storefront_order_id', (string) $transaction->storefront_order_id)
             ->tap(fn ($q) => self::whereRetryable($q, $ignoreAttemptCap))
@@ -222,6 +235,18 @@ class DigitalFulfillmentService
         }
 
         if (strtolower(trim((string) $transaction->payment_status)) !== 'paid') {
+            return;
+        }
+
+        $gatewayGuard = app(\App\Services\Storefront\Payment\StorefrontOnlinePaymentGuard::class);
+        if ($gatewayGuard->isOnlineGatewayCheckout($transaction)
+            && ! $gatewayGuard->hasVerifiedCapture($transaction)) {
+            Log::warning('Storefront digital fulfill blocked: online gateway unpaid without capture', [
+                'transaction_id' => $transaction->id,
+                'invoice_no' => $transaction->invoice_no,
+                'storefront_order_id' => $transaction->storefront_order_id,
+            ]);
+
             return;
         }
 

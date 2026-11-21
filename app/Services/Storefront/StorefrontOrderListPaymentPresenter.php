@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use App\Services\Storefront\Payment\PaymentGatewayManager;
+use App\Services\Storefront\Payment\StorefrontOnlinePaymentGuard;
 use App\Transaction;
 
 /**
@@ -10,8 +11,10 @@ use App\Transaction;
  */
 class StorefrontOrderListPaymentPresenter
 {
-    public function __construct(private PaymentGatewayManager $paymentGateways)
-    {
+    public function __construct(
+        private PaymentGatewayManager $paymentGateways,
+        private StorefrontOnlinePaymentGuard $gatewayGuard
+    ) {
     }
 
     public function gatewayProvider(Transaction $transaction): ?string
@@ -20,7 +23,7 @@ class StorefrontOrderListPaymentPresenter
             return null;
         }
 
-        $meta = $this->paymentMeta($transaction);
+        $meta = $this->gatewayGuard->paymentMeta($transaction);
         $provider = strtolower(trim((string) ($meta['provider'] ?? '')));
 
         return $provider !== '' ? $provider : null;
@@ -65,23 +68,31 @@ class StorefrontOrderListPaymentPresenter
 
         $lineStatus = $this->onlinePaymentLineStatus($transaction);
         $paid = strtolower(trim((string) $transaction->payment_status)) === 'paid';
+        $verified = $this->gatewayGuard->hasVerifiedCapture($transaction);
 
-        if ($lineStatus === 'completed' || ($paid && $lineStatus !== 'pending')) {
+        if ($verified && ($lineStatus === 'completed' || ($paid && $lineStatus !== 'pending'))) {
             $statusLabel = __('restaurant.completed');
             $class = 'bg-green';
-        } elseif ($lineStatus === 'pending') {
+        } elseif ($lineStatus === 'pending' || (! $paid && ! $verified)) {
             $statusLabel = __('lang_v1.pending');
             $class = 'bg-yellow';
+        } elseif ($paid && ! $verified) {
+            // Staff marked paid without gateway capture — do not show green Geidea.
+            $statusLabel = __('lang_v1.storefront_gateway_paid_without_capture', ['provider' => $gatewayLabel]);
+            $class = 'bg-red';
         } else {
             return '';
         }
 
-        $title = __('lang_v1.storefront_gateway_payment_label', ['provider' => $gatewayLabel]);
+        $title = $verified
+            ? __('lang_v1.storefront_gateway_payment_label', ['provider' => $gatewayLabel])
+            : __('lang_v1.storefront_gateway_awaiting_capture', ['provider' => $gatewayLabel]);
 
         return ' <small class="label '.$class.' no-print storefront-gateway-payment-label" '
             .'title="'.e($title).'" '
             .'data-provider="'.e($this->gatewayProvider($transaction)).'" '
-            .'data-line-status="'.e($lineStatus ?? '').'">'
+            .'data-line-status="'.e($lineStatus ?? '').'" '
+            .'data-capture-verified="'.($verified ? '1' : '0').'">'
             .e($statusLabel)
             .'</small>';
     }
@@ -96,6 +107,11 @@ class StorefrontOrderListPaymentPresenter
             return '';
         }
 
+        $verified = $this->gatewayGuard->hasVerifiedCapture($transaction);
+        if (! $verified) {
+            return __('lang_v1.storefront_gateway_awaiting_capture', ['provider' => $gatewayLabel]);
+        }
+
         if (count($methods) === 1 && ($methods[0] ?? '') === 'card') {
             return $gatewayLabel;
         }
@@ -105,18 +121,5 @@ class StorefrontOrderListPaymentPresenter
         }
 
         return '';
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function paymentMeta(Transaction $transaction): array
-    {
-        $meta = $transaction->storefront_payment_meta ?? [];
-        if (is_string($meta)) {
-            $meta = json_decode($meta, true) ?: [];
-        }
-
-        return is_array($meta) ? $meta : [];
     }
 }

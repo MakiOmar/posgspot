@@ -75,14 +75,34 @@
                 'completed' => __('restaurant.completed'),
                 'pending' => __('lang_v1.pending'),
               ];
+              $gateway_payment_locked = !empty($gateway_payment_locked);
+              $gateway_override_allowed = !empty($gateway_override_allowed);
+              if ($gateway_payment_locked) {
+                $payment_line_statuses = [
+                  'pending' => __('lang_v1.pending'),
+                ];
+              }
+              $default_line_status = !empty($payment_line->payment_line_status) ? $payment_line->payment_line_status : 'completed';
+              if ($gateway_payment_locked) {
+                $default_line_status = 'pending';
+              }
             @endphp
             {!! Form::label("payment_line_status" , __('sale.payment_status') . ':*') !!}
             <div class="input-group">
               <span class="input-group-addon">
                 <i class="fas fa-check-circle"></i>
               </span>
-              {!! Form::select("payment_line_status", $payment_line_statuses, !empty($payment_line->payment_line_status) ? $payment_line->payment_line_status : 'completed', ['class' => 'form-control select2', 'required', 'style' => 'width:100%;']); !!}
+              {!! Form::select("payment_line_status", $payment_line_statuses, $default_line_status, ['class' => 'form-control select2', 'required', 'style' => 'width:100%;']); !!}
             </div>
+            @if($gateway_payment_locked)
+              <p class="help-block text-warning">@lang('lang_v1.storefront_gateway_payment_locked_help')</p>
+            @endif
+            @if($gateway_override_allowed)
+              <div class="form-group" style="margin-top:10px;">
+                {!! Form::label('storefront_gateway_override_reason', __('lang_v1.storefront_gateway_override_reason') . ':*') !!}
+                {!! Form::textarea('storefront_gateway_override_reason', null, ['class' => 'form-control', 'rows' => 2, 'placeholder' => __('lang_v1.storefront_gateway_override_reason_placeholder')]) !!}
+              </div>
+            @endif
           </div>
         </div>
         <div class="col-md-4">

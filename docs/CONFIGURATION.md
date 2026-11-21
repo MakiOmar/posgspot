@@ -164,6 +164,7 @@ Website (Qwik) orders alert POS staff once per order, so nobody misses them:
 
 - **When:** cash on delivery at checkout; online (Fawry / Geidea) once payment is confirmed (`StorefrontPaymentRecorder::markPaid`). Unpaid online orders never alert. The claim is `transactions.storefront_staff_notified_at`.
 - **Who:** POS **Roles → Storefront → Access website orders** (`storefront.orders`). It controls the sidebar link, the queue (including the sales table), opening orders from it, changing shipping status on those storefront orders, and the bell. It does not require All sales (`direct_sell.view` / `sell.view` / shipping access), and those alone no longer grant it. Admin roles always have it. Storefront orders still appear in **All sales** for users with sales access.
+- **Gateway payment override:** `storefront.override_gateway_payment` lets a role mark an unpaid Geidea/Fawry website order paid **without** gateway capture, only with a required reason (activity-logged). Without it, Edit payment cannot complete pending online lines, and digital allocate refuses missing capture meta. See incident note `docs/incidents/2026-11-21-theft-incident-README-AR.md`.
 - **POS bell:** active staff with `storefront.orders` who can access the order's location (or have `access_all_locations`). The bell opens the order in the Website orders queue (`/sells?website_orders=1&…&view_sell={id}`).
 - **Email:** **Storefront Settings → Website orders → Orders notify email** (`settings.orders.notify_email`; falls back to the contact form inbox), sent with the business mail settings.
 - **Queue:** sidebar **Sell → Website orders** lists alerted orders still at shipping status *Ordered*; the badge count is cached for 60 seconds per business and location set. Orders placed before this feature have no alert timestamp and do not appear in the queue.
@@ -176,6 +177,8 @@ No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-q
 **For staff:** open **Sell → Website orders** (the number is how many are waiting at your branches). Each order is already a final sale with an invoice. Prepare it, then change its shipping status (Packed / Shipped / Delivered) from the sale's actions; it leaves the queue once it is no longer *Ordered*. Queue-only staff with `storefront.orders` can do that without All sales or Access Shipments. COD orders are collected on delivery; online orders show as paid.
 
 ## Accounts catalog sync (per-offer products)
+
+POS authenticates to Accounts with `ACCOUNTS_AUTH_PHONE` / `ACCOUNTS_AUTH_PASSWORD` (`config/services.php` → `accounts`). On Accounts, that user must be allowlisted via `API_LOGIN_USER_IDS` or `API_LOGIN_PHONES` (see Accounts `docs/LOGIN_OTP.md`); tokens are scoped (`orders:receive`, etc.), not `*`.
 
 Accounts pushes one hidden POS product per game offer / card category through `POST /api/accounts/catalog/upsert/{business_id}`. Those products are filed under an existing POS category and brand looked up by slug:
 
