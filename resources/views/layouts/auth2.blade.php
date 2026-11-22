@@ -123,10 +123,11 @@
 
     @include('layouts.partials.javascripts')
 
+    {{-- Page @section('javascript') is already yielded inside javascripts.blade.php.
+         Do not @yield it again here — duplicate handlers break OTP form submit. --}}
+
     <!-- Scripts -->
     <script src="{{ asset('js/login.js?v=' . $asset_v) }}"></script>
-
-    @yield('javascript')
 
     <script type="text/javascript">
         $(document).ready(function() {

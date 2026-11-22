@@ -155,17 +155,21 @@
             });
 
             // Prevent double-submit on OTP send / verify / resend.
-            // Do not disable the submitter during/just after submit — Chromium
-            // cancels the navigation when the submitter is disabled.
-            $('form[data-otp-form]').on('submit', function(e) {
-                var $form = $(this);
-                if ($form.data('otp-submitting')) {
-                    e.preventDefault();
-                    return false;
-                }
-                $form.data('otp-submitting', true);
-                $form.find('button[type="submit"]').attr('aria-busy', 'true').css('pointer-events', 'none');
-            });
+            // Namespaced bind so a duplicate script include cannot stack handlers
+            // (a second handler would see the flag and cancel the POST).
+            // Do not disable the submitter — Chromium cancels navigation if it is.
+            $(document).off('submit.otpLock', 'form[data-otp-form]')
+                .on('submit.otpLock', 'form[data-otp-form]', function(e) {
+                    var $form = $(this);
+                    if ($form.data('otp-submitting')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    $form.data('otp-submitting', true);
+                    $form.find('button[type="submit"]')
+                        .attr('aria-busy', 'true')
+                        .css('pointer-events', 'none');
+                });
 
             var $resend = $('#login-otp-resend-btn');
             if ($resend.length) {
