@@ -100,6 +100,16 @@ class StorefrontUnpaidOrderPruneTest extends TestCase
         $this->assertNotNull(Transaction::find($oldUnpaid->id));
     }
 
+    public function test_missing_hours_key_uses_default_not_zero(): void
+    {
+        // Stale cache blobs from before this feature omit the key; that must not mean "disabled".
+        Cache::put('storefront_settings_'.$this->businessId, [
+            'orders' => ['notify_email' => 'orders@example.test'],
+        ], 300);
+
+        $this->assertSame(24, app(StorefrontUnpaidOrderPruner::class)->waitingHours($this->businessId));
+    }
+
     private function makeUnpaidOnlineOrder($createdAt): Transaction
     {
         $order = $this->cloneBaseSell();

@@ -26,12 +26,18 @@ class StorefrontUnpaidOrderPruner
 
     /**
      * Waiting hours from storefront settings (0 = auto-delete disabled).
+     * Missing key (stale cache / pre-feature blob) uses the defaults value, not 0.
      */
     public function waitingHours(int $businessId): int
     {
-        $hours = (int) ($this->settings->get($businessId)['orders']['unpaid_abandon_after_hours'] ?? 0);
+        $orders = $this->settings->get($businessId)['orders'] ?? [];
+        if (! array_key_exists('unpaid_abandon_after_hours', $orders)
+            || $orders['unpaid_abandon_after_hours'] === null
+            || $orders['unpaid_abandon_after_hours'] === '') {
+            return max(0, (int) ($this->settings->defaults()['orders']['unpaid_abandon_after_hours'] ?? 24));
+        }
 
-        return max(0, $hours);
+        return max(0, (int) $orders['unpaid_abandon_after_hours']);
     }
 
     /**
