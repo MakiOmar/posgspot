@@ -42,6 +42,7 @@ import type {
 } from "./types";
 import type { CartApiItem } from "./cart-actions";
 import { FORCE_STOREFRONT_MAINTENANCE } from "./config";
+import { isForceMaintenanceAllowedApiPath } from "./maintenance-gate";
 
 export const API_BASE: string =
   (import.meta.env.PUBLIC_API_BASE as string | undefined)?.replace(/\/$/, "") ||
@@ -130,7 +131,10 @@ export async function storefrontFetch<T>(
   options: RequestInit = {},
   locale?: string,
 ): Promise<FetchResult<T>> {
-  if (FORCE_STOREFRONT_MAINTENANCE) {
+  if (
+    FORCE_STOREFRONT_MAINTENANCE &&
+    !isForceMaintenanceAllowedApiPath(path)
+  ) {
     throw new ApiError(503, "Storefront is under maintenance", {});
   }
 

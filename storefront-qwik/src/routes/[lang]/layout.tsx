@@ -47,21 +47,30 @@ export const useLangParam = routeLoader$(async ({ params, redirect }): Promise<S
   return params.lang;
 });
 
-export const useSiteSettings = routeLoader$(async ({ params }): Promise<StoreSettings> => {
+export const useSiteSettings = routeLoader$(async ({ params, pathname }): Promise<StoreSettings> => {
   const locale = isSupportedLocale(params.lang) ? params.lang : "en";
   setActiveContentLocale(locale);
   await ensureLocaleMessages(locale);
-  if (FORCE_STOREFRONT_MAINTENANCE) {
+  const exempt = isMaintenanceExemptPath(pathname);
+  // Non-exempt routes skip POS entirely when force-maintenance is on.
+  if (FORCE_STOREFRONT_MAINTENANCE && !exempt) {
     return FORCED_MAINTENANCE_SETTINGS;
   }
   try {
-    return await cachedSettings(locale, async () => {
-      const { data } = await fetchSettings(locale, { shell: true });
-      return data;
+    const data = await cachedSettings(locale, async () => {
+      const { data: settings } = await fetchSettings(locale, { shell: true });
+      return settings;
     });
+    // Keep the gate on even if POS has already reopened settings.
+    if (FORCE_STOREFRONT_MAINTENANCE) {
+      return { ...data, maintenance_mode: true };
+    }
+    return data;
   } catch (err) {
     console.error(`[storefront] settings loader failed (API_BASE=${API_BASE})`, err);
-    return FALLBACK_STORE_SETTINGS;
+    return FORCE_STOREFRONT_MAINTENANCE
+      ? FORCED_MAINTENANCE_SETTINGS
+      : FALLBACK_STORE_SETTINGS;
   }
 });
 
@@ -71,9 +80,7 @@ export const useMaintenanceGate = routeLoader$(
     const settings = await resolveValue(useSiteSettings);
     const lang = isSupportedLocale(params.lang) ? params.lang : "en";
     const onMaintenancePage = isMaintenancePagePath(pathname);
-    // Force flag ignores exemptions so no shop route can still hit the API.
-    const exempt =
-      !FORCE_STOREFRONT_MAINTENANCE && isMaintenanceExemptPath(pathname);
+    const exempt = isMaintenanceExemptPath(pathname);
     const inMaintenance =
       FORCE_STOREFRONT_MAINTENANCE || settings.maintenance_mode;
 

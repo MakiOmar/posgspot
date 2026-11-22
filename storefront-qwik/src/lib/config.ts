@@ -39,9 +39,10 @@ function parseFontFamily(raw: string | undefined): FontFamily {
 export const ROBOTS_DISALLOW_ALL: boolean = envFlag("PUBLIC_ROBOTS_DISALLOW_ALL");
 
 /**
- * Force the shop into maintenance without calling the POS API.
+ * Force the shop into maintenance without calling the POS API for shop routes.
  * Set `PUBLIC_STOREFRONT_FORCE_MAINTENANCE=true` in `.env.production` and rebuild.
- * Blocks every `storefrontFetch`, skips shell loaders, and ignores `/add-customer` exemptions.
+ * Blocks shop `storefrontFetch` + shell loaders; `/add-customer` stays open with its
+ * allowlisted API calls (settings, phone/geo, customers/add).
  * Turn off by setting false/unset and rebuilding the storefront image.
  */
 export const FORCE_STOREFRONT_MAINTENANCE: boolean = envFlag(

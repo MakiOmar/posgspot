@@ -107,7 +107,7 @@
 | `/[lang]/request-a-product` | ✅ | Free-text sourcing intake; Turnstile on web; Expo form; gated by `STOREFRONT_REQUEST_PRODUCT` |
 | `/[lang]/repair-truck-request` | ✅ | Coming-soon placeholder (Qwik + Expo; no form in v1) |
 | `/[lang]/add-customer` | ✅ | Standalone in-store signup (no site shell) |
-| `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode` or `PUBLIC_STOREFRONT_FORCE_MAINTENANCE`; redirects shop routes; `/add-customer` exempt unless force flag |
+| `/[lang]/maintenance` | ✅ | 503 + noindex when `maintenance_mode` or `PUBLIC_STOREFRONT_FORCE_MAINTENANCE`; redirects shop routes; `/add-customer` always exempt (allowlisted API under force flag) |
 | `robots.txt`, `sitemap.xml` | ✅ | Locale-prefixed disallow + per-locale product URLs; `PUBLIC_ROBOTS_DISALLOW_ALL` for staging |
 | Wishlist, dedicated `/search` page | ✅ | Wishlist done; `/[lang]/search` full results + header submit; `type=games\|gift_cards` |
 
@@ -460,6 +460,7 @@
 | 2026-07-05 | Promo code picker: `POST /coupons/available`, fancy selectable list on cart/checkout (code + savings), tests + API.md. |
 | 2026-07-05 | Promo code storefront settings: enable/disable checkout field; single vs stacked coupons per order; Qwik UI + tests. |
 | 2026-07-04 | Fawry Pay v1: pluggable `PaymentGatewayManager`, signed checkout session, webhook/return confirm, Qwik payment routes, admin Fawry settings, tests. |
+| 2026-11-22 | Force maintenance keeps `/add-customer` open; allowlisted POS API paths (settings, phone/geo, customers/add) under `PUBLIC_STOREFRONT_FORCE_MAINTENANCE`. |
 | 2026-07-04 | Maintenance mode gate: redirect to `/[lang]/maintenance/` (503, noindex); `/add-customer` exempt; EN/AR copy + language switcher. |
 | 2026-07-04 | Homepage hero + featured categories; PDP gallery/thumbs + breadcrumbs/JSON-LD; canonical/hreflang on public pages. |
 | 2026-07-04 | Wire remaining UI chrome (checkout, auth, account, contact, cart, PDP, add-customer, about) through `en.json`/`ar.json`; about page locale content module. |
