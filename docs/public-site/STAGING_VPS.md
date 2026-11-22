@@ -59,7 +59,7 @@ Use when a stuck transaction blocks rows (rollback that never ends). About 10 mi
 
 1. `docker compose stop pos pos-queue pos-scheduler` (no writes during the copy).
 2. `mysqldump --single-transaction --quick --routines --triggers --events --hex-blob --set-gtid-purged=OFF <old>` → `data/dumps/*.sql.gz` (run in the `mysql` container as root; check the last line says `Dump completed`).
-3. Create the new schema, `GRANT ALL PRIVILEGES ON <new>.* TO 'spot_stg'@'%'`, restore, compare `COUNT(*)` of key tables and table counts against the old schema.
+3. Create the new schema, `GRANT ALL PRIVILEGES ON <new>.* TO 'spot_stg'@'172.%'` (Docker bridge only — do not use `'%'`), restore, compare `COUNT(*)` of key tables and table counts against the old schema. Keep `root@localhost` only; do not create `root@%`.
 4. Set `DB_DATABASE=<new>` in `pos/.env` and `POS_DB_NAME=<new>` in `.env`, then `docker compose up -d --no-deps --force-recreate pos pos-queue pos-scheduler`.
 
 Compose secrets: `/opt/spot-staging/.env` (mode 600) — see [`deploy/staging/.env.example`](../../deploy/staging/.env.example).

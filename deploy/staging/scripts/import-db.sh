@@ -13,10 +13,14 @@ sql() { docker compose exec -T -e MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql mysql -
 sql -e "DROP DATABASE IF EXISTS \`${POS_DB}\`; DROP DATABASE IF EXISTS accounts_stg;
   CREATE DATABASE \`${POS_DB}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   CREATE DATABASE accounts_stg CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  CREATE USER IF NOT EXISTS 'spot_stg'@'%' IDENTIFIED BY '${MYSQL_APP_PASSWORD}';
-  ALTER USER 'spot_stg'@'%' IDENTIFIED BY '${MYSQL_APP_PASSWORD}';
-  GRANT ALL PRIVILEGES ON \`${POS_DB}\`.* TO 'spot_stg'@'%';
-  GRANT ALL PRIVILEGES ON accounts_stg.* TO 'spot_stg'@'%';
+  -- App user: Docker bridge hosts only (port 3306 is not published; still avoid '%').
+  CREATE USER IF NOT EXISTS 'spot_stg'@'172.%' IDENTIFIED BY '${MYSQL_APP_PASSWORD}';
+  ALTER USER 'spot_stg'@'172.%' IDENTIFIED BY '${MYSQL_APP_PASSWORD}';
+  GRANT ALL PRIVILEGES ON \`${POS_DB}\`.* TO 'spot_stg'@'172.%';
+  GRANT ALL PRIVILEGES ON accounts_stg.* TO 'spot_stg'@'172.%';
+  -- Drop legacy wide grants if present from older imports.
+  DROP USER IF EXISTS 'spot_stg'@'%';
+  DROP USER IF EXISTS 'root'@'%';
   FLUSH PRIVILEGES;" </dev/null
 
 echo "==> Importing POS dump into ${POS_DB}"

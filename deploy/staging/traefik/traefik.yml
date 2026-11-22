@@ -66,3 +66,11 @@ certificatesResolvers:
 
 log:
   level: INFO
+
+# Request audit (stdout → `docker logs spot-staging-traefik-1`). Needed after the
+# 2026-11-21 Accounts wipe where host SSH/MySQL general_log could not identify the actor.
+accessLog:
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "200-599"

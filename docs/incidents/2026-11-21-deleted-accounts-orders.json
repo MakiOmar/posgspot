@@ -1,0 +1,372 @@
+{
+  "title": "Accounts deleted rows recovered from binlog (theft incident 2026-11-21)",
+  "database": "accounts_stg",
+  "binlog_file": "binlog.000008",
+  "note": "These rows were hard-deleted from Accounts only. POS transactions were not deleted. Do not re-insert into live orders/inventory without an explicit restore decision.",
+  "orders": [
+    {
+      "table": "accounts_stg.orders",
+      "id": 105024,
+      "deleted_at_utc": "2026-11-21 01:35:03",
+      "deleted_at_cairo": "2026-11-21 03:35:03",
+      "pos_order_id": 68928,
+      "seller_id": null,
+      "store_profile_id": 17,
+      "account_id": null,
+      "woocommerce_order_id": null,
+      "storefront_order_id": "web-1795214805868-c0opkpc",
+      "storefront_line_key": "card|category:45",
+      "buyer_phone": "+201119205533",
+      "buyer_name": "John Miano",
+      "price_egp": 7000.0,
+      "notes": null,
+      "sold_item": "card",
+      "login_code": null,
+      "card_id": 926,
+      "created_at": {
+        "unix": 1795222509,
+        "utc": "2026-11-21 00:55:09",
+        "cairo": "2026-11-21 02:55:09"
+      },
+      "updated_at": {
+        "unix": 1795222509,
+        "utc": "2026-11-21 00:55:09",
+        "cairo": "2026-11-21 02:55:09"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.orders",
+      "id": 105067,
+      "deleted_at_utc": "2026-11-21 01:35:03",
+      "deleted_at_cairo": "2026-11-21 03:35:03",
+      "pos_order_id": null,
+      "seller_id": 32,
+      "store_profile_id": 13,
+      "account_id": null,
+      "woocommerce_order_id": null,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "buyer_phone": "+201119205533",
+      "buyer_name": "John Miano",
+      "price_egp": 50.0,
+      "notes": null,
+      "sold_item": "card",
+      "login_code": null,
+      "card_id": 927,
+      "created_at": {
+        "unix": 1795226256,
+        "utc": "2026-11-21 01:57:36",
+        "cairo": "2026-11-21 03:57:36"
+      },
+      "updated_at": {
+        "unix": 1795226256,
+        "utc": "2026-11-21 01:57:36",
+        "cairo": "2026-11-21 03:57:36"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.orders",
+      "id": 105072,
+      "deleted_at_utc": "2026-11-21 01:35:03",
+      "deleted_at_cairo": "2026-11-21 03:35:03",
+      "pos_order_id": null,
+      "seller_id": 32,
+      "store_profile_id": 17,
+      "account_id": null,
+      "woocommerce_order_id": null,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "buyer_phone": "+201220170162",
+      "buyer_name": "John Miano",
+      "price_egp": 50.0,
+      "notes": null,
+      "sold_item": "card",
+      "login_code": null,
+      "card_id": 928,
+      "created_at": {
+        "unix": 1795226655,
+        "utc": "2026-11-21 02:04:15",
+        "cairo": "2026-11-21 04:04:15"
+      },
+      "updated_at": {
+        "unix": 1795226655,
+        "utc": "2026-11-21 02:04:15",
+        "cairo": "2026-11-21 04:04:15"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.orders",
+      "id": 105084,
+      "deleted_at_utc": "2026-11-21 01:35:03",
+      "deleted_at_cairo": "2026-11-21 03:35:03",
+      "pos_order_id": null,
+      "seller_id": 32,
+      "store_profile_id": 14,
+      "account_id": null,
+      "woocommerce_order_id": null,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "buyer_phone": "+201119205533",
+      "buyer_name": "John Miano",
+      "price_egp": 0.0,
+      "notes": null,
+      "sold_item": "card",
+      "login_code": null,
+      "card_id": 929,
+      "created_at": {
+        "unix": 1795227381,
+        "utc": "2026-11-21 02:16:21",
+        "cairo": "2026-11-21 04:16:21"
+      },
+      "updated_at": {
+        "unix": 1795227381,
+        "utc": "2026-11-21 02:16:21",
+        "cairo": "2026-11-21 04:16:21"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    }
+  ],
+  "next_load_orders": [
+    {
+      "table": "accounts_stg.next_load_orders",
+      "id": 323,
+      "deleted_at_utc": "2026-11-21 01:24:23",
+      "deleted_at_cairo": "2026-11-21 03:24:23",
+      "reference": "sf-c4eb3f6e5ea2a82a42d2ac95-1",
+      "next_load_order_id": 3586,
+      "card_category_id": 55,
+      "product_id": 87,
+      "product_name": "PlayStation USA 50 $",
+      "quantity": 1,
+      "delivered_quantity": 1,
+      "status": "complete",
+      "purpose": "sale",
+      "card_price_usd": 46.97,
+      "order_amount_usd": 46.97,
+      "storefront_order_id": "web-1795210078737-aou6rcy",
+      "storefront_line_key": "card|category:55",
+      "requested_by": 32,
+      "sale_context": null,
+      "attempts": 1,
+      "last_error": null,
+      "completed_at": {
+        "unix": 1795218013,
+        "utc": "2026-11-20 23:40:13",
+        "cairo": "2026-11-21 01:40:13"
+      },
+      "consumed_at": {
+        "unix": 1795218013,
+        "utc": "2026-11-20 23:40:13",
+        "cairo": "2026-11-21 01:40:13"
+      },
+      "created_at": {
+        "unix": 1795218003,
+        "utc": "2026-11-20 23:40:03",
+        "cairo": "2026-11-21 01:40:03"
+      },
+      "updated_at": {
+        "unix": 1795218013,
+        "utc": "2026-11-20 23:40:13",
+        "cairo": "2026-11-21 01:40:13"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.next_load_orders",
+      "id": 329,
+      "deleted_at_utc": "2026-11-21 01:24:23",
+      "deleted_at_cairo": "2026-11-21 03:24:23",
+      "reference": "sf-a7184c52866a67e4a6a274f9-1",
+      "next_load_order_id": 3615,
+      "card_category_id": 45,
+      "product_id": 88,
+      "product_name": "PlayStation USA 100 $",
+      "quantity": 1,
+      "delivered_quantity": 1,
+      "status": "complete",
+      "purpose": "sale",
+      "card_price_usd": 93.93,
+      "order_amount_usd": 93.93,
+      "storefront_order_id": "web-1795214805868-c0opkpc",
+      "storefront_line_key": "card|category:45",
+      "requested_by": 32,
+      "sale_context": null,
+      "attempts": 1,
+      "last_error": null,
+      "completed_at": {
+        "unix": 1795222509,
+        "utc": "2026-11-21 00:55:09",
+        "cairo": "2026-11-21 02:55:09"
+      },
+      "consumed_at": {
+        "unix": 1795222509,
+        "utc": "2026-11-21 00:55:09",
+        "cairo": "2026-11-21 02:55:09"
+      },
+      "created_at": {
+        "unix": 1795222503,
+        "utc": "2026-11-21 00:55:03",
+        "cairo": "2026-11-21 02:55:03"
+      },
+      "updated_at": {
+        "unix": 1795222509,
+        "utc": "2026-11-21 00:55:09",
+        "cairo": "2026-11-21 02:55:09"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.next_load_orders",
+      "id": 336,
+      "deleted_at_utc": "2026-11-21 01:24:23",
+      "deleted_at_cairo": "2026-11-21 03:24:23",
+      "reference": "acc-01m7xp9pmrxkjxfaf2k3y9tnn8",
+      "next_load_order_id": 3632,
+      "card_category_id": 55,
+      "product_id": 87,
+      "product_name": "PlayStation USA 50 $",
+      "quantity": 1,
+      "delivered_quantity": 1,
+      "status": "complete",
+      "purpose": "sale",
+      "card_price_usd": 46.97,
+      "order_amount_usd": 46.97,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "requested_by": 32,
+      "sale_context": {
+        "price": "50",
+        "buyer_name": "John Miano",
+        "buyer_phone": "+201119205533",
+        "card_category_id": "55",
+        "store_profile_id": "13"
+      },
+      "attempts": 1,
+      "last_error": null,
+      "completed_at": {
+        "unix": 1795226256,
+        "utc": "2026-11-21 01:57:36",
+        "cairo": "2026-11-21 03:57:36"
+      },
+      "consumed_at": {
+        "unix": 1795226256,
+        "utc": "2026-11-21 01:57:36",
+        "cairo": "2026-11-21 03:57:36"
+      },
+      "created_at": {
+        "unix": 1795226253,
+        "utc": "2026-11-21 01:57:33",
+        "cairo": "2026-11-21 03:57:33"
+      },
+      "updated_at": {
+        "unix": 1795226256,
+        "utc": "2026-11-21 01:57:36",
+        "cairo": "2026-11-21 03:57:36"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.next_load_orders",
+      "id": 337,
+      "deleted_at_utc": "2026-11-21 01:24:23",
+      "deleted_at_cairo": "2026-11-21 03:24:23",
+      "reference": "acc-01m7xpnwft3f31j1bpp3t8qc9p",
+      "next_load_order_id": 3634,
+      "card_category_id": 50,
+      "product_id": 346,
+      "product_name": "PlayStation USA 250$",
+      "quantity": 1,
+      "delivered_quantity": 1,
+      "status": "complete",
+      "purpose": "sale",
+      "card_price_usd": 234.83,
+      "order_amount_usd": 234.83,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "requested_by": 32,
+      "sale_context": {
+        "price": "50",
+        "buyer_name": "John Miano",
+        "buyer_phone": "+201220170162",
+        "card_category_id": "50",
+        "store_profile_id": "17"
+      },
+      "attempts": 1,
+      "last_error": null,
+      "completed_at": {
+        "unix": 1795226655,
+        "utc": "2026-11-21 02:04:15",
+        "cairo": "2026-11-21 04:04:15"
+      },
+      "consumed_at": {
+        "unix": 1795226655,
+        "utc": "2026-11-21 02:04:15",
+        "cairo": "2026-11-21 04:04:15"
+      },
+      "created_at": {
+        "unix": 1795226652,
+        "utc": "2026-11-21 02:04:12",
+        "cairo": "2026-11-21 04:04:12"
+      },
+      "updated_at": {
+        "unix": 1795226655,
+        "utc": "2026-11-21 02:04:15",
+        "cairo": "2026-11-21 04:04:15"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    },
+    {
+      "table": "accounts_stg.next_load_orders",
+      "id": 338,
+      "deleted_at_utc": "2026-11-21 01:24:23",
+      "deleted_at_cairo": "2026-11-21 03:24:23",
+      "reference": "acc-01m7xqc1qyht701rqmf5tepm50",
+      "next_load_order_id": 3637,
+      "card_category_id": 46,
+      "product_id": 277,
+      "product_name": "PlayStation USA 150$",
+      "quantity": 1,
+      "delivered_quantity": 1,
+      "status": "complete",
+      "purpose": "sale",
+      "card_price_usd": 140.9,
+      "order_amount_usd": 140.9,
+      "storefront_order_id": null,
+      "storefront_line_key": null,
+      "requested_by": 32,
+      "sale_context": {
+        "price": "0",
+        "buyer_name": "John Miano",
+        "buyer_phone": "+201119205533",
+        "card_category_id": "46",
+        "store_profile_id": "14"
+      },
+      "attempts": 1,
+      "last_error": null,
+      "completed_at": {
+        "unix": 1795227381,
+        "utc": "2026-11-21 02:16:21",
+        "cairo": "2026-11-21 04:16:21"
+      },
+      "consumed_at": {
+        "unix": 1795227381,
+        "utc": "2026-11-21 02:16:21",
+        "cairo": "2026-11-21 04:16:21"
+      },
+      "created_at": {
+        "unix": 1795227378,
+        "utc": "2026-11-21 02:16:18",
+        "cairo": "2026-11-21 04:16:18"
+      },
+      "updated_at": {
+        "unix": 1795227381,
+        "utc": "2026-11-21 02:16:21",
+        "cairo": "2026-11-21 04:16:21"
+      },
+      "source": "mysql binlog.000008 ROW Delete_rows"
+    }
+  ]
+}
