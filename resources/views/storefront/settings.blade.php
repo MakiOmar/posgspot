@@ -934,6 +934,13 @@
                             {!! Form::email('orders_notify_email', $settings['orders']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'orders@example.com']) !!}
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('orders_unpaid_abandon_after_hours', __('lang_v1.orders_unpaid_abandon_after_hours')) !!}
+                            {!! Form::number('orders_unpaid_abandon_after_hours', $settings['orders']['unpaid_abandon_after_hours'] ?? 24, ['class' => 'form-control', 'min' => 0, 'max' => 720, 'step' => 1]) !!}
+                            <p class="help-block">@lang('lang_v1.orders_unpaid_abandon_after_hours_help')</p>
+                        </div>
+                    </div>
                 </div>
                 @include('storefront.partials.test_email_button', ['type' => 'orders', 'input' => 'orders_notify_email'])
 

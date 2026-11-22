@@ -33,6 +33,11 @@ class Kernel extends ConsoleKernel
                 ->everyFiveMinutes()
                 ->withoutOverlapping(30);
 
+            // Abandoned unpaid online website checkouts (TTL from Storefront Settings → Website orders).
+            $schedule->command('storefront:prune-unpaid-orders')
+                ->hourly()
+                ->withoutOverlapping(55);
+
             // Safety net for sells created by paths that don't refresh content_kind.
             $schedule->command('sales:classify-content --recent')
                 ->dailyAt('03:30')

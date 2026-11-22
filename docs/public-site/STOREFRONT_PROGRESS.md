@@ -188,7 +188,7 @@
 | Newsletter (Mailchimp / MailerLite / AWeber) | ✅ | `/storefront/settings` Newsletter tab; `POST /newsletter/subscribe`; encrypted secrets |
 | Product reviews moderation | ✅ | `/product-reviews` DataTables approve/reject; `product_review.*` permissions |
 | Sell to us requests | ✅ | `/storefront/sell-requests` list/detail + status; notify email on Settings → Contact |
-| Website order staff alerts + queue | ✅ | Bell (branch sales staff) + orders inbox email once per order (COD at checkout, online on first `markPaid`); Sell → Website orders with cached badge; `NotifyStaffOfStorefrontOrder`, `StorefrontStaffOrderAlert`; Settings → Website orders notify email; Settings → Contact **Send test email** per inbox (`StorefrontTestEmailTest`) |
+| Website order staff alerts + queue | ✅ | Bell (branch sales staff) + orders inbox email once per order (COD at checkout, online on first `markPaid`); Sell → Website orders with cached badge; `NotifyStaffOfStorefrontOrder`, `StorefrontStaffOrderAlert`; Settings → Website orders notify email; unpaid online auto-delete after N hours (`orders.unpaid_abandon_after_hours`, `storefront:prune-unpaid-orders`); Settings → Contact **Send test email** per inbox (`StorefrontTestEmailTest`) |
 | Online sale price on products (POS forms) | ✅ | Variation + single product fields |
 | Storefront display address on locations | ✅ | Used in public locations API |
 | Show on storefront (per location) | ✅ | POS Business Locations checkbox; filters listings + availability + pickup |
@@ -259,6 +259,7 @@
 
 | Date | Change |
 |------|--------|
+| 2026-11-22 | Storefront Settings → Website orders: **Delete unpaid online orders after (hours)** (`orders.unpaid_abandon_after_hours`, default 24, 0 = off). Hourly `storefront:prune-unpaid-orders` removes abandoned unpaid online checkouts (pending card line, never staff-alerted); COD/paid kept. `StorefrontUnpaidOrderPruneTest`. |
 | 2026-11-18 | `storefront.orders` alone can manage the Website orders queue without All sales: the sales DataTable renders for queue-only staff, the All sales header link is hidden without sales perms, and shipping status can be updated on storefront orders without Access Shipments. `StorefrontStaffOrderAlertTest`. |
 | 2026-11-12 | POS Roles → Storefront: new **Access website orders** permission (`storefront.orders`) for the Sell → Website orders queue, opening orders from it, and new-order bell alerts (was `sell.view`/`direct_sell.view`). The queue is pinned to alerted storefront orders server-side; queue-only staff cannot open All sales. Bell/email link into the queue. Migration grants it to Admin roles and every role with `sell.view` or `direct_sell.view`. `StorefrontStaffOrderAlertTest`, `StorefrontRolePermissionsTest`. |
 | 2026-10-27 | Settings → General: **Cash on Delivery allowed customers**, a searchable list of customer emails that keep COD while it is disabled store-wide (signed-in verified accounts only; guests never). Enforced at checkout (`CodEligibility`); `cod_allowed` on `GET /account/profile` shows the COD option in Qwik checkout. `GET /storefront/settings/cod-customer-emails`; `StorefrontCodAllowlistTest`. |

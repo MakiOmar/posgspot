@@ -1502,6 +1502,8 @@ return [
     'website_orders' => 'طلبات الموقع',
     'orders_notify_email' => 'بريد تنبيه الطلبات الجديدة',
     'orders_notify_email_help' => 'يصله بريد لكل طلب جديد من الموقع (الدفع عند الاستلام فوراً، والأونلاين بعد الدفع). اتركه فارغاً لاستخدام بريد التواصل.',
+    'orders_unpaid_abandon_after_hours' => 'حذف طلبات الأونلاين غير المدفوعة بعد (ساعات)',
+    'orders_unpaid_abandon_after_hours_help' => 'مدة الانتظار قبل حذف طلبات الموقع التي لم تُكمل الدفع الأونلاين تلقائياً. 0 يعطّل الحذف التلقائي. طلبات الدفع عند الاستلام والمدفوعة لا تُحذف. الافتراضي 24. يُنفَّذ عبر storefront:prune-unpaid-orders (كل ساعة).',
     'storefront_notify_type_contact' => 'بريد نموذج التواصل',
     'storefront_notify_type_orders' => 'طلبات الموقع الجديدة',
     'storefront_notify_type_sell_to_us' => 'بيع لنا (استبدال)',

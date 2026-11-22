@@ -329,6 +329,7 @@ class StorefrontSettingController extends Controller
             'sell_to_us_notify_email' => 'nullable|email|max:191',
             'request_product_notify_email' => 'nullable|email|max:191',
             'orders_notify_email' => 'nullable|email|max:191',
+            'orders_unpaid_abandon_after_hours' => 'nullable|integer|min:0|max:720',
             'announcement_message_en' => 'nullable|string|max:500',
             'announcement_message_ar' => 'nullable|string|max:500',
             'announcement_link' => 'nullable|string|max:500',
@@ -492,6 +493,9 @@ class StorefrontSettingController extends Controller
             ],
             'orders' => [
                 'notify_email' => $validated['orders_notify_email'] ?? '',
+                'unpaid_abandon_after_hours' => isset($validated['orders_unpaid_abandon_after_hours'])
+                    ? max(0, (int) $validated['orders_unpaid_abandon_after_hours'])
+                    : (int) ($this->settings->get($business_id)['orders']['unpaid_abandon_after_hours'] ?? 24),
             ],
             'announcement' => [
                 'message' => [

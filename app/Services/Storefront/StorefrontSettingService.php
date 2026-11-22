@@ -110,8 +110,10 @@ class StorefrontSettingService
                 'notify_email' => '',
             ],
             // New website order staff alerts (empty = contact inbox).
+            // unpaid_abandon_after_hours: delete unpaid online checkouts after N hours (0 = off).
             'orders' => [
                 'notify_email' => '',
+                'unpaid_abandon_after_hours' => 24,
             ],
             'social' => [
                 'facebook' => '',

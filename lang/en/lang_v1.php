@@ -1713,6 +1713,8 @@ return [
     'website_orders' => 'Website orders',
     'orders_notify_email' => 'New order notify email',
     'orders_notify_email_help' => 'Gets an email for every new website order (COD at checkout, online once paid). Empty uses the contact inbox.',
+    'orders_unpaid_abandon_after_hours' => 'Delete unpaid online orders after (hours)',
+    'orders_unpaid_abandon_after_hours_help' => 'Waiting time before automatically deleting website checkouts that never completed online payment. 0 disables auto-delete. COD and paid orders are never removed. Default 24. Run via storefront:prune-unpaid-orders (hourly).',
     'storefront_notify_type_contact' => 'Contact form inbox',
     'storefront_notify_type_orders' => 'New website orders',
     'storefront_notify_type_sell_to_us' => 'Sell to us (trade-in)',
