@@ -45,10 +45,17 @@ class LoginController extends Controller
             ? 'code'
             : 'email';
 
+        $resendAvailableIn = 0;
+        if ($step === 'code' && is_string($otpEmail) && $otpEmail !== '') {
+            $resendAvailableIn = $this->otpService->secondsUntilResendAllowedForEmail($otpEmail);
+        }
+
         return response()
             ->view('auth.login', [
                 'loginStep' => $step,
                 'otpEmail' => $otpEmail,
+                'resendAvailableIn' => $resendAvailableIn,
+                'resendCooldownSeconds' => max(1, (int) config('auth_otp.resend_cooldown_seconds', 60)),
             ])
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate, private')
             ->header('Pragma', 'no-cache')
@@ -70,22 +77,39 @@ class LoginController extends Controller
         $result = $this->otpService->requestCode($email);
 
         if (! $result['ok']) {
+            $retryAfter = isset($result['retry_after']) ? (int) $result['retry_after'] : null;
+            $message = StaffLoginOtpService::failureMessage($result['reason'], $retryAfter);
+
+            if ($result['reason'] === StaffLoginOtpService::RESULT_COOLDOWN) {
+                return redirect()
+                    ->route('login', ['step' => 'code'])
+                    ->with('login_otp_email', $email)
+                    ->with('status', [
+                        'success' => 0,
+                        'msg' => $message,
+                    ]);
+            }
+
             return redirect()
                 ->route('login')
                 ->withInput(['email' => $email])
-                ->withErrors(['email' => StaffLoginOtpService::failureMessage($result['reason'])])
+                ->withErrors(['email' => $message])
                 ->with('status', [
                     'success' => 0,
-                    'msg' => StaffLoginOtpService::failureMessage($result['reason']),
+                    'msg' => $message,
                 ]);
         }
+
+        $msg = ! empty($result['reused'])
+            ? __('lang_v1.login_code_resent_same')
+            : __('lang_v1.login_code_sent');
 
         return redirect()
             ->route('login', ['step' => 'code'])
             ->with('login_otp_email', $email)
             ->with('status', [
                 'success' => 1,
-                'msg' => __('lang_v1.login_code_sent'),
+                'msg' => $msg,
             ]);
     }
 

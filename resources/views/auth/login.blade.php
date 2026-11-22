@@ -5,6 +5,8 @@
     @php
         $loginStep = $loginStep ?? 'email';
         $otpEmail = $otpEmail ?? old('email', session('login_otp_email'));
+        $resendAvailableIn = max(0, (int) ($resendAvailableIn ?? 0));
+        $resendCooldownSeconds = max(1, (int) ($resendCooldownSeconds ?? 60));
     @endphp
     <div class="row">
         <div class="col-md-4"></div>
@@ -22,7 +24,11 @@
                     </div>
 
                     @if ($loginStep === 'code')
-                        <form method="POST" action="{{ route('login.otp.verify') }}" id="login-form">
+                        <p class="tw-text-xs md:tw-text-sm tw-text-gray-500 tw-text-center tw-m-0">
+                            @lang('lang_v1.login_code_inbox_hint')
+                        </p>
+
+                        <form method="POST" action="{{ route('login.otp.verify') }}" id="login-form" data-otp-form>
                             {{ csrf_field() }}
                             <input type="hidden" name="email" value="{{ $otpEmail }}">
 
@@ -71,12 +77,20 @@
                             </button>
                         </form>
 
-                        <form method="POST" action="{{ route('login.otp.request') }}" class="tw-mt-2">
+                        <form method="POST" action="{{ route('login.otp.request') }}" class="tw-mt-2" id="login-otp-resend-form" data-otp-form>
                             {{ csrf_field() }}
                             <input type="hidden" name="email" value="{{ $otpEmail }}">
-                            <button type="submit"
-                                class="tw-h-12 tw-rounded-xl tw-text-sm md:tw-text-base tw-font-semibold tw-w-full tw-max-w-full tw-border tw-border-[#D1D5DA] tw-bg-white tw-text-black hover:tw-bg-gray-50">
-                                @lang('lang_v1.resend_login_code')
+                            <button type="submit" id="login-otp-resend-btn"
+                                class="tw-h-12 tw-rounded-xl tw-text-sm md:tw-text-base tw-font-semibold tw-w-full tw-max-w-full tw-border tw-border-[#D1D5DA] tw-bg-white tw-text-black hover:tw-bg-gray-50 disabled:tw-opacity-60 disabled:tw-cursor-not-allowed"
+                                @if ($resendAvailableIn > 0) disabled @endif
+                                data-resend-label="{{ __('lang_v1.resend_login_code') }}"
+                                data-wait-label="{{ __('lang_v1.login_otp_resend_in', ['seconds' => '__S__']) }}"
+                                data-available-in="{{ $resendAvailableIn }}">
+                                @if ($resendAvailableIn > 0)
+                                    @lang('lang_v1.login_otp_resend_in', ['seconds' => $resendAvailableIn])
+                                @else
+                                    @lang('lang_v1.resend_login_code')
+                                @endif
                             </button>
                         </form>
 
@@ -85,7 +99,7 @@
                                 class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-700 tw-mt-2">@lang('lang_v1.use_different_email')</a>
                         </div>
                     @else
-                        <form method="POST" action="{{ route('login.otp.request') }}" id="login-form">
+                        <form method="POST" action="{{ route('login.otp.request') }}" id="login-form" data-otp-form>
                             {{ csrf_field() }}
                             <div class="form-group has-feedback {{ $errors->has('email') ? ' has-error' : '' }}">
                                 <label class="tw-dw-form-control">
@@ -148,6 +162,38 @@
             $('.change_lang').click(function() {
                 window.location = "{{ route('login') }}?lang=" + $(this).attr('value');
             });
+
+            // Prevent double-submit on OTP send / verify / resend.
+            $('form[data-otp-form]').on('submit', function() {
+                var $btn = $(this).find('button[type="submit"]');
+                if ($btn.prop('disabled')) {
+                    return false;
+                }
+                $btn.prop('disabled', true);
+            });
+
+            var $resend = $('#login-otp-resend-btn');
+            if ($resend.length) {
+                var remaining = parseInt($resend.attr('data-available-in'), 10) || 0;
+                var resendLabel = $resend.attr('data-resend-label') || '';
+                var waitTemplate = $resend.attr('data-wait-label') || ':seconds';
+
+                function paintResend() {
+                    if (remaining <= 0) {
+                        $resend.prop('disabled', false).text(resendLabel);
+                        return;
+                    }
+                    $resend.prop('disabled', true).text(
+                        waitTemplate.split('__S__').join(String(remaining))
+                    );
+                    remaining -= 1;
+                    window.setTimeout(paintResend, 1000);
+                }
+
+                if (remaining > 0) {
+                    paintResend();
+                }
+            }
         })
     </script>
 @endsection

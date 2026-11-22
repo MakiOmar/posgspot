@@ -74,6 +74,57 @@ class StaffLoginOtpTest extends TestCase
         $this->assertNotNull($user->login_otp_expires_at);
     }
 
+    public function test_request_otp_within_cooldown_does_not_send_again(): void
+    {
+        $user = $this->staff();
+
+        $this->post(route('login.otp.request'), ['email' => $user->email])
+            ->assertRedirect(route('login', ['step' => 'code']));
+
+        $this->post(route('login.otp.request'), ['email' => $user->email])
+            ->assertRedirect(route('login', ['step' => 'code']))
+            ->assertSessionHas('status.success', 0)
+            ->assertSessionHas('status.msg');
+
+        Mail::assertSent(StaffLoginOtpMail::class, 1);
+    }
+
+    public function test_request_otp_after_cooldown_resends_same_code(): void
+    {
+        config(['auth_otp.resend_cooldown_seconds' => 60]);
+        $user = $this->staff();
+
+        $this->post(route('login.otp.request'), ['email' => $user->email])
+            ->assertRedirect(route('login', ['step' => 'code']));
+
+        $firstCode = null;
+        Mail::assertSent(StaffLoginOtpMail::class, function (StaffLoginOtpMail $mail) use (&$firstCode) {
+            $firstCode = $mail->code;
+
+            return true;
+        });
+        $this->assertNotNull($firstCode);
+
+        $this->travel(61)->seconds();
+
+        $this->post(route('login.otp.request'), ['email' => $user->email])
+            ->assertRedirect(route('login', ['step' => 'code']))
+            ->assertSessionHas('status.success', 1)
+            ->assertSessionHas('status.msg', __('lang_v1.login_code_resent_same'));
+
+        Mail::assertSent(StaffLoginOtpMail::class, 2);
+        Mail::assertSent(StaffLoginOtpMail::class, function (StaffLoginOtpMail $mail) use ($firstCode) {
+            return $mail->code === $firstCode;
+        });
+
+        $this->post(route('login.otp.verify'), [
+            'email' => $user->email,
+            'code' => $firstCode,
+        ])->assertRedirect();
+
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_request_otp_for_unknown_email_shows_not_found_and_sends_nothing(): void
     {
         $this->post(route('login.otp.request'), ['email' => 'nobody_'.uniqid().'@example.com'])
@@ -200,5 +251,16 @@ class StaffLoginOtpTest extends TestCase
             ->assertSee(route('login.otp.request'), false)
             ->assertDontSee('name="username"', false)
             ->assertDontSee('name="password"', false);
+    }
+
+    public function test_code_step_shows_inbox_hint_and_resend_control(): void
+    {
+        $user = $this->staff();
+
+        $this->withSession(['login_otp_email' => $user->email])
+            ->get(route('login', ['step' => 'code']))
+            ->assertOk()
+            ->assertSee(__('lang_v1.login_code_inbox_hint'), false)
+            ->assertSee(__('lang_v1.resend_login_code'), false);
     }
 }
