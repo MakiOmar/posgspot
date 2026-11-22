@@ -16,37 +16,58 @@ class StaffLoginOtpService
 {
     public const PURPOSE = 'staff-login';
 
+    public const RESULT_SENT = 'sent';
+
+    public const RESULT_NOT_FOUND = 'not_found';
+
+    public const RESULT_INACTIVE = 'inactive';
+
+    public const RESULT_LOGIN_DISABLED = 'login_disabled';
+
+    public const RESULT_AMBIGUOUS = 'ambiguous';
+
+    public const RESULT_MAIL_FAILED = 'mail_failed';
+
     public function __construct(private OneTimeCodeAttempts $codeAttempts)
     {
     }
 
     /**
-     * Send a login OTP when the email matches exactly one eligible staff user.
-     * Always returns without revealing whether the email exists.
+     * Send a login OTP when the address matches exactly one eligible staff user.
+     *
+     * @return array{ok: bool, reason: string}
      */
-    public function requestCode(string $email): void
+    public function requestCode(string $email): array
     {
         $email = strtolower(trim($email));
         $users = User::query()
             ->whereRaw('LOWER(email) = ?', [$email])
-            ->where('status', 'active')
-            ->where('allow_login', 1)
             ->get();
 
-        if ($users->count() !== 1) {
-            if ($users->count() > 1) {
-                Log::warning('Staff login OTP skipped: email matches multiple users.', [
-                    'email' => $email,
-                    'count' => $users->count(),
-                ]);
-            }
+        if ($users->isEmpty()) {
+            return ['ok' => false, 'reason' => self::RESULT_NOT_FOUND];
+        }
 
-            return;
+        if ($users->count() > 1) {
+            Log::warning('Staff login OTP skipped: email matches multiple users.', [
+                'email' => $email,
+                'count' => $users->count(),
+            ]);
+
+            return ['ok' => false, 'reason' => self::RESULT_AMBIGUOUS];
         }
 
         $user = $users->first();
         if (empty($user->email)) {
-            return;
+            return ['ok' => false, 'reason' => self::RESULT_NOT_FOUND];
+        }
+
+        if ($user->status !== 'active') {
+            return ['ok' => false, 'reason' => self::RESULT_INACTIVE];
+        }
+
+        if (! $user->allow_login) {
+            return ['ok' => false, 'reason' => self::RESULT_LOGIN_DISABLED];
         }
 
         $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -66,7 +87,30 @@ class StaffLoginOtpService
                 'error' => $e->getMessage(),
             ]);
             report($e);
+
+            $user->login_otp_hash = null;
+            $user->login_otp_expires_at = null;
+            $user->save();
+
+            return ['ok' => false, 'reason' => self::RESULT_MAIL_FAILED];
         }
+
+        return ['ok' => true, 'reason' => self::RESULT_SENT];
+    }
+
+    /**
+     * Human-readable failure message for a requestCode() reason.
+     */
+    public static function failureMessage(string $reason): string
+    {
+        return match ($reason) {
+            self::RESULT_NOT_FOUND => __('lang_v1.login_otp_email_not_found'),
+            self::RESULT_INACTIVE => __('lang_v1.user_inactive'),
+            self::RESULT_LOGIN_DISABLED => __('lang_v1.login_not_allowed'),
+            self::RESULT_AMBIGUOUS => __('lang_v1.login_otp_email_ambiguous'),
+            self::RESULT_MAIL_FAILED => __('lang_v1.login_otp_mail_failed'),
+            default => __('lang_v1.login_otp_mail_failed'),
+        };
     }
 
     /**

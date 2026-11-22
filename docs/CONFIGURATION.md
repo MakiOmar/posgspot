@@ -12,7 +12,7 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 Staff sign-in at `/login` uses a **6-digit email code** only (no username/password on the web form). Passport `POST /api/login` (username + password) stays for machine/API clients.
 
-1. `POST /login/otp/request` with `{ email }` — if the address matches **exactly one** active user with `allow_login`, a code is hashed onto `users.login_otp_*` and emailed synchronously (`Mail::sendNow`). Response never reveals whether the email exists.
+1. `POST /login/otp/request` with `{ email }` — looks up the address first. On success (exactly one **active** user with `allow_login`), a code is hashed onto `users.login_otp_*` and emailed synchronously (`Mail::sendNow`). Failures stay on the email step and show a specific cause: unknown email, inactive account, login disabled, duplicate email, or mail transport error.
 2. `POST /login/otp/verify` with `{ email, code, remember? }` — on success, starts the web session (same business/user checks as before) and clears the code.
 3. After **5** wrong guesses for one issued code, the code is burned.
 

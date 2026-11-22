@@ -57,12 +57,13 @@ class StaffLoginOtpTest extends TestCase
         return $user->fresh();
     }
 
-    public function test_request_otp_sends_mail_for_active_staff_without_revealing_existence(): void
+    public function test_request_otp_sends_mail_for_active_staff(): void
     {
         $user = $this->staff();
 
         $this->post(route('login.otp.request'), ['email' => $user->email])
-            ->assertRedirect(route('login', ['step' => 'code']));
+            ->assertRedirect(route('login', ['step' => 'code']))
+            ->assertSessionHas('status.success', 1);
 
         Mail::assertSent(StaffLoginOtpMail::class, function (StaffLoginOtpMail $mail) use ($user) {
             return $mail->user->is($user) && strlen($mail->code) === 6;
@@ -73,21 +74,37 @@ class StaffLoginOtpTest extends TestCase
         $this->assertNotNull($user->login_otp_expires_at);
     }
 
-    public function test_request_otp_for_unknown_email_returns_same_message_and_sends_nothing(): void
+    public function test_request_otp_for_unknown_email_shows_not_found_and_sends_nothing(): void
     {
         $this->post(route('login.otp.request'), ['email' => 'nobody_'.uniqid().'@example.com'])
-            ->assertRedirect(route('login', ['step' => 'code']))
-            ->assertSessionHas('status');
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email')
+            ->assertSessionHas('status.success', 0);
 
         Mail::assertNothingSent();
     }
 
-    public function test_request_otp_skips_inactive_users(): void
+    public function test_request_otp_rejects_inactive_users_with_cause(): void
     {
         $user = $this->staff(['status' => 'inactive']);
 
         $this->post(route('login.otp.request'), ['email' => $user->email])
-            ->assertRedirect(route('login', ['step' => 'code']));
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email')
+            ->assertSessionHas('status.success', 0);
+
+        Mail::assertNothingSent();
+        $this->assertNull($user->fresh()->login_otp_hash);
+    }
+
+    public function test_request_otp_rejects_login_disabled_with_cause(): void
+    {
+        $user = $this->staff(['allow_login' => 0]);
+
+        $this->post(route('login.otp.request'), ['email' => $user->email])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors('email')
+            ->assertSessionHas('status.success', 0);
 
         Mail::assertNothingSent();
         $this->assertNull($user->fresh()->login_otp_hash);

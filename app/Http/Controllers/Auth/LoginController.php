@@ -67,7 +67,18 @@ class LoginController extends Controller
         $data = $request->validate($rules);
 
         $email = strtolower(trim($data['email']));
-        $this->otpService->requestCode($email);
+        $result = $this->otpService->requestCode($email);
+
+        if (! $result['ok']) {
+            return redirect()
+                ->route('login')
+                ->withInput(['email' => $email])
+                ->withErrors(['email' => StaffLoginOtpService::failureMessage($result['reason'])])
+                ->with('status', [
+                    'success' => 0,
+                    'msg' => StaffLoginOtpService::failureMessage($result['reason']),
+                ]);
+        }
 
         return redirect()
             ->route('login', ['step' => 'code'])
