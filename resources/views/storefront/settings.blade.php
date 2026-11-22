@@ -112,6 +112,11 @@
                 </a>
             </li>
             <li>
+                <a href="#tab_website_orders" data-toggle="tab" aria-expanded="false">
+                    <i class="fa fa-globe"></i> @lang('lang_v1.website_orders')
+                </a>
+            </li>
+            <li>
                 <a href="#tab_payments" data-toggle="tab" aria-expanded="false">
                     <i class="fa fa-credit-card"></i> Payments
                 </a>
@@ -924,27 +929,6 @@
                 @include('storefront.partials.test_email_button', ['type' => 'contact', 'input' => null])
 
                 <hr>
-                {{-- Staff alert inbox for new website orders (bell alerts go to branch sales staff) --}}
-                <h4>@lang('lang_v1.website_orders')</h4>
-                <p class="help-block">@lang('lang_v1.orders_notify_email_help')</p>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {!! Form::label('orders_notify_email', __('lang_v1.orders_notify_email')) !!}
-                            {!! Form::email('orders_notify_email', $settings['orders']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'orders@example.com']) !!}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            {!! Form::label('orders_unpaid_abandon_after_hours', __('lang_v1.orders_unpaid_abandon_after_hours')) !!}
-                            {!! Form::number('orders_unpaid_abandon_after_hours', $settings['orders']['unpaid_abandon_after_hours'] ?? 24, ['class' => 'form-control', 'min' => 0, 'max' => 720, 'step' => 1]) !!}
-                            <p class="help-block">@lang('lang_v1.orders_unpaid_abandon_after_hours_help')</p>
-                        </div>
-                    </div>
-                </div>
-                @include('storefront.partials.test_email_button', ['type' => 'orders', 'input' => 'orders_notify_email'])
-
-                <hr>
                 <h4>Sell to us (trade-in)</h4>
                 <p class="help-block">Requires <code>STOREFRONT_SELL_TO_US=true</code>. Leave blank to use the contact form inbox.</p>
                 <div class="row">
@@ -1229,6 +1213,28 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {{-- Website orders: staff notify inbox + unpaid online cleanup --}}
+            <div class="tab-pane" id="tab_website_orders">
+                <h4>@lang('lang_v1.website_orders')</h4>
+                <p class="help-block">@lang('lang_v1.orders_notify_email_help')</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('orders_notify_email', __('lang_v1.orders_notify_email')) !!}
+                            {!! Form::email('orders_notify_email', $settings['orders']['notify_email'] ?? '', ['class' => 'form-control', 'placeholder' => 'orders@example.com']) !!}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            {!! Form::label('orders_unpaid_abandon_after_hours', __('lang_v1.orders_unpaid_abandon_after_hours')) !!}
+                            {!! Form::number('orders_unpaid_abandon_after_hours', $settings['orders']['unpaid_abandon_after_hours'] ?? 24, ['class' => 'form-control', 'min' => 0, 'max' => 720, 'step' => 1]) !!}
+                            <p class="help-block">@lang('lang_v1.orders_unpaid_abandon_after_hours_help')</p>
+                        </div>
+                    </div>
+                </div>
+                @include('storefront.partials.test_email_button', ['type' => 'orders', 'input' => 'orders_notify_email'])
             </div>
 
             {{-- Payments: footer icons + gateway --}}
