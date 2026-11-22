@@ -155,12 +155,19 @@
             });
 
             // Prevent double-submit on OTP send / verify / resend.
-            $('form[data-otp-form]').on('submit', function() {
-                var $btn = $(this).find('button[type="submit"]');
-                if ($btn.prop('disabled')) {
+            // Disable the button on the next tick — doing it synchronously during
+            // submit cancels the POST in Chromium (button is the submitter).
+            $('form[data-otp-form]').on('submit', function(e) {
+                var $form = $(this);
+                if ($form.data('otp-submitting')) {
+                    e.preventDefault();
                     return false;
                 }
-                $btn.prop('disabled', true);
+                $form.data('otp-submitting', true);
+                var $btn = $form.find('button[type="submit"]');
+                window.setTimeout(function() {
+                    $btn.prop('disabled', true);
+                }, 0);
             });
 
             var $resend = $('#login-otp-resend-btn');
