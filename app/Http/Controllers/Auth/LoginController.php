@@ -121,7 +121,6 @@ class LoginController extends Controller
         $data = $request->validate([
             'email' => 'required|email',
             'code' => 'required|string|size:6',
-            'remember' => 'sometimes|boolean',
         ]);
 
         $email = strtolower(trim($data['email']));
@@ -132,11 +131,11 @@ class LoginController extends Controller
             return redirect()
                 ->route('login', ['step' => 'code'])
                 ->with('login_otp_email', $email)
-                ->withInput($request->only('email', 'remember'))
+                ->withInput($request->only('email'))
                 ->withErrors($e->errors());
         }
 
-        Auth::login($user, (bool) $request->boolean('remember'));
+        Auth::login($user);
         $request->session()->forget('login_otp_email');
         $request->session()->regenerate();
         $request->session()->put('auth.password_confirmed_at', time());

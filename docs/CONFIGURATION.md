@@ -13,7 +13,7 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 Staff sign-in at `/login` uses a **6-digit email code** only (no username/password on the web form). Passport `POST /api/login` (username + password) stays for machine/API clients.
 
 1. `POST /login/otp/request` with `{ email }` — looks up the address first. On success (exactly one **active** user with `allow_login`), a code is hashed onto `users.login_otp_*` and emailed synchronously (`Mail::sendNow`). Failures stay on the email step and show a specific cause: unknown email, inactive account, login disabled, duplicate email, cooldown, or mail transport error.
-2. `POST /login/otp/verify` with `{ email, code, remember? }` — on success, starts the web session (same business/user checks as before) and clears the code.
+2. `POST /login/otp/verify` with `{ email, code }` — on success, starts the web session (same business/user checks as before) and clears the code. No “remember me”; the session lasts until logout or the normal session lifetime.
 3. After **5** wrong guesses for one issued code, the code is burned.
 4. **Resend cooldown** (default **60s**): another request within the window returns a wait message and sends nothing. After the cooldown, a still-valid code is **re-mailed unchanged** (plaintext kept in cache until expiry) so older inbox copies keep working; only an expired/missing code mints a new one. The login UI disables Resend with a countdown and warns staff to check spam.
 

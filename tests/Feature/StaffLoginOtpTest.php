@@ -250,7 +250,8 @@ class StaffLoginOtpTest extends TestCase
             ->assertSee(__('lang_v1.send_login_code'), false)
             ->assertSee(route('login.otp.request'), false)
             ->assertDontSee('name="username"', false)
-            ->assertDontSee('name="password"', false);
+            ->assertDontSee('name="password"', false)
+            ->assertDontSee('name="remember"', false);
     }
 
     public function test_code_step_shows_inbox_hint_and_resend_control(): void
@@ -261,6 +262,8 @@ class StaffLoginOtpTest extends TestCase
             ->get(route('login', ['step' => 'code']))
             ->assertOk()
             ->assertSee(__('lang_v1.login_code_inbox_hint'), false)
-            ->assertSee(__('lang_v1.resend_login_code'), false);
+            ->assertSee(__('lang_v1.resend_login_code'), false)
+            ->assertDontSee('name="remember"', false)
+            ->assertDontSee(__('lang_v1.remember_me'), false);
     }
 }

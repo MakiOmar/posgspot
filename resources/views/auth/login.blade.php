@@ -62,15 +62,6 @@
                                 </label>
                             </div>
 
-                            <div class="tw-dw-form-control">
-                                <label class="tw-dw-cursor-pointer tw-dw-label tw-self-start tw-gap-2">
-                                    <input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}
-                                        class="tw-dw-checkbox">
-                                    <span
-                                        class="tw-text-xs md:tw-text-sm tw-font-medium tw-text-black tw-mt-[0.2rem]">@lang('lang_v1.remember_me')</span>
-                                </label>
-                            </div>
-
                             <button type="submit"
                                 class="tw-bg-gradient-to-r tw-from-indigo-500 tw-to-blue-500 tw-h-12 tw-rounded-xl tw-text-sm md:tw-text-base tw-text-white tw-font-semibold tw-w-full tw-max-w-full mt-2 hover:tw-from-indigo-600 hover:tw-to-blue-600 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 active:tw-from-indigo-700 active:tw-to-blue-700">
                                 @lang('lang_v1.verify_and_sign_in')
