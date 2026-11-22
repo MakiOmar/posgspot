@@ -155,8 +155,8 @@
             });
 
             // Prevent double-submit on OTP send / verify / resend.
-            // Disable the button on the next tick — doing it synchronously during
-            // submit cancels the POST in Chromium (button is the submitter).
+            // Do not disable the submitter during/just after submit — Chromium
+            // cancels the navigation when the submitter is disabled.
             $('form[data-otp-form]').on('submit', function(e) {
                 var $form = $(this);
                 if ($form.data('otp-submitting')) {
@@ -164,10 +164,7 @@
                     return false;
                 }
                 $form.data('otp-submitting', true);
-                var $btn = $form.find('button[type="submit"]');
-                window.setTimeout(function() {
-                    $btn.prop('disabled', true);
-                }, 0);
+                $form.find('button[type="submit"]').attr('aria-busy', 'true').css('pointer-events', 'none');
             });
 
             var $resend = $('#login-otp-resend-btn');
