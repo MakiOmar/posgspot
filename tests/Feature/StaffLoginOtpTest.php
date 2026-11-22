@@ -8,6 +8,8 @@ use App\Services\OneTimeCodeAttempts;
 use App\Services\StaffLoginOtpService;
 use App\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -25,10 +27,19 @@ class StaffLoginOtpTest extends TestCase
     {
         parent::setUp();
         Mail::fake();
+        Event::fake([MessageLogged::class]);
 
         if (! Business::whereKey($this->businessId)->exists()) {
             $this->markTestSkipped('No business in database.');
         }
+    }
+
+    /**
+     * @param  callable(MessageLogged): bool  $callback
+     */
+    private function assertOtpLogged(callable $callback): void
+    {
+        Event::assertDispatched(MessageLogged::class, $callback);
     }
 
     private function staff(array $overrides = []): User
@@ -69,6 +80,15 @@ class StaffLoginOtpTest extends TestCase
             return $mail->user->is($user) && strlen($mail->code) === 6;
         });
 
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: send_attempt'
+            && ($log->context['user_id'] ?? null) === $user->id
+            && ($log->context['email'] ?? null) === $user->email);
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: send_ok'
+            && ($log->context['user_id'] ?? null) === $user->id
+            && array_key_exists('duration_ms', $log->context));
+
         $user->refresh();
         $this->assertNotEmpty($user->login_otp_hash);
         $this->assertNotNull($user->login_otp_expires_at);
@@ -87,6 +107,11 @@ class StaffLoginOtpTest extends TestCase
             ->assertSessionHas('status.msg');
 
         Mail::assertSent(StaffLoginOtpMail::class, 1);
+
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: request'
+            && ($log->context['reason'] ?? null) === StaffLoginOtpService::RESULT_COOLDOWN
+            && ($log->context['user_id'] ?? null) === $user->id);
     }
 
     public function test_request_otp_after_cooldown_resends_same_code(): void
@@ -133,6 +158,10 @@ class StaffLoginOtpTest extends TestCase
             ->assertSessionHas('status.success', 0);
 
         Mail::assertNothingSent();
+
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: request'
+            && ($log->context['reason'] ?? null) === StaffLoginOtpService::RESULT_NOT_FOUND);
     }
 
     public function test_request_otp_rejects_inactive_users_with_cause(): void
@@ -146,6 +175,11 @@ class StaffLoginOtpTest extends TestCase
 
         Mail::assertNothingSent();
         $this->assertNull($user->fresh()->login_otp_hash);
+
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: request'
+            && ($log->context['reason'] ?? null) === StaffLoginOtpService::RESULT_INACTIVE
+            && ($log->context['user_id'] ?? null) === $user->id);
     }
 
     public function test_request_otp_rejects_login_disabled_with_cause(): void
@@ -178,6 +212,11 @@ class StaffLoginOtpTest extends TestCase
         $user->refresh();
         $this->assertNull($user->login_otp_hash);
         $this->assertNull($user->login_otp_expires_at);
+
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'info'
+            && $log->message === 'Staff login OTP: verify'
+            && ($log->context['reason'] ?? null) === 'accepted'
+            && ($log->context['user_id'] ?? null) === $user->id);
     }
 
     public function test_verify_otp_rejects_wrong_code(): void
@@ -197,6 +236,11 @@ class StaffLoginOtpTest extends TestCase
 
         $this->assertGuest();
         $this->assertNotNull($user->fresh()->login_otp_hash);
+
+        $this->assertOtpLogged(fn (MessageLogged $log) => $log->level === 'warning'
+            && $log->message === 'Staff login OTP: verify'
+            && ($log->context['reason'] ?? null) === 'bad_code'
+            && ($log->context['user_id'] ?? null) === $user->id);
     }
 
     public function test_verify_otp_rejects_expired_code(): void

@@ -25,6 +25,27 @@ Staff sign-in at `/login` uses a **6-digit email code** only (no username/passwo
 
 Verify uses named limiter `auth-otp-verify` (12/min per IP). Mail uses the system transport ([Zoho CPaaS](integrations/ZOHO_CPAAS_MAIL.md)). Template: `resources/views/emails/staff-login-otp.blade.php`.
 
+### Diagnosing “OTP not received”
+
+Every request/send/verify writes structured lines to the Laravel log (message prefix `Staff login OTP:`). The plaintext code is never logged.
+
+| Message | Meaning |
+|---------|---------|
+| `Staff login OTP: request` | Early exit before mail (`reason`: `not_found`, `inactive`, `login_disabled`, `ambiguous`, `cooldown`) |
+| `Staff login OTP: send_attempt` | About to call the mailer (`mailer`, `mail_from`, `reused`) |
+| `Staff login OTP: send_ok` | Transport accepted the message (`duration_ms`) — inbox delivery is still up to the provider/spam filters |
+| `Staff login OTP: send_failed` | Transport/API threw (`exception`, `error`) |
+| `Staff login OTP: verify` | Code check result (`reason`: `accepted`, `bad_code`, `missing_or_expired`, …) |
+
+On the VPS (POS container):
+
+```bash
+docker compose exec -T pos sh -lc \
+  "grep -F 'Staff login OTP' \$(ls -1t /var/www/html/storage/logs/laravel*.log | head -1) | tail -n 80"
+```
+
+Filter by address with `| grep -F 'user@example.com'`. If you see `send_ok` but the staff still has nothing, check spam and Zoho CPaaS delivery logs — the app already handed the message off.
+
 ```bash
 php artisan test --filter=StaffLoginOtpTest
 ```

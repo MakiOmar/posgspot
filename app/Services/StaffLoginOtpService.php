@@ -46,38 +46,58 @@ class StaffLoginOtpService
     public function requestCode(string $email): array
     {
         $email = strtolower(trim($email));
+        $base = $this->logContext(email: $email);
+
         $users = User::query()
             ->whereRaw('LOWER(email) = ?', [$email])
             ->get();
 
         if ($users->isEmpty()) {
+            $this->logRequest('blocked', self::RESULT_NOT_FOUND, $base);
+
             return ['ok' => false, 'reason' => self::RESULT_NOT_FOUND];
         }
 
         if ($users->count() > 1) {
-            Log::warning('Staff login OTP skipped: email matches multiple users.', [
-                'email' => $email,
-                'count' => $users->count(),
-            ]);
+            $this->logRequest('blocked', self::RESULT_AMBIGUOUS, $base + [
+                'match_count' => $users->count(),
+                'user_ids' => $users->pluck('id')->all(),
+            ], warning: true);
 
             return ['ok' => false, 'reason' => self::RESULT_AMBIGUOUS];
         }
 
         $user = $users->first();
+        $base = $this->logContext(email: $email, user: $user);
+
         if (empty($user->email)) {
+            $this->logRequest('blocked', self::RESULT_NOT_FOUND, $base);
+
             return ['ok' => false, 'reason' => self::RESULT_NOT_FOUND];
         }
 
         if ($user->status !== 'active') {
+            $this->logRequest('blocked', self::RESULT_INACTIVE, $base + [
+                'status' => $user->status,
+            ]);
+
             return ['ok' => false, 'reason' => self::RESULT_INACTIVE];
         }
 
         if (! $user->allow_login) {
+            $this->logRequest('blocked', self::RESULT_LOGIN_DISABLED, $base + [
+                'allow_login' => (bool) $user->allow_login,
+            ]);
+
             return ['ok' => false, 'reason' => self::RESULT_LOGIN_DISABLED];
         }
 
         $retryAfter = $this->secondsUntilResendAllowed($user);
         if ($retryAfter > 0) {
+            $this->logRequest('blocked', self::RESULT_COOLDOWN, $base + [
+                'retry_after' => $retryAfter,
+            ]);
+
             return [
                 'ok' => false,
                 'reason' => self::RESULT_COOLDOWN,
@@ -159,12 +179,20 @@ class StaffLoginOtpService
         ]);
 
         if ($users->count() !== 1) {
+            $this->logVerify('failed', 'user_lookup', $this->logContext(email: $email) + [
+                'match_count' => $users->count(),
+            ]);
             throw $invalid;
         }
 
         $user = $users->first();
+        $base = $this->logContext(email: $email, user: $user);
 
         if ($user->status !== 'active' || ! $user->allow_login) {
+            $this->logVerify('failed', 'ineligible', $base + [
+                'status' => $user->status,
+                'allow_login' => (bool) $user->allow_login,
+            ]);
             throw $invalid;
         }
 
@@ -173,30 +201,52 @@ class StaffLoginOtpService
             || empty($user->login_otp_expires_at)
             || now()->gt($user->login_otp_expires_at)
         ) {
+            $this->logVerify('failed', 'missing_or_expired', $base + [
+                'has_hash' => ! empty($user->login_otp_hash),
+                'expires_at' => $user->login_otp_expires_at?->toIso8601String(),
+            ]);
             throw $invalid;
         }
 
         if (! Hash::check($code, $user->login_otp_hash)) {
-            if ($this->codeAttempts->recordFailure(self::PURPOSE, (string) $user->id)) {
+            $burned = $this->codeAttempts->recordFailure(self::PURPOSE, (string) $user->id);
+            if ($burned) {
                 $this->clearOtp($user);
             }
+            $this->logVerify('failed', 'bad_code', $base + [
+                'burned' => $burned,
+            ]);
             throw $invalid;
         }
 
         $this->clearOtp($user);
         $this->codeAttempts->clear(self::PURPOSE, (string) $user->id);
+        $this->logVerify('ok', 'accepted', $base);
 
         return $user;
     }
 
     private function sendMail(User $user, string $code, bool $reused): array
     {
+        $context = $this->logContext(email: (string) $user->email, user: $user) + [
+            'reused' => $reused,
+            'mailer' => (string) config('mail.default'),
+            'mail_from' => (string) config('mail.from.address'),
+            'expires_at' => $user->login_otp_expires_at?->toIso8601String(),
+        ];
+
+        Log::info('Staff login OTP: send_attempt', $context);
+
+        $started = microtime(true);
+
         try {
             // Sync send — staff login must not depend on a queue worker.
             Mail::to($user->email)->sendNow(new StaffLoginOtpMail($user, $code));
         } catch (\Throwable $e) {
-            Log::warning('Staff login OTP email failed.', [
-                'user_id' => $user->id,
+            $durationMs = (int) round((microtime(true) - $started) * 1000);
+            Log::warning('Staff login OTP: send_failed', $context + [
+                'duration_ms' => $durationMs,
+                'exception' => $e::class,
                 'error' => $e->getMessage(),
             ]);
             report($e);
@@ -211,7 +261,64 @@ class StaffLoginOtpService
             return ['ok' => false, 'reason' => self::RESULT_MAIL_FAILED];
         }
 
+        $durationMs = (int) round((microtime(true) - $started) * 1000);
+        Log::info('Staff login OTP: send_ok', $context + [
+            'duration_ms' => $durationMs,
+            'reason' => self::RESULT_SENT,
+        ]);
+
         return ['ok' => true, 'reason' => self::RESULT_SENT, 'reused' => $reused];
+    }
+
+    /**
+     * Shared context for OTP diagnostics (never includes the plaintext code).
+     *
+     * @return array{purpose: string, email: string, ip?: string|null, user_id?: int, business_id?: int|null, username?: string|null}
+     */
+    private function logContext(string $email, ?User $user = null): array
+    {
+        $context = [
+            'purpose' => self::PURPOSE,
+            'email' => $email,
+            'ip' => request()?->ip(),
+        ];
+
+        if ($user) {
+            $context['user_id'] = (int) $user->id;
+            $context['business_id'] = $user->business_id !== null ? (int) $user->business_id : null;
+            $context['username'] = $user->username;
+        }
+
+        return $context;
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function logRequest(string $result, string $reason, array $context, bool $warning = false): void
+    {
+        $payload = $context + [
+            'result' => $result,
+            'reason' => $reason,
+        ];
+
+        if ($warning) {
+            Log::warning('Staff login OTP: request', $payload);
+        } else {
+            Log::info('Staff login OTP: request', $payload);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function logVerify(string $result, string $reason, array $context): void
+    {
+        $level = $result === 'ok' ? 'info' : 'warning';
+        Log::{$level}('Staff login OTP: verify', $context + [
+            'result' => $result,
+            'reason' => $reason,
+        ]);
     }
 
     private function secondsUntilResendAllowed(User $user): int
