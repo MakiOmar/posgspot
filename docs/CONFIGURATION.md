@@ -179,7 +179,7 @@ No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-q
 
 ## Accounts catalog sync (per-offer products)
 
-POS authenticates to Accounts with `ACCOUNTS_AUTH_PHONE` / `ACCOUNTS_AUTH_PASSWORD` (`config/services.php` → `accounts`). On Accounts, that user must be allowlisted via `API_LOGIN_USER_IDS` or `API_LOGIN_PHONES` (see Accounts `docs/LOGIN_OTP.md`); tokens are scoped (`orders:receive`, etc.), not `*`.
+POS authenticates to Accounts with `ACCOUNTS_AUTH_PHONE` / `ACCOUNTS_AUTH_PASSWORD` (`config/services.php` → `accounts`). On Accounts, that user must be allowlisted via `API_LOGIN_USER_IDS` or `API_LOGIN_PHONES` (see Accounts `docs/LOGIN_OTP.md`); tokens are scoped (`orders:receive`, etc.), not `*`. Manager `/manager/login` OTP can be further pinned with Accounts `ADMIN_OTP_WHITELIST` (`user_id:email` pairs).
 
 Accounts pushes one hidden POS product per game offer / card category through `POST /api/accounts/catalog/upsert/{business_id}`. Those products are filed under an existing POS category and brand looked up by slug:
 
