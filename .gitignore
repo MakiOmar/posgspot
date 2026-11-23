@@ -13,6 +13,9 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 .env
+# Markdown stays local only — never push *.md to remote
+*.md
+*.MD
 # k6 load-test exports
 /load-tests/k6/results/**
 !/load-tests/k6/results/.gitkeep
