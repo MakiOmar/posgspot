@@ -1318,7 +1318,10 @@ class StorefrontSettingService
         }
 
         if (! empty($settings['turnstile']['secret_key'])) {
-            $merged['turnstile']['secret_key'] = Crypt::encryptString($settings['turnstile']['secret_key']);
+            // Unwrap nested Crypt payloads before re-encrypting once (import/re-save loops).
+            $merged['turnstile']['secret_key'] = Crypt::encryptString(
+                $this->unwrapEncryptedString((string) $settings['turnstile']['secret_key'])
+            );
         } else {
             $existing = $existing ?? $this->getRaw($businessId);
             $merged['turnstile']['secret_key'] = $existing['turnstile']['secret_key'] ?? null;
@@ -1632,11 +1635,31 @@ class StorefrontSettingService
             return null;
         }
 
-        try {
-            return Crypt::decryptString($key);
-        } catch (\Throwable) {
-            return $key;
+        $plain = $this->unwrapEncryptedString((string) $key);
+
+        return $plain !== '' ? $plain : null;
+    }
+
+    /**
+     * Laravel Crypt payloads are base64 JSON starting with eyJpdiI. Nested encrypt
+     * (save → export → save) leaves a ciphertext that decrypts to another ciphertext;
+     * unwrap until the value is plaintext or decrypt fails.
+     */
+    private function unwrapEncryptedString(string $value): string
+    {
+        $current = $value;
+        for ($i = 0; $i < 5; $i++) {
+            if (! str_starts_with($current, 'eyJpdiI')) {
+                break;
+            }
+            try {
+                $current = Crypt::decryptString($current);
+            } catch (\Throwable) {
+                break;
+            }
         }
+
+        return $current;
     }
 
     /**

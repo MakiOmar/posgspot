@@ -3,6 +3,7 @@
 namespace App\Services\Storefront;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Cloudflare Turnstile verification for storefront public forms.
@@ -57,6 +58,14 @@ class TurnstileService
         }
 
         if (empty($body['success'])) {
+            $codes = $body['error-codes'] ?? [];
+            if (is_array($codes) && $codes !== []) {
+                Log::warning('Turnstile siteverify failed', [
+                    'business_id' => $businessId,
+                    'error_codes' => array_values($codes),
+                ]);
+            }
+
             return 'Security check failed. Please try again.';
         }
 
