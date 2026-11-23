@@ -22,6 +22,7 @@ use App\VariationLocationDetails;
 use App\Utils\CommonUtil;
 use App\Events\ContactCreatedOrModified;
 use App\Http\Requests\AccountsCatalogUpsertRequest;
+use App\Http\Requests\AccountsOrderCreateRequest;
 use App\Http\Requests\AccountsOrderUndoneRequest;
 use App\Services\AccountsCatalogService;
 use App\Services\Accounts\AccountsUndoResetService;
@@ -41,14 +42,18 @@ class AccountsApi extends Controller
         $this->transactionUtil = $transactionUtil;
         $this->productUtil = $productUtil;
     }
-    public function orderCreated(Request $request, $business_id)
+
+    public function orderCreated(AccountsOrderCreateRequest $request, $business_id)
     {
         try {
-            $payload = $request->getContent();
-
             $business = Business::findOrFail($business_id);
-            $user_id = $business->owner->id;
-            $order_data = json_decode($payload);
+            $user_id = (int) $request->user()->id;
+            // Full payload as object for formatOrderToSale (nested meta_data, etc.).
+            $order_data = json_decode($request->getContent());
+            if (! is_object($order_data)) {
+                return response()->json(['message' => 'Invalid JSON body'], 422);
+            }
+
             $business_data = [
                 'id' => $business_id,
                 'accounting_method' => $business->accounting_method,
@@ -58,11 +63,19 @@ class AccountsApi extends Controller
 
             DB::beginTransaction();
             $created = $this->createNewSaleFromOrder($business_id, $user_id, $order_data, $business_data);
-            $create_error_data = $created !== true ? $created : [];
+            if (! is_object($created) && $created !== true) {
+                DB::rollBack();
+
+                return response()->json([
+                    'message' => 'Order could not be created',
+                    'errors' => is_array($created) ? $created : [$created],
+                ], 422);
+            }
             DB::commit();
+
             return response()->json([
                 'message' => 'Order has been created successfully',
-                'created' => $created
+                'created' => $created,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -502,143 +515,4 @@ class AccountsApi extends Controller
         }
     }
 
-    public function createContact(Request $request)
-    {
-        $data = $request->validate([
-            'billing.first_name' => 'required|string',
-            'billing.last_name'  => 'nullable|string',
-            'billing.email'      => 'nullable|email',
-            'billing.phone'      => 'required|string',
-            'billing.address_1'  => 'nullable|string',
-            'billing.address_2'  => 'nullable|string',
-            'billing.city'       => 'nullable|string',
-            'billing.state'      => 'nullable|string',
-            'billing.postcode'   => 'nullable|string',
-            'billing.country'    => 'nullable|string',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $business_id = 1;
-            $user_id = 1;
-            $billing = $data['billing'];
-
-            $customer_details = [
-                'first_name'     => $billing['first_name'],
-                'last_name'      => $billing['last_name'] ?? '',
-                'email'          => $billing['email'] ?? '',
-                'mobile'         => $billing['phone'],
-                'city'           => $billing['city'] ?? '',
-                'state'          => $billing['state'] ?? '',
-                'country'        => $billing['country'] ?? '',
-                'address_line_1'  => $billing['address_1'] ?? '',
-                'address_line_2'  => $billing['address_2'] ?? '',
-                'zip_code'        => $billing['postcode'] ?? '',
-            ];
-
-            $customer_details['name'] = trim($customer_details['first_name'] . ' ' . $customer_details['last_name']);
-
-            // 🔍 Check if customer exists using mobile only
-            $customer = \App\Contact::where('business_id', $business_id)
-                ->where('mobile', $customer_details['mobile'])
-                ->OnlyCustomers()
-                ->first();
-
-            // ✅ If customer exists: return its data
-            if (!empty($customer)) {
-                DB::commit();
-
-                return response()->json([
-                    'success'   => true,
-                    'contact_id'=> $customer->id,
-                    'data'      => $customer, // full existing customer data
-                    'msg'       => 'Customer already exists',
-                ], 200);
-            }
-
-            // ✅ Otherwise create new customer
-            $ref_count  = $this->transactionUtil->setAndGetReferenceCount('contacts', $business_id);
-            $contact_id = $this->transactionUtil->generateReferenceNumber('contacts', $ref_count, $business_id);
-
-            $customer_data = [
-                'business_id'     => $business_id,
-                'type'            => 'customer',
-                'first_name'      => $customer_details['first_name'],
-                'last_name'       => $customer_details['last_name'],
-                'name'            => $customer_details['name'],
-                'email'           => $customer_details['email'],
-                'contact_id'      => $contact_id,
-                'mobile'          => $customer_details['mobile'],
-                'city'            => $customer_details['city'],
-                'state'           => $customer_details['state'],
-                'country'         => $customer_details['country'],
-                'created_by'      => $user_id,
-                'address_line_1'  => $customer_details['address_line_1'],
-                'address_line_2'  => $customer_details['address_line_2'],
-                'zip_code'        => $customer_details['zip_code'],
-            ];
-
-            if (empty(trim($customer_data['name']))) {
-                $customer_data['first_name'] = $customer_details['email'];
-                $customer_data['name'] = $customer_details['email'];
-            }
-
-            $customer = \App\Contact::create($customer_data);
-
-            DB::commit();
-
-            return response()->json([
-                'success'    => true,
-                'contact_id' => $customer->id,
-                'data'       => $customer, // full created customer data
-                'msg'        => 'Customer created successfully',
-            ], 201);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error("Error creating contact: " . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'msg'     => 'Something went wrong.',
-            ], 500);
-        }
-    }
-
-
-    public function getOrdersByPhone(Request $request)
-    {
-        $request->validate([
-        'phone' => 'required|string',
-        ]);
-
-        $phone = $request->input('phone');
-
-    // البحث عن العميل حسب رقم الهاتف
-        $customer = Contact::where('mobile', $phone)->orWhere('mobile', 'like', "%$phone%")->first();
-
-        if (! $customer) {
-            return response()->json([
-            'status' => false,
-            'message' => 'العميل غير موجود',
-            ], 404);
-        }
-
-    // جلب الطلبات (transactions) المرتبطة بالعميل
-        $orders = Transaction::where('contact_id', $customer->id)
-        ->where('type', 'sell')
-        ->select('id', 'invoice_no', 'transaction_date', 'final_total', 'payment_status', 'status')
-        ->orderBy('transaction_date', 'desc')
-        ->get();
-
-        return response()->json([
-        'status' => true,
-        'customer' => [
-            'name' => $customer->name,
-            'mobile' => $customer->mobile,
-        ],
-        'orders' => $orders,
-        ]);
-    }
 }

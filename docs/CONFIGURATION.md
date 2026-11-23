@@ -10,7 +10,7 @@ Operator-facing environment and config notes for this fork. Prefer **`.env.examp
 
 ## Staff login OTP (email)
 
-Staff sign-in at `/login` uses a **6-digit email code** only (no username/password on the web form). Passport `POST /api/login` (username + password) stays for machine/API clients.
+Staff sign-in at `/login` uses a **6-digit email code** only (no username/password on the web form). Passport `POST /api/login` (username + password) is for **dedicated integration users only** — see [Machine API login (Passport)](#machine-api-login-passport).
 
 1. `POST /login/otp/request` with `{ email }` — looks up the address first. On success (exactly one **active** user with `allow_login`), a code is hashed onto `users.login_otp_*` and emailed synchronously (`Mail::sendNow`). Failures stay on the email step and show a specific cause: unknown email, inactive account, login disabled, duplicate email, cooldown, or mail transport error.
 2. `POST /login/otp/verify` with `{ email, code }` — on success, starts the web session (same business/user checks as before) and clears the code. No “remember me”; the session lasts until logout or the normal session lifetime.
@@ -200,9 +200,21 @@ No env flag. Alerts run on the queue (`NotifyStaffOfStorefrontOrder`), so `pos-q
 
 **For staff:** open **Sell → Website orders** (the number is how many are waiting at your branches). Each order is already a final sale with an invoice. Prepare it, then change its shipping status (Packed / Shipped / Delivered) from the sale's actions; it leaves the queue once it is no longer *Ordered*. Queue-only staff with `storefront.orders` can do that without All sales or Access Shipments. COD orders are collected on delivery; online orders show as paid.
 
+## Machine API login (Passport)
+
+`POST /api/login` mints Passport personal access tokens for **allowlisted** POS users only. Normal staff passwords no longer work here (staff use email OTP on `/login`).
+
+| Env | Config | Default |
+|-----|--------|---------|
+| `API_LOGIN_USER_IDS` | `api.login_user_ids` | empty (deny all) |
+| `API_LOGIN_USERNAMES` | `api.login_usernames` | empty (deny all) |
+| `API_TOKEN_EXPIRE_DAYS` | `api.token_expire_days` | `7` |
+
+**Ops:** create one dedicated `users` row for Accounts→POS (active, `allow_login`, `user_type=user`), put its id or username in the env lists, set a strong password, `config:clear`. Tokens are issued with scopes `user-read`, `accounts-orders`, `accounts-catalog`, `contacts-read`, `rewards` (see `config/api.php`). Each protected `/api/*` route requires the matching `scope:` middleware. Empty allowlists refuse every login with **403**. Rate limit: `api-login` (5/min per IP+username). Prior tokens for that user are revoked on each successful login.
+
 ## Accounts catalog sync (per-offer products)
 
-POS authenticates to Accounts with `ACCOUNTS_AUTH_PHONE` / `ACCOUNTS_AUTH_PASSWORD` (`config/services.php` → `accounts`). On Accounts, that user must be allowlisted via `API_LOGIN_USER_IDS` or `API_LOGIN_PHONES` (see Accounts `docs/LOGIN_OTP.md`); tokens are scoped (`orders:receive`, etc.), not `*`. Manager `/manager/login` OTP can be further pinned with Accounts `ADMIN_OTP_WHITELIST` (`user_id:email` pairs).
+POS authenticates to Accounts with `ACCOUNTS_AUTH_PHONE` / `ACCOUNTS_AUTH_PASSWORD` (`config/services.php` → `accounts`). On Accounts, that user must be allowlisted via `API_LOGIN_USER_IDS` or `API_LOGIN_PHONES` (see Accounts `docs/LOGIN_OTP.md`); tokens are scoped (`orders:receive`, etc.), not `*`. Manager `/manager/login` OTP can be further pinned with Accounts `ADMIN_OTP_WHITELIST` (`user_id:email` pairs). On **this** POS app, the Accounts service user that calls POS must be listed in POS `API_LOGIN_USER_*` as above.
 
 Accounts pushes one hidden POS product per game offer / card category through `POST /api/accounts/catalog/upsert/{business_id}`. Those products are filed under an existing POS category and brand looked up by slug:
 

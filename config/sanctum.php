@@ -33,7 +33,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // Pure Bearer tokens for storefront; do not promote staff web sessions.
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------

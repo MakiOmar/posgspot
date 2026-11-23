@@ -61,6 +61,16 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('api-login', function (Request $request) {
+            $username = strtolower(trim((string) $request->input('username', '')));
+
+            return Limit::perMinute(5)->by($request->ip().'|'.$username);
+        });
+
+        RateLimiter::for('pii-lookup', function (Request $request) {
+            return Limit::perMinute(10)->by('pii|'.($request->user()?->id ?: $request->ip()));
+        });
+
         RateLimiter::for('accounts-catalog', function (Request $request) {
             $perMinute = (int) config('services.accounts.catalog_rate_limit_per_minute', 300);
 

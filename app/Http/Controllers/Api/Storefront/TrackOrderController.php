@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\Storefront;
 
 use App\Services\Storefront\TrackOrderService;
+use App\Services\Storefront\TurnstileService;
 use Illuminate\Http\Request;
 
 class TrackOrderController extends StorefrontController
 {
-    public function __construct(private TrackOrderService $trackOrder)
-    {
+    public function __construct(
+        private TrackOrderService $trackOrder,
+        private TurnstileService $turnstile
+    ) {
     }
 
     public function store(Request $request)
@@ -17,7 +20,14 @@ class TrackOrderController extends StorefrontController
             'invoice_no' => 'required|string|max:191',
             'phone' => 'nullable|string|max:30',
             'email' => 'nullable|email|max:191',
+            'turnstile_token' => 'nullable|string',
         ]);
+
+        $businessId = $this->businessId($request);
+        $turnstileError = $this->turnstile->validate($businessId, $validated['turnstile_token'] ?? null, $request->ip());
+        if ($turnstileError !== null) {
+            return $this->jsonError($turnstileError, 422, ['turnstile_token' => [$turnstileError]]);
+        }
 
         $phone = trim((string) ($validated['phone'] ?? ''));
         $email = trim((string) ($validated['email'] ?? ''));
@@ -28,7 +38,7 @@ class TrackOrderController extends StorefrontController
         }
 
         $order = $this->trackOrder->lookup(
-            $this->businessId($request),
+            $businessId,
             $validated['invoice_no'],
             $phone !== '' ? $phone : null,
             $email !== '' ? $email : null

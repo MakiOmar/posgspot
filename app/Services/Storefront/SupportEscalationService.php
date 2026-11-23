@@ -62,6 +62,16 @@ class SupportEscalationService
         $createdBy = $this->createdByUserId();
         $phone = substr(trim((string) ($contact->mobile ?? '')), 0, 20) ?: null;
 
+        if ($transactionId !== null) {
+            $ownsOrder = \App\Transaction::where('business_id', $businessId)
+                ->where('contact_id', $contact->id)
+                ->where('id', $transactionId)
+                ->exists();
+            if (! $ownsOrder) {
+                throw new \RuntimeException('Order not found for this account.');
+            }
+        }
+
         return DB::transaction(function () use (
             $businessId,
             $conversation,

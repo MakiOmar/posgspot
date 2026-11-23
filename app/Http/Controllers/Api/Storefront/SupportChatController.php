@@ -184,8 +184,20 @@ class SupportChatController extends StorefrontController
             return $this->jsonError('Already escalated.', 409);
         }
 
-        if (! $this->escalation->isConfigured($this->businessId($request))) {
+        $businessId = $this->businessId($request);
+        if (! $this->escalation->isConfigured($businessId)) {
             return $this->jsonError('Human escalation is not available yet. Please use WhatsApp or the contact form.', 503);
+        }
+
+        $orderId = isset($data['order_id']) ? (int) $data['order_id'] : null;
+        if ($orderId !== null) {
+            $ownsOrder = \App\Transaction::where('business_id', $businessId)
+                ->where('contact_id', $contact->id)
+                ->where('id', $orderId)
+                ->exists();
+            if (! $ownsOrder) {
+                return $this->jsonError('Order not found for this account.', 403);
+            }
         }
 
         try {
@@ -193,7 +205,7 @@ class SupportChatController extends StorefrontController
                 $conversation,
                 $contact,
                 $data['note'] ?? null,
-                isset($data['order_id']) ? (int) $data['order_id'] : null
+                $orderId
             );
         } catch (\RuntimeException $e) {
             return $this->jsonError($e->getMessage(), 503);

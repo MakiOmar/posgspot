@@ -255,8 +255,8 @@ class SocialAuthService
                         ]);
                     }
 
-                    // Auto-merge only when email is verified by the provider (or account has no password).
-                    if (! $emailVerified && $hasPassword) {
+                    // Never auto-merge without a provider-verified email (covers passwordless POS/guest contacts).
+                    if (! $emailVerified) {
                         throw ValidationException::withMessages([
                             'account_exists' => [
                                 'An account with this email already exists. Sign in with your password, then connect '.$provider.' from Login & Security.',
@@ -508,6 +508,17 @@ class SocialAuthService
             throw ValidationException::withMessages(['state' => ['OAuth state expired.']]);
         }
 
+        $nonce = (string) ($decoded['nonce'] ?? '');
+        if ($nonce === '') {
+            throw ValidationException::withMessages(['state' => ['Invalid OAuth state.']]);
+        }
+
+        $nonceKey = 'storefront:social:state:'.hash('sha256', $nonce);
+        $ttl = max(60, (int) config('storefront.social_login.state_ttl_seconds', 600));
+        if (! Cache::add($nonceKey, 1, $ttl)) {
+            throw ValidationException::withMessages(['state' => ['OAuth state already used.']]);
+        }
+
         return $decoded;
     }
 
@@ -532,7 +543,9 @@ class SocialAuthService
         }
 
         if ($provider === 'google') {
-            return ! empty($raw['email_verified']) || ($raw['verified_email'] ?? null) === true;
+            $verified = $raw['email_verified'] ?? $raw['verified_email'] ?? false;
+
+            return filter_var($verified, FILTER_VALIDATE_BOOLEAN);
         }
 
         if ($provider === 'facebook') {
@@ -557,13 +570,14 @@ class SocialAuthService
 
         $payload = $response->json();
         $aud = (string) ($payload['aud'] ?? '');
-        $allowed = array_filter([
+        $allowed = array_values(array_filter([
             (string) config('services.google.client_id'),
             (string) config('services.google.android_client_id'),
             (string) config('services.google.ios_client_id'),
-        ]);
+        ]));
 
-        if ($aud === '' || ($allowed !== [] && ! in_array($aud, $allowed, true))) {
+        // Fail closed: never accept tokens when no client IDs are configured.
+        if ($allowed === [] || $aud === '' || ! in_array($aud, $allowed, true)) {
             throw ValidationException::withMessages([
                 'id_token' => ['Google id_token audience mismatch.'],
             ]);

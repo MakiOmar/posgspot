@@ -56,8 +56,9 @@ class WoocommerceWebhookController extends Controller
             $is_valid_request = $this->isValidWebhookRequest($request, $business->woocommerce_wh_oc_secret);
     
             if (! $is_valid_request) {
-                Log::emergency('Woocommerce webhook signature mismatch');
-                return;
+                Log::warning('Woocommerce webhook signature mismatch', ['business_id' => $business_id]);
+
+                return response()->json(['message' => 'Unauthorized'], 401);
             }
     
             $order_data = json_decode($payload);
@@ -115,8 +116,12 @@ class WoocommerceWebhookController extends Controller
             $is_valid_request = $this->isValidWebhookRequest($request, $business->woocommerce_wh_ou_secret);
 
             if (! $is_valid_request) {
-                \Log::emergency('Woocommerce webhook signature mismatch');
-            } else {
+                \Log::warning('Woocommerce webhook signature mismatch', ['business_id' => $business_id]);
+
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+
+            {
                 $user_id = $business->owner->id;
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
                 $business_data = [
@@ -167,8 +172,12 @@ class WoocommerceWebhookController extends Controller
             $is_valid_request = $this->isValidWebhookRequest($request, $business->woocommerce_wh_od_secret);
 
             if (! $is_valid_request) {
-                \Log::emergency('Woocommerce webhook signature mismatch');
-            } else {
+                \Log::warning('Woocommerce webhook signature mismatch', ['business_id' => $business_id]);
+
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+
+            {
                 $user_id = $business->owner->id;
                 //$woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
 
@@ -233,8 +242,12 @@ class WoocommerceWebhookController extends Controller
             $is_valid_request = $this->isValidWebhookRequest($request, $business->woocommerce_wh_or_secret);
 
             if (! $is_valid_request) {
-                \Log::emergency('Woocommerce webhook signature mismatch');
-            } else {
+                \Log::warning('Woocommerce webhook signature mismatch', ['business_id' => $business_id]);
+
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+
+            {
                 $user_id = $business->owner->id;
                 $woocommerce_api_settings = $this->woocommerceUtil->get_api_settings($business_id);
                 $business_data = [
@@ -615,15 +628,18 @@ class WoocommerceWebhookController extends Controller
 
     private function isValidWebhookRequest($request, $secret)
     {
+        if (! is_string($secret) || trim($secret) === '') {
+            return false;
+        }
+
         $signature = $request->header('x-wc-webhook-signature');
+        if (! is_string($signature) || $signature === '') {
+            return false;
+        }
 
         $payload = $request->getContent();
         $calculated_hmac = base64_encode(hash_hmac('sha256', $payload, $secret, true));
 
-        if ($signature != $calculated_hmac) {
-            return false;
-        } else {
-            return true;
-        }
+        return hash_equals($calculated_hmac, $signature);
     }
 }

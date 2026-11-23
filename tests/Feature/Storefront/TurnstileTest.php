@@ -91,6 +91,36 @@ class TurnstileTest extends TestCase
         Mail::assertQueued(\App\Mail\StorefrontContactMessage::class);
     }
 
+    public function test_customers_add_requires_turnstile_when_enabled(): void
+    {
+        $this->enableTurnstile();
+
+        $this->postJson('/api/storefront/v1/customers/add', [
+            'first_name' => 'Turn',
+            'last_name' => 'Stile',
+            'email' => 'turnstile_add_'.uniqid().'@example.com',
+            'birth_date' => '1990-05-15',
+            'country' => 'EG',
+            'state' => 'C',
+            'mobile' => '+2010'.random_int(10000000, 99999999),
+            'dial_code' => '+20',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.turnstile_token.0', 'Please complete the security check.');
+    }
+
+    public function test_track_order_requires_turnstile_when_enabled(): void
+    {
+        $this->enableTurnstile();
+
+        $this->postJson('/api/storefront/v1/track-order', [
+            'invoice_no' => 'TRK-TS-'.uniqid(),
+            'email' => 'track_ts_'.uniqid().'@example.com',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.turnstile_token.0', 'Please complete the security check.');
+    }
+
     public function test_register_requires_turnstile_when_enabled(): void
     {
         $this->enableTurnstile();

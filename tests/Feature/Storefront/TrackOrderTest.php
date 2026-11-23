@@ -11,6 +11,15 @@ class TrackOrderTest extends TestCase
 {
     protected int $businessId = 1;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        app(\App\Services\Storefront\StorefrontSettingService::class)->save($this->businessId, [
+            'turnstile' => ['site_key' => '', 'secret_key' => null],
+        ]);
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     private function createContactWithOrder(string $email, string $mobile, string $invoiceNo): Transaction
     {
         $contact = Contact::create([

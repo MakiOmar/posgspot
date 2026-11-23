@@ -57,7 +57,7 @@ class AccountsCatalogUpsertTest extends TestCase
 
     public function test_upsert_creates_hidden_offer_product_once_and_updates_by_sku(): void
     {
-        Passport::actingAs($this->owner, [], 'api');
+        Passport::actingAs($this->owner, ['accounts-catalog'], 'api');
         $sku = 'ACCOUNTS-GAME-990001-PS5-PRIMARY';
 
         $first = $this->postJson('/api/accounts/catalog/upsert/1', [
@@ -165,7 +165,7 @@ class AccountsCatalogUpsertTest extends TestCase
 
     public function test_rejects_non_accounts_sku_and_other_business(): void
     {
-        Passport::actingAs($this->owner, [], 'api');
+        Passport::actingAs($this->owner, ['accounts-catalog'], 'api');
 
         $this->postJson('/api/accounts/catalog/upsert/1', [
             'kind' => 'game',
@@ -186,7 +186,7 @@ class AccountsCatalogUpsertTest extends TestCase
         ])[0];
 
         $location = \App\BusinessLocation::where('business_id', 1)->orderBy('id')->firstOrFail();
-        Passport::actingAs($this->owner, [], 'api');
+        Passport::actingAs($this->owner, ['accounts-orders'], 'api');
 
         $response = $this->postJson('/api/accounts/orders/create/1', [
             'id' => 990005,

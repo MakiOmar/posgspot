@@ -329,13 +329,29 @@ class FawryPaymentGateway implements PaymentGatewayInterface
 
     private function buildCustomerPayload(Transaction $transaction): array
     {
-        $contact = $transaction->contact;
+        $addresses = ! empty($transaction->order_addresses)
+            ? json_decode((string) $transaction->order_addresses, true)
+            : [];
+        $checkoutCustomer = is_array($addresses['customer'] ?? null) ? $addresses['customer'] : [];
+        $pick = static function (string $key, mixed $fallback) use ($checkoutCustomer): string {
+            $fromCheckout = trim((string) ($checkoutCustomer[$key] ?? ''));
+
+            return $fromCheckout !== '' ? $fromCheckout : trim((string) ($fallback ?? ''));
+        };
+
+        // Prefer checkout snapshot so guest reuse of an existing Contact does not leak stored PII.
+        $first = $pick('first_name', '');
+        $last = $pick('last_name', '');
+        $name = trim($first.' '.$last);
+        if ($name === '') {
+            $name = $pick('name', 'Customer') ?: 'Customer';
+        }
 
         return [
-            'customerName' => trim((string) ($contact->name ?? 'Customer')),
-            'customerMobile' => (string) ($contact->mobile ?? ''),
-            'customerEmail' => (string) ($contact->email ?? ''),
-            'customerId' => (string) ($contact->id ?? ''),
+            'customerName' => $name,
+            'customerMobile' => $pick('mobile', ''),
+            'customerEmail' => $pick('email', ''),
+            'customerId' => '',
         ];
     }
 

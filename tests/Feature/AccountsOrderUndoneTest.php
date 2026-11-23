@@ -173,7 +173,7 @@ class AccountsOrderUndoneTest extends TestCase
 
     private function undo(StorefrontDigitalFulfillment $row, array $override = []): \Illuminate\Testing\TestResponse
     {
-        Passport::actingAs($this->owner, [], 'api');
+        Passport::actingAs($this->owner, ['accounts-orders'], 'api');
 
         return $this->postJson('/api/accounts/orders/undone/'.self::BUSINESS_ID, array_merge([
             'storefront_order_id' => $row->storefront_order_id,
@@ -281,7 +281,7 @@ class AccountsOrderUndoneTest extends TestCase
 
         $this->undo($row, ['storefront_order_id' => 'sf-123'])->assertStatus(422);
 
-        Passport::actingAs($this->owner, [], 'api');
+        Passport::actingAs($this->owner, ['accounts-orders'], 'api');
         $this->postJson('/api/accounts/orders/undone/999999', [
             'storefront_order_id' => $row->storefront_order_id,
             'storefront_line_key' => $row->line_key,

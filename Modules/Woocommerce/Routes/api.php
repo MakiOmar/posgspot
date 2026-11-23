@@ -1,22 +1,8 @@
 <?php
 
 /**
- * API Routes for WooCommerce Module
- * Protected with Laravel API authentication
+ * WooCommerce module API routes retired with the Qwik storefront.
+ * Previously auth:api endpoints here lacked business_id scoping — do not re-enable
+ * without AccountsOrderCreateRequest-style authorize() + Passport scopes.
  */
-
-Route::middleware('auth:api')->post(
-    '/update-order-custom-meta/{business_id}',
-    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'updateOrderCustomMeta']
-);
-
-Route::middleware('auth:api')->post(
-    '/bulk-send-orders/{business_id}',
-    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'bulkSendOrders']
-);
-
-Route::middleware('auth:api')->post(
-    '/receive-order/{business_id}',
-    [Modules\Woocommerce\Http\Controllers\WoocommerceWebhookController::class, 'receiveOrder']
-);
 

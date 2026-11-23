@@ -25,7 +25,16 @@ class Business extends Model
      *
      * @var array
      */
-    protected $hidden = ['woocommerce_api_settings'];
+    protected $hidden = [
+        'woocommerce_api_settings',
+        'email_settings',
+        'sms_settings',
+        'common_settings',
+        'woocommerce_wh_oc_secret',
+        'woocommerce_wh_ou_secret',
+        'woocommerce_wh_od_secret',
+        'woocommerce_wh_or_secret',
+    ];
 
     /**
      * The attributes that should be cast to native types.

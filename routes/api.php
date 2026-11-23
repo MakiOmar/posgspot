@@ -1,128 +1,59 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\User;
 use App\Http\Controllers\AccountsApi;
-use Laravel\Passport\Passport;
-use App\Http\Controllers\SellPosController;
+use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\SellPosController;
+use App\Http\Resources\ApiUserResource;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
+| Machine/integration Passport routes. POST /api/login is allowlisted only
+| (see config/api.php). Protected routes require auth:api plus a scope.
 |
 */
 
-Route::post('/login', function (Request $request) {
-    try {
-        $request->validate([
-            'username' => 'required|string',
-            'password' => 'required',
-        ]);
+Route::post('/login', [ApiTokenController::class, 'login'])
+    ->middleware('throttle:api-login');
 
-        $user = User::where('username', $request->username)->first();
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
-        }
-
-        // Ensure personal access client exists
-        $personalClient = \Laravel\Passport\Client::where('personal_access_client', true)->first();
-        if (!$personalClient) {
-            \Log::warning('Personal access client not found, attempting to create one');
-            // Try to create personal access client if it doesn't exist
-            try {
-                \Artisan::call('passport:client', ['--personal' => true, '--name' => 'Personal Access Client']);
-                // Refresh after creation
-                $personalClient = \Laravel\Passport\Client::where('personal_access_client', true)->first();
-            } catch (\Exception $e) {
-                \Log::error('Failed to create personal access client: ' . $e->getMessage());
-            }
-        }
-
-        if (!$personalClient) {
-            return response()->json([
-                'message' => 'Personal access client not configured. Please contact support.',
-                'error' => 'Passport client missing'
-            ], 500);
-        }
-
-        // Generate a Passport access token
-        $tokenResult = $user->createToken('API Token');
-        $token = $tokenResult->accessToken;
-
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'Bearer'
-        ], 200);
-    } catch (\League\OAuth2\Server\Exception\OAuthServerException $e) {
-        \Log::error('OAuth Server Error: ' . $e->getMessage(), [
-            'error_code' => $e->getCode(),
-            'hint' => $e->getHint()
-        ]);
-        return response()->json([
-            'message' => 'Failed to generate token',
-            'error' => 'OAuth server error. Please ensure Passport is properly configured.',
-            'hint' => config('app.debug') ? $e->getHint() : 'Check if personal access client exists'
-        ], 500);
-    } catch (\Exception $e) {
-        \Log::error('Token generation failed: ' . $e->getMessage(), [
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        return response()->json([
-            'message' => 'Failed to generate token',
-            'error' => config('app.debug') ? $e->getMessage() : 'Please ensure Passport keys are generated and personal access client exists'
-        ], 500);
-    }
+Route::middleware(['auth:api', 'scope:user-read'])->get('/user', function (Request $request) {
+    return new ApiUserResource($request->user());
 });
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::middleware(['auth:api', 'scope:accounts-orders'])
+    ->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated'])
+    ->whereNumber('business_id');
 
-Route::middleware('auth:api')->post('/accounts/orders/create/{business_id}', [AccountsApi::class, 'orderCreated']);
-Route::middleware('auth:api')
+Route::middleware(['auth:api', 'scope:accounts-orders'])
     ->post('/accounts/orders/undone/{business_id}', [AccountsApi::class, 'orderUndone'])
     ->whereNumber('business_id');
-Route::middleware(['auth:api', 'throttle:accounts-catalog'])
+
+Route::middleware(['auth:api', 'scope:accounts-catalog', 'throttle:accounts-catalog'])
     ->withoutMiddleware('throttle:api')
     ->post('/accounts/catalog/upsert/{business_id}', [AccountsApi::class, 'catalogUpsert'])
     ->whereNumber('business_id');
-// Disabled: WordPress/WooCommerce retired (Qwik storefront).
-// Route::middleware('auth:api')->post('/woo/create-contact', [AccountsApi::class, 'createContact']);//create contact
-// Route::middleware('auth:api')->post('/woo/get-orders', [AccountsApi::class, 'getOrdersByPhone']);//get orders by phone
-//
-// Route::get('/possells/{transaction_id}/print', [SellPosController::class, 'printWooInvoice'])->name('possell.printInvoice');
-Route::middleware('auth:api')->get(
+
+Route::middleware(['auth:api', 'scope:contacts-read', 'throttle:pii-lookup'])->get(
     '/contacts/{contact_id}/info',
     [ContactController::class, 'getContactInfoApi']
-)->name('contacts.getInfo');
+)->name('contacts.getInfo')->whereNumber('contact_id');
 
-Route::middleware('auth:api')->get(
+Route::middleware(['auth:api', 'scope:contacts-read', 'throttle:pii-lookup'])->get(
     '/contacts/{mobile}/details',
     [ContactController::class, 'getContactInfoByMobileApi']
 )->name('contacts.getInfoByMobile');
 
-Route::middleware('auth:api')->post(
+Route::middleware(['auth:api', 'scope:rewards'])->post(
     '/rewards/validate',
     [SellPosController::class, 'validateRewardRedeem']
 )->name('rewards.validate');
 
-Route::middleware('auth:api')->post(
+Route::middleware(['auth:api', 'scope:rewards'])->post(
     '/rewards/redeem',
     [SellPosController::class, 'redeemRewardPoints']
 )->name('rewards.redeem');
-/*
-Route::get(
-    '/contacts/{mobile}/details',
-    [ContactController::class, 'getContactInfoByMobileApi']
-)->name('contacts.getInfo');
-*/

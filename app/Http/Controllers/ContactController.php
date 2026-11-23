@@ -763,26 +763,33 @@ class ContactController extends Controller
              ->with(compact('contact', 'reward_enabled', 'contact_dropdown', 'business_locations', 'view_type', 'contact_view_tabs', 'activities'));
     }
 
-    public function getContactInfoApi($contact_id)
+    public function getContactInfoApi(\Illuminate\Http\Request $request, $contact_id)
     {
-        $business_id = 1; // or auth()->user()->business_id if applicable
-
+        $business_id = (int) $request->user()->business_id;
         $contact = $this->contactUtil->getContactInfo($business_id, $contact_id);
+
+        if (empty($contact) || empty($contact->id)) {
+            return response()->json(['success' => false, 'message' => 'Contact not found'], 404);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $contact
+            'data' => (new \App\Http\Resources\ApiContactResource($contact))->toArray($request),
         ]);
     }
 
-    public function getContactInfoByMobileApi($mobile)
+    public function getContactInfoByMobileApi(\Illuminate\Http\Request $request, $mobile)
     {
-        $business_id = 1; // or auth()->user()->business_id if applicable
-
+        $business_id = (int) $request->user()->business_id;
         $contact = $this->contactUtil->getContactInfoByMobile($business_id, $mobile);
+
+        if (empty($contact) || empty($contact->id)) {
+            return response()->json(['success' => false, 'message' => 'Contact not found'], 404);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $contact
+            'data' => (new \App\Http\Resources\ApiContactResource($contact))->toArray($request),
         ]);
     }
     /**

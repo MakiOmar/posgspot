@@ -3037,6 +3037,8 @@ class SellPosController extends Controller
         $customer_id = (int) $request->input('customer_id');
         $used_points_input = $request->input('used_points', $request->input('requested_points'));
         $order_total = $request->input('order_total');
+        $idempotencyKey = trim((string) $request->input('idempotency_key', ''));
+        $transactionId = $request->input('transaction_id');
 
         if (empty($customer_id)
             || !is_numeric($used_points_input)
@@ -3049,6 +3051,14 @@ class SellPosController extends Controller
             ], 422);
         }
 
+        if ($idempotencyKey === '' && (empty($transactionId) || ! is_numeric($transactionId))) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'idempotency_key or transaction_id is required.',
+            ], 422);
+        }
+
         $used_points = (int) $used_points_input;
         if ($used_points <= 0) {
             return response()->json([
@@ -3058,14 +3068,43 @@ class SellPosController extends Controller
             ], 422);
         }
 
+        $dedupeKey = 'rewards:redeem:'.$business_id.':'.($idempotencyKey !== ''
+            ? 'k:'.sha1($idempotencyKey)
+            : 't:'.(int) $transactionId);
+
+        if (! \Illuminate\Support\Facades\Cache::add($dedupeKey, 1, now()->addDays(7))) {
+            return response()->json([
+                'success' => false,
+                'is_valid' => false,
+                'msg' => 'Duplicate redeem request.',
+            ], 409);
+        }
+
         try {
-            return DB::transaction(function () use ($business, $business_id, $customer_id, $used_points, $order_total) {
+            return DB::transaction(function () use ($business, $business_id, $customer_id, $used_points, $order_total, $transactionId, $dedupeKey) {
+                if (! empty($transactionId)) {
+                    $tx = \App\Transaction::where('business_id', $business_id)
+                        ->where('id', (int) $transactionId)
+                        ->lockForUpdate()
+                        ->first();
+                    if (empty($tx)) {
+                        \Illuminate\Support\Facades\Cache::forget($dedupeKey);
+
+                        return response()->json([
+                            'success' => false,
+                            'is_valid' => false,
+                            'msg' => 'Transaction not found.',
+                        ], 404);
+                    }
+                }
                 $customer = Contact::where('business_id', $business_id)
                     ->where('id', $customer_id)
                     ->lockForUpdate()
                     ->first();
 
                 if (empty($customer)) {
+                    \Illuminate\Support\Facades\Cache::forget($dedupeKey);
+
                     return response()->json([
                         'success' => false,
                         'is_valid' => false,
@@ -3105,6 +3144,8 @@ class SellPosController extends Controller
                 ];
 
                 if ($max_points <= 0) {
+                    \Illuminate\Support\Facades\Cache::forget($dedupeKey);
+
                     return response()->json([
                         'success' => false,
                         'is_valid' => false,
@@ -3114,6 +3155,8 @@ class SellPosController extends Controller
                 }
 
                 if ($used_points > $max_points) {
+                    \Illuminate\Support\Facades\Cache::forget($dedupeKey);
+
                     return response()->json([
                         'success' => false,
                         'is_valid' => false,
@@ -3123,6 +3166,8 @@ class SellPosController extends Controller
                 }
 
                 if (!is_null($order_total) && $order_total < $min_order_total) {
+                    \Illuminate\Support\Facades\Cache::forget($dedupeKey);
+
                     return response()->json([
                         'success' => false,
                         'is_valid' => false,
@@ -3146,6 +3191,7 @@ class SellPosController extends Controller
                 ]);
             });
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Cache::forget($dedupeKey);
             \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
             return response()->json([

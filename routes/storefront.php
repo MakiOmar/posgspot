@@ -54,7 +54,8 @@ Route::prefix('storefront/v1')->group(function () {
     Route::get('/geo/countries', [GeoController::class, 'countries']);
     Route::get('/geo/states/{countryCode}', [GeoController::class, 'states']);
     Route::get('/geo/bosta-districts', [BostaDistrictController::class, 'index']);
-    Route::post('/customers/add', [CustomerRegistrationController::class, 'store']);
+    Route::post('/customers/add', [CustomerRegistrationController::class, 'store'])
+        ->middleware('throttle:storefront-auth');
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/homepage-shelves', [CategoryController::class, 'homepageShelves']);
@@ -83,7 +84,7 @@ Route::prefix('storefront/v1')->group(function () {
     Route::post('/contact', [ContactController::class, 'store']);
     Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe']);
     Route::post('/track-order', [TrackOrderController::class, 'store'])
-        ->middleware('throttle:20,1');
+        ->middleware('throttle:storefront-pii-lookup');
 
     Route::prefix('support')->middleware('throttle:storefront-support-chat')->group(function () {
         Route::get('/conversations', [SupportChatController::class, 'index']);
@@ -136,12 +137,12 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/social/{provider}/token', [SocialAuthController::class, 'token'])
             ->where('provider', 'google|facebook');
 
-        Route::middleware('auth:sanctum')->group(function () {
+        Route::middleware(['auth:sanctum', 'storefront.sanctum'])->group(function () {
             Route::post('/logout', [AuthController::class, 'logout']);
         });
     });
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'storefront.sanctum'])->group(function () {
         Route::post('/digital/reviews', [DigitalCatalogController::class, 'submitReview']);
 
         Route::get('/wishlist', [WishlistController::class, 'index']);
@@ -156,7 +157,7 @@ Route::prefix('storefront/v1')->group(function () {
         Route::post('/sell-to-us/requests', [SellToUsController::class, 'store']);
     });
 
-    Route::middleware('auth:sanctum')->prefix('account')->group(function () {
+    Route::middleware(['auth:sanctum', 'storefront.sanctum'])->prefix('account')->group(function () {
         Route::get('/profile', [AccountController::class, 'profile']);
         Route::put('/profile', [AccountController::class, 'updateProfile']);
         Route::post('/profile/avatar', [AccountController::class, 'updateAvatar']);

@@ -41,6 +41,7 @@ class Contact extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verify_code_hash',
     ];
 
     /**
@@ -51,6 +52,14 @@ class Contact extends Authenticatable
     {
         static::deleting(function (Contact $contact) {
             $contact->tokens()->delete();
+        });
+
+        static::updated(function (Contact $contact) {
+            if ($contact->wasChanged('contact_status')
+                && ($contact->contact_status ?? 'active') !== 'active'
+            ) {
+                $contact->tokens()->delete();
+            }
         });
     }
 

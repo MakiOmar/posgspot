@@ -26,8 +26,17 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Passport routes are auto-registered in Laravel 9+
-        // Only register manually if needed for custom routes
+        Passport::tokensCan([
+            'user-read' => 'Read the authenticated integration user profile',
+            'accounts-orders' => 'Create and undo Accounts-synced orders',
+            'accounts-catalog' => 'Upsert Accounts catalog products',
+            'contacts-read' => 'Read contact PII for the token business',
+            'rewards' => 'Validate and redeem reward points',
+        ]);
+
+        Passport::personalAccessTokensExpireIn(
+            now()->addDays((int) config('api.token_expire_days', 7))
+        );
 
         Gate::before(function ($user, $ability) {
             if (in_array($ability, ['backup', 'superadmin',

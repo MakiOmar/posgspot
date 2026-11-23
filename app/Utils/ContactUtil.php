@@ -73,7 +73,6 @@ class ContactUtil extends Util
         $contact = Contact::where('contacts.id', $contact_id)
                     ->where('contacts.business_id', $business_id)
                     ->leftjoin('transactions AS t', 'contacts.id', '=', 't.contact_id')
-                    ->with(['business'])
                     ->select(
                         DB::raw("SUM(IF(t.type = 'purchase', final_total, 0)) as total_purchase"),
                         DB::raw("SUM(IF(t.type = 'sell' AND t.status = 'final', final_total, 0)) as total_invoice"),
@@ -100,8 +99,7 @@ class ContactUtil extends Util
         $mobile = preg_replace('/\s+/', '', trim($mobile));
 
         // Just fetch the contact (no transactions, no aggregates)
-        $contact = Contact::with(['business'])
-            ->where('business_id', $business_id)
+        $contact = Contact::where('business_id', $business_id)
             ->where('mobile', $mobile)
             ->first();
 

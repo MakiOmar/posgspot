@@ -24,6 +24,11 @@ class AddCustomerApiTest extends TestCase
         Bus::fake([SyncCustomerToAccounts::class]);
         config(['services.accounts.base' => 'https://accounts.test']);
         Cache::put('accounts_auth_token', 'test-token', 60);
+        app(\App\Services\Storefront\StorefrontSettingService::class)->save($this->businessId, [
+            'turnstile' => ['site_key' => '', 'secret_key' => null],
+        ]);
+        Cache::flush();
+        Cache::put('accounts_auth_token', 'test-token', 60);
     }
 
     /**
