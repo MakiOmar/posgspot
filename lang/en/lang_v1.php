@@ -213,6 +213,8 @@ return [
     'verify_and_sign_in' => 'Verify & sign in',
     'resend_login_code' => 'Resend code',
     'use_different_email' => 'Use a different email',
+    'sign_in_with_email_code' => 'Sign in with email code',
+    'sign_in_with_username_password' => 'Sign in with username & password',
     'login_code_sent' => 'A login code has been sent to your email. Check spam if it is missing.',
     'login_code_resent_same' => 'We sent the same login code again. Earlier emails with that code still work.',
     'login_code_inbox_hint' => 'Check your inbox and spam. After a resend we keep the same code so older emails still work.',

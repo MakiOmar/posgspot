@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * Staff web login at /login uses email OTP only.
+ * Staff web login at /login: email OTP and optional username/password.
  */
 class StaffLoginOtpTest extends TestCase
 {
@@ -28,6 +28,7 @@ class StaffLoginOtpTest extends TestCase
         parent::setUp();
         Mail::fake();
         Event::fake([MessageLogged::class]);
+        config(['auth_otp.login_method' => 'otp']);
 
         if (! Business::whereKey($this->businessId)->exists()) {
             $this->markTestSkipped('No business in database.');
@@ -279,23 +280,61 @@ class StaffLoginOtpTest extends TestCase
         $this->assertNull($user->fresh()->login_otp_hash);
     }
 
-    public function test_password_login_route_is_gone(): void
+    public function test_password_login_is_disabled_when_method_is_otp(): void
     {
-        $this->post('/login', [
+        config(['auth_otp.login_method' => 'otp']);
+
+        $this->post(route('login.submit'), [
             'username' => 'admin',
             'password' => 'secret',
-        ])->assertMethodNotAllowed();
+        ])->assertNotFound();
     }
 
-    public function test_login_page_is_email_otp_only(): void
+    public function test_login_page_is_email_otp_only_when_method_is_otp(): void
     {
+        config(['auth_otp.login_method' => 'otp']);
+
         $this->get(route('login'))
             ->assertOk()
             ->assertSee(__('lang_v1.send_login_code'), false)
             ->assertSee(route('login.otp.request'), false)
             ->assertDontSee('name="username"', false)
             ->assertDontSee('name="password"', false)
+            ->assertDontSee('name="remember"', false)
+            ->assertDontSee(__('lang_v1.sign_in_with_username_password'), false);
+    }
+
+    public function test_both_mode_defaults_to_password_with_otp_switch(): void
+    {
+        config(['auth_otp.login_method' => 'both']);
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('name="username"', false)
+            ->assertSee('name="password"', false)
+            ->assertSee(__('lang_v1.sign_in_with_email_code'), false)
             ->assertDontSee('name="remember"', false);
+
+        $this->get(route('login', ['method' => 'otp']))
+            ->assertOk()
+            ->assertSee(__('lang_v1.send_login_code'), false)
+            ->assertSee(__('lang_v1.sign_in_with_username_password'), false);
+    }
+
+    public function test_password_login_succeeds_when_enabled(): void
+    {
+        config(['auth_otp.login_method' => 'both']);
+        $user = $this->staff([
+            'username' => 'pwd_login_'.uniqid(),
+            'password' => Hash::make('secret-pass'),
+        ]);
+
+        $this->post(route('login.submit'), [
+            'username' => $user->username,
+            'password' => 'secret-pass',
+        ])->assertRedirect();
+
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_code_step_shows_inbox_hint_and_resend_control(): void
@@ -303,7 +342,7 @@ class StaffLoginOtpTest extends TestCase
         $user = $this->staff();
 
         $this->withSession(['login_otp_email' => $user->email])
-            ->get(route('login', ['step' => 'code']))
+            ->get(route('login', ['step' => 'code', 'method' => 'otp']))
             ->assertOk()
             ->assertSee(__('lang_v1.login_code_inbox_hint'), false)
             ->assertSee(__('lang_v1.resend_login_code'), false)

@@ -87,9 +87,13 @@ Route::middleware(['setData'])->group(function () {
         return view('welcome');
     });
 
-    // Auth::routes() replacement for Laravel 11 compatibility (staff login = email OTP only)
+    // Auth::routes() replacement for Laravel 11 compatibility.
+    // Staff login mode: STAFF_LOGIN_METHOD=otp|password|both (see config/auth_otp.php).
     Route::middleware('web')->group(function () {
         Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+        Route::post('login', [LoginController::class, 'login'])
+            ->middleware('throttle:auth-password')
+            ->name('login.submit');
         Route::post('login/otp/request', [LoginController::class, 'requestOtp'])
             ->middleware('throttle:auth-otp')
             ->name('login.otp.request');

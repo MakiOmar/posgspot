@@ -5,6 +5,8 @@
     @php
         $loginStep = $loginStep ?? 'email';
         $otpEmail = $otpEmail ?? old('email', session('login_otp_email'));
+        $passwordLoginEnabled = (bool) ($passwordLoginEnabled ?? false);
+        $otpLoginEnabled = (bool) ($otpLoginEnabled ?? true);
         $resendAvailableIn = max(0, (int) ($resendAvailableIn ?? 0));
         $resendCooldownSeconds = max(1, (int) ($resendCooldownSeconds ?? 60));
     @endphp
@@ -23,7 +25,71 @@
                         </h2>
                     </div>
 
-                    @if ($loginStep === 'code')
+                    @if ($loginStep === 'password')
+                        <form method="POST" action="{{ route('login.submit') }}" id="login-form">
+                            {{ csrf_field() }}
+
+                            <div class="form-group has-feedback {{ $errors->has('username') ? ' has-error' : '' }}">
+                                <label class="tw-dw-form-control">
+                                    <div class="tw-dw-label">
+                                        <span class="tw-text-xs md:tw-text-sm tw-font-medium tw-text-black">@lang('lang_v1.username')</span>
+                                    </div>
+                                    <input
+                                        class="tw-border tw-border-[#D1D5DA] tw-outline-none tw-h-12 tw-bg-transparent tw-rounded-lg tw-px-3 tw-font-medium tw-text-black placeholder:tw-text-gray-500 placeholder:tw-font-medium"
+                                        name="username" required autofocus
+                                        id="username" type="text" autocomplete="username"
+                                        value="{{ old('username') }}" />
+                                    @if ($errors->has('username'))
+                                        <span class="help-block">
+                                            <strong>{{ $errors->first('username') }}</strong>
+                                        </span>
+                                    @endif
+                                </label>
+                            </div>
+
+                            <div class="form-group has-feedback {{ $errors->has('password') ? ' has-error' : '' }}">
+                                <label class="tw-dw-form-control">
+                                    <div class="tw-dw-label">
+                                        <span class="tw-text-xs md:tw-text-sm tw-font-medium tw-text-black">@lang('lang_v1.password')</span>
+                                    </div>
+                                    <input
+                                        class="tw-border tw-border-[#D1D5DA] tw-outline-none tw-h-12 tw-bg-transparent tw-rounded-lg tw-px-3 tw-font-medium tw-text-black placeholder:tw-text-gray-500 placeholder:tw-font-medium"
+                                        name="password" required
+                                        id="password" type="password" autocomplete="current-password" />
+                                    @if ($errors->has('password'))
+                                        <span class="help-block">
+                                            <strong>{{ $errors->first('password') }}</strong>
+                                        </span>
+                                    @endif
+                                </label>
+                            </div>
+
+                            @if(config('constants.enable_recaptcha'))
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <div class="g-recaptcha" data-sitekey="{{ config('constants.google_recaptcha_key') }}"></div>
+                                        @if ($errors->has('g-recaptcha-response'))
+                                            <span class="text-danger">{{ $errors->first('g-recaptcha-response') }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                            @endif
+
+                            <button type="submit"
+                                class="tw-bg-gradient-to-r tw-from-indigo-500 tw-to-blue-500 tw-h-12 tw-rounded-xl tw-text-sm md:tw-text-base tw-text-white tw-font-semibold tw-w-full tw-max-w-full mt-2 hover:tw-from-indigo-600 hover:tw-to-blue-600 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 active:tw-from-indigo-700 active:tw-to-blue-700">
+                                @lang('lang_v1.login')
+                            </button>
+                        </form>
+
+                        @if ($otpLoginEnabled)
+                            <div class="tw-flex tw-items-center tw-flex-col">
+                                <a href="{{ route('login', ['method' => 'otp']) }}"
+                                    class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-700 tw-mt-2">@lang('lang_v1.sign_in_with_email_code')</a>
+                            </div>
+                        @endif
+                    @elseif ($loginStep === 'code')
                         <p class="tw-text-xs md:tw-text-sm tw-text-gray-500 tw-text-center tw-m-0">
                             @lang('lang_v1.login_code_inbox_hint')
                         </p>
@@ -86,8 +152,12 @@
                         </form>
 
                         <div class="tw-flex tw-items-center tw-flex-col">
-                            <a href="{{ route('login') }}"
+                            <a href="{{ route('login', ['method' => 'otp']) }}"
                                 class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-700 tw-mt-2">@lang('lang_v1.use_different_email')</a>
+                            @if ($passwordLoginEnabled)
+                                <a href="{{ route('login') }}"
+                                    class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-700 tw-mt-2">@lang('lang_v1.sign_in_with_username_password')</a>
+                            @endif
                         </div>
                     @else
                         <form method="POST" action="{{ route('login.otp.request') }}" id="login-form" data-otp-form>
@@ -128,6 +198,13 @@
                                 @lang('lang_v1.send_login_code')
                             </button>
                         </form>
+
+                        @if ($passwordLoginEnabled)
+                            <div class="tw-flex tw-items-center tw-flex-col">
+                                <a href="{{ route('login') }}"
+                                    class="tw-text-sm tw-font-medium tw-text-gray-500 hover:tw-text-gray-700 tw-mt-2">@lang('lang_v1.sign_in_with_username_password')</a>
+                            </div>
+                        @endif
                     @endif
 
                     <div class="tw-flex tw-items-center tw-flex-col">

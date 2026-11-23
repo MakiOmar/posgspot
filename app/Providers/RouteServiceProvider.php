@@ -114,6 +114,11 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(12)->by($request->ip());
         });
 
+        // Staff username/password login (per IP)
+        RateLimiter::for('auth-password', function (Request $request) {
+            return Limit::perMinute(12)->by($request->ip());
+        });
+
         RateLimiter::for('storefront-support-chat', function (Request $request) {
             $perMinute = (int) config('storefront.support_chat.rate_limit_per_minute', 30);
 

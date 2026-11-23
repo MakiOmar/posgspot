@@ -202,6 +202,8 @@ return [
     'reset_password' => 'إعادة تعيين كلمة السر',
     'email_address' => 'البريد الإلكتروني',
     'send_login_code' => 'إرسال رمز الدخول',
+    'sign_in_with_email_code' => 'تسجيل الدخول برمز البريد',
+    'sign_in_with_username_password' => 'تسجيل الدخول باسم المستخدم وكلمة المرور',
     'login_code' => 'رمز الدخول',
     'login_code_placeholder' => 'رمز من 6 أرقام',
     'verify_and_sign_in' => 'تحقق وتسجيل الدخول',
