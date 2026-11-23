@@ -1136,6 +1136,7 @@ export type AddCustomerPayload = {
   state: string;
   mobile: string;
   dial_code?: string;
+  turnstile_token?: string;
 };
 
 export type AddCustomerResult = {

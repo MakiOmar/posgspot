@@ -2,12 +2,14 @@ import { $, component$, useSignal, useStore, useVisibleTask$ } from "@builder.io
 import { routeLoader$, type DocumentHead } from "@builder.io/qwik-city";
 import { SearchableSelect } from "~/components/forms/searchable-select";
 import { PhoneInputWithDialCode } from "~/components/forms/phone-input-with-dial-code";
+import { TurnstileWidget } from "~/components/forms/turnstile-widget";
 import {
   addCustomer,
   ApiError,
   fetchGeoCountries,
   fetchGeoStates,
   fetchPhoneCountries,
+  fetchSettings,
 } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
 import type { GeoCountry, GeoState, PhoneCountry } from "~/lib/phone-validation";
@@ -57,8 +59,8 @@ export const useGeoCountries = routeLoader$(async () => {
 export default component$(() => {
   const { locale } = useI18n();
   const settings = useSiteSettings();
-  const logoUrl = settings.value.logo_url;
-  const businessName = settings.value.business_name;
+  const logoUrl = useSignal<string | null>(settings.value.logo_url);
+  const businessName = useSignal(settings.value.business_name);
   const phoneCountriesLoader = usePhoneCountries();
   const geoCountriesLoader = useGeoCountries();
   const pending = usePendingState();
@@ -72,6 +74,12 @@ export default component$(() => {
   const geoCountries = useSignal<GeoCountry[]>(geoCountriesLoader.value);
   const states = useSignal<GeoState[]>([]);
   const statesLoading = useSignal(false);
+  const turnstileToken = useSignal("");
+  const turnstileResetKey = useSignal(0);
+  const turnstileSiteKey = useSignal(settings.value.turnstile?.site_key ?? null);
+  const turnstileEnabled = useSignal(
+    Boolean(settings.value.turnstile?.enabled && settings.value.turnstile.site_key),
+  );
 
   const form = useStore({
     first_name: "",
@@ -87,10 +95,14 @@ export default component$(() => {
 
   // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(async () => {
-    if (phoneCountries.value.length > 0 && geoCountries.value.length > 0) {
+    const needCountries =
+      phoneCountries.value.length === 0 || geoCountries.value.length === 0;
+    const needTurnstile = !turnstileEnabled.value;
+    if (!needCountries && !needTurnstile) {
       return;
     }
-    const [phones, geos] = await Promise.all([
+
+    const [phones, geos, liveSettings] = await Promise.all([
       phoneCountries.value.length > 0
         ? Promise.resolve(phoneCountries.value)
         : fetchPhoneCountries()
@@ -101,12 +113,29 @@ export default component$(() => {
         : fetchGeoCountries()
             .then(({ data }) => data)
             .catch(() => [] as GeoCountry[]),
+      needTurnstile
+        ? fetchSettings(locale, { shell: true })
+            .then(({ data }) => data)
+            .catch(() => null)
+        : Promise.resolve(null),
     ]);
+
     if (phones.length > 0) {
       phoneCountries.value = phones;
     }
     if (geos.length > 0) {
       geoCountries.value = geos;
+    }
+    if (liveSettings) {
+      if (liveSettings.logo_url) {
+        logoUrl.value = liveSettings.logo_url;
+      }
+      if (liveSettings.business_name) {
+        businessName.value = liveSettings.business_name;
+      }
+      const siteKey = liveSettings.turnstile?.site_key ?? null;
+      turnstileSiteKey.value = siteKey;
+      turnstileEnabled.value = Boolean(liveSettings.turnstile?.enabled && siteKey);
     }
   });
 
@@ -146,6 +175,11 @@ export default component$(() => {
       return;
     }
 
+    if (turnstileEnabled.value && !turnstileToken.value) {
+      await toastError(tStatic(locale, "turnstile.required"));
+      return;
+    }
+
     await withPendingFeedback(pending, submitting, async () => {
       try {
         const { data } = await addCustomer({
@@ -157,6 +191,7 @@ export default component$(() => {
           state: form.state,
           mobile: phoneCheck.fullPhone,
           dial_code: form.dialCode,
+          ...(turnstileEnabled.value ? { turnstile_token: turnstileToken.value } : {}),
         });
         successMessage.value = data.message;
         succeeded.value = true;
@@ -168,6 +203,7 @@ export default component$(() => {
         } else {
           await toastError(tStatic(locale, "addCustomer.createFailedRetry"));
         }
+        turnstileResetKey.value += 1;
       }
     });
   });
@@ -191,7 +227,7 @@ export default component$(() => {
       <section class="landing-page landing-page--add-customer">
         <LandingBubbles />
         <div class="landing-card">
-          <LandingLogo logoUrl={logoUrl} businessName={businessName} />
+          <LandingLogo logoUrl={logoUrl.value} businessName={businessName.value} />
           <div class="landing-success">
             <div class="landing-success__icon" aria-hidden="true">
               ✓
@@ -226,7 +262,7 @@ export default component$(() => {
       <LandingBubbles />
       <div class="landing-card">
         <header class="landing-card__header">
-          <LandingLogo logoUrl={logoUrl} businessName={businessName} />
+          <LandingLogo logoUrl={logoUrl.value} businessName={businessName.value} />
           <h1 class="landing-title">{tStatic(locale, "addCustomer.joinUs")}</h1>
           <p class="landing-subtitle">{tStatic(locale, "addCustomer.subtitle")}</p>
         </header>
@@ -329,6 +365,14 @@ export default component$(() => {
               </div>
             </div>
           </fieldset>
+
+          {turnstileEnabled.value && turnstileSiteKey.value ? (
+            <TurnstileWidget
+              siteKey={turnstileSiteKey.value}
+              token={turnstileToken}
+              resetKey={turnstileResetKey.value}
+            />
+          ) : null}
 
           <button type="submit" class="btn btn-primary landing-form__submit" disabled={submitting.value}>
             {submitting.value ? tStatic(locale, "auth.creatingAccount") : tStatic(locale, "auth.register")}
