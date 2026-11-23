@@ -10,7 +10,7 @@ import {
   fetchPhoneCountries,
 } from "~/lib/api";
 import { toastError, toastSuccess } from "~/lib/notify";
-import type { GeoState } from "~/lib/phone-validation";
+import type { GeoCountry, GeoState, PhoneCountry } from "~/lib/phone-validation";
 import { validatePhone } from "~/lib/phone-validation";
 import { usePendingState } from "~/lib/pending-context";
 import { tStatic, useI18n } from "~/lib/i18n/context";
@@ -59,12 +59,17 @@ export default component$(() => {
   const settings = useSiteSettings();
   const logoUrl = settings.value.logo_url;
   const businessName = settings.value.business_name;
-  const phoneCountries = usePhoneCountries();
-  const geoCountries = useGeoCountries();
+  const phoneCountriesLoader = usePhoneCountries();
+  const geoCountriesLoader = useGeoCountries();
   const pending = usePendingState();
   const submitting = useSignal(false);
   const succeeded = useSignal(false);
   const successMessage = useSignal("");
+  // Signals so we can refill after SSR: under force-maintenance the Node SSR
+  // hop to the public POS URL often fails, while the browser can still call the
+  // allowlisted endpoints.
+  const phoneCountries = useSignal<PhoneCountry[]>(phoneCountriesLoader.value);
+  const geoCountries = useSignal<GeoCountry[]>(geoCountriesLoader.value);
   const states = useSignal<GeoState[]>([]);
   const statesLoading = useSignal(false);
 
@@ -78,6 +83,31 @@ export default component$(() => {
     dialCode: "+20",
     nationalNumber: "",
     mobile: "",
+  });
+
+  // eslint-disable-next-line qwik/no-use-visible-task
+  useVisibleTask$(async () => {
+    if (phoneCountries.value.length > 0 && geoCountries.value.length > 0) {
+      return;
+    }
+    const [phones, geos] = await Promise.all([
+      phoneCountries.value.length > 0
+        ? Promise.resolve(phoneCountries.value)
+        : fetchPhoneCountries()
+            .then(({ data }) => data)
+            .catch(() => [] as PhoneCountry[]),
+      geoCountries.value.length > 0
+        ? Promise.resolve(geoCountries.value)
+        : fetchGeoCountries()
+            .then(({ data }) => data)
+            .catch(() => [] as GeoCountry[]),
+    ]);
+    if (phones.length > 0) {
+      phoneCountries.value = phones;
+    }
+    if (geos.length > 0) {
+      geoCountries.value = geos;
+    }
   });
 
   // Load states when country changes.
