@@ -44,9 +44,28 @@ import type { CartApiItem } from "./cart-actions";
 import { FORCE_STOREFRONT_MAINTENANCE } from "./config";
 import { isForceMaintenanceAllowedApiPath } from "./maintenance-gate";
 
+/** Public POS origin for the browser (CSP, links, client fetches). */
 export const API_BASE: string =
   (import.meta.env.PUBLIC_API_BASE as string | undefined)?.replace(/\/$/, "") ||
   "http://localhost:8000";
+
+/**
+ * Base URL for storefront API fetches.
+ * On SSR, prefer `STOREFRONT_API_BASE_INTERNAL` (e.g. `http://pos:8080` on the
+ * Docker network) so Node does not hairpin through Cloudflare and get 403.
+ * Browser builds always use `API_BASE`.
+ */
+export function getApiBase(): string {
+  if (isServer && typeof process !== "undefined") {
+    const internal = (process.env.STOREFRONT_API_BASE_INTERNAL || "")
+      .trim()
+      .replace(/\/$/, "");
+    if (internal) {
+      return internal;
+    }
+  }
+  return API_BASE;
+}
 
 const PREFIX = "/api/storefront/v1";
 
@@ -138,7 +157,7 @@ export async function storefrontFetch<T>(
     throw new ApiError(503, "Storefront is under maintenance", {});
   }
 
-  const url = `${API_BASE}${PREFIX}${path}`;
+  const url = `${getApiBase()}${PREFIX}${path}`;
   const contentLocale = locale ?? activeContentLocale;
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -261,7 +280,7 @@ export async function fetchProductsPage(
     }
   }
   const contentLocale = locale ?? activeContentLocale;
-  const url = `${API_BASE}${PREFIX}/products?${qs.toString()}`;
+  const url = `${getApiBase()}${PREFIX}/products?${qs.toString()}`;
   const response = await fetch(url, {
     credentials: "include",
     headers: {
@@ -331,7 +350,7 @@ export async function fetchCustomBundleProducts(
   if (params.page) qs.set("page", String(params.page));
   if (params.per_page) qs.set("per_page", String(params.per_page));
   const contentLocale = locale ?? activeContentLocale;
-  const url = `${API_BASE}${PREFIX}/custom-bundle/products?${qs.toString()}`;
+  const url = `${getApiBase()}${PREFIX}/custom-bundle/products?${qs.toString()}`;
   const response = await fetch(url, {
     credentials: "include",
     headers: {

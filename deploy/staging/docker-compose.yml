@@ -228,6 +228,8 @@ services:
       ORIGIN: https://${SHOP_DOMAIN:-gamesspoteg.com}
       PORT: "3000"
       NODE_ENV: production
+      # SSR → POS on the Docker network (avoids Cloudflare 403 on hairpinned public URL)
+      STOREFRONT_API_BASE_INTERNAL: http://pos:8080
     depends_on:
       - pos
     networks:

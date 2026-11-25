@@ -15,7 +15,7 @@ import { TopCategories } from "~/components/home/top-categories";
 import { TrustBadges } from "~/components/home/trust-badges";
 import { JsonLd } from "~/components/seo/json-ld";
 import {
-  API_BASE,
+  getApiBase,
   fetchBrands,
   fetchHomepage,
   fetchHomepageShelves,
@@ -89,7 +89,7 @@ export const useHomepageSections = routeLoader$(async ({ params }): Promise<Home
       return Array.isArray(data?.sections) ? data.sections : [];
     });
   } catch (err) {
-    console.error(`[storefront] homepage loader failed (API_BASE=${API_BASE})`, err);
+    console.error(`[storefront] homepage loader failed (API_BASE=${getApiBase()})`, err);
     return [];
   }
 });

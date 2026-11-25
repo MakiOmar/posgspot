@@ -13,7 +13,7 @@ import {
   FALLBACK_STORE_SETTINGS,
   type NavCategoriesLoad,
 } from "~/lib/default-site";
-import { API_BASE, fetchCategories, fetchLocations, fetchSettings, setActiveContentLocale } from "~/lib/api";
+import { getApiBase, fetchCategories, fetchLocations, fetchSettings, setActiveContentLocale } from "~/lib/api";
 import { AuthProvider } from "~/lib/auth-context";
 import { CartProvider } from "~/lib/cart-context";
 import { WishlistProvider } from "~/lib/wishlist-context";
@@ -67,7 +67,7 @@ export const useSiteSettings = routeLoader$(async ({ params, pathname }): Promis
     }
     return data;
   } catch (err) {
-    console.error(`[storefront] settings loader failed (API_BASE=${API_BASE})`, err);
+    console.error(`[storefront] settings loader failed (API_BASE=${getApiBase()})`, err);
     return FORCE_STOREFRONT_MAINTENANCE
       ? FORCED_MAINTENANCE_SETTINGS
       : FALLBACK_STORE_SETTINGS;
@@ -114,7 +114,7 @@ export const useNavCategories = routeLoader$(async ({ params }): Promise<NavCate
       return { ok: true, items: Array.isArray(data) ? data : [] };
     });
   } catch (err) {
-    console.error(`[storefront] categories loader failed (API_BASE=${API_BASE})`, err);
+    console.error(`[storefront] categories loader failed (API_BASE=${getApiBase()})`, err);
     return EMPTY_NAV_CATEGORIES;
   }
 });
@@ -130,7 +130,7 @@ export const useFooterLocations = routeLoader$(async ({ params }): Promise<Store
       return Array.isArray(data) ? data : [];
     });
   } catch (err) {
-    console.error(`[storefront] locations loader failed (API_BASE=${API_BASE})`, err);
+    console.error(`[storefront] locations loader failed (API_BASE=${getApiBase()})`, err);
     return [];
   }
 });
