@@ -176,6 +176,7 @@ $(document).ready(function() {
                             location_id: $('input#location_id').val(),
                             term: request.term,
                             not_for_selling: 0,
+                            sellable: 1,
                             include_accounts: 1,
                             accounts_for_sales_order: is_sales_order_form() ? 1 : 0,
                             search_fields: search_fields

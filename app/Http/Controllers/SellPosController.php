@@ -1000,6 +1000,11 @@ class SellPosController extends Controller
                 DB::raw('IF(vld.qty_available > 0, vld.qty_available + transaction_sell_lines.quantity, transaction_sell_lines.quantity) AS qty_available')
             )
             ->get();
+        $sellableByVariation = $this->productUtil->sellableQtyByVariation(
+            (int) $business_id,
+            (int) $location_id,
+            $sell_details->pluck('variation_id')->all()
+        );
         if (!empty($sell_details)) {
             foreach ($sell_details as $key => $value) {
                 $variation = Variation::with('media')->findOrFail($value->variation_id);
@@ -1013,6 +1018,15 @@ class SellPosController extends Controller
                         $actual_qty_avlbl = $value->qty_available - $value->quantity_ordered;
                         $sell_details[$key]->qty_available = $actual_qty_avlbl;
                         $value->qty_available = $actual_qty_avlbl;
+                    }
+
+                    if ((int) $value->enable_stock === 1 && $value->product_type !== 'combo') {
+                        $sellable = $sellableByVariation[(int) $value->variation_id] ?? 0;
+                        if ($transaction->status === 'final') {
+                            $sellable += (float) $value->quantity_ordered;
+                        }
+                        $sell_details[$key]->qty_available = $sellable;
+                        $value->qty_available = $sellable;
                     }
 
                     $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($value->qty_available, false, null, true);
@@ -1081,7 +1095,7 @@ class SellPosController extends Controller
                             ];
                         }
                         $sell_details[$key]->qty_available =
-                        $this->productUtil->calculateComboQuantity($location_id, $combo_variations);
+                        $this->productUtil->calculateComboQuantity($location_id, $combo_variations, $business_id);
 
                         if ($transaction->status == 'final') {
                             $sell_details[$key]->qty_available = $sell_details[$key]->qty_available + $sell_details[$key]->quantity_ordered;
@@ -1933,20 +1947,18 @@ class SellPosController extends Controller
 
         $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
 
-        $check_qty = !empty($pos_settings['allow_overselling']) ? false : true;
+        // Sellable quantity is applied after load and enforced in getProductRow.
+        // Filtering the query on the on-hand counter hid products or returned a 404 when that counter was 0.
+        $check_qty = false;
 
         $is_sales_order = request()->has('is_sales_order') && request()->input('is_sales_order') == 'true' ? true : false;
         $is_draft = request()->has('is_draft') && request()->input('is_draft') == 'true' ? true : false;
-
-        if ($is_sales_order || !empty($so_line) || $is_draft) {
-            $check_qty = false;
-        }
 
         if (request()->input('disable_qty_alert') === 'true') {
             $pos_settings['allow_overselling'] = true;
         }
 
-        $product = $this->productUtil->getDetailsFromVariation($variation_id, $business_id, $location_id, $check_qty);
+        $product = $this->productUtil->getDetailsFromVariation($variation_id, $business_id, $location_id, $check_qty, true);
 
         if (!isset($product->quantity_ordered)) {
             $product->quantity_ordered = $quantity;
@@ -1996,6 +2008,8 @@ class SellPosController extends Controller
 
         $output['success'] = true;
         $output['enable_sr_no'] = $product->enable_sr_no;
+        $output['enable_stock'] = (int) $product->enable_stock;
+        $output['qty_available'] = (float) $product->qty_available;
 
         $waiters = [];
         if ($this->productUtil->isModuleEnabled('service_staff') && !empty($pos_settings['inline_service_staff'])) {
@@ -2087,6 +2101,24 @@ class SellPosController extends Controller
             }
 
             $output = $this->getSellLineRow($variation_id, $location_id, $quantity, $row_count, $is_direct_sell);
+
+            $business_id = request()->session()->get('user.business_id');
+            $business_details = $this->businessUtil->getDetails($business_id);
+            $pos_settings = empty($business_details->pos_settings) ? $this->businessUtil->defaultPosSettings() : json_decode($business_details->pos_settings, true);
+            $allow_without_stock = ! empty($pos_settings['allow_overselling'])
+                || request()->input('disable_qty_alert') === 'true'
+                || request()->input('is_sales_order') == 'true'
+                || request()->input('is_draft') == 'true';
+            if (
+                ! $allow_without_stock
+                && ! empty($output['enable_stock'])
+                && (float) ($output['qty_available'] ?? 0) < (float) $quantity
+            ) {
+                return [
+                    'success' => false,
+                    'msg' => __('lang_v1.item_out_of_stock'),
+                ];
+            }
 
             if ($this->transactionUtil->isModuleEnabled('modifiers') && !$is_direct_sell) {
                 $variation = Variation::find($variation_id);
@@ -2435,6 +2467,10 @@ class SellPosController extends Controller
                 // Tie-breaker keeps pages stable when names repeat.
                 ->orderBy('variations.id', 'asc')
                 ->paginate(50);
+
+            if (! empty($location_id)) {
+                $this->productUtil->applySellableQty($products->getCollection(), (int) $business_id, (int) $location_id, 'id');
+            }
 
             $price_groups = SellingPriceGroup::where('business_id', $business_id)->active()->pluck('name', 'id');
 
@@ -3220,15 +3256,17 @@ class SellPosController extends Controller
             }
 
             $variations_details = $this->getVariationsDetails($business_id, $location_id, $variation_ids);
+            $sellableByVariation = $this->productUtil->sellableQtyByVariation((int) $business_id, (int) $location_id, $variation_ids);
             $is_valid = true;
             $error_messages = [];
             $sell_lines = [];
             $final_total = 0;
             foreach ($variations_details as $variation_details) {
                 if ($variation_details->product->enable_stock == 1) {
-                    if (empty($variation_details->variation_location_details[0]) || $variation_details->variation_location_details[0]->qty_available < $input['products'][$variation_details->id]['quantity']) {
+                    $available = $sellableByVariation[(int) $variation_details->id] ?? 0;
+                    if ($available < $input['products'][$variation_details->id]['quantity']) {
                         $is_valid = false;
-                        $error_messages[] = 'Only ' . $variation_details->variation_location_details[0]->qty_available . ' ' . $variation_details->product->unit->short_name . ' of ' . $input['products'][$variation_details->id]['product_name'] . ' available';
+                        $error_messages[] = 'Only ' . $available . ' ' . $variation_details->product->unit->short_name . ' of ' . $input['products'][$variation_details->id]['product_name'] . ' available';
                     }
                 }
 

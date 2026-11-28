@@ -587,7 +587,7 @@ class ProductUtil extends Util
      * @param  bool  $check_qty (If false qty_available is not checked)
      * @return array
      */
-    public function getDetailsFromVariation($variation_id, $business_id, $location_id = null, $check_qty = true)
+    public function getDetailsFromVariation($variation_id, $business_id, $location_id = null, $check_qty = true, $for_sale = false)
     {
         $variation = Variation::with('media')->findOrFail($variation_id);
 
@@ -674,15 +674,114 @@ class ProductUtil extends Util
 
         $product->media = $variation->media;
 
+        if ($for_sale && ! empty($location_id) && (int) $product->enable_stock === 1 && $product->product_type != 'combo') {
+            $sellable = $this->sellableQtyByVariation((int) $business_id, (int) $location_id, [(int) $variation_id]);
+            $product->qty_available = $sellable[(int) $variation_id] ?? 0;
+        }
+
         if ($product->product_type == 'combo') {
-            if ($check_qty) {
-                $product->qty_available = $this->calculateComboQuantity($location_id, $product->combo_variations);
+            if ($check_qty || $for_sale) {
+                $product->qty_available = $this->calculateComboQuantity(
+                    $location_id,
+                    $product->combo_variations,
+                    $for_sale ? (int) $business_id : null
+                );
             }
 
             $product->combo_products = $this->calculateComboDetails($location_id, $product->combo_variations);
         }
 
         return $product;
+    }
+
+    /**
+     * Quantity a sale at this location can still allocate.
+     *
+     * Same pool as TransactionUtil::mapPurchaseSell: received purchases, opening
+     * stock, purchase transfers, and production receipts. Pending and in-transit
+     * transfers are excluded. The stored qty_available counter is not used.
+     *
+     * @param  array<int>  $variationIds
+     * @return array<int, float>
+     */
+    public function sellableQtyByVariation(int $businessId, int $locationId, array $variationIds): array
+    {
+        $variationIds = array_values(array_unique(array_filter(array_map('intval', $variationIds))));
+        $map = array_fill_keys($variationIds, 0.0);
+        if ($businessId < 1 || $locationId < 1 || $variationIds === []) {
+            return $map;
+        }
+
+        $query = PurchaseLine::query()
+            ->join('transactions', 'transactions.id', '=', 'purchase_lines.transaction_id')
+            ->where('transactions.business_id', $businessId)
+            ->where('transactions.location_id', $locationId)
+            ->where('transactions.status', 'received')
+            ->whereIn('transactions.type', ['purchase', 'purchase_transfer', 'opening_stock', 'production_purchase'])
+            ->whereIn('purchase_lines.variation_id', $variationIds);
+
+        $expiryCutoff = $this->sellableExpiryCutoff();
+        if ($expiryCutoff !== null) {
+            $query->where(function ($q) use ($expiryCutoff) {
+                $q->whereNull('purchase_lines.exp_date')
+                    ->orWhere('purchase_lines.exp_date', '>', $expiryCutoff);
+            });
+        }
+
+        $rows = $query
+            ->groupBy('purchase_lines.variation_id')
+            ->select('purchase_lines.variation_id')
+            ->selectRaw('SUM(GREATEST(purchase_lines.quantity - (purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned + purchase_lines.mfg_quantity_used), 0)) as sellable_qty')
+            ->pluck('sellable_qty', 'purchase_lines.variation_id');
+
+        foreach ($rows as $variationId => $qty) {
+            $map[(int) $variationId] = (float) $qty;
+        }
+
+        return $map;
+    }
+
+    /**
+     * Replace qty_available on sell-screen rows with the sellable quantity.
+     *
+     * @param  iterable<int, object>  $rows
+     */
+    public function applySellableQty($rows, int $businessId, int $locationId, string $variationKey = 'variation_id'): void
+    {
+        $ids = [];
+        foreach ($rows as $row) {
+            if ((int) ($row->enable_stock ?? 0) === 1 && $row->type !== 'combo') {
+                $ids[] = (int) $row->{$variationKey};
+            }
+        }
+        if ($ids === []) {
+            return;
+        }
+
+        $map = $this->sellableQtyByVariation($businessId, $locationId, $ids);
+        foreach ($rows as $row) {
+            if ((int) ($row->enable_stock ?? 0) !== 1 || $row->type === 'combo') {
+                continue;
+            }
+            $row->qty_available = $map[(int) $row->{$variationKey}] ?? 0;
+        }
+    }
+
+    /**
+     * Date before which stock is not sellable when the business stops sales of expiring lots.
+     */
+    private function sellableExpiryCutoff(): ?string
+    {
+        if (! function_exists('request') || ! request()->hasSession() || ! request()->session()->has('business')) {
+            return null;
+        }
+
+        $business = request()->session()->get('business');
+        if (empty($business['enable_product_expiry']) || ($business['on_product_expiry'] ?? null) !== 'stop_selling') {
+            return null;
+        }
+
+        return \Carbon\Carbon::today()->addDays((int) ($business['stop_selling_before'] ?? 0))->toDateString();
     }
 
     /**
@@ -693,14 +792,29 @@ class ProductUtil extends Util
      * @param  array  $combo_variations
      * @return int
      */
-    public function calculateComboQuantity($location_id, $combo_variations)
+    public function calculateComboQuantity($location_id, $combo_variations, $business_id = null)
     {
         //get stock of the items and calcuate accordingly.
+        $sellable = [];
+        if (! empty($business_id) && ! empty($location_id)) {
+            $componentIds = [];
+            foreach ($combo_variations as $value) {
+                if (! empty($value['variation_id'])) {
+                    $componentIds[] = (int) $value['variation_id'];
+                }
+            }
+            $sellable = $this->sellableQtyByVariation((int) $business_id, (int) $location_id, $componentIds);
+        }
+
         $combo_qty = 0;
         foreach ($combo_variations as $key => $value) {
-            $variation = Variation::with(['product', 'variation_location_details' => function ($q) use ($location_id) {
-                $q->where('location_id', $location_id);
-            }])->findOrFail($value['variation_id']);
+            if (! empty($business_id)) {
+                $variation = Variation::with('product')->findOrFail($value['variation_id']);
+            } else {
+                $variation = Variation::with(['product', 'variation_location_details' => function ($q) use ($location_id) {
+                    $q->where('location_id', $location_id);
+                }])->findOrFail($value['variation_id']);
+            }
 
             $product = $variation->product;
 
@@ -709,10 +823,12 @@ class ProductUtil extends Util
                 continue;
             }
 
-            $vld = $variation->variation_location_details
-                          ->first();
-
-            $variation_qty = ! empty($vld) ? $vld->qty_available : 0;
+            if (! empty($business_id)) {
+                $variation_qty = $sellable[(int) $value['variation_id']] ?? 0;
+            } else {
+                $vld = $variation->variation_location_details->first();
+                $variation_qty = ! empty($vld) ? $vld->qty_available : 0;
+            }
             $multiplier = $this->getMultiplierOf2Units($product->unit_id, $value['unit_id']);
 
             if ($combo_qty == 0) {

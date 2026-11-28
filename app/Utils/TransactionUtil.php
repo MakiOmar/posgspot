@@ -4179,6 +4179,8 @@ class TransactionUtil extends Util
         )
                                         ->where('T.business_id', $business_id)
                                         ->where('T.location_id', $location_id)
+                                        ->where('T.status', 'received')
+                                        ->whereIn('T.type', ['purchase', 'purchase_transfer', 'opening_stock', 'production_purchase'])
                                         ->where('purchase_lines.variation_id', $variation_id);
 
         //If expiry is disabled
@@ -4186,12 +4188,12 @@ class TransactionUtil extends Util
             $query->whereNotNull('purchase_lines.lot_number');
         }
         if ($exclude_empty_lot) {
-            $query->whereRaw('(purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned) < purchase_lines.quantity');
+            $query->whereRaw('(purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned + purchase_lines.mfg_quantity_used) < purchase_lines.quantity');
         } else {
-            $query->whereRaw('(purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned) <= purchase_lines.quantity');
+            $query->whereRaw('(purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned + purchase_lines.mfg_quantity_used) <= purchase_lines.quantity');
         }
 
-        $purchase_lines = $query->select('purchase_lines.id as purchase_line_id', 'lot_number', 'purchase_lines.exp_date as exp_date', DB::raw('(purchase_lines.quantity - (purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned)) AS qty_available'))->get();
+        $purchase_lines = $query->select('purchase_lines.id as purchase_line_id', 'lot_number', 'purchase_lines.exp_date as exp_date', DB::raw('(purchase_lines.quantity - (purchase_lines.quantity_sold + purchase_lines.quantity_adjusted + purchase_lines.quantity_returned + purchase_lines.mfg_quantity_used)) AS qty_available'))->get();
 
         return $purchase_lines;
     }

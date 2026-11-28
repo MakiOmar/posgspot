@@ -1273,6 +1273,10 @@ class ProductController extends Controller
 
             $result = $this->productUtil->filterProduct($business_id, $search_term, $location_id, $not_for_selling, $price_group_id, $product_types, $search_fields, $check_qty, 'like', $include_accounts);
 
+            if (request()->boolean('sellable') && ! empty($location_id)) {
+                $this->productUtil->applySellableQty($result, (int) $business_id, (int) $location_id);
+            }
+
             return json_encode($result);
         }
     }

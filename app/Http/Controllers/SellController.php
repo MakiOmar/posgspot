@@ -1128,6 +1128,12 @@ class SellController extends Controller
                         )
                         ->get();
 
+        $sellableByVariation = $this->productUtil->sellableQtyByVariation(
+            (int) $business_id,
+            (int) $location_id,
+            $sell_details->pluck('variation_id')->all()
+        );
+
         if (! empty($sell_details)) {
             foreach ($sell_details as $key => $value) {
 
@@ -1142,6 +1148,15 @@ class SellController extends Controller
                         $actual_qty_avlbl = $value->qty_available - $value->quantity_ordered;
                         $sell_details[$key]->qty_available = $actual_qty_avlbl;
                         $value->qty_available = $actual_qty_avlbl;
+                    }
+
+                    if ((int) $value->enable_stock === 1 && $value->product_type !== 'combo') {
+                        $sellable = $sellableByVariation[(int) $value->variation_id] ?? 0;
+                        if ($transaction->status === 'final') {
+                            $sellable += (float) $value->quantity_ordered;
+                        }
+                        $sell_details[$key]->qty_available = $sellable;
+                        $value->qty_available = $sellable;
                     }
 
                     $sell_details[$key]->formatted_qty_available = $this->productUtil->num_f($value->qty_available, false, null, true);
@@ -1206,7 +1221,7 @@ class SellController extends Controller
                             ];
                         }
                         $sell_details[$key]->qty_available =
-                        $this->productUtil->calculateComboQuantity($location_id, $combo_variations);
+                        $this->productUtil->calculateComboQuantity($location_id, $combo_variations, $business_id);
 
                         if ($transaction->status == 'final') {
                             $sell_details[$key]->qty_available = $sell_details[$key]->qty_available + $sell_details[$key]->quantity_ordered;
